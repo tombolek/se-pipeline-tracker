@@ -1,0 +1,129 @@
+<html>
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"></head>
+<body>
+<table>
+<tr>
+  <th>Opportunity ID</th><th>Account ID</th><th>Account Name</th><th>Account Segment</th>
+  <th>Account Industry</th><th>Target Account</th><th>Opportunity Name</th>
+  <th>Close Date</th><th>Close Month</th><th>Fiscal Period</th><th>Fiscal Year</th>
+  <th>Annualized ARR Currency</th><th>Annualized ARR</th>
+  <th>Annualized ARR (converted) Currency</th><th>Annualized ARR (converted)</th>
+  <th>Opportunity Owner</th><th>Opportunity Record Type</th><th>Team</th>
+  <th>DeployMode</th><th>DeployLoc</th><th>Stage</th><th>Key Deal</th>
+  <th>Potential Pull Forward</th><th>Sales Plays</th><th>Lead Source</th>
+  <th>Opportunity Source</th><th>Channel Source (Grouped)</th><th>BizDev</th>
+  <th>Next Step</th><th>Manager Comments</th><th>Sales Engineering Comments</th>
+  <th>PSM Comments</th><th>Budget</th><th>Authority</th><th>Need</th>
+  <th>Timeline</th><th>Metrics</th><th>Economic Buyer</th><th>Decision Criteria</th>
+  <th>Decision Process</th><th>Paper Process</th><th>Implicate the Pain</th>
+  <th>Champion</th><th>Engaged Competitors</th><th>Agentic Qualification</th>
+  <th>Sourcing Partner</th><th>Sourcing Partner - Internal Tier</th>
+  <th>Influencing Partner</th><th>Partner Manager</th><th>PoC Status</th>
+  <th>PoC Estimated Start Date</th><th>PoC Estimated End Date</th>
+  <th>PoC Type</th><th>PoC Deployment Type</th><th>RFx Status</th>
+</tr>
+<tr>
+  <td>SF-001-ACME</td><td>ACC-001</td><td>ACME Corp</td><td>Enterprise</td>
+  <td>Manufacturing</td><td>False</td><td>ACME Corp — Enterprise Platform</td>
+  <td>2026-06-30</td><td>2026-06-01</td><td>Q2-2026</td><td>FY2026</td>
+  <td>USD</td><td>240000</td><td>USD</td><td>240000</td>
+  <td>Mark Johnson</td><td>New Logo</td><td>NA Enterprise</td>
+  <td>SaaS</td><td>US</td><td>Build Value</td><td>False</td>
+  <td></td><td>Data Quality</td><td>Direct</td>
+  <td>Inbound</td><td>Direct</td><td></td>
+  <td>Schedule technical deep-dive with their data engineering team</td><td></td><td>Strong champion in CDO. IT security review pending. Updated via import.</td>
+  <td></td><td>Pre-approved</td><td>CDO</td><td>Data quality at scale</td>
+  <td>Q2 2026</td><td>Reduce data errors by 40%</td><td>Lisa Park</td><td>Native cloud integration</td>
+  <td>Technical eval then board approval</td><td>Standard MSA</td><td>Data errors causing downstream issues</td>
+  <td>Lisa Park (CDO)</td><td>Informatica, Talend</td><td></td>
+  <td></td><td></td><td></td><td></td><td></td>
+  <td></td><td></td><td></td><td></td><td></td>
+</tr>
+<tr>
+  <td>SF-002-GLOBEX</td><td>ACC-002</td><td>Globex Financial</td><td>Enterprise</td>
+  <td>Financial Services</td><td>False</td><td>Globex Financial — Data Governance</td>
+  <td>2026-05-15</td><td>2026-05-01</td><td>Q2-2026</td><td>FY2026</td>
+  <td>USD</td><td>180000</td><td>USD</td><td>180000</td>
+  <td>Emily Chen</td><td>New Logo</td><td>NA Enterprise</td>
+  <td>PaaS+</td><td>US</td><td>Negotiate</td><td>False</td>
+  <td></td><td>Data Governance</td><td>Direct</td>
+  <td>Inbound</td><td>Direct</td><td></td>
+  <td>Finalize pricing and contract terms</td><td></td><td>Demo went very well. Stage moved to Negotiate after pricing alignment.</td>
+  <td></td><td>Approved</td><td>VP Data</td><td>Data governance compliance</td>
+  <td>Q2 2026</td><td></td><td>Robert Kim</td><td></td>
+  <td></td><td>Standard MSA</td><td></td>
+  <td>Robert Kim (VP Data)</td><td>Collibra</td><td></td>
+  <td></td><td></td><td></td><td></td><td>Completed</td>
+  <td></td><td></td><td></td><td></td><td></td>
+</tr>
+<tr>
+  <td>SF-003-INITECH</td><td>ACC-003</td><td>Initech</td><td>Commercial</td>
+  <td>Technology</td><td>False</td><td>Initech — Data Quality Platform</td>
+  <td>2026-07-31</td><td>2026-07-01</td><td>Q3-2026</td><td>FY2026</td>
+  <td>USD</td><td>96000</td><td>USD</td><td>96000</td>
+  <td>James Wilson</td><td>New Logo</td><td>NA Commercial</td>
+  <td>SaaS</td><td>US</td><td>Develop Solution</td><td>False</td>
+  <td></td><td>Data Quality</td><td>Partner</td>
+  <td>Inbound</td><td>Partner</td><td></td>
+  <td>Build custom demo for their Snowflake environment</td><td></td><td></td>
+  <td></td><td></td><td></td><td></td>
+  <td></td><td></td><td></td><td></td>
+  <td></td><td></td><td></td>
+  <td>Sandra Lee (Data Architect)</td><td>Monte Carlo</td><td></td>
+  <td></td><td></td><td></td><td></td><td></td>
+  <td></td><td></td><td></td><td></td><td></td>
+</tr>
+<tr>
+  <td>SF-004-HOOLI</td><td>ACC-004</td><td>Hooli Inc</td><td>Enterprise</td>
+  <td>Technology</td><td>True</td><td>Hooli Inc — MDM Expansion</td>
+  <td>2026-04-30</td><td>2026-04-01</td><td>Q2-2026</td><td>FY2026</td>
+  <td>USD</td><td>320000</td><td>USD</td><td>320000</td>
+  <td>Patricia Moore</td><td>Upsell</td><td>NA Enterprise</td>
+  <td>PaaS+</td><td>US</td><td>Negotiate</td><td>True</td>
+  <td></td><td>MDM</td><td>Direct</td>
+  <td>Existing Customer</td><td>Direct</td><td></td>
+  <td>Legal reviewing MSA redlines — target sign by Apr 30</td><td></td><td>Technical validation complete. Waiting on legal and procurement.</td>
+  <td></td><td>Approved</td><td>CTO</td><td>MDM for global expansion</td>
+  <td>Q2 2026</td><td></td><td>Chris Evans</td><td></td>
+  <td></td><td>Custom MSA</td><td></td>
+  <td>Chris Evans (CTO)</td><td></td><td></td>
+  <td></td><td></td><td></td><td></td><td></td>
+  <td></td><td></td><td></td><td></td><td></td>
+</tr>
+<tr>
+  <td>SF-005-UMBRELLA</td><td>ACC-005</td><td>Umbrella Corp</td><td>Enterprise</td>
+  <td>Life Sciences</td><td>False</td><td>Umbrella Corp — Compliance &amp; DQ</td>
+  <td>2026-09-30</td><td>2026-09-01</td><td>Q3-2026</td><td>FY2026</td>
+  <td>USD</td><td>150000</td><td>USD</td><td>150000</td>
+  <td>Diana Prince</td><td>New Logo</td><td>NA Enterprise</td>
+  <td>SaaS</td><td>US</td><td>Qualify</td><td>False</td>
+  <td></td><td>Compliance</td><td>Event</td>
+  <td>Inbound</td><td>Direct</td><td></td>
+  <td>Intro call scheduled for next week</td><td></td><td></td>
+  <td></td><td></td><td></td><td></td>
+  <td></td><td></td><td></td><td></td>
+  <td></td><td></td><td></td>
+  <td></td><td></td><td></td>
+  <td></td><td></td><td></td><td></td><td></td>
+  <td></td><td></td><td></td><td></td><td></td>
+</tr>
+<tr>
+  <td>SF-006-NEWDEAL</td><td>ACC-006</td><td>Stark Industries</td><td>Enterprise</td>
+  <td>Aerospace</td><td>True</td><td>Stark Industries — Data Platform</td>
+  <td>2026-08-31</td><td>2026-08-01</td><td>Q3-2026</td><td>FY2026</td>
+  <td>USD</td><td>480000</td><td>USD</td><td>480000</td>
+  <td>Tony Rhodes</td><td>New Logo</td><td>NA Enterprise</td>
+  <td>PaaS+</td><td>US</td><td>Build Value</td><td>True</td>
+  <td></td><td>Data Quality, MDM</td><td>Direct</td>
+  <td>Outbound</td><td>Direct</td><td></td>
+  <td>Schedule exec alignment meeting</td><td></td><td>First meeting done — massive potential. Multiple use cases.</td>
+  <td></td><td></td><td></td><td></td>
+  <td></td><td></td><td></td><td></td>
+  <td></td><td></td><td></td>
+  <td>Pepper Potts (CFO)</td><td></td><td></td>
+  <td></td><td></td><td></td><td></td><td></td>
+  <td></td><td></td><td></td><td></td><td></td>
+</tr>
+</table>
+</body>
+</html>
