@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import api from '../../api/client';
 import type { ApiResponse } from '../../types';
 import { formatDate, formatARR } from '../../utils/formatters';
+import Drawer from '../../components/Drawer';
+import OpportunityDetail from '../../components/OpportunityDetail';
 
 interface PocOpp {
   id: number;
@@ -35,13 +37,13 @@ const COLUMN_DOT: Record<string, string> = {
   'Wrapping Up':   'bg-status-success',
 };
 
-function PocCard({ opp }: { opp: PocOpp }) {
+function PocCard({ opp, onClick }: { opp: PocOpp; onClick: () => void }) {
   const today = new Date();
   const endDate = opp.poc_end_date ? new Date(opp.poc_end_date) : null;
   const isOverdue = endDate && endDate < today && !opp.is_closed_lost;
 
   return (
-    <div className="bg-white rounded-xl border border-brand-navy-30/40 p-3.5 shadow-sm hover:shadow-md transition-shadow">
+    <div onClick={onClick} className="bg-white rounded-xl border border-brand-navy-30/40 p-3.5 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
       {/* Name + badges */}
       <div className="flex items-start justify-between gap-2 mb-0.5">
         <p className="text-sm font-semibold text-brand-navy leading-tight">{opp.name}</p>
@@ -96,7 +98,7 @@ function PocCard({ opp }: { opp: PocOpp }) {
   );
 }
 
-function KanbanColumn({ title, cards }: { title: string; cards: PocOpp[] }) {
+function KanbanColumn({ title, cards, onCardClick }: { title: string; cards: PocOpp[]; onCardClick: (id: number) => void }) {
   const colorClass = COLUMN_COLORS[title] ?? 'bg-brand-navy-30/20 text-brand-navy-70 border-brand-navy-30';
   const dotClass = COLUMN_DOT[title] ?? 'bg-brand-navy-30';
 
@@ -118,7 +120,7 @@ function KanbanColumn({ title, cards }: { title: string; cards: PocOpp[] }) {
             None
           </div>
         ) : (
-          cards.map(c => <PocCard key={c.id} opp={c} />)
+          cards.map(c => <PocCard key={c.id} opp={c} onClick={() => onCardClick(c.id)} />)
         )}
       </div>
     </div>
@@ -129,6 +131,7 @@ export default function PocBoardPage() {
   const [opps, setOpps] = useState<PocOpp[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
 
   useEffect(() => {
     api.get<ApiResponse<PocOpp[]>>('/insights/poc')
@@ -158,7 +161,7 @@ export default function PocBoardPage() {
   if (error)   return <div className="px-8 py-6 text-sm text-status-overdue">{error}</div>;
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full relative">
       {/* Header */}
       <div className="px-8 pt-6 pb-4 flex-shrink-0">
         <div className="flex items-baseline gap-3">
@@ -177,14 +180,18 @@ export default function PocBoardPage() {
         <div className="flex-1 overflow-x-auto overflow-y-hidden">
           <div className="flex gap-5 h-full px-8 pb-6" style={{ minWidth: 'max-content' }}>
             {COLUMNS.map(col => (
-              <KanbanColumn key={col} title={col} cards={grouped[col]} />
+              <KanbanColumn key={col} title={col} cards={grouped[col]} onCardClick={setSelectedId} />
             ))}
             {other.length > 0 && (
-              <KanbanColumn title="Other" cards={other} />
+              <KanbanColumn title="Other" cards={other} onCardClick={setSelectedId} />
             )}
           </div>
         </div>
       )}
+
+      <Drawer open={selectedId !== null} onClose={() => setSelectedId(null)}>
+        {selectedId !== null && <OpportunityDetail key={selectedId} oppId={selectedId} />}
+      </Drawer>
     </div>
   );
 }

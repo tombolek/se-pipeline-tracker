@@ -13,14 +13,14 @@ export default function InsightsPage() {
   // Kanban boards need horizontal scroll — render with their own layout
   if (pathname.includes('poc-board')) {
     return (
-      <div className="flex-1 overflow-hidden bg-[#F5F5F7] flex flex-col">
+      <div className="flex-1 overflow-hidden bg-[#F5F5F7] flex flex-col relative">
         <PocBoardPage />
       </div>
     );
   }
   if (pathname.includes('rfx-board')) {
     return (
-      <div className="flex-1 overflow-hidden bg-[#F5F5F7] flex flex-col">
+      <div className="flex-1 overflow-hidden bg-[#F5F5F7] flex flex-col relative">
         <RfxBoardPage />
       </div>
     );
