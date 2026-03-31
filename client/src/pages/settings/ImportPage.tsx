@@ -177,7 +177,7 @@ export default function ImportPage() {
             <input
               ref={fileInputRef}
               type="file"
-              accept=".xls,.xlsx,.html,.htm"
+              accept=".xls,.xlsx,.html,.htm,.csv"
               className="hidden"
               onChange={e => { const f = e.target.files?.[0]; if (f) selectFile(f); }}
             />
