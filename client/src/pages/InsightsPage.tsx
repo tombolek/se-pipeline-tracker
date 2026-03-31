@@ -6,6 +6,7 @@ import OverdueTasksPage from './insights/OverdueTasksPage';
 import PocBoardPage from './insights/PocBoardPage';
 import RfxBoardPage from './insights/RfxBoardPage';
 import DeployModePage from './insights/DeployModePage';
+import SeDealMappingPage from './insights/SeDealMappingPage';
 
 export default function InsightsPage() {
   const { pathname } = useLocation();
@@ -38,6 +39,14 @@ export default function InsightsPage() {
     return (
       <div className="flex-1 overflow-hidden bg-[#F5F5F7] flex flex-col relative">
         <DeployModePage />
+      </div>
+    );
+  }
+
+  if (pathname.includes('se-mapping')) {
+    return (
+      <div className="flex-1 overflow-hidden bg-[#F5F5F7] flex flex-col relative">
+        <SeDealMappingPage />
       </div>
     );
   }

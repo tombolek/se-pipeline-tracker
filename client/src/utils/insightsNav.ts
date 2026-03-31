@@ -16,6 +16,7 @@ export const DEFAULT_INSIGHTS_NAV: InsightsNavItem[] = [
   { id: 'poc-board',      label: 'PoC Board',      to: '/insights/poc-board',      icon: 'poc',     visible: true },
   { id: 'rfx-board',      label: 'RFx Board',      to: '/insights/rfx-board',      icon: 'poc',     visible: true },
   { id: 'deploy-mode',    label: 'DeployMode',     to: '/insights/deploy-mode',    icon: 'insight', visible: true },
+  { id: 'se-mapping',     label: 'SE Mapping',     to: '/insights/se-mapping',     icon: 'insight', visible: true },
 ];
 
 export function getInsightsNav(): InsightsNavItem[] {
