@@ -158,21 +158,23 @@ function parseXlsx(buffer: Buffer): ParsedRow[] {
   return buildParsedRows(matrix as string[][]);
 }
 
-// ── CSV parser (UTF-8, UTF-8 BOM, UTF-16 LE/BE) ──────────────────────────
+// ── CSV parser (UTF-8, UTF-8 BOM, UTF-16 LE/BE, double-BOM) ─────────────
 function parseCsv(buffer: Buffer): ParsedRow[] {
   let text: string;
   // UTF-16 LE BOM: FF FE
   if (buffer[0] === 0xFF && buffer[1] === 0xFE) {
-    text = buffer.slice(2).toString('utf16le');
-  // UTF-16 BE BOM: FE FF
+    text = new TextDecoder('utf-16le').decode(buffer);
+  // UTF-16 BE BOM: FE FF (including double-BOM variant FF FE FF FE)
   } else if (buffer[0] === 0xFE && buffer[1] === 0xFF) {
-    text = Buffer.from(buffer.slice(2)).swap16().toString('utf16le');
+    text = new TextDecoder('utf-16be').decode(buffer);
   // UTF-8 BOM: EF BB BF
   } else if (buffer[0] === 0xEF && buffer[1] === 0xBB && buffer[2] === 0xBF) {
     text = buffer.slice(3).toString('utf8');
   } else {
     text = buffer.toString('utf8');
   }
+  // Strip all leading BOM characters (handles single and double BOMs)
+  text = text.replace(/^\uFEFF+/, '');
   const wb = XLSX.read(text, { type: 'string' });
   const ws = wb.Sheets[wb.SheetNames[0]];
   if (!ws) throw new Error('No worksheet found in CSV.');

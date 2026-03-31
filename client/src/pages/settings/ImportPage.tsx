@@ -85,7 +85,7 @@ export default function ImportPage() {
       setStep('preview');
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setPreviewError(msg ?? 'Could not parse file. Make sure it is a valid Salesforce XLS export.');
+      setPreviewError(msg ?? 'Could not parse file. Supported formats: Salesforce XLS export, .xlsx, or CSV (UTF-8 / UTF-16).');
     } finally {
       setPreviewing(false);
     }
