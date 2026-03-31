@@ -16,7 +16,6 @@ export const DEFAULT_INSIGHTS_NAV: InsightsNavItem[] = [
   { id: 'poc-board',      label: 'PoC Board',      to: '/insights/poc-board',      icon: 'poc',     visible: true },
   { id: 'rfx-board',      label: 'RFx Board',      to: '/insights/rfx-board',      icon: 'poc',     visible: true },
   { id: 'deploy-mode',    label: 'DeployMode',     to: '/insights/deploy-mode',    icon: 'insight', visible: true },
-  { id: 'se-mapping',     label: 'SE Mapping',     to: '/insights/se-mapping',     icon: 'insight', visible: true },
 ];
 
 export function getInsightsNav(): InsightsNavItem[] {
@@ -24,9 +23,10 @@ export function getInsightsNav(): InsightsNavItem[] {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (!stored) return DEFAULT_INSIGHTS_NAV;
     const parsed = JSON.parse(stored) as InsightsNavItem[];
-    // Merge: preserve stored order/visibility but append any new defaults not yet stored
+    // Merge: preserve stored order/visibility, append new defaults, drop removed items
+    const validIds = new Set(DEFAULT_INSIGHTS_NAV.map(d => d.id));
     const storedIds = new Set(parsed.map(i => i.id));
-    const merged = [...parsed];
+    const merged = parsed.filter(i => validIds.has(i.id));
     for (const d of DEFAULT_INSIGHTS_NAV) {
       if (!storedIds.has(d.id)) merged.push(d);
     }
