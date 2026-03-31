@@ -161,9 +161,18 @@ export async function reconcileImport(
 ): Promise<ImportStats> {
   const stats: ImportStats = { rowCount: rows.length, added: 0, updated: 0, closedLost: 0, errors: [] };
 
+  // Snapshot all currently active opps BEFORE making any changes (for rollback)
+  const snapshot = await query<Record<string, unknown>>(
+    `SELECT * FROM opportunities WHERE is_active = true AND is_closed_lost = false`
+  );
+  const addedIds: number[] = [];
+
+  interface FieldHistoryEntry { opportunity_id: number; field_name: string; old_value: string | null; new_value: string | null; }
+  const fieldHistoryEntries: FieldHistoryEntry[] = [];
+
   // Get all currently active (non-closed) SF IDs
-  const activeOpps = await query<{ id: number; sf_opportunity_id: string; stage: string; se_comments: string | null; manager_comments: string | null }>(
-    `SELECT id, sf_opportunity_id, stage, se_comments, manager_comments
+  const activeOpps = await query<{ id: number; sf_opportunity_id: string; stage: string; se_comments: string | null; manager_comments: string | null; next_step_sf: string | null }>(
+    `SELECT id, sf_opportunity_id, stage, se_comments, manager_comments, next_step_sf
      FROM opportunities
      WHERE is_active = true AND is_closed_lost = false`
   );
@@ -190,10 +199,17 @@ export async function reconcileImport(
           params.push(existing.stage);
         }
 
-        // Track se_comments freshness
+        // Track se_comments freshness + history
         const newSeComments = row.dbFields['se_comments'] as string | null;
         if (newSeComments !== existing.se_comments) {
           setClauses.push(`se_comments_updated_at = now()`);
+          fieldHistoryEntries.push({ opportunity_id: existing.id, field_name: 'se_comments', old_value: existing.se_comments, new_value: newSeComments });
+        }
+
+        // Track next_step_sf history
+        const newNextStep = row.dbFields['next_step_sf'] as string | null;
+        if (newNextStep !== existing.next_step_sf) {
+          fieldHistoryEntries.push({ opportunity_id: existing.id, field_name: 'next_step_sf', old_value: existing.next_step_sf, new_value: newNextStep });
         }
 
         // Track manager_comments freshness
@@ -222,11 +238,12 @@ export async function reconcileImport(
         const placeholders = ['$1', 'now()', ...Object.keys(row.dbFields).map((_, i) => `$${i + 2}`)];
         const values = [JSON.stringify(row.rawFields), ...Object.values(row.dbFields)];
 
-        await query(
+        const inserted = await queryOne<{ id: number }>(
           `INSERT INTO opportunities (${fields.join(', ')}) VALUES (${placeholders.join(', ')})
-           ON CONFLICT (sf_opportunity_id) DO NOTHING`,
+           ON CONFLICT (sf_opportunity_id) DO NOTHING RETURNING id`,
           values
         );
+        if (inserted) addedIds.push(inserted.id);
         stats.added++;
       }
     } catch (e) {
@@ -254,11 +271,12 @@ export async function reconcileImport(
     : stats.errors.length < stats.rowCount ? 'partial'
     : 'failed';
 
-  await query(
+  const importLog = await queryOne<{ id: number }>(
     `INSERT INTO imports
        (filename, row_count, opportunities_added, opportunities_updated,
-        opportunities_closed_lost, status, error_log)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        opportunities_closed_lost, status, error_log, rollback_data)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+     RETURNING id`,
     [
       filename,
       stats.rowCount,
@@ -267,8 +285,20 @@ export async function reconcileImport(
       stats.closedLost,
       status,
       stats.errors.length > 0 ? stats.errors.join('\n') : null,
+      { opps: snapshot, added_ids: addedIds },
     ]
   );
+
+  // Insert field history entries linked to this import
+  if (importLog && fieldHistoryEntries.length > 0) {
+    for (const entry of fieldHistoryEntries) {
+      await query(
+        `INSERT INTO opportunity_field_history (opportunity_id, import_id, field_name, old_value, new_value)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [entry.opportunity_id, importLog.id, entry.field_name, entry.old_value, entry.new_value]
+      );
+    }
+  }
 
   return stats;
 }

@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import multer from 'multer';
+import Anthropic from '@anthropic-ai/sdk';
 import { query, queryOne } from '../db/index.js';
 import { requireAuth, requireManager } from '../middleware/auth.js';
 import { parseImportFile, reconcileImport } from '../services/importService.js';
@@ -38,9 +39,67 @@ router.post('/import', auth, mgr, upload.single('file'), async (req: Request, re
 // GET /opportunities/import/history  (Manager only)
 router.get('/import/history', auth, mgr, async (_req: Request, res: Response): Promise<void> => {
   const rows = await query(
-    `SELECT * FROM imports ORDER BY imported_at DESC LIMIT 50`
+    `SELECT id, imported_at, filename, row_count, opportunities_added, opportunities_updated,
+            opportunities_closed_lost, status, error_log,
+            (rollback_data IS NOT NULL) AS has_rollback
+     FROM imports ORDER BY imported_at DESC LIMIT 50`
   );
   res.json(ok(rows));
+});
+
+// DELETE /opportunities/import/:id  (Manager only — rollback)
+router.delete('/import/:id', auth, mgr, async (req: Request, res: Response): Promise<void> => {
+  const importId = parseInt(req.params.id);
+  if (isNaN(importId)) { res.status(400).json(err('Invalid import id')); return; }
+
+  // Only the most recent import can be rolled back
+  const latest = await queryOne<{ id: number }>(`SELECT id FROM imports ORDER BY imported_at DESC LIMIT 1`);
+  if (!latest || latest.id !== importId) {
+    res.status(400).json(err('Only the most recent import can be rolled back'));
+    return;
+  }
+
+  interface RollbackData { opps: Record<string, unknown>[]; added_ids: number[]; }
+  const importRow = await queryOne<{ rollback_data: RollbackData | null }>(
+    `SELECT rollback_data FROM imports WHERE id = $1`, [importId]
+  );
+  if (!importRow) { res.status(404).json(err('Import not found')); return; }
+  if (!importRow.rollback_data) {
+    res.status(400).json(err('No rollback data for this import'));
+    return;
+  }
+
+  const { opps, added_ids } = importRow.rollback_data;
+
+  // Restore each snapshotted opportunity to its pre-import state
+  for (const snap of opps) {
+    const { id, created_at, ...fields } = snap;
+    void created_at;
+    const fieldKeys = Object.keys(fields);
+    const params: unknown[] = [];
+    const setClauses = fieldKeys.map(key => {
+      params.push(fields[key]);
+      return `${key} = $${params.length}`;
+    });
+    params.push(id);
+    await query(
+      `UPDATE opportunities SET ${setClauses.join(', ')} WHERE id = $${params.length}`,
+      params
+    );
+  }
+
+  // Soft-delete opportunities that were newly added by this import
+  if (added_ids.length > 0) {
+    await query(
+      `UPDATE opportunities SET is_active = false, updated_at = now() WHERE id = ANY($1::int[])`,
+      [added_ids]
+    );
+  }
+
+  // Remove the import log entry
+  await query(`DELETE FROM imports WHERE id = $1`, [importId]);
+
+  res.json(ok({ rolled_back: importId, restored: opps.length, removed: added_ids.length }));
 });
 
 // GET /opportunities/closed-lost
@@ -124,6 +183,85 @@ router.post('/:id/tasks', auth, async (req: Request, res: Response): Promise<voi
      is_next_step ?? false, due_date ?? null, assigned_to_id ?? userId, userId]
   );
   res.status(201).json(ok(task));
+});
+
+// POST /opportunities/:id/summary  — AI deal summary
+router.post('/:id/summary', auth, async (req: Request, res: Response): Promise<void> => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) { res.status(400).json(err('Invalid opportunity id')); return; }
+
+  const opp = await queryOne<Record<string, unknown>>(
+    `SELECT o.*, u.name AS se_owner_name
+     FROM opportunities o
+     LEFT JOIN users u ON u.id = o.se_owner_id
+     WHERE o.id = $1`,
+    [id]
+  );
+  if (!opp) { res.status(404).json(err('Opportunity not found')); return; }
+
+  const tasks = await query(
+    `SELECT t.title, t.status, t.due_date, t.is_next_step
+     FROM tasks t WHERE t.opportunity_id = $1 AND t.is_deleted = false AND t.status != 'done'
+     ORDER BY t.is_next_step DESC, t.due_date ASC NULLS LAST`,
+    [id]
+  );
+
+  const notes = await query(
+    `SELECT n.content, u.name AS author_name, n.created_at
+     FROM notes n JOIN users u ON u.id = n.author_id
+     WHERE n.opportunity_id = $1 ORDER BY n.created_at DESC LIMIT 10`,
+    [id]
+  );
+
+  const formatDate = (d: unknown) => d ? new Date(d as string).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A';
+  const formatARR = (a: unknown) => a ? `$${(Number(a) / 1000).toFixed(0)}K` : 'N/A';
+
+  const taskLines = tasks.length
+    ? tasks.map((t: Record<string, unknown>) =>
+        `- [${t.is_next_step ? 'NEXT STEP' : t.status}] ${t.title}${t.due_date ? ` (due ${formatDate(t.due_date)})` : ''}`
+      ).join('\n')
+    : 'No open tasks.';
+
+  const noteLines = notes.length
+    ? [...notes].reverse().map((n: Record<string, unknown>) =>
+        `[${formatDate(n.created_at)} — ${n.author_name}]: ${n.content}`
+      ).join('\n')
+    : 'No notes yet.';
+
+  const prompt = `You are an SE deal intelligence assistant. Provide a concise 3-5 sentence deal summary covering: current status and momentum, key risks or blockers, and the recommended next action.
+
+Opportunity: ${opp.name}
+Account: ${opp.account_name ?? 'N/A'}
+Stage: ${opp.stage}
+ARR: ${formatARR(opp.arr)}
+Close Date: ${formatDate(opp.close_date)}
+AE Owner: ${opp.ae_owner_name ?? 'N/A'}
+SE Owner: ${opp.se_owner_name ?? 'Unassigned'}
+
+Next Step (from SF): ${opp.next_step_sf ?? 'N/A'}
+
+SE Comments: ${opp.se_comments ?? 'None'}
+
+Manager Comments: ${opp.manager_comments ?? 'None'}
+
+Open Tasks:
+${taskLines}
+
+Recent Notes (oldest to newest):
+${noteLines}
+
+Write a concise 3-5 sentence deal summary.`;
+
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const response = await client.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 400,
+    messages: [{ role: 'user', content: prompt }],
+  });
+
+  const summaryBlock = response.content.find(b => b.type === 'text');
+  const summary = summaryBlock && summaryBlock.type === 'text' ? summaryBlock.text : '';
+  res.json(ok({ summary }));
 });
 
 // GET /opportunities  (list)
@@ -218,6 +356,29 @@ router.get('/', auth, async (req: Request, res: Response): Promise<void> => {
   }));
 
   res.json(ok(data, { total: data.length }));
+});
+
+// GET /opportunities/:id/field-history?field=se_comments|next_step_sf
+router.get('/:id/field-history', auth, async (req: Request, res: Response): Promise<void> => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) { res.status(400).json(err('Invalid opportunity id')); return; }
+
+  const { field } = req.query as { field?: string };
+  const allowed = ['se_comments', 'next_step_sf'];
+  if (!field || !allowed.includes(field)) {
+    res.status(400).json(err('field must be se_comments or next_step_sf'));
+    return;
+  }
+
+  const rows = await query(
+    `SELECT id, field_name, old_value, new_value, changed_at
+     FROM opportunity_field_history
+     WHERE opportunity_id = $1 AND field_name = $2
+     ORDER BY changed_at DESC
+     LIMIT 30`,
+    [id, field]
+  );
+  res.json(ok(rows));
 });
 
 // GET /opportunities/:id

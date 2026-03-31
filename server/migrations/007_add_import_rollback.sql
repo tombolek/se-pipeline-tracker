@@ -1,0 +1,1 @@
+ALTER TABLE imports ADD COLUMN IF NOT EXISTS rollback_data JSONB;

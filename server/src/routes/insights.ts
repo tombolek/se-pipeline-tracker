@@ -122,4 +122,63 @@ router.get('/overdue-tasks', auth, mgr, async (_req: Request, res: Response): Pr
   res.json(ok(Object.values(grouped)));
 });
 
+// GET /insights/rfx  — all opps with a rfx_status set
+router.get('/rfx', auth, mgr, async (_req: Request, res: Response): Promise<void> => {
+  const rows = await query(
+    `SELECT
+       o.id, o.name, o.account_name, o.stage, o.arr, o.arr_currency,
+       o.rfx_status,
+       o.ae_owner_name,
+       o.is_closed_lost,
+       u.id   AS se_owner_id,
+       u.name AS se_owner_name
+     FROM opportunities o
+     LEFT JOIN users u ON u.id = o.se_owner_id
+     WHERE o.rfx_status IS NOT NULL AND o.rfx_status != ''
+     ORDER BY o.name ASC`
+  );
+
+  res.json(ok(rows));
+});
+
+// GET /insights/poc  — all opps with a poc_status set
+router.get('/poc', auth, mgr, async (_req: Request, res: Response): Promise<void> => {
+  const rows = await query(
+    `SELECT
+       o.id, o.name, o.account_name, o.stage, o.arr, o.arr_currency,
+       o.poc_status, o.poc_start_date, o.poc_end_date, o.poc_type,
+       o.ae_owner_name,
+       o.is_closed_lost,
+       u.id   AS se_owner_id,
+       u.name AS se_owner_name
+     FROM opportunities o
+     LEFT JOIN users u ON u.id = o.se_owner_id
+     WHERE o.poc_status IS NOT NULL AND o.poc_status != ''
+     ORDER BY o.poc_start_date ASC NULLS LAST, o.name ASC`
+  );
+
+  res.json(ok(rows));
+});
+
+// GET /insights/deploy-mode — all active opps grouped by deploy mode
+router.get('/deploy-mode', auth, mgr, async (_req: Request, res: Response): Promise<void> => {
+  const rows = await query(
+    `SELECT
+       o.id, o.name, o.account_name, o.stage, o.arr, o.arr_currency,
+       o.deploy_mode, o.deploy_location,
+       o.close_date, o.fiscal_period,
+       o.se_comments, o.se_comments_updated_at,
+       o.agentic_qual,
+       o.technical_blockers,
+       o.ae_owner_name,
+       u.id   AS se_owner_id,
+       u.name AS se_owner_name
+     FROM opportunities o
+     LEFT JOIN users u ON u.id = o.se_owner_id
+     WHERE o.is_active = true AND o.is_closed_lost = false
+     ORDER BY o.deploy_mode ASC NULLS LAST, o.arr DESC NULLS LAST`
+  );
+  res.json(ok(rows));
+});
+
 export default router;

@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "client",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "C:\\claude\\buddy\\se-pipeline-tracker\\client",
+      "port": 5173
+    }
+  ]
+}

@@ -10,6 +10,8 @@ import opportunitiesRoutes from './routes/opportunities.js';
 import tasksRoutes from './routes/tasks.js';
 import notesRoutes from './routes/notes.js';
 import insightsRoutes from './routes/insights.js';
+import inboxRoutes from './routes/inbox.js';
+import usersRoutes from './routes/users.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -26,6 +28,8 @@ app.use('/api/v1/opportunities', opportunitiesRoutes);
 app.use('/api/v1/tasks', tasksRoutes);
 app.use('/api/v1/opportunities/:id/notes', notesRoutes);
 app.use('/api/v1/insights', insightsRoutes);
+app.use('/api/v1/inbox', inboxRoutes);
+app.use('/api/v1/users', usersRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
