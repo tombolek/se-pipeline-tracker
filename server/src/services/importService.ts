@@ -1,4 +1,5 @@
 import * as cheerio from 'cheerio';
+import * as XLSX from 'xlsx';
 import { query, queryOne } from '../db/index.js';
 
 // ── Column mapping: SF export header → DB field ────────────────────────────
@@ -86,26 +87,13 @@ export interface ImportStats {
   errors: string[];
 }
 
-// ── Parse HTML-in-XLS file ─────────────────────────────────────────────────
-export function parseImportFile(buffer: Buffer): ParsedRow[] {
-  const html = buffer.toString('utf8');
-  const $ = cheerio.load(html);
-
-  // Find the first table
-  const table = $('table').first();
-  if (!table.length) {
-    throw new Error('No table found in file. Expected HTML-in-XLS format from Salesforce.');
+// ── Build ParsedRow[] from a 2-D string matrix (shared by all parsers) ───────
+function buildParsedRows(matrix: string[][]): ParsedRow[] {
+  if (matrix.length < 2) {
+    throw new Error('File has no data rows (only a header row or is empty).');
   }
 
-  const rows = table.find('tr').toArray();
-  if (rows.length < 2) {
-    throw new Error('File has no data rows (only a header row or empty).');
-  }
-
-  // Extract headers from first row (th or td)
-  const headers = $(rows[0]).find('th, td').toArray().map(el =>
-    $(el).text().trim().toLowerCase()
-  );
+  const headers = matrix[0].map(h => String(h ?? '').trim().toLowerCase());
 
   if (!headers.includes('opportunity id')) {
     throw new Error('Required column "Opportunity ID" not found. Check file format.');
@@ -113,31 +101,25 @@ export function parseImportFile(buffer: Buffer): ParsedRow[] {
 
   const parsed: ParsedRow[] = [];
 
-  for (let i = 1; i < rows.length; i++) {
-    const cells = $(rows[i]).find('td').toArray().map(el => $(el).text().trim());
+  for (let i = 1; i < matrix.length; i++) {
+    const cells = matrix[i];
 
-    // Build raw fields object (preserves all columns for sf_raw_fields JSONB)
     const rawFields: Record<string, string> = {};
-    headers.forEach((h, idx) => {
-      rawFields[h] = cells[idx] ?? '';
-    });
+    headers.forEach((h, idx) => { rawFields[h] = String(cells[idx] ?? '').trim(); });
 
-    // Map to DB fields
     const dbFields: Record<string, unknown> = {};
     headers.forEach((header, idx) => {
       const dbField = COLUMN_MAP[header];
-      if (dbField === undefined) return; // unknown column — goes to raw only
-      if (dbField === null) return;       // explicitly raw-only column
+      if (dbField === undefined) return;
+      if (dbField === null) return;
 
-      const raw = cells[idx] ?? '';
-      const trimmed = raw.trim();
+      const trimmed = String(cells[idx] ?? '').trim();
 
       if (BOOLEAN_FIELDS.has(dbField)) {
         dbFields[dbField] = trimmed.toLowerCase() === 'true' || trimmed === '1' || trimmed.toLowerCase() === 'yes';
       } else if (DATE_FIELDS.has(dbField)) {
-        dbFields[dbField] = trimmed ? trimmed : null;
+        dbFields[dbField] = trimmed || null;
       } else if (NUMERIC_FIELDS.has(dbField)) {
-        // Strip currency symbols, commas, spaces
         const cleaned = trimmed.replace(/[^0-9.-]/g, '');
         dbFields[dbField] = cleaned ? parseFloat(cleaned) : null;
       } else {
@@ -145,13 +127,81 @@ export function parseImportFile(buffer: Buffer): ParsedRow[] {
       }
     });
 
-    // Skip rows without an Opportunity ID
     if (!dbFields['sf_opportunity_id']) continue;
 
     parsed.push({ dbFields, rawFields });
   }
 
   return parsed;
+}
+
+// ── HTML-in-XLS parser (Salesforce default browser export) ────────────────
+function parseHtml(html: string): ParsedRow[] {
+  const $ = cheerio.load(html);
+  const table = $('table').first();
+  if (!table.length) {
+    throw new Error('No table found in file. Expected HTML-in-XLS, .xlsx, or .csv format.');
+  }
+  const rows = table.find('tr').toArray();
+  const matrix: string[][] = rows.map(row =>
+    $(row).find('th, td').toArray().map(el => $(el).text().trim())
+  );
+  return buildParsedRows(matrix);
+}
+
+// ── OOXML .xlsx parser ────────────────────────────────────────────────────
+function parseXlsx(buffer: Buffer): ParsedRow[] {
+  const wb = XLSX.read(buffer, { type: 'buffer', raw: false });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  if (!ws) throw new Error('No worksheet found in Excel file.');
+  const matrix = XLSX.utils.sheet_to_json<string[]>(ws, { header: 1, defval: '', raw: false });
+  return buildParsedRows(matrix as string[][]);
+}
+
+// ── CSV parser (UTF-8, UTF-8 BOM, UTF-16 LE/BE) ──────────────────────────
+function parseCsv(buffer: Buffer): ParsedRow[] {
+  let text: string;
+  // UTF-16 LE BOM: FF FE
+  if (buffer[0] === 0xFF && buffer[1] === 0xFE) {
+    text = buffer.slice(2).toString('utf16le');
+  // UTF-16 BE BOM: FE FF
+  } else if (buffer[0] === 0xFE && buffer[1] === 0xFF) {
+    text = Buffer.from(buffer.slice(2)).swap16().toString('utf16le');
+  // UTF-8 BOM: EF BB BF
+  } else if (buffer[0] === 0xEF && buffer[1] === 0xBB && buffer[2] === 0xBF) {
+    text = buffer.slice(3).toString('utf8');
+  } else {
+    text = buffer.toString('utf8');
+  }
+  const wb = XLSX.read(text, { type: 'string' });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  if (!ws) throw new Error('No worksheet found in CSV.');
+  const matrix = XLSX.utils.sheet_to_json<string[]>(ws, { header: 1, defval: '', raw: false });
+  return buildParsedRows(matrix as string[][]);
+}
+
+// ── Main entry point — detects format from magic bytes ────────────────────
+export function parseImportFile(buffer: Buffer): ParsedRow[] {
+  // OOXML .xlsx — ZIP magic: PK (50 4B 03 04)
+  if (buffer[0] === 0x50 && buffer[1] === 0x4B) {
+    return parseXlsx(buffer);
+  }
+  // UTF-16 LE or BE BOM → CSV
+  if ((buffer[0] === 0xFF && buffer[1] === 0xFE) ||
+      (buffer[0] === 0xFE && buffer[1] === 0xFF)) {
+    return parseCsv(buffer);
+  }
+  // UTF-8 BOM → could be CSV or HTML; check for table tag
+  if (buffer[0] === 0xEF && buffer[1] === 0xBB && buffer[2] === 0xBF) {
+    const text = buffer.slice(3).toString('utf8');
+    return text.includes('<table') ? parseHtml(text) : parseCsv(buffer);
+  }
+  // Plain text — HTML-in-XLS or plain UTF-8 CSV
+  const text = buffer.toString('utf8');
+  if (text.includes('<table')) {
+    return parseHtml(text);
+  }
+  return parseCsv(buffer);
 }
 
 // ── Run reconciliation ─────────────────────────────────────────────────────
