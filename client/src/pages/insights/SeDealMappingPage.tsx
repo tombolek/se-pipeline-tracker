@@ -6,6 +6,7 @@ import StageBadge from '../../components/shared/StageBadge';
 import { formatARR, formatDate } from '../../utils/formatters';
 import Drawer from '../../components/Drawer';
 import OpportunityDetail from '../../components/OpportunityDetail';
+import { useAuthStore } from '../../store/auth';
 
 interface MappingOpp {
   id: number;
@@ -69,10 +70,13 @@ function SeAssignSelect({
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function SeDealMappingPage() {
+  const { user: currentUser } = useAuthStore();
   const [opps, setOpps] = useState<MappingOpp[]>([]);
   const [ses, setSes] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filterSe, setFilterSe] = useState<number | 'unassigned' | 'all'>('all');
+  const defaultFilter: number | 'unassigned' | 'all' =
+    currentUser?.role === 'se' && currentUser.id ? currentUser.id : 'all';
+  const [filterSe, setFilterSe] = useState<number | 'unassigned' | 'all'>(defaultFilter);
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
   const load = useCallback(async () => {
