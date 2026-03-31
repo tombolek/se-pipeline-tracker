@@ -302,3 +302,30 @@ export async function reconcileImport(
 
   return stats;
 }
+
+// ── Dry-run diff (no DB writes) ────────────────────────────────────────────
+export async function previewImport(rows: ParsedRow[]): Promise<ImportStats> {
+  const stats: ImportStats = { rowCount: rows.length, added: 0, updated: 0, closedLost: 0, errors: [] };
+
+  const activeOpps = await query<{ sf_opportunity_id: string }>(
+    `SELECT sf_opportunity_id FROM opportunities WHERE is_active = true AND is_closed_lost = false`
+  );
+  const activeIds = new Set(activeOpps.map(o => o.sf_opportunity_id));
+  const seenIds = new Set<string>();
+
+  for (const row of rows) {
+    const sfId = row.dbFields['sf_opportunity_id'] as string;
+    seenIds.add(sfId);
+    if (activeIds.has(sfId)) {
+      stats.updated++;
+    } else {
+      stats.added++;
+    }
+  }
+
+  for (const sfId of activeIds) {
+    if (!seenIds.has(sfId)) stats.closedLost++;
+  }
+
+  return stats;
+}

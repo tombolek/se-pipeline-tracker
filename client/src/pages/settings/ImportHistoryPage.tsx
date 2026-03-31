@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import api from '../../api/client';
 import type { ApiResponse } from '../../types';
 
@@ -12,6 +12,7 @@ interface ImportRow {
   opportunities_closed_lost: number;
   status: 'success' | 'partial' | 'failed';
   error_log: string | null;
+  has_rollback: boolean;
 }
 
 function StatusBadge({ status }: { status: ImportRow['status'] }) {
@@ -31,19 +32,41 @@ export default function ImportHistoryPage() {
   const [rows, setRows] = useState<ImportRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [rollingBack, setRollingBack] = useState(false);
 
-  useEffect(() => {
-    api.get<ApiResponse<ImportRow[]>>('/opportunities/import/history')
-      .then(r => setRows(r.data.data))
-      .catch(() => setError('Failed to load import history.'))
-      .finally(() => setLoading(false));
+  const load = useCallback(async () => {
+    try {
+      const r = await api.get<ApiResponse<ImportRow[]>>('/opportunities/import/history');
+      setRows(r.data.data);
+      setError(null);
+    } catch {
+      setError('Failed to load import history.');
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function handleRollback(id: number, filename: string | null) {
+    if (!window.confirm(`Roll back import "${filename ?? 'unknown'}"?\n\nAll opportunity changes from this import will be undone.`)) return;
+    setRollingBack(true);
+    try {
+      await api.delete(`/opportunities/import/${id}`);
+      await load();
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      window.alert(msg ?? 'Rollback failed.');
+    } finally {
+      setRollingBack(false);
+    }
+  }
 
   return (
     <div>
       <div className="mb-6">
         <h1 className="text-xl font-semibold text-brand-navy">Import History</h1>
-        <p className="text-sm text-brand-navy-70 mt-0.5">Salesforce data import log — last 50 imports</p>
+        <p className="text-sm text-brand-navy-70 mt-0.5">Salesforce data import log — last 50 imports. The most recent import can be undone.</p>
       </div>
 
       {loading && <div className="text-sm text-brand-navy-70 py-10 text-center">Loading…</div>}
@@ -56,13 +79,13 @@ export default function ImportHistoryPage() {
           <table className="w-full">
             <thead className="border-b border-brand-navy-30/40">
               <tr>
-                {['Date', 'File', 'Rows', 'Added', 'Updated', 'Closed Lost', 'Status'].map(h => (
-                  <th key={h} className="px-4 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">{h}</th>
+                {['Date', 'File', 'Rows', 'Added', 'Updated', 'Removed', 'Status', ''].map((h, i) => (
+                  <th key={i} className="px-4 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {rows.map(r => (
+              {rows.map((r, idx) => (
                 <tr key={r.id} className="border-b border-brand-navy-30/20 last:border-0 hover:bg-gray-50">
                   <td className="px-4 py-3 text-xs text-brand-navy whitespace-nowrap">
                     {new Date(r.imported_at).toLocaleString()}
@@ -78,11 +101,22 @@ export default function ImportHistoryPage() {
                     <div>
                       <StatusBadge status={r.status} />
                       {r.error_log && (
-                        <p className="text-[10px] text-status-overdue mt-1 max-w-[200px] truncate" title={r.error_log}>
+                        <p className="text-[10px] text-status-overdue mt-1 max-w-[180px] truncate" title={r.error_log}>
                           {r.error_log}
                         </p>
                       )}
                     </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    {idx === 0 && r.has_rollback && (
+                      <button
+                        onClick={() => handleRollback(r.id, r.filename)}
+                        disabled={rollingBack}
+                        className="text-xs px-2.5 py-1 rounded-lg border border-status-warning text-status-warning hover:bg-status-warning/10 transition-colors disabled:opacity-40 whitespace-nowrap"
+                      >
+                        {rollingBack ? 'Undoing…' : 'Undo'}
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}

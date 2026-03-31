@@ -3,7 +3,7 @@ import multer from 'multer';
 import Anthropic from '@anthropic-ai/sdk';
 import { query, queryOne } from '../db/index.js';
 import { requireAuth, requireManager } from '../middleware/auth.js';
-import { parseImportFile, reconcileImport } from '../services/importService.js';
+import { parseImportFile, reconcileImport, previewImport } from '../services/importService.js';
 import { AuthenticatedRequest, ok, err } from '../types/index.js';
 
 const router = Router();
@@ -32,6 +32,26 @@ router.post('/import', auth, mgr, upload.single('file'), async (req: Request, re
     res.json(ok(stats, { filename: req.file.originalname }));
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Import failed';
+    res.status(422).json(err(message));
+  }
+});
+
+// POST /opportunities/import/preview  (Manager only — dry run, no DB writes)
+router.post('/import/preview', auth, mgr, upload.single('file'), async (req: Request, res: Response): Promise<void> => {
+  if (!req.file) {
+    res.status(400).json(err('No file uploaded.'));
+    return;
+  }
+  try {
+    const rows = parseImportFile(req.file.buffer);
+    if (rows.length === 0) {
+      res.status(400).json(err('File parsed successfully but contained no valid data rows.'));
+      return;
+    }
+    const stats = await previewImport(rows);
+    res.json(ok(stats));
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'Preview failed';
     res.status(422).json(err(message));
   }
 });
