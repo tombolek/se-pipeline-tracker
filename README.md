@@ -537,24 +537,138 @@ The Insights sidebar section is hidden for SE role. All `/insights/*` and `/user
 
 ## Salesforce Import Pipeline
 
-Salesforce data comes in as an XLS export of an Opportunities report. The file is actually HTML-in-XLS format (Salesforce's default export) — it is parsed as an HTML table, not a native XLS binary.
+Salesforce data comes in as an XLS export of an Opportunities report. The file is actually **HTML-in-XLS format** (Salesforce's default export) — it is parsed as an HTML table, not a native XLS binary.
+
+### How to generate the export file
+
+1. Open the Salesforce Opportunities report (the pre-built report shared with the team)
+2. Click **Export** → choose **Excel Format (.xls)**
+3. Save the file and upload it via **Settings → Import**
+
+The file must contain an **"Opportunity ID"** column — this is the immutable reconciliation key.
 
 ### Import flow
 
-1. Upload via `POST /api/v1/opportunities/import` (multipart file upload or raw POST — supports future automation)
-2. Parse file as HTML table → extract 55 column values per row
-3. For each row, match on `sf_opportunity_id`:
-   - **Match found**: update all SF-owned fields; if `stage` changed → set `stage_changed_at`, `previous_stage`; if `se_comments` changed → set `se_comments_updated_at`; never touch `se_owner_id`, tasks, or notes
-   - **New SF ID**: insert new opportunity record
-   - **SF ID absent from this import but previously active**: mark as Closed Lost (`is_closed_lost = true`, `closed_at = now()`, `closed_lost_seen = false`)
-4. Store complete raw row in `sf_raw_fields` JSONB — future SF columns are automatically captured without a schema migration
-5. Log result to `imports` table
+1. **Preview** — upload the file to get a dry-run diff (no data is changed yet): rows parsed, new deals, updated deals, removed from open pipeline
+2. **Confirm** — review the counts and click **Confirm & Import** to apply the changes
+3. The server processes each row:
+   - **Match found** (SF ID already in DB): update all SF-owned fields; if `stage` changed → record `stage_changed_at` and `previous_stage`; if `se_comments` changed → update `se_comments_updated_at` freshness timestamp; never touch `se_owner_id`, tasks, or notes
+   - **New SF ID**: insert a new opportunity record
+   - **SF ID absent from this import but previously active**: mark as Closed Lost (`is_closed_lost = true`, `closed_at = now()`)
+4. Every raw row is stored in the `sf_raw_fields` JSONB column — future SF columns are automatically captured without a schema migration
+5. A pre-import snapshot is saved for rollback. The most recent import can be undone via **Settings → Import** or **Settings → Import History**
 
 ### Important notes
 
 - The import always contains **open opportunities only** — there is no "Closed Lost" status in the SF export feed
-- The first import establishes the baseline; from the second import onwards, absent SF IDs are treated as newly Closed Lost
-- `technical_blockers` and other fields not yet in the current SF export auto-populate from `sf_raw_fields` once Salesforce includes them — no code change needed
+- The **first import** establishes the baseline; from the second import onwards, absent SF IDs are treated as newly Closed Lost
+- Fields not yet present in the current SF export (e.g. `technical_blockers`) will auto-populate from `sf_raw_fields` once Salesforce includes them — no code change needed
+
+### Import file field reference
+
+The expected Salesforce export contains the following 55 columns. Column headers are matched case-insensitively and trimmed.
+
+#### Core deal fields
+
+| SF Column Header | DB Field | Type | Notes |
+|---|---|---|---|
+| Opportunity ID | `sf_opportunity_id` | text | **Required** — reconciliation key, never changes |
+| Opportunity Name | `name` | text | |
+| Account ID | `account_id` | text | SF Account record ID |
+| Account Name | `account_name` | text | |
+| Account Segment | `account_segment` | text | e.g. Enterprise, Commercial |
+| Account Industry | `account_industry` | text | |
+| Stage | `stage` | text | e.g. Build Value, Proposal Sent |
+| Close Date | `close_date` | date | |
+| Close Month | `close_month` | date | |
+| Fiscal Period | `fiscal_period` | text | e.g. Q2-2026 |
+| Fiscal Year | `fiscal_year` | text | |
+| Opportunity Record Type | `record_type` | text | New Logo, Upsell, Renewal, etc. |
+| Team | `team` | text | e.g. NA Enterprise, EMEA |
+| Target Account | `key_deal` | boolean | true/false/yes |
+| Key Deal | `key_deal` | boolean | Alias for Target Account |
+
+#### Commercial fields
+
+| SF Column Header | DB Field | Type | Notes |
+|---|---|---|---|
+| Annualized ARR | `arr` | numeric | Currency symbols and commas stripped automatically |
+| Annualized ARR Currency | `arr_currency` | text | e.g. USD, EUR |
+| Annualized ARR (converted) | `arr_converted` | numeric | Converted to base currency |
+| Opportunity Owner | `ae_owner_name` | text | AE name |
+
+#### Sales & marketing fields
+
+| SF Column Header | DB Field | Type | Notes |
+|---|---|---|---|
+| Sales Plays | `sales_plays` | text | |
+| Lead Source | `lead_source` | text | |
+| Opportunity Source | `opportunity_source` | text | |
+| Channel Source (Grouped) | `channel_source` | text | |
+| BizDev | `biz_dev` | text | |
+
+#### Deployment fields
+
+| SF Column Header | DB Field | Type | Notes |
+|---|---|---|---|
+| DeployMode | `deploy_mode` | text | e.g. PaaS+, SaaS |
+| DeployLoc | `deploy_location` | text | |
+
+#### MEDDPICC & deal context
+
+| SF Column Header | DB Field | Type | Notes |
+|---|---|---|---|
+| Next Step | `next_step_sf` | text | AE-entered next step; changes tracked in field history |
+| Manager Comments | `manager_comments` | text | Freshness tracked via `manager_comments_updated_at` |
+| Sales Engineering Comments | `se_comments` | text | Freshness tracked via `se_comments_updated_at` |
+| PSM Comments | `psm_comments` | text | |
+| Budget | `budget` | text | |
+| Authority | `authority` | text | |
+| Need | `need` | text | |
+| Timeline | `timeline` | text | |
+| Metrics | `metrics` | text | |
+| Economic Buyer | `economic_buyer` | text | |
+| Decision Criteria | `decision_criteria` | text | |
+| Decision Process | `decision_process` | text | |
+| Paper Process | `paper_process` | text | |
+| Implicate the Pain | `implicate_pain` | text | |
+| Champion | `champion` | text | |
+| Engaged Competitors | `engaged_competitors` | text | |
+| Agentic Qualification | `agentic_qual` | text | |
+
+#### Partner fields
+
+| SF Column Header | DB Field | Type | Notes |
+|---|---|---|---|
+| Sourcing Partner | `sourcing_partner` | text | |
+| Sourcing Partner - Internal Tier | `sourcing_partner_tier` | text | |
+| Influencing Partner | `influencing_partner` | text | |
+| Partner Manager | `partner_manager` | text | |
+
+#### PoC fields
+
+| SF Column Header | DB Field | Type | Notes |
+|---|---|---|---|
+| PoC Status | `poc_status` | text | e.g. In Progress, Wrapping Up |
+| PoC Estimated Start Date | `poc_start_date` | date | |
+| PoC Estimated End Date | `poc_end_date` | date | |
+| PoC Type | `poc_type` | text | |
+| PoC Deployment Type | `poc_deploy_type` | text | |
+
+#### RFx fields
+
+| SF Column Header | DB Field | Type | Notes |
+|---|---|---|---|
+| RFx Status | `rfx_status` | text | e.g. In Review, In Progress, Completed |
+
+#### Raw-only fields (stored in `sf_raw_fields` JSONB, not promoted to a dedicated column)
+
+| SF Column Header | Notes |
+|---|---|
+| Annualized ARR (converted) Currency | Currency code for the converted ARR value |
+| Potential Pull Forward | Stored for reference |
+
+> **Any column not listed above** is also captured automatically in `sf_raw_fields` and will not cause the import to fail. This means new Salesforce columns are safe to add to the report without any code changes.
 
 ---
 

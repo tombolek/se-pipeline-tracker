@@ -13,8 +13,6 @@ export const DEFAULT_INSIGHTS_NAV: InsightsNavItem[] = [
   { id: 'missing-notes',  label: 'Missing Notes',  to: '/insights/missing-notes',  icon: 'insight', visible: true },
   { id: 'team-workload',  label: 'Team Workload',  to: '/insights/team-workload',  icon: 'insight', visible: true },
   { id: 'overdue-tasks',  label: 'Overdue Tasks',  to: '/insights/overdue-tasks',  icon: 'insight', visible: true },
-  { id: 'poc-board',      label: 'PoC Board',      to: '/insights/poc-board',      icon: 'poc',     visible: true },
-  { id: 'rfx-board',      label: 'RFx Board',      to: '/insights/rfx-board',      icon: 'poc',     visible: true },
   { id: 'deploy-mode',    label: 'DeployMode',     to: '/insights/deploy-mode',    icon: 'insight', visible: true },
 ];
 
