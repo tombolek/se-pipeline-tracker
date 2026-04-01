@@ -141,7 +141,7 @@ function FilterBar({
             : 'border-brand-navy-30 text-brand-navy-70 hover:border-brand-navy hover:text-brand-navy'
         }`}
       >
-        Qualify
+        Show Qualify
         {!includeQualify && qualifyCount > 0 && (
           <span className="text-[10px] bg-brand-navy-30 text-brand-navy-70 rounded-full px-1.5">{qualifyCount}</span>
         )}
