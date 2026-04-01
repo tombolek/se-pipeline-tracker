@@ -174,7 +174,7 @@ export default function SeDealMappingPage() {
             <table className="w-full">
               <thead className="border-b border-brand-navy-30/40">
                 <tr>
-                  {['Opportunity', 'Stage', 'ARR', 'Close', 'AE Owner', 'SE Owner'].map(h => (
+                  {['SE Owner', 'Opportunity', 'Stage', 'ARR', 'Close', 'AE Owner'].map(h => (
                     <th key={h} className="px-4 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -192,6 +192,9 @@ export default function SeDealMappingPage() {
                           : 'hover:bg-brand-purple-30/10'
                       }`}
                     >
+                      <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
+                        <SeAssignSelect opp={opp} ses={ses} onAssigned={handleAssigned} />
+                      </td>
                       <td className="px-4 py-3">
                         <p className="text-sm font-medium text-brand-navy leading-tight truncate max-w-[260px]">{opp.name}</p>
                         <p className="text-xs text-brand-navy-70 truncate max-w-[260px]">{opp.account_name ?? '—'}</p>
@@ -207,9 +210,6 @@ export default function SeDealMappingPage() {
                       </td>
                       <td className="px-4 py-3 text-xs text-brand-navy-70 whitespace-nowrap">
                         {opp.ae_owner_name ?? <span className="text-brand-navy-30">—</span>}
-                      </td>
-                      <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
-                        <SeAssignSelect opp={opp} ses={ses} onAssigned={handleAssigned} />
                       </td>
                     </tr>
                   );
