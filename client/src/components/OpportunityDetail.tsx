@@ -235,7 +235,7 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
               <p className="text-sm text-brand-navy-70 mt-0.5">{opp.account_name ?? '—'}</p>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-              {!isReadOnly && !opp.se_owner_id && user?.role !== 'manager' && (
+              {!isReadOnly && !opp.se_owner && user?.role !== 'manager' && (
                 <button
                   onClick={handleAssignSelf}
                   disabled={assigningOwner}
@@ -383,7 +383,7 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
           <FieldRow label="ARR" value={formatARR(opp.arr)} />
           <FieldRow label="Close" value={formatDate(opp.close_date)} />
           <FieldRow label="AE Owner" value={opp.ae_owner_name} />
-          <FieldRow label="SE Owner" value={opp.se_owner_name ?? 'Unassigned'} />
+          <FieldRow label="SE Owner" value={opp.se_owner?.name ?? 'Unassigned'} />
           <FieldRow label="Team" value={opp.team} />
           <FieldRow label="Record Type" value={opp.record_type} />
           <FieldRow label="Deploy" value={opp.deploy_mode} />
