@@ -71,23 +71,24 @@ function PocCard({ opp, onClick }: { opp: PocOpp; onClick: () => void }) {
       </div>
 
       {/* Footer: dates + ARR */}
-      <div className="border-t border-brand-navy-30/30 pt-2 space-y-1">
-        {(opp.poc_start_date || opp.poc_end_date) && (
-          <div className={`flex items-center gap-1 text-[11px] ${isOverdue ? 'text-status-overdue font-medium' : 'text-brand-navy-70'}`}>
-            <svg className="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            <span>{formatDate(opp.poc_start_date)}</span>
-            {opp.poc_end_date && (
-              <>
-                <span className="text-brand-navy-30 mx-0.5">→</span>
-                <span>{formatDate(opp.poc_end_date)}</span>
-              </>
-            )}
-            {isOverdue && <span className="ml-1 text-[9px] font-bold">OVERDUE</span>}
-          </div>
-        )}
-        <div className="flex items-center justify-between">
+      <div className="border-t border-brand-navy-30/30 pt-2 space-y-1.5">
+        {/* Start date */}
+        <div className="flex items-center gap-1.5 text-[11px]">
+          <span className="text-brand-navy-30 font-medium w-9 flex-shrink-0">Start</span>
+          <span className="text-brand-navy-70">{formatDate(opp.poc_start_date) ?? '—'}</span>
+        </div>
+        {/* End date */}
+        <div className={`flex items-center gap-1.5 text-[11px] ${isOverdue ? 'text-status-overdue font-semibold' : ''}`}>
+          <span className={`font-medium w-9 flex-shrink-0 ${isOverdue ? 'text-status-overdue' : 'text-brand-navy-30'}`}>End</span>
+          <span className={isOverdue ? 'text-status-overdue' : 'text-brand-navy-70'}>
+            {formatDate(opp.poc_end_date) ?? '—'}
+          </span>
+          {isOverdue && (
+            <span className="ml-1 text-[9px] font-bold bg-status-overdue/10 text-status-overdue px-1 rounded">OVERDUE</span>
+          )}
+        </div>
+        {/* ARR + type */}
+        <div className="flex items-center justify-between pt-0.5">
           <span className="text-[11px] text-brand-navy-70 font-medium">{formatARR(opp.arr)}</span>
           {opp.poc_type && (
             <span className="text-[10px] text-brand-navy-30 truncate max-w-[120px]">{opp.poc_type}</span>
