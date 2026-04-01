@@ -181,4 +181,30 @@ router.get('/deploy-mode', auth, mgr, async (_req: Request, res: Response): Prom
   res.json(ok(rows));
 });
 
+// GET /insights/closed-lost-stats?days=30|90|365|0 (0 = all time)
+router.get('/closed-lost-stats', auth, mgr, async (req: Request, res: Response): Promise<void> => {
+  const days = parseInt((req.query.days as string) ?? '0') || 0;
+
+  const rows = await query(
+    `SELECT
+       o.id, o.name, o.account_name,
+       o.stage, o.previous_stage,
+       o.arr, o.arr_currency,
+       o.record_type,
+       o.team,
+       o.ae_owner_name,
+       o.closed_at,
+       u.id   AS se_owner_id,
+       u.name AS se_owner_name
+     FROM opportunities o
+     LEFT JOIN users u ON u.id = o.se_owner_id
+     WHERE o.is_closed_lost = true
+       ${days > 0 ? 'AND o.closed_at >= now() - ($1 || \' days\')::interval' : ''}
+     ORDER BY o.closed_at DESC NULLS LAST`,
+    days > 0 ? [days] : []
+  );
+
+  res.json(ok(rows, { days }));
+});
+
 export default router;

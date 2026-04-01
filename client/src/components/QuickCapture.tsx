@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { usePipelineStore } from '../store/pipeline';
+import { useAuthStore } from '../store/auth';
 import { listOpportunities } from '../api/opportunities';
 import { createNote } from '../api/notes';
 import { createTask } from '../api/tasks';
@@ -10,8 +11,10 @@ type CaptureType = 'note' | 'task';
 
 export default function QuickCapture() {
   const { quickCaptureOpen, closeQuickCapture } = usePipelineStore();
+  const { user } = useAuthStore();
+  const defaultType: CaptureType = user?.role === 'manager' ? 'task' : 'note';
 
-  const [type, setType] = useState<CaptureType>('note');
+  const [type, setType] = useState<CaptureType>(defaultType);
   const [text, setText] = useState('');
   const [oppSearch, setOppSearch] = useState('');
   const [oppResults, setOppResults] = useState<Opportunity[]>([]);
@@ -28,7 +31,7 @@ export default function QuickCapture() {
   useEffect(() => {
     if (quickCaptureOpen) {
       setText('');
-      setType('note');
+      setType(defaultType);
       setOppSearch('');
       setOppResults([]);
       setSelectedOpp(null);

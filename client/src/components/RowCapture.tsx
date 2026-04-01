@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { createNote } from '../api/notes';
 import { createTask } from '../api/tasks';
+import { useAuthStore } from '../store/auth';
 
 type CaptureType = 'note' | 'task';
 
@@ -11,8 +12,10 @@ interface Props {
 }
 
 export default function RowCapture({ oppId, oppName, onSaved }: Props) {
+  const { user } = useAuthStore();
+  const defaultType: CaptureType = user?.role === 'manager' ? 'task' : 'note';
   const [open, setOpen] = useState(false);
-  const [type, setType] = useState<CaptureType>('note');
+  const [type, setType] = useState<CaptureType>(defaultType);
   const [text, setText] = useState('');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -28,7 +31,7 @@ export default function RowCapture({ oppId, oppName, onSaved }: Props) {
     const left = Math.min(rect.right - 260, window.innerWidth - 276);
     setPos({ top: rect.bottom + 6, left: Math.max(8, left) });
     setText('');
-    setType('note');
+    setType(defaultType);
     setSaved(false);
     setOpen(true);
   }

@@ -13,7 +13,8 @@ export const DEFAULT_INSIGHTS_NAV: InsightsNavItem[] = [
   { id: 'missing-notes',  label: 'Missing Notes',  to: '/insights/missing-notes',  icon: 'insight', visible: true },
   { id: 'team-workload',  label: 'Team Workload',  to: '/insights/team-workload',  icon: 'insight', visible: true },
   { id: 'overdue-tasks',  label: 'Overdue Tasks',  to: '/insights/overdue-tasks',  icon: 'insight', visible: true },
-  { id: 'deploy-mode',    label: 'DeployMode',     to: '/insights/deploy-mode',    icon: 'insight', visible: true },
+  { id: 'deploy-mode',         label: 'DeployMode',          to: '/insights/deploy-mode',         icon: 'insight', visible: true },
+  { id: 'closed-lost-stats',   label: 'Closed Lost Stats',   to: '/insights/closed-lost-stats',   icon: 'insight', visible: true },
 ];
 
 export function getInsightsNav(): InsightsNavItem[] {

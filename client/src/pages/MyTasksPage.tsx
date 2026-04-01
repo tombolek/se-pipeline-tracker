@@ -115,11 +115,12 @@ function TaskCard({
             onChange={e => setEditTitle(e.target.value)}
             className="w-full px-2 py-1.5 rounded border border-brand-navy-30 text-sm text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-purple"
           />
-          <input
+          <textarea
             value={editDesc}
             onChange={e => setEditDesc(e.target.value)}
             placeholder="Description (optional)"
-            className="w-full px-2 py-1 rounded border border-brand-navy-30 text-xs text-brand-navy placeholder:text-brand-navy-30 focus:outline-none focus:ring-1 focus:ring-brand-purple"
+            rows={3}
+            className="w-full px-2 py-1 rounded border border-brand-navy-30 text-xs text-brand-navy placeholder:text-brand-navy-30 focus:outline-none focus:ring-1 focus:ring-brand-purple resize-none"
           />
           <div className="flex items-center gap-2 flex-wrap">
             <input

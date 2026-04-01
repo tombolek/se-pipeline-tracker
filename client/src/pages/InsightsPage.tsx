@@ -7,6 +7,7 @@ import PocBoardPage from './insights/PocBoardPage';
 import RfxBoardPage from './insights/RfxBoardPage';
 import DeployModePage from './insights/DeployModePage';
 import SeDealMappingPage from './insights/SeDealMappingPage';
+import ClosedLostStatsPage from './insights/ClosedLostStatsPage';
 
 export default function InsightsPage() {
   const { pathname } = useLocation();
@@ -39,6 +40,14 @@ export default function InsightsPage() {
     return (
       <div className="flex-1 overflow-hidden bg-[#F5F5F7] flex flex-col relative">
         <DeployModePage />
+      </div>
+    );
+  }
+
+  if (pathname.includes('closed-lost-stats')) {
+    return (
+      <div className="flex-1 overflow-hidden bg-[#F5F5F7] flex flex-col relative">
+        <ClosedLostStatsPage />
       </div>
     );
   }
