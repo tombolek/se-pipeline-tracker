@@ -1,5 +1,5 @@
 import api from './client';
-import type { User, ApiResponse } from '../types';
+import type { User, ColumnPrefs, ApiResponse } from '../types';
 
 export async function listUsers(): Promise<User[]> {
   const { data } = await api.get<ApiResponse<User[]>>('/users');
@@ -28,7 +28,9 @@ export async function deleteUser(id: number): Promise<void> {
   await api.delete(`/users/${id}`);
 }
 
-export async function updateMyPreferences(show_qualify: boolean): Promise<User> {
-  const { data } = await api.patch<ApiResponse<User>>('/users/me/preferences', { show_qualify });
+export async function updateMyPreferences(
+  prefs: { show_qualify?: boolean; column_prefs?: ColumnPrefs }
+): Promise<User> {
+  const { data } = await api.patch<ApiResponse<User>>('/users/me/preferences', prefs);
   return data.data;
 }

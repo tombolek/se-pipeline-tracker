@@ -17,7 +17,9 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
   }
 
   const user = await queryOne<User & { password_hash: string }>(
-    'SELECT * FROM users WHERE email = $1 AND is_active = true',
+    `SELECT id, email, name, role, is_active, show_qualify, column_prefs,
+            created_at, last_login_at, password_hash
+     FROM users WHERE email = $1 AND is_active = true`,
     [email.toLowerCase().trim()]
   );
 
@@ -55,7 +57,9 @@ router.post('/logout', (_req: Request, res: Response): void => {
 router.get('/me', requireAuth as unknown as (req: Request, res: Response, next: () => void) => void, async (req: Request, res: Response): Promise<void> => {
   const { userId } = (req as AuthenticatedRequest).user;
   const user = await queryOne<User>(
-    'SELECT id, email, name, role, is_active, show_qualify, created_at, last_login_at FROM users WHERE id = $1',
+    `SELECT id, email, name, role, is_active, show_qualify, column_prefs,
+            created_at, last_login_at
+     FROM users WHERE id = $1`,
     [userId]
   );
   if (!user) {

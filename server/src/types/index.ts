@@ -1,5 +1,11 @@
 import { Request } from 'express';
 
+export interface ColumnPrefs {
+  pipeline: string[];
+  closed_lost: string[];
+  se_mapping: string[];
+}
+
 export interface User {
   id: number;
   email: string;
@@ -7,6 +13,7 @@ export interface User {
   role: 'manager' | 'se';
   is_active: boolean;
   show_qualify: boolean;
+  column_prefs: ColumnPrefs | null;
   created_at: string;
   last_login_at: string | null;
 }
