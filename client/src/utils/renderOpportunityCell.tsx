@@ -9,8 +9,9 @@ import TruncatedCell from '../components/shared/TruncatedCell';
 import { formatARR, formatDate } from './formatters';
 
 const dash = <span className="text-brand-navy-30">—</span>;
+// block + truncate + max-w caps plain-text cells so no single value blows out column width
 const txt = (v: string | null | undefined) =>
-  v ? <span className="text-xs text-brand-navy-70">{v}</span> : dash;
+  v ? <span className="text-xs text-brand-navy-70 block truncate max-w-[180px]">{v}</span> : dash;
 
 export function renderOpportunityCell(opp: Opportunity, colKey: string): React.ReactNode {
   switch (colKey) {
@@ -53,7 +54,7 @@ export function renderOpportunityCell(opp: Opportunity, colKey: string): React.R
     case 'ae_owner_name':    return txt(opp.ae_owner_name);
     case 'se_owner':
       return opp.se_owner
-        ? <span className="text-xs text-brand-navy-70">{opp.se_owner.name}</span>
+        ? <span className="text-xs text-brand-navy-70 block truncate max-w-[180px]">{opp.se_owner.name}</span>
         : <span className="text-xs text-status-warning font-medium">Unassigned</span>;
     case 'team':                return txt(opp.team);
     case 'lead_source':         return txt(opp.lead_source);
