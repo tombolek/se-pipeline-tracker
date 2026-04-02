@@ -1,0 +1,212 @@
+{
+  "/SePipelineStack/Custom::S3AutoDeleteObjectsCustomResourceProvider": [
+    {
+      "type": "aws:cdk:is-custom-resource-handler-customResourceProvider",
+      "data": true
+    }
+  ],
+  "/SePipelineStack/SsmParameterValue:--aws--service--ami-amazon-linux-latest--al2023-ami-kernel-6.1-arm64:C96584B6-F00A-464E-AD19-53AFF4B05118.Parameter": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "SsmParameterValueawsserviceamiamazonlinuxlatestal2023amikernel61arm64C96584B6F00A464EAD1953AFF4B05118Parameter"
+    }
+  ],
+  "/SePipelineStack/Eip": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "Eip"
+    }
+  ],
+  "/SePipelineStack/AppUrl": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "AppUrl"
+    }
+  ],
+  "/SePipelineStack/DistributionId": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "DistributionId"
+    }
+  ],
+  "/SePipelineStack/InstanceIp": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "InstanceIp"
+    }
+  ],
+  "/SePipelineStack/KeyPairId": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "KeyPairId"
+    }
+  ],
+  "/SePipelineStack/FrontendBucketName": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "FrontendBucketName"
+    }
+  ],
+  "/SePipelineStack/BackupBucketName": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "BackupBucketName"
+    }
+  ],
+  "/SePipelineStack/BootstrapVersion": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "BootstrapVersion"
+    }
+  ],
+  "/SePipelineStack/CheckBootstrapVersion": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CheckBootstrapVersion"
+    }
+  ],
+  "/SePipelineStack/Vpc/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "Vpc8378EB38"
+    }
+  ],
+  "/SePipelineStack/Vpc/IGW": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "VpcIGWD7BA715C"
+    }
+  ],
+  "/SePipelineStack/Vpc/VPCGW": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "VpcVPCGWBF912B6E"
+    }
+  ],
+  "/SePipelineStack/AppSg/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "AppSg898BCA4E"
+    }
+  ],
+  "/SePipelineStack/BackupBucket/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "BackupBucket26B8E51C"
+    }
+  ],
+  "/SePipelineStack/FrontendBucket/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "FrontendBucketEFE2E19C"
+    },
+    {
+      "type": "aws:cdk:analytics:mixin",
+      "data": {
+        "mixin": "aws-cdk-lib.aws_s3.mixins.BucketAutoDeleteObjects"
+      }
+    }
+  ],
+  "/SePipelineStack/Custom::S3AutoDeleteObjectsCustomResourceProvider/Role": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092"
+    }
+  ],
+  "/SePipelineStack/Custom::S3AutoDeleteObjectsCustomResourceProvider/Handler": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F"
+    }
+  ],
+  "/SePipelineStack/Ec2Role/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "Ec2Role2FD9A272"
+    }
+  ],
+  "/SePipelineStack/KeyPair/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "KeyPair1622897B"
+    }
+  ],
+  "/SePipelineStack/AppInstance/InstanceProfile": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "AppInstanceInstanceProfileC6B6EFAA"
+    }
+  ],
+  "/SePipelineStack/AppInstance/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "AppInstance13C82D50"
+    }
+  ],
+  "/SePipelineStack/Distribution/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "Distribution830FAC52"
+    }
+  ],
+  "/SePipelineStack/CDKMetadata/Default": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CDKMetadata"
+    }
+  ],
+  "/SePipelineStack/Vpc/publicSubnet1/Subnet": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "VpcpublicSubnet1Subnet2BB74ED7"
+    }
+  ],
+  "/SePipelineStack/Vpc/publicSubnet1/RouteTable": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "VpcpublicSubnet1RouteTable15C15F8E"
+    }
+  ],
+  "/SePipelineStack/Vpc/publicSubnet1/RouteTableAssociation": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "VpcpublicSubnet1RouteTableAssociation4E83B6E4"
+    }
+  ],
+  "/SePipelineStack/Vpc/publicSubnet1/DefaultRoute": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "VpcpublicSubnet1DefaultRouteB88F9E93"
+    }
+  ],
+  "/SePipelineStack/FrontendBucket/Policy/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "FrontendBucketPolicy1DFF75D9"
+    },
+    {
+      "type": "aws:cdk:analytics:mixin",
+      "data": {
+        "mixin": "aws-cdk-lib.aws_s3.mixins.BucketPolicyStatements"
+      }
+    }
+  ],
+  "/SePipelineStack/FrontendBucket/AutoDeleteObjectsCustomResource/Default": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "FrontendBucketAutoDeleteObjectsCustomResourceDB860B32"
+    }
+  ],
+  "/SePipelineStack/Ec2Role/DefaultPolicy/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "Ec2RoleDefaultPolicy99BC91F7"
+    }
+  ],
+  "/SePipelineStack/Distribution/Origin1/S3OriginAccessControl/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "DistributionOrigin1S3OriginAccessControlEB606076"
+    }
+  ]
+}
