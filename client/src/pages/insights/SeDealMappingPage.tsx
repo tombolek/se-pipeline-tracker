@@ -6,6 +6,7 @@ import type { ApiResponse, User, Opportunity } from '../../types';
 import { getColumnsForPage, DEFAULT_COLUMNS, COLUMN_BY_KEY } from '../../constants/columnDefs';
 import StageBadge from '../../components/shared/StageBadge';
 import ColumnPicker from '../../components/shared/ColumnPicker';
+import MultiSelectFilter from '../../components/shared/MultiSelectFilter';
 import { renderOpportunityCell } from '../../utils/renderOpportunityCell';
 import Drawer from '../../components/Drawer';
 import OpportunityDetail from '../../components/OpportunityDetail';
@@ -64,8 +65,8 @@ function SeAssignSelect({
 }
 
 const STAGES = [
-  'Qualify', 'Develop Solution', 'Build Value',
-  'Proposal Sent', 'Submitted for Booking', 'Negotiate',
+  'Qualify', 'Build Value', 'Develop Solution',
+  'Proposal Sent', 'Negotiate', 'Submitted for Booking',
 ];
 
 // ── Page ──────────────────────────────────────────────────────────────────────
@@ -77,7 +78,8 @@ export default function SeDealMappingPage() {
   const defaultFilter: number | 'unassigned' | 'all' =
     currentUser?.role === 'se' && currentUser.id ? currentUser.id : 'all';
   const [filterSe, setFilterSe] = useState<number | 'unassigned' | 'all'>(defaultFilter);
-  const [filterStage, setFilterStage] = useState('');
+  const [filterStages, setFilterStages] = useState<string[]>([]);
+  const [filterFiscalPeriods, setFilterFiscalPeriods] = useState<string[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
     const cols = getColumnsForPage('se_mapping', currentUser?.column_prefs ?? null);
@@ -116,7 +118,8 @@ export default function SeDealMappingPage() {
   const filtered = opps.filter(o => {
     if (filterSe === 'unassigned' && o.se_owner) return false;
     if (typeof filterSe === 'number' && o.se_owner?.id !== filterSe) return false;
-    if (filterStage && o.stage !== filterStage) return false;
+    if (filterStages.length > 0 && !filterStages.includes(o.stage)) return false;
+    if (filterFiscalPeriods.length > 0 && !filterFiscalPeriods.includes(o.fiscal_period ?? '')) return false;
     return true;
   });
 
@@ -139,14 +142,8 @@ export default function SeDealMappingPage() {
         {/* Filter pills */}
         {!loading && (
           <div className="flex items-center gap-2 mt-4 flex-wrap">
-            <select
-              value={filterStage}
-              onChange={e => setFilterStage(e.target.value)}
-              className="px-3 py-1.5 rounded-lg border border-brand-navy-30 text-xs text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-purple"
-            >
-              <option value="">All stages</option>
-              {STAGES.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
+            <MultiSelectFilter options={STAGES} selected={filterStages} onChange={setFilterStages} placeholder="All stages" />
+            <MultiSelectFilter options={fiscalPeriods} selected={filterFiscalPeriods} onChange={setFilterFiscalPeriods} placeholder="All periods" />
             <button
               onClick={() => setFilterSe('all')}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
