@@ -176,7 +176,7 @@ export default function UsersPage() {
               </tr>
             </thead>
             <tbody>
-              {users.map((u, i) => {
+              {users.map((u) => {
                 const isSelf = u.id === currentUser?.id;
                 const isUpdating = updatingId === u.id;
                 return (

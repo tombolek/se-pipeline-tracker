@@ -9,6 +9,12 @@ import type { Opportunity } from '../types';
 
 type CaptureType = 'note' | 'task';
 
+function defaultDueDate() {
+  const d = new Date();
+  d.setDate(d.getDate() + 7);
+  return d.toISOString().split('T')[0];
+}
+
 export default function QuickCapture() {
   const { quickCaptureOpen, closeQuickCapture } = usePipelineStore();
   const { user } = useAuthStore();
@@ -16,6 +22,7 @@ export default function QuickCapture() {
 
   const [type, setType] = useState<CaptureType>(defaultType);
   const [text, setText] = useState('');
+  const [dueDate, setDueDate] = useState(() => defaultDueDate());
   const [oppSearch, setOppSearch] = useState('');
   const [oppResults, setOppResults] = useState<Opportunity[]>([]);
   const [selectedOpp, setSelectedOpp] = useState<Opportunity | null>(null);
@@ -32,6 +39,7 @@ export default function QuickCapture() {
     if (quickCaptureOpen) {
       setText('');
       setType(defaultType);
+      setDueDate(defaultDueDate());
       setOppSearch('');
       setOppResults([]);
       setSelectedOpp(null);
@@ -88,7 +96,7 @@ export default function QuickCapture() {
         if (type === 'note') {
           await createNote(selectedOpp.id, text.trim());
         } else {
-          await createTask(selectedOpp.id, { title: text.trim() });
+          await createTask(selectedOpp.id, { title: text.trim(), due_date: dueDate });
         }
       } else {
         await createInboxItem(text.trim(), type === 'task' ? 'todo' : 'note');
@@ -163,6 +171,19 @@ export default function QuickCapture() {
               rows={4}
               className="w-full px-3 py-2.5 rounded-xl border border-brand-navy-30 text-sm text-brand-navy placeholder:text-brand-navy-70 resize-none focus:outline-none focus:ring-2 focus:ring-brand-purple focus:border-transparent"
             />
+
+            {/* Due date (task only) */}
+            {type === 'task' && (
+              <div>
+                <p className="text-[11px] text-brand-navy-70 font-medium mb-1.5">Due date</p>
+                <input
+                  type="date"
+                  value={dueDate}
+                  onChange={e => setDueDate(e.target.value)}
+                  className="px-3 py-1.5 rounded-lg border border-brand-navy-30 text-sm text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-purple focus:border-transparent"
+                />
+              </div>
+            )}
 
             {/* Opportunity link */}
             <div>

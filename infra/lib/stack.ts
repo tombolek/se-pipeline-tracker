@@ -28,7 +28,7 @@ export class SePipelineStack extends cdk.Stack {
     // ── 2. Security group ──────────────────────────────────────────────────────
     const sg = new ec2.SecurityGroup(this, 'AppSg', {
       vpc,
-      description: 'SE Pipeline Tracker — app server',
+      description: 'SE Pipeline Tracker app server',
       allowAllOutbound: true,
     });
     // SSH — lock this down to your office/home IP later if desired
@@ -136,6 +136,16 @@ export class SePipelineStack extends cdk.Stack {
     });
 
     // ── 10. CloudFront distribution ────────────────────────────────────────────
+    // CloudFront requires a domain name for origins — raw IPs are rejected.
+    // AWS automatically creates a public DNS for every EIP in the format:
+    //   ec2-{dashed-ip}.{region}.compute.amazonaws.com
+    // We construct it from the EIP using CloudFormation intrinsic functions.
+    const ec2OriginDomain = cdk.Fn.join('', [
+      'ec2-',
+      cdk.Fn.join('-', cdk.Fn.split('.', eip.ref)),
+      `.${this.region}.compute.amazonaws.com`,
+    ]);
+
     // Two origins in one distribution:
     //   /*       → S3  (React SPA, cached)
     //   /api/*   → EC2 (Express API, not cached, all headers forwarded)
@@ -170,7 +180,7 @@ export class SePipelineStack extends cdk.Stack {
       // /api/* → EC2 on port 3001, no caching, all headers forwarded (JWT auth)
       additionalBehaviors: {
         '/api/*': {
-          origin: new origins.HttpOrigin(eip.ref, {
+          origin: new origins.HttpOrigin(ec2OriginDomain, {
             protocolPolicy: cloudfront.OriginProtocolPolicy.HTTP_ONLY,
             httpPort: 3001,
           }),

@@ -127,7 +127,7 @@
   "AppSg898BCA4E": {
    "Type": "AWS::EC2::SecurityGroup",
    "Properties": {
-    "GroupDescription": "SE Pipeline Tracker — app server",
+    "GroupDescription": "SE Pipeline Tracker app server",
     "SecurityGroupEgress": [
      {
       "CidrIp": "0.0.0.0/0",
@@ -674,7 +674,26 @@
         ]
        },
        "DomainName": {
-        "Ref": "Eip"
+        "Fn::Join": [
+         "",
+         [
+          "ec2-",
+          {
+           "Fn::Join": [
+            "-",
+            {
+             "Fn::Split": [
+              ".",
+              {
+               "Ref": "Eip"
+              }
+             ]
+            }
+           ]
+          },
+          ".eu-west-1.compute.amazonaws.com"
+         ]
+        ]
        },
        "Id": "SePipelineStackDistributionOrigin2FA65FE00"
       }

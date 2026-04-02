@@ -5,6 +5,12 @@ import { useAuthStore } from '../store/auth';
 
 type CaptureType = 'note' | 'task';
 
+function defaultDueDate() {
+  const d = new Date();
+  d.setDate(d.getDate() + 7);
+  return d.toISOString().split('T')[0];
+}
+
 interface Props {
   oppId: number;
   oppName: string;
@@ -17,6 +23,7 @@ export default function RowCapture({ oppId, oppName, onSaved }: Props) {
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<CaptureType>(defaultType);
   const [text, setText] = useState('');
+  const [dueDate, setDueDate] = useState(defaultDueDate);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [pos, setPos] = useState({ top: 0, left: 0 });
@@ -32,6 +39,7 @@ export default function RowCapture({ oppId, oppName, onSaved }: Props) {
     setPos({ top: rect.bottom + 6, left: Math.max(8, left) });
     setText('');
     setType(defaultType);
+    setDueDate(defaultDueDate());
     setSaved(false);
     setOpen(true);
   }
@@ -65,7 +73,7 @@ export default function RowCapture({ oppId, oppName, onSaved }: Props) {
       if (type === 'note') {
         await createNote(oppId, text.trim());
       } else {
-        await createTask(oppId, { title: text.trim() });
+        await createTask(oppId, { title: text.trim(), due_date: dueDate });
       }
       setSaved(true);
       onSaved?.();
@@ -133,6 +141,16 @@ export default function RowCapture({ oppId, oppName, onSaved }: Props) {
                 placeholder={type === 'note' ? 'Write a note…' : 'Task title…'}
                 className="w-full px-2.5 py-1.5 rounded-lg border border-brand-navy-30 text-sm text-brand-navy placeholder:text-brand-navy-70 focus:outline-none focus:ring-2 focus:ring-brand-purple focus:border-transparent mb-2"
               />
+
+              {/* Due date (task only) */}
+              {type === 'task' && (
+                <input
+                  type="date"
+                  value={dueDate}
+                  onChange={e => setDueDate(e.target.value)}
+                  className="w-full px-2.5 py-1.5 rounded-lg border border-brand-navy-30 text-xs text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-purple focus:border-transparent mb-2"
+                />
+              )}
 
               {/* Footer */}
               <div className="flex items-center justify-between">

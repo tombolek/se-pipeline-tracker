@@ -4,7 +4,6 @@ import { listUsers } from '../../api/users';
 import { updateMyPreferences } from '../../api/users';
 import type { ApiResponse, User, Opportunity } from '../../types';
 import { getColumnsForPage, DEFAULT_COLUMNS, COLUMN_BY_KEY } from '../../constants/columnDefs';
-import StageBadge from '../../components/shared/StageBadge';
 import ColumnPicker from '../../components/shared/ColumnPicker';
 import MultiSelectFilter from '../../components/shared/MultiSelectFilter';
 import { renderOpportunityCell } from '../../utils/renderOpportunityCell';
@@ -113,6 +112,7 @@ export default function SeDealMappingPage() {
     }
   }
 
+  const fiscalPeriods = [...new Set(opps.map(o => o.fiscal_period).filter(Boolean) as string[])].sort();
   const unassignedCount = opps.filter(o => !o.se_owner).length;
 
   const filtered = opps.filter(o => {

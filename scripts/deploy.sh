@@ -113,18 +113,18 @@ fi
 # ── Server ────────────────────────────────────────────────────────────────────
 if [ "$DEPLOY_SERVER" = true ]; then
   echo "=== Syncing server source to EC2 ==="
-  rsync -az --delete \
-    --exclude node_modules \
-    --exclude dist \
-    --exclude '*.log' \
-    -e "$SSH_CMD" \
-    server/ ec2-user@$INSTANCE_IP:/app/server/
+  # Clear old server src on remote, then copy fresh (scp -r, no rsync available on Windows)
+  $SSH "rm -rf /app/server && mkdir -p /app/server"
+  scp -i "$KEY_FILE" -o StrictHostKeyChecking=no -r \
+    server/src server/migrations server/package.json server/package-lock.json server/tsconfig.json server/Dockerfile \
+    ec2-user@$INSTANCE_IP:/app/server/
 
   echo "=== Syncing compose file and scripts to EC2 ==="
-  rsync -az -e "$SSH_CMD" \
+  scp -i "$KEY_FILE" -o StrictHostKeyChecking=no \
     docker-compose.prod.yml ec2-user@$INSTANCE_IP:/app/
-  rsync -az --delete -e "$SSH_CMD" \
-    scripts/ ec2-user@$INSTANCE_IP:/app/scripts/
+  $SSH "mkdir -p /app/scripts"
+  scp -i "$KEY_FILE" -o StrictHostKeyChecking=no \
+    scripts/backup.sh ec2-user@$INSTANCE_IP:/app/scripts/
   $SSH "chmod +x /app/scripts/*.sh"
 
   echo "=== Uploading .env.prod to EC2 ==="
