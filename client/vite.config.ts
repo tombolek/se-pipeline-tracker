@@ -4,7 +4,6 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  envDir: '../',  // load .env from project root
   server: {
     host: '0.0.0.0',
     watch: {
