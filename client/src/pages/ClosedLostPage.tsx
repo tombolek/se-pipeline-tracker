@@ -1,18 +1,22 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { ClosedLostItem } from '../api/opportunities';
+import type { Opportunity } from '../types';
 import { listClosedLost, markClosedLostRead } from '../api/opportunities';
+import { updateMyPreferences } from '../api/users';
+import { useAuthStore } from '../store/auth';
 import { usePipelineStore } from '../store/pipeline';
+import { getColumnsForPage, DEFAULT_COLUMNS, COLUMN_BY_KEY } from '../constants/columnDefs';
 import OpportunityDetail from '../components/OpportunityDetail';
 import Drawer from '../components/Drawer';
-import StageBadge from '../components/shared/StageBadge';
-import { formatARR, formatDate } from '../utils/formatters';
+import ColumnPicker from '../components/shared/ColumnPicker';
+import { renderOpportunityCell } from '../utils/renderOpportunityCell';
+import { formatDate } from '../utils/formatters';
 
 // ── Row ───────────────────────────────────────────────────────────────────────
-
-function ClosedRow({ item, selected, onClick }: {
-  item: ClosedLostItem;
+function ClosedRow({ item, selected, onClick, visibleColumns }: {
+  item: Opportunity;
   selected: boolean;
   onClick: () => void;
+  visibleColumns: string[];
 }) {
   return (
     <tr
@@ -23,37 +27,15 @@ function ClosedRow({ item, selected, onClick }: {
           : 'hover:bg-brand-purple-30/10'
       }`}
     >
-      {/* Name + account */}
-      <td className="px-4 py-3">
-        <p className="text-sm font-medium text-brand-navy truncate max-w-[280px]">{item.name}</p>
-        <p className="text-xs text-brand-navy-70 truncate max-w-[280px]">{item.account_name ?? '—'}</p>
-      </td>
-
-      {/* Stage when closed */}
-      <td className="px-3 py-3 whitespace-nowrap">
-        <StageBadge stage={item.stage} />
-      </td>
-
-      {/* ARR */}
-      <td className="px-3 py-3 text-sm font-medium text-brand-navy whitespace-nowrap">
-        {formatARR(item.arr)}
-      </td>
-
-      {/* AE Owner */}
-      <td className="px-3 py-3 text-xs text-brand-navy-70 whitespace-nowrap">
-        {item.ae_owner_name ?? '—'}
-      </td>
-
-      {/* SE Owner */}
-      <td className="px-3 py-3 text-xs text-brand-navy-70 whitespace-nowrap">
-        {item.se_owner?.name ?? <span className="text-brand-navy-30">—</span>}
-      </td>
-
-      {/* Closed date */}
+      {visibleColumns.map(col => (
+        <td key={col} className="px-3 py-3 whitespace-nowrap">
+          {renderOpportunityCell(item, col)}
+        </td>
+      ))}
+      {/* Pinned: Closed date */}
       <td className="px-3 py-3 text-xs text-brand-navy-70 whitespace-nowrap">
         {formatDate(item.closed_at)}
       </td>
-
       {/* Chevron */}
       <td className="px-3 py-3 text-brand-navy-30">
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -65,13 +47,16 @@ function ClosedRow({ item, selected, onClick }: {
 }
 
 // ── Page ──────────────────────────────────────────────────────────────────────
-
 export default function ClosedLostPage() {
-  const [items, setItems] = useState<ClosedLostItem[]>([]);
+  const { user, setUser } = useAuthStore();
+  const [items, setItems] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const setClosedLostUnread = usePipelineStore((s) => s.setClosedLostUnread);
+  const [visibleColumns, setVisibleColumns] = useState<string[]>(() =>
+    getColumnsForPage('closed_lost', user?.column_prefs ?? null)
+  );
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -79,7 +64,6 @@ export default function ClosedLostPage() {
     try {
       const { items: rows, unreadCount } = await listClosedLost();
       setItems(rows);
-      // Mark all as read immediately — update store to 0, then fire server call
       if (unreadCount > 0) {
         setClosedLostUnread(0);
         markClosedLostRead([]).catch(() => {});
@@ -93,8 +77,14 @@ export default function ClosedLostPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  function handleClose() {
-    setSelectedId(null);
+  async function handleColumnsChange(cols: string[]) {
+    setVisibleColumns(cols);
+    try {
+      const updatedUser = await updateMyPreferences({ column_prefs: { closed_lost: cols } });
+      setUser(updatedUser);
+    } catch {
+      // persist failure is non-fatal
+    }
   }
 
   return (
@@ -107,11 +97,18 @@ export default function ClosedLostPage() {
             {items.length}
           </span>
         )}
-        <span className="text-xs text-brand-navy-70 ml-auto">Sorted by most recently closed</span>
+        <span className="text-xs text-brand-navy-70">Sorted by most recently closed</span>
+        <div className="ml-auto">
+          <ColumnPicker
+            visibleColumns={visibleColumns}
+            defaultColumns={DEFAULT_COLUMNS.closed_lost}
+            onChange={handleColumnsChange}
+          />
+        </div>
       </div>
 
       {/* Table */}
-      <div className="flex-1 overflow-y-auto bg-white">
+      <div className="flex-1 overflow-y-auto overflow-x-auto bg-white">
         {loading && (
           <div className="flex items-center justify-center py-20 text-sm text-brand-navy-70">Loading…</div>
         )}
@@ -127,12 +124,15 @@ export default function ClosedLostPage() {
           <table className="w-full border-collapse">
             <thead className="sticky top-0 bg-white border-b border-brand-navy-30/40 z-10">
               <tr>
-                <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">Opportunity</th>
-                <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">Stage</th>
-                <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">ARR</th>
-                <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">AE Owner</th>
-                <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">SE Owner</th>
-                <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">Closed</th>
+                {visibleColumns.map(col => (
+                  <th key={col} className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide whitespace-nowrap">
+                    {COLUMN_BY_KEY[col]?.label ?? col}
+                  </th>
+                ))}
+                {/* Pinned: Closed date column header */}
+                <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide whitespace-nowrap">
+                  Closed
+                </th>
                 <th className="w-8" />
               </tr>
             </thead>
@@ -143,6 +143,7 @@ export default function ClosedLostPage() {
                   item={item}
                   selected={selectedId === item.id}
                   onClick={() => setSelectedId(item.id)}
+                  visibleColumns={visibleColumns}
                 />
               ))}
             </tbody>
@@ -151,12 +152,9 @@ export default function ClosedLostPage() {
       </div>
 
       {/* Slide-in drawer */}
-      <Drawer open={selectedId !== null} onClose={handleClose}>
+      <Drawer open={selectedId !== null} onClose={() => setSelectedId(null)}>
         {selectedId !== null && (
-          <OpportunityDetail
-            key={selectedId}
-            oppId={selectedId}
-          />
+          <OpportunityDetail key={selectedId} oppId={selectedId} />
         )}
       </Drawer>
     </div>

@@ -24,26 +24,8 @@ export async function assignSeOwner(id: number, seOwnerId: number | null): Promi
   return data.data;
 }
 
-export interface ClosedLostItem {
-  id: number;
-  sf_opportunity_id: string;
-  name: string;
-  account_name: string | null;
-  account_segment: string | null;
-  stage: string;
-  arr: number | null;
-  arr_currency: string;
-  close_date: string | null;
-  closed_at: string | null;
-  closed_lost_seen: boolean;
-  ae_owner_name: string | null;
-  team: string | null;
-  record_type: string | null;
-  se_owner: { id: number; name: string } | null;
-}
-
-export async function listClosedLost(): Promise<{ items: ClosedLostItem[]; unreadCount: number }> {
-  const { data } = await api.get<ApiResponse<ClosedLostItem[]>>('/opportunities/closed-lost');
+export async function listClosedLost(): Promise<{ items: Opportunity[]; unreadCount: number }> {
+  const { data } = await api.get<ApiResponse<Opportunity[]>>('/opportunities/closed-lost');
   return { items: data.data, unreadCount: (data.meta.unread_count as number) ?? 0 };
 }
 

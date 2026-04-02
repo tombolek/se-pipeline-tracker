@@ -1,24 +1,19 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '../../api/client';
 import { listUsers } from '../../api/users';
-import type { ApiResponse, User } from '../../types';
+import { updateMyPreferences } from '../../api/users';
+import type { ApiResponse, User, Opportunity } from '../../types';
+import { getColumnsForPage, DEFAULT_COLUMNS, COLUMN_BY_KEY } from '../../constants/columnDefs';
 import StageBadge from '../../components/shared/StageBadge';
-import { formatARR, formatDate } from '../../utils/formatters';
+import ColumnPicker from '../../components/shared/ColumnPicker';
+import { renderOpportunityCell } from '../../utils/renderOpportunityCell';
 import Drawer from '../../components/Drawer';
 import OpportunityDetail from '../../components/OpportunityDetail';
 import { useAuthStore } from '../../store/auth';
 
-interface MappingOpp {
-  id: number;
-  name: string;
-  account_name: string | null;
-  stage: string;
-  arr: number | null;
-  arr_currency: string;
-  close_date: string | null;
-  ae_owner_name: string | null;
-  se_owner: { id: number; name: string } | null;
-}
+// se_owner is pinned as an interactive select — exclude it from the picker
+const SE_OWNER_KEY = 'se_owner';
+const DEFAULT_SE_MAPPING_COLS = DEFAULT_COLUMNS.se_mapping.filter(c => c !== SE_OWNER_KEY);
 
 // ── Inline SE assign select ────────────────────────────────────────────────────
 function SeAssignSelect({
@@ -26,9 +21,9 @@ function SeAssignSelect({
   ses,
   onAssigned,
 }: {
-  opp: MappingOpp;
+  opp: Opportunity;
   ses: User[];
-  onAssigned: (oppId: number, se: { id: number; name: string } | null) => void;
+  onAssigned: (oppId: number, se: { id: number; name: string; email: string } | null) => void;
 }) {
   const [saving, setSaving] = useState(false);
 
@@ -40,7 +35,7 @@ function SeAssignSelect({
     try {
       await api.patch(`/opportunities/${opp.id}`, { se_owner_id: newSeId });
       const newSe = newSeId ? (ses.find(s => s.id === newSeId) ?? null) : null;
-      onAssigned(opp.id, newSe ? { id: newSe.id, name: newSe.name } : null);
+      onAssigned(opp.id, newSe ? { id: newSe.id, name: newSe.name, email: newSe.email } : null);
     } catch {
       // revert is implicit — state only updates on success
     } finally {
@@ -68,21 +63,31 @@ function SeAssignSelect({
   );
 }
 
+const STAGES = [
+  'Qualify', 'Develop Solution', 'Build Value',
+  'Proposal Sent', 'Submitted for Booking', 'Negotiate',
+];
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function SeDealMappingPage() {
-  const { user: currentUser } = useAuthStore();
-  const [opps, setOpps] = useState<MappingOpp[]>([]);
+  const { user: currentUser, setUser } = useAuthStore();
+  const [opps, setOpps] = useState<Opportunity[]>([]);
   const [ses, setSes] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const defaultFilter: number | 'unassigned' | 'all' =
     currentUser?.role === 'se' && currentUser.id ? currentUser.id : 'all';
   const [filterSe, setFilterSe] = useState<number | 'unassigned' | 'all'>(defaultFilter);
+  const [filterStage, setFilterStage] = useState('');
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
+    const cols = getColumnsForPage('se_mapping', currentUser?.column_prefs ?? null);
+    return cols.filter(c => c !== SE_OWNER_KEY);
+  });
 
   const load = useCallback(async () => {
     setLoading(true);
     const [oppsRes, usersRes] = await Promise.all([
-      api.get<ApiResponse<MappingOpp[]>>('/opportunities?include_qualify=true&sort=close_date'),
+      api.get<ApiResponse<Opportunity[]>>('/opportunities?include_qualify=true&sort=close_date'),
       listUsers(),
     ]);
     setOpps(oppsRes.data.data);
@@ -92,16 +97,27 @@ export default function SeDealMappingPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  function handleAssigned(oppId: number, se: { id: number; name: string } | null) {
+  function handleAssigned(oppId: number, se: { id: number; name: string; email: string } | null) {
     setOpps(prev => prev.map(o => o.id === oppId ? { ...o, se_owner: se } : o));
+  }
+
+  async function handleColumnsChange(cols: string[]) {
+    setVisibleColumns(cols);
+    try {
+      const updatedUser = await updateMyPreferences({ column_prefs: { se_mapping: cols } });
+      setUser(updatedUser);
+    } catch {
+      // persist failure is non-fatal
+    }
   }
 
   const unassignedCount = opps.filter(o => !o.se_owner).length;
 
   const filtered = opps.filter(o => {
-    if (filterSe === 'unassigned') return !o.se_owner;
-    if (filterSe === 'all') return true;
-    return o.se_owner?.id === filterSe;
+    if (filterSe === 'unassigned' && o.se_owner) return false;
+    if (typeof filterSe === 'number' && o.se_owner?.id !== filterSe) return false;
+    if (filterStage && o.stage !== filterStage) return false;
+    return true;
   });
 
   return (
@@ -123,6 +139,14 @@ export default function SeDealMappingPage() {
         {/* Filter pills */}
         {!loading && (
           <div className="flex items-center gap-2 mt-4 flex-wrap">
+            <select
+              value={filterStage}
+              onChange={e => setFilterStage(e.target.value)}
+              className="px-3 py-1.5 rounded-lg border border-brand-navy-30 text-xs text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-purple"
+            >
+              <option value="">All stages</option>
+              {STAGES.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
             <button
               onClick={() => setFilterSe('all')}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
@@ -159,12 +183,20 @@ export default function SeDealMappingPage() {
                 </button>
               );
             })}
+            <div className="ml-auto">
+              <ColumnPicker
+                visibleColumns={visibleColumns}
+                defaultColumns={DEFAULT_SE_MAPPING_COLS}
+                onChange={handleColumnsChange}
+                excludeKeys={[SE_OWNER_KEY]}
+              />
+            </div>
           </div>
         )}
       </div>
 
       {/* Table */}
-      <div className="flex-1 overflow-y-auto px-8 pb-6">
+      <div className="flex-1 overflow-y-auto overflow-x-auto px-8 pb-6">
         {loading ? (
           <div className="text-sm text-brand-navy-70 py-10 text-center">Loading…</div>
         ) : filtered.length === 0 ? (
@@ -174,8 +206,14 @@ export default function SeDealMappingPage() {
             <table className="w-full">
               <thead className="border-b border-brand-navy-30/40">
                 <tr>
-                  {['SE Owner', 'Opportunity', 'Stage', 'ARR', 'Close', 'AE Owner'].map(h => (
-                    <th key={h} className="px-4 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide whitespace-nowrap">{h}</th>
+                  {/* Pinned SE Owner selector column */}
+                  <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide whitespace-nowrap">
+                    SE Owner
+                  </th>
+                  {visibleColumns.map(col => (
+                    <th key={col} className="px-4 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide whitespace-nowrap">
+                      {COLUMN_BY_KEY[col]?.label ?? col}
+                    </th>
                   ))}
                 </tr>
               </thead>
@@ -192,25 +230,15 @@ export default function SeDealMappingPage() {
                           : 'hover:bg-brand-purple-30/10'
                       }`}
                     >
+                      {/* Pinned SE assign selector */}
                       <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                         <SeAssignSelect opp={opp} ses={ses} onAssigned={handleAssigned} />
                       </td>
-                      <td className="px-4 py-3">
-                        <p className="text-sm font-medium text-brand-navy leading-tight truncate max-w-[260px]">{opp.name}</p>
-                        <p className="text-xs text-brand-navy-70 truncate max-w-[260px]">{opp.account_name ?? '—'}</p>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <StageBadge stage={opp.stage} />
-                      </td>
-                      <td className="px-4 py-3 text-sm font-medium text-brand-navy whitespace-nowrap">
-                        {formatARR(opp.arr)}
-                      </td>
-                      <td className="px-4 py-3 text-xs text-brand-navy-70 whitespace-nowrap">
-                        {opp.close_date ? formatDate(opp.close_date) : <span className="text-brand-navy-30">—</span>}
-                      </td>
-                      <td className="px-4 py-3 text-xs text-brand-navy-70 whitespace-nowrap">
-                        {opp.ae_owner_name ?? <span className="text-brand-navy-30">—</span>}
-                      </td>
+                      {visibleColumns.map(col => (
+                        <td key={col} className="px-4 py-3 whitespace-nowrap">
+                          {renderOpportunityCell(opp, col)}
+                        </td>
+                      ))}
                     </tr>
                   );
                 })}

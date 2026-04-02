@@ -16,6 +16,8 @@ interface Props {
   visibleColumns: string[];
   defaultColumns: readonly string[];
   onChange: (cols: string[]) => void;
+  /** Column keys to hide entirely from the picker (e.g. pinned columns managed by the page) */
+  excludeKeys?: string[];
 }
 
 // Grid icon
@@ -42,13 +44,15 @@ function ChevronIcon({ open }: { open: boolean }) {
   );
 }
 
-// Group the full column list by group label
-const COLUMNS_BY_GROUP = COLUMN_GROUPS.map(group => ({
-  group,
-  columns: ALL_COLUMNS.filter(c => c.group === group),
-}));
+// Group the full column list by group label (computed per-render to respect excludeKeys)
+function buildColumnsByGroup(excludeKeys: string[]) {
+  return COLUMN_GROUPS.map(group => ({
+    group,
+    columns: ALL_COLUMNS.filter(c => c.group === group && !excludeKeys.includes(c.key)),
+  })).filter(g => g.columns.length > 0);
+}
 
-export default function ColumnPicker({ visibleColumns, defaultColumns, onChange }: Props) {
+export default function ColumnPicker({ visibleColumns, defaultColumns, onChange, excludeKeys = [] }: Props) {
   const [open, setOpen] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Set<ColumnGroup>>(
     () => new Set(COLUMN_GROUPS)
@@ -81,6 +85,7 @@ export default function ColumnPicker({ visibleColumns, defaultColumns, onChange 
     return () => document.removeEventListener('keydown', handleKey);
   }, [open]);
 
+  const COLUMNS_BY_GROUP = buildColumnsByGroup(excludeKeys);
   const visibleSet = new Set(visibleColumns);
 
   function toggleColumn(key: string) {
