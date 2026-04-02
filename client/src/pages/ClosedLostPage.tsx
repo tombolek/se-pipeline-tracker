@@ -8,8 +8,10 @@ import { getColumnsForPage, DEFAULT_COLUMNS, COLUMN_BY_KEY } from '../constants/
 import OpportunityDetail from '../components/OpportunityDetail';
 import Drawer from '../components/Drawer';
 import ColumnPicker from '../components/shared/ColumnPicker';
+import SortableHeader from '../components/shared/SortableHeader';
 import { renderOpportunityCell } from '../utils/renderOpportunityCell';
 import { formatDate } from '../utils/formatters';
+import { sortRows, oppColType, getOppValue, type SortDir } from '../utils/sortRows';
 
 // ── Row ───────────────────────────────────────────────────────────────────────
 function ClosedRow({ item, selected, onClick, visibleColumns }: {
@@ -57,6 +59,14 @@ export default function ClosedLostPage() {
   const [visibleColumns, setVisibleColumns] = useState<string[]>(() =>
     getColumnsForPage('closed_lost', user?.column_prefs ?? null)
   );
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
+
+  function handleSort(key: string) {
+    if (sortKey !== key) { setSortKey(key); setSortDir('asc'); }
+    else if (sortDir === 'asc') setSortDir('desc');
+    else { setSortKey(null); setSortDir('asc'); }
+  }
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -97,7 +107,7 @@ export default function ClosedLostPage() {
             {items.length}
           </span>
         )}
-        <span className="text-xs text-brand-navy-70">Sorted by most recently closed</span>
+        <span className="text-xs text-brand-navy-70">{sortKey ? 'Sorted by column' : 'Sorted by most recently closed'}</span>
         <div className="ml-auto">
           <ColumnPicker
             visibleColumns={visibleColumns}
@@ -125,19 +135,30 @@ export default function ClosedLostPage() {
             <thead className="sticky top-0 bg-white border-b border-brand-navy-30/40 z-10">
               <tr>
                 {visibleColumns.map(col => (
-                  <th key={col} className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide whitespace-nowrap">
-                    {COLUMN_BY_KEY[col]?.label ?? col}
-                  </th>
+                  <SortableHeader
+                    key={col}
+                    colKey={col}
+                    label={COLUMN_BY_KEY[col]?.label ?? col}
+                    currentKey={sortKey}
+                    currentDir={sortDir}
+                    onSort={handleSort}
+                    className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide whitespace-nowrap"
+                  />
                 ))}
                 {/* Pinned: Closed date column header */}
-                <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide whitespace-nowrap">
-                  Closed
-                </th>
+                <SortableHeader
+                  colKey="closed_at"
+                  label="Closed"
+                  currentKey={sortKey}
+                  currentDir={sortDir}
+                  onSort={handleSort}
+                  className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide whitespace-nowrap"
+                />
                 <th className="w-8" />
               </tr>
             </thead>
             <tbody>
-              {items.map((item) => (
+              {(sortKey ? sortRows(items, sortKey, sortDir, oppColType, getOppValue) : items).map((item) => (
                 <ClosedRow
                   key={item.id}
                   item={item}

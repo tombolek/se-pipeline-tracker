@@ -8,8 +8,10 @@ import OpportunityDetail from '../components/OpportunityDetail';
 import Drawer from '../components/Drawer';
 import ColumnPicker from '../components/shared/ColumnPicker';
 import MultiSelectFilter from '../components/shared/MultiSelectFilter';
+import SortableHeader from '../components/shared/SortableHeader';
 import RowCapture from '../components/RowCapture';
 import { renderOpportunityCell } from '../utils/renderOpportunityCell';
+import { sortRows, oppColType, getOppValue, type SortDir } from '../utils/sortRows';
 
 // Stage order per issue #16
 const STAGES = [
@@ -97,6 +99,14 @@ export default function PipelinePage() {
   const [visibleColumns, setVisibleColumns] = useState<string[]>(() =>
     getColumnsForPage('pipeline', user?.column_prefs ?? null)
   );
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
+
+  function handleSort(key: string) {
+    if (sortKey !== key) { setSortKey(key); setSortDir('asc'); }
+    else if (sortDir === 'asc') setSortDir('desc');
+    else { setSortKey(null); setSortDir('asc'); }
+  }
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -119,7 +129,7 @@ export default function PipelinePage() {
   )].sort();
 
   // Apply all filters client-side
-  const displayed = allOpps.filter(o => {
+  const filtered = allOpps.filter(o => {
     if (stages.length > 0 && !stages.includes(o.stage)) return false;
     if (selectedFiscalPeriods.length > 0 && !selectedFiscalPeriods.includes(o.fiscal_period ?? '')) return false;
     if (search) {
@@ -128,6 +138,9 @@ export default function PipelinePage() {
     }
     return true;
   });
+  const displayed = sortKey
+    ? sortRows(filtered, sortKey, sortDir, oppColType, getOppValue)
+    : filtered;
 
   async function handleColumnsChange(cols: string[]) {
     setVisibleColumns(cols);
@@ -173,9 +186,15 @@ export default function PipelinePage() {
             <thead className="sticky top-0 bg-white border-b border-brand-navy-30/40 z-10">
               <tr>
                 {visibleColumns.map(col => (
-                  <th key={col} className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide whitespace-nowrap">
-                    {COLUMN_BY_KEY[col]?.label ?? col}
-                  </th>
+                  <SortableHeader
+                    key={col}
+                    colKey={col}
+                    label={COLUMN_BY_KEY[col]?.label ?? col}
+                    currentKey={sortKey}
+                    currentDir={sortDir}
+                    onSort={handleSort}
+                    className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide whitespace-nowrap"
+                  />
                 ))}
                 <th className="w-8" />
               </tr>

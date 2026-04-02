@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 import api from '../../api/client';
 import type { ApiResponse } from '../../types';
 import StageBadge from '../../components/shared/StageBadge';
+import SortableHeader from '../../components/shared/SortableHeader';
 import { formatARR, daysSinceLabel } from '../../utils/formatters';
 import { Empty, Loading } from './shared';
 import RowCapture from '../../components/RowCapture';
 import Drawer from '../../components/Drawer';
 import OpportunityDetail from '../../components/OpportunityDetail';
+import { sortRows, type SortDir, type ColType } from '../../utils/sortRows';
 
 interface MissingNotesRow {
   id: number;
@@ -19,11 +21,27 @@ interface MissingNotesRow {
   se_owner_name: string | null;
 }
 
+const COLS: { key: keyof MissingNotesRow; label: string; type: ColType }[] = [
+  { key: 'name',                   label: 'Opportunity',      type: 'string' },
+  { key: 'stage',                  label: 'Stage',            type: 'string' },
+  { key: 'arr',                    label: 'ARR',              type: 'number' },
+  { key: 'se_comments_updated_at', label: 'Last SE Update',   type: 'date'   },
+  { key: 'se_owner_name',          label: 'SE Owner',         type: 'string' },
+];
+
 export default function MissingNotesPage() {
   const [threshold, setThreshold] = useState(21);
   const [rows, setRows] = useState<MissingNotesRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
+
+  function handleSort(key: string) {
+    if (sortKey !== key) { setSortKey(key); setSortDir('asc'); }
+    else if (sortDir === 'asc') setSortDir('desc');
+    else { setSortKey(null); setSortDir('asc'); }
+  }
 
   function load() {
     setLoading(true);
@@ -33,6 +51,11 @@ export default function MissingNotesPage() {
   }
 
   useEffect(() => { load(); }, [threshold]);
+
+  const colTypeMap = Object.fromEntries(COLS.map(c => [c.key, c.type])) as Record<string, ColType>;
+  const displayed = sortKey
+    ? sortRows(rows, sortKey, sortDir, k => colTypeMap[k] ?? 'string')
+    : rows;
 
   return (
     <div className="flex flex-col h-full relative overflow-hidden">
@@ -68,14 +91,22 @@ export default function MissingNotesPage() {
             <table className="w-full">
               <thead className="border-b border-brand-navy-30/40">
                 <tr>
-                  {['Opportunity', 'Stage', 'ARR', 'Last SE Update', 'SE Owner'].map(h => (
-                    <th key={h} className="px-4 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">{h}</th>
+                  {COLS.map(c => (
+                    <SortableHeader
+                      key={c.key}
+                      colKey={c.key}
+                      label={c.label}
+                      currentKey={sortKey}
+                      currentDir={sortDir}
+                      onSort={handleSort}
+                      className="px-4 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide"
+                    />
                   ))}
                   <th className="w-8" />
                 </tr>
               </thead>
               <tbody>
-                {rows.map(r => {
+                {displayed.map(r => {
                   const stale = r.days_since_update === null || r.days_since_update > 30;
                   const selected = selectedId === r.id;
                   return (

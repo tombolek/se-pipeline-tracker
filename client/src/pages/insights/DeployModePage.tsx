@@ -2,10 +2,12 @@ import { useState, useEffect, useRef } from 'react';
 import api from '../../api/client';
 import type { ApiResponse } from '../../types';
 import StageBadge from '../../components/shared/StageBadge';
+import SortableHeader from '../../components/shared/SortableHeader';
 import { formatARR, formatDate } from '../../utils/formatters';
 import { Loading } from './shared';
 import Drawer from '../../components/Drawer';
 import OpportunityDetail from '../../components/OpportunityDetail';
+import { sortRows, type SortDir, type ColType } from '../../utils/sortRows';
 
 interface DeployDeal {
   id: number;
@@ -159,7 +161,20 @@ export default function DeployModePage() {
   const [selectedQuarters, setSelectedQuarters] = useState<string[]>([]);
   const [quarterDropdownOpen, setQuarterDropdownOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
   const quarterDropdownRef = useRef<HTMLDivElement>(null);
+
+  function handleSort(key: string) {
+    if (sortKey !== key) { setSortKey(key); setSortDir('asc'); }
+    else if (sortDir === 'asc') setSortDir('desc');
+    else { setSortKey(null); setSortDir('asc'); }
+  }
+
+  const DEPLOY_COL_TYPES: Record<string, ColType> = {
+    name: 'string', stage: 'string', arr: 'number',
+    close_date: 'date', ae_owner_name: 'string', se_owner_name: 'string',
+  };
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -218,9 +233,12 @@ export default function DeployModePage() {
   const totalCount = quarterFiltered.length;
   const totalArr = quarterFiltered.reduce((s, d) => s + (parseFloat(d.arr) || 0), 0);
 
-  const filtered = selectedMode === 'ALL'
+  const modeFiltered = selectedMode === 'ALL'
     ? quarterFiltered
     : quarterFiltered.filter(d => d.deploy_mode === selectedMode);
+  const filtered = sortKey
+    ? sortRows(modeFiltered, sortKey, sortDir, k => DEPLOY_COL_TYPES[k] ?? 'string')
+    : modeFiltered;
 
   return (
     <div className="flex flex-col h-full relative overflow-hidden">
@@ -332,14 +350,14 @@ export default function DeployModePage() {
                   <table className="w-full">
                     <thead className="border-b border-brand-navy-30/40 bg-gray-50/50">
                       <tr>
-                        <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">Opportunity</th>
-                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">Stage</th>
-                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">ARR</th>
-                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">Close</th>
+                        <SortableHeader colKey="name"          label="Opportunity"         currentKey={sortKey} currentDir={sortDir} onSort={handleSort} className="px-4 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide" />
+                        <SortableHeader colKey="stage"         label="Stage"               currentKey={sortKey} currentDir={sortDir} onSort={handleSort} className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide" />
+                        <SortableHeader colKey="arr"           label="ARR"                 currentKey={sortKey} currentDir={sortDir} onSort={handleSort} className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide" />
+                        <SortableHeader colKey="close_date"    label="Close"               currentKey={sortKey} currentDir={sortDir} onSort={handleSort} className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide" />
                         <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">SE Comments</th>
                         <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">Agentic Qual</th>
                         <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">Technical Blockers</th>
-                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">AE / SE</th>
+                        <SortableHeader colKey="ae_owner_name" label="AE / SE"             currentKey={sortKey} currentDir={sortDir} onSort={handleSort} className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide" />
                         <th className="w-8" />
                       </tr>
                     </thead>
