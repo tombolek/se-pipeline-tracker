@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { Opportunity } from '../types';
 import { listOpportunities } from '../api/opportunities';
 import { updateMyPreferences } from '../api/users';
@@ -9,6 +9,95 @@ import Drawer from '../components/Drawer';
 import ColumnPicker from '../components/shared/ColumnPicker';
 import RowCapture from '../components/RowCapture';
 import { renderOpportunityCell } from '../utils/renderOpportunityCell';
+
+// ── Stage order (per issue #16) ───────────────────────────────────────────────
+const STAGES = [
+  'Qualify',
+  'Build Value',
+  'Develop Solution',
+  'Proposal Sent',
+  'Negotiate',
+  'Submitted for Booking',
+];
+
+// ── Stage multi-select dropdown ───────────────────────────────────────────────
+function StageFilter({ selected, onChange }: {
+  selected: string[];
+  onChange: (stages: string[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function handle(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handle);
+    return () => document.removeEventListener('mousedown', handle);
+  }, [open]);
+
+  function toggle(stage: string) {
+    onChange(
+      selected.includes(stage)
+        ? selected.filter(s => s !== stage)
+        : [...selected, stage]
+    );
+  }
+
+  const label = selected.length === 0
+    ? 'All stages'
+    : selected.length === 1
+      ? selected[0]
+      : `${selected.length} stages`;
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(v => !v)}
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm transition-colors ${
+          selected.length > 0
+            ? 'bg-brand-purple/10 border-brand-purple text-brand-purple font-medium'
+            : 'border-brand-navy-30 text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-purple'
+        }`}
+      >
+        {label}
+        <svg className={`w-3.5 h-3.5 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {open && (
+        <div className="absolute left-0 top-full mt-1 z-50 bg-white rounded-xl shadow-xl border border-brand-navy-30/50 py-1 min-w-[200px]">
+          {selected.length > 0 && (
+            <button
+              onClick={() => { onChange([]); setOpen(false); }}
+              className="w-full text-left px-3 py-1.5 text-xs text-brand-navy-70 hover:bg-gray-50"
+            >
+              Clear selection
+            </button>
+          )}
+          {STAGES.map(stage => (
+            <label key={stage} className="flex items-center gap-2.5 px-3 py-1.5 cursor-pointer hover:bg-brand-purple-30/30">
+              <span className={`flex-shrink-0 flex items-center justify-center w-3.5 h-3.5 rounded border transition-colors ${
+                selected.includes(stage)
+                  ? 'bg-brand-purple border-brand-purple text-white'
+                  : 'border-brand-navy-30 bg-white'
+              }`}>
+                {selected.includes(stage) && (
+                  <svg className="w-2 h-2" fill="none" stroke="currentColor" strokeWidth={3.5} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </span>
+              <input type="checkbox" className="sr-only" checked={selected.includes(stage)} onChange={() => toggle(stage)} />
+              <span className="text-sm text-brand-navy">{stage}</span>
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ── Opportunity row ───────────────────────────────────────────────────────────
 function OppRow({ opp, selected, onClick, onRefreshList, visibleColumns }: {
@@ -45,22 +134,18 @@ function OppRow({ opp, selected, onClick, onRefreshList, visibleColumns }: {
 }
 
 // ── Filter bar ────────────────────────────────────────────────────────────────
-const STAGES = [
-  'Qualify', 'Develop Solution', 'Build Value',
-  'Proposal Sent', 'Submitted for Booking', 'Negotiate',
-];
-
 function FilterBar({
   search, setSearch,
-  stage, setStage,
-  includeQualify, setIncludeQualify,
-  qualifyCount, total,
+  stages, setStages,
+  fiscalPeriod, setFiscalPeriod,
+  fiscalPeriods,
+  total,
   columnPicker,
 }: {
   search: string; setSearch: (v: string) => void;
-  stage: string; setStage: (v: string) => void;
-  includeQualify: boolean; setIncludeQualify: (v: boolean) => void;
-  qualifyCount: number;
+  stages: string[]; setStages: (v: string[]) => void;
+  fiscalPeriod: string; setFiscalPeriod: (v: string) => void;
+  fiscalPeriods: string[];
   total: number;
   columnPicker: React.ReactNode;
 }) {
@@ -73,27 +158,19 @@ function FilterBar({
         onChange={e => setSearch(e.target.value)}
         className="flex-1 min-w-[160px] max-w-xs px-3 py-1.5 rounded-lg border border-brand-navy-30 text-sm text-brand-navy placeholder:text-brand-navy-70 focus:outline-none focus:ring-2 focus:ring-brand-purple focus:border-transparent"
       />
+      <StageFilter selected={stages} onChange={setStages} />
       <select
-        value={stage}
-        onChange={e => setStage(e.target.value)}
-        className="px-3 py-1.5 rounded-lg border border-brand-navy-30 text-sm text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-purple"
-      >
-        <option value="">All stages</option>
-        {STAGES.map(s => <option key={s} value={s}>{s}</option>)}
-      </select>
-      <button
-        onClick={() => setIncludeQualify(!includeQualify)}
-        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium transition-colors ${
-          includeQualify
-            ? 'bg-brand-purple/10 border-brand-purple text-brand-purple'
-            : 'border-brand-navy-30 text-brand-navy-70 hover:border-brand-navy hover:text-brand-navy'
+        value={fiscalPeriod}
+        onChange={e => setFiscalPeriod(e.target.value)}
+        className={`px-3 py-1.5 rounded-lg border text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-brand-purple ${
+          fiscalPeriod
+            ? 'bg-brand-purple/10 border-brand-purple text-brand-purple font-medium'
+            : 'border-brand-navy-30 text-brand-navy'
         }`}
       >
-        Show Qualify
-        {!includeQualify && qualifyCount > 0 && (
-          <span className="text-[10px] bg-brand-navy-30 text-brand-navy-70 rounded-full px-1.5">{qualifyCount}</span>
-        )}
-      </button>
+        <option value="">All periods</option>
+        {fiscalPeriods.map(p => <option key={p} value={p}>{p}</option>)}
+      </select>
       {columnPicker}
       <span className="text-xs text-brand-navy-70 ml-auto">
         {total} opportunit{total !== 1 ? 'ies' : 'y'}
@@ -105,14 +182,13 @@ function FilterBar({
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function PipelinePage() {
   const { user, setUser } = useAuthStore();
-  const [opps, setOpps] = useState<Opportunity[]>([]);
-  const [qualifyOpps, setQualifyOpps] = useState<Opportunity[]>([]);
+  const [allOpps, setAllOpps] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [search, setSearch] = useState('');
-  const [stage, setStage] = useState('');
-  const [includeQualify, setIncludeQualify] = useState(user?.show_qualify ?? false);
+  const [stages, setStages] = useState<string[]>([]);
+  const [fiscalPeriod, setFiscalPeriod] = useState('');
   const [visibleColumns, setVisibleColumns] = useState<string[]>(() =>
     getColumnsForPage('pipeline', user?.column_prefs ?? null)
   );
@@ -121,29 +197,32 @@ export default function PipelinePage() {
     setLoading(true);
     setError(null);
     try {
-      const [main, all] = await Promise.all([
-        listOpportunities({ search: search || undefined, stage: stage || undefined, include_qualify: false }),
-        listOpportunities({ include_qualify: true }),
-      ]);
-      setOpps(main);
-      setQualifyOpps(all.filter(o => o.stage === 'Qualify'));
+      const opps = await listOpportunities({ include_qualify: true });
+      setAllOpps(opps);
     } catch {
       setError('Failed to load opportunities.');
     } finally {
       setLoading(false);
     }
-  }, [search, stage]);
+  }, []);
 
   useEffect(() => { load(); }, [load]);
 
-  const displayed = includeQualify
-    ? [...opps.filter(o => o.stage !== 'Qualify'), ...qualifyOpps]
-        .filter(o => !stage || o.stage === stage)
-        .filter(o => !search ||
-          o.name.toLowerCase().includes(search.toLowerCase()) ||
-          (o.account_name ?? '').toLowerCase().includes(search.toLowerCase())
-        )
-    : opps;
+  // Derive sorted fiscal periods from loaded data
+  const fiscalPeriods = [...new Set(
+    allOpps.map(o => o.fiscal_period).filter(Boolean) as string[]
+  )].sort();
+
+  // Apply all filters client-side
+  const displayed = allOpps.filter(o => {
+    if (stages.length > 0 && !stages.includes(o.stage)) return false;
+    if (fiscalPeriod && o.fiscal_period !== fiscalPeriod) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      if (!o.name.toLowerCase().includes(q) && !(o.account_name ?? '').toLowerCase().includes(q)) return false;
+    }
+    return true;
+  });
 
   async function handleColumnsChange(cols: string[]) {
     setVisibleColumns(cols);
@@ -151,21 +230,17 @@ export default function PipelinePage() {
       const updatedUser = await updateMyPreferences({ column_prefs: { pipeline: cols } });
       setUser(updatedUser);
     } catch {
-      // persist failure is non-fatal — local state already updated
+      // persist failure is non-fatal
     }
-  }
-
-  function handleClose() {
-    setSelectedId(null);
   }
 
   return (
     <div className="flex flex-col h-full relative overflow-hidden">
       <FilterBar
         search={search} setSearch={setSearch}
-        stage={stage} setStage={setStage}
-        includeQualify={includeQualify} setIncludeQualify={setIncludeQualify}
-        qualifyCount={qualifyOpps.length}
+        stages={stages} setStages={setStages}
+        fiscalPeriod={fiscalPeriod} setFiscalPeriod={setFiscalPeriod}
+        fiscalPeriods={fiscalPeriods}
         total={displayed.length}
         columnPicker={
           <ColumnPicker
@@ -218,7 +293,7 @@ export default function PipelinePage() {
       </div>
 
       {/* Slide-in drawer */}
-      <Drawer open={selectedId !== null} onClose={handleClose}>
+      <Drawer open={selectedId !== null} onClose={() => setSelectedId(null)}>
         {selectedId !== null && (
           <OpportunityDetail
             key={selectedId}
