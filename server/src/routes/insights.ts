@@ -84,7 +84,7 @@ router.get('/team-workload', auth, mgr, async (_req: Request, res: Response): Pr
          WHERE op.id = t.opportunity_id
            AND op.is_active = true AND op.is_closed_lost = false
        )
-     WHERE u.role = 'se' AND u.is_active = true
+     WHERE u.is_active = true
      GROUP BY u.id, u.name, u.email
      ORDER BY u.name`
   );
