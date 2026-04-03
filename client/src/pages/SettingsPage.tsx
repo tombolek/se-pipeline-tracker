@@ -3,6 +3,7 @@ import UsersPage from './settings/UsersPage';
 import ImportPage from './settings/ImportPage';
 import ImportHistoryPage from './settings/ImportHistoryPage';
 import InsightsMenuPage from './settings/InsightsMenuPage';
+import HowToPage from './settings/HowToPage';
 
 export default function SettingsPage() {
   const { pathname } = useLocation();
@@ -11,6 +12,7 @@ export default function SettingsPage() {
   if (pathname.includes('import-history'))  content = <ImportHistoryPage />;
   else if (pathname.includes('import'))     content = <ImportPage />;
   else if (pathname.includes('insights-menu')) content = <InsightsMenuPage />;
+  else if (pathname.includes('how-to'))     content = <HowToPage />;
   else                                      content = <UsersPage />;
 
   return (
