@@ -134,7 +134,7 @@ router.get('/rfx', auth, mgr, async (_req: Request, res: Response): Promise<void
        u.name AS se_owner_name
      FROM opportunities o
      LEFT JOIN users u ON u.id = o.se_owner_id
-     WHERE o.rfx_status IS NOT NULL AND o.rfx_status != ''
+     WHERE o.rfx_status IS NOT NULL AND o.rfx_status != '' AND o.is_active = true
      ORDER BY o.name ASC`
   );
 
@@ -153,7 +153,7 @@ router.get('/poc', auth, mgr, async (_req: Request, res: Response): Promise<void
        u.name AS se_owner_name
      FROM opportunities o
      LEFT JOIN users u ON u.id = o.se_owner_id
-     WHERE o.poc_status IS NOT NULL AND o.poc_status != ''
+     WHERE o.poc_status IS NOT NULL AND o.poc_status != '' AND o.is_active = true
      ORDER BY o.poc_start_date ASC NULLS LAST, o.name ASC`
   );
 

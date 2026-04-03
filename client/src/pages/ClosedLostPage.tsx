@@ -10,7 +10,7 @@ import Drawer from '../components/Drawer';
 import ColumnPicker from '../components/shared/ColumnPicker';
 import SortableHeader from '../components/shared/SortableHeader';
 import { renderOpportunityCell } from '../utils/renderOpportunityCell';
-import { formatDate } from '../utils/formatters';
+import { formatDateTime } from '../utils/formatters';
 import { sortRows, oppColType, getOppValue, type SortDir } from '../utils/sortRows';
 
 // ── Row ───────────────────────────────────────────────────────────────────────
@@ -36,7 +36,7 @@ function ClosedRow({ item, selected, onClick, visibleColumns }: {
       ))}
       {/* Pinned: Closed date */}
       <td className="px-3 py-3 text-xs text-brand-navy-70 whitespace-nowrap">
-        {formatDate(item.closed_at)}
+        {item.closed_at ? formatDateTime(item.closed_at) : '—'}
       </td>
       {/* Chevron */}
       <td className="px-3 py-3 text-brand-navy-30">
