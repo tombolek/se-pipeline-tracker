@@ -290,6 +290,20 @@ export async function reconcileImport(
         const placeholders = ['$1', 'now()', ...Object.keys(row.dbFields).map((_, i) => `$${i + 2}`)];
         const values = [JSON.stringify(row.rawFields), ...Object.values(row.dbFields)];
 
+        // Set freshness timestamps on insert when the field already has content
+        // (the UPDATE path only fires these when values *change* between imports,
+        //  so initial inserts with pre-populated comments would otherwise show "never")
+        const insertSeComments = row.dbFields['se_comments'] as string | null;
+        if (insertSeComments) {
+          fields.push('se_comments_updated_at');
+          placeholders.push('now()');
+        }
+        const insertMgrComments = row.dbFields['manager_comments'] as string | null;
+        if (insertMgrComments) {
+          fields.push('manager_comments_updated_at');
+          placeholders.push('now()');
+        }
+
         const inserted = await queryOne<{ id: number }>(
           `INSERT INTO opportunities (${fields.join(', ')}) VALUES (${placeholders.join(', ')})
            ON CONFLICT (sf_opportunity_id) DO NOTHING RETURNING id`,
