@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Task } from '../../types';
+import type { Task, User } from '../../types';
 import { updateTask } from '../../api/tasks';
 import { formatDate } from '../../utils/formatters';
 import { STATUS_STYLES, STATUS_LABELS } from '../shared/StatusChip';
@@ -182,9 +182,13 @@ export function TaskRow({
 export function AddTaskForm({
   onAdd,
   onCancel,
+  users = [],
+  defaultAssigneeId,
 }: {
-  onAdd: (title: string, isNextStep: boolean, dueDate: string) => Promise<void>;
+  onAdd: (title: string, isNextStep: boolean, dueDate: string, assignedToId?: number) => Promise<void>;
   onCancel: () => void;
+  users?: User[];
+  defaultAssigneeId?: number;
 }) {
   const [title, setTitle] = useState('');
   const [isNextStep, setIsNextStep] = useState(false);
@@ -193,6 +197,7 @@ export function AddTaskForm({
     d.setDate(d.getDate() + 7);
     return d.toISOString().slice(0, 10);
   });
+  const [assignedToId, setAssignedToId] = useState<number | undefined>(defaultAssigneeId);
   const [saving, setSaving] = useState(false);
 
   async function submit(e: React.FormEvent) {
@@ -200,7 +205,7 @@ export function AddTaskForm({
     if (!title.trim()) return;
     setSaving(true);
     try {
-      await onAdd(title.trim(), isNextStep, dueDate);
+      await onAdd(title.trim(), isNextStep, dueDate, assignedToId);
       setTitle('');
       setDueDate('');
       setIsNextStep(false);
@@ -225,6 +230,18 @@ export function AddTaskForm({
           onChange={e => setDueDate(e.target.value)}
           className="px-2 py-1 rounded border border-brand-navy-30 text-xs text-brand-navy focus:outline-none focus:ring-1 focus:ring-brand-purple"
         />
+        {users.length > 0 && (
+          <select
+            value={assignedToId ?? ''}
+            onChange={e => setAssignedToId(e.target.value ? parseInt(e.target.value) : undefined)}
+            className="px-2 py-1 rounded border border-brand-navy-30 text-xs text-brand-navy focus:outline-none focus:ring-1 focus:ring-brand-purple"
+          >
+            <option value="">Unassigned</option>
+            {users.map(u => (
+              <option key={u.id} value={u.id}>{u.name}</option>
+            ))}
+          </select>
+        )}
         <label className="flex items-center gap-1.5 text-xs text-brand-navy cursor-pointer">
           <input type="checkbox" checked={isNextStep} onChange={e => setIsNextStep(e.target.checked)} className="accent-brand-purple" />
           Next step

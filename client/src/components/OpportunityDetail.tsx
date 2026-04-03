@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { Opportunity, Task, Note } from '../types';
+import type { Opportunity, Task, Note, User } from '../types';
 import { getOpportunity, assignSeOwner } from '../api/opportunities';
 import { createTask, updateTask, deleteTask } from '../api/tasks';
 import { getNotes, createNote } from '../api/notes';
+import { listUsers } from '../api/users';
 import { useAuthStore } from '../store/auth';
 import api from '../api/client';
 import type { ApiResponse } from '../types';
@@ -122,6 +123,7 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
   const { user } = useAuthStore();
   const [opp, setOpp] = useState<Opportunity | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
+  const [activeUsers, setActiveUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddTask, setShowAddTask] = useState(false);
   const [assigningOwner, setAssigningOwner] = useState(false);
@@ -142,6 +144,10 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
     }
   }, [oppId]);
 
+  useEffect(() => {
+    listUsers().then(users => setActiveUsers(users.filter(u => u.is_active)));
+  }, []);
+
   useEffect(() => { reload(); }, [reload]);
 
   async function handleTaskStatusChange(id: number, status: Task['status']) {
@@ -161,8 +167,8 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
     onRefreshList?.();
   }
 
-  async function handleAddTask(title: string, isNextStep: boolean, dueDate: string) {
-    await createTask(oppId, { title, is_next_step: isNextStep, due_date: dueDate || undefined });
+  async function handleAddTask(title: string, isNextStep: boolean, dueDate: string, assignedToId?: number) {
+    await createTask(oppId, { title, is_next_step: isNextStep, due_date: dueDate || undefined, assigned_to_id: assignedToId });
     setShowAddTask(false);
     reload();
     onRefreshList?.();
@@ -318,7 +324,7 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
               ) : undefined
             }
           />
-          {!isReadOnly && showAddTask && <AddTaskForm onAdd={handleAddTask} onCancel={() => setShowAddTask(false)} />}
+          {!isReadOnly && showAddTask && <AddTaskForm onAdd={handleAddTask} onCancel={() => setShowAddTask(false)} users={activeUsers} defaultAssigneeId={opp?.se_owner?.id} />}
           {openTasks.length > 0 && (
             <div className="bg-white rounded-xl border border-brand-navy-30 px-4 mt-2 divide-y-0">
               {openTasks.map(t => (
