@@ -1,6 +1,7 @@
 import * as cheerio from 'cheerio';
 import * as XLSX from 'xlsx';
 import { query, queryOne } from '../db/index.js';
+import { parseSeCommentDate } from '../utils/parseSeCommentDate.js';
 
 // ── Column mapping: SF export header → DB field ────────────────────────────
 // Keys are normalized (trimmed + lowercased). null = store in sf_raw_fields only.
@@ -254,7 +255,14 @@ export async function reconcileImport(
         // Track se_comments freshness + history
         const newSeComments = row.dbFields['se_comments'] as string | null;
         if (newSeComments !== existing.se_comments) {
-          setClauses.push(`se_comments_updated_at = now()`);
+          // Use the date parsed from the comment text when available; fall back to now()
+          const parsedSe = parseSeCommentDate(newSeComments);
+          if (parsedSe) {
+            params.push(parsedSe.date.toISOString());
+            setClauses.push(`se_comments_updated_at = $${params.length}`);
+          } else {
+            setClauses.push(`se_comments_updated_at = now()`);
+          }
           fieldHistoryEntries.push({ opportunity_id: existing.id, field_name: 'se_comments', old_value: existing.se_comments, new_value: newSeComments });
         }
 
@@ -295,8 +303,14 @@ export async function reconcileImport(
         //  so initial inserts with pre-populated comments would otherwise show "never")
         const insertSeComments = row.dbFields['se_comments'] as string | null;
         if (insertSeComments) {
+          const parsedSe = parseSeCommentDate(insertSeComments);
           fields.push('se_comments_updated_at');
-          placeholders.push('now()');
+          if (parsedSe) {
+            values.push(parsedSe.date.toISOString());
+            placeholders.push(`$${values.length}`);  // values.length after push = correct 1-based index
+          } else {
+            placeholders.push('now()');
+          }
         }
         const insertMgrComments = row.dbFields['manager_comments'] as string | null;
         if (insertMgrComments) {
