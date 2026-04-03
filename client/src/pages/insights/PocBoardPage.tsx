@@ -100,29 +100,31 @@ function PocCardCompact({ opp, expanded, onToggleExpand, onClick }: {
 
   return (
     <div className="bg-white rounded-xl border border-brand-navy-30/40 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
-      {/* Collapsed row — click opens drawer */}
-      <div className="flex items-center gap-2 px-3 py-2 cursor-pointer" onClick={onClick}>
-        {/* SE initials */}
-        <div className="w-6 h-6 rounded-full bg-brand-purple flex-shrink-0 flex items-center justify-center text-[9px] font-bold text-white">
-          {initials(opp.se_owner_name)}
+      {/* 2-row collapsed layout — click opens drawer */}
+      <div className="px-3 pt-2 pb-1.5 cursor-pointer" onClick={onClick}>
+        {/* Row 1: name + expand toggle */}
+        <div className="flex items-start gap-1.5">
+          <p className="text-xs font-semibold text-brand-navy flex-1 leading-snug">{opp.name}</p>
+          <button
+            onClick={e => { e.stopPropagation(); onToggleExpand(); }}
+            className="flex-shrink-0 mt-0.5 p-0.5 text-brand-navy-30 hover:text-brand-navy transition-colors"
+            title={expanded ? 'Collapse' : 'Expand details'}
+          >
+            <svg className={`w-3 h-3 transition-transform ${expanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="m19 9-7 7-7-7" />
+            </svg>
+          </button>
         </div>
-        {/* Name */}
-        <p className="text-xs font-semibold text-brand-navy flex-1 truncate">{opp.name}</p>
-        {/* End date */}
-        <div className={`flex items-center gap-1 text-[10px] flex-shrink-0 ${overdue ? 'text-status-overdue font-semibold' : 'text-brand-navy-70'}`}>
-          <span>{formatDate(opp.poc_end_date) ?? '—'}</span>
-          {overdue && <span className="text-[8px] font-bold bg-status-overdue/10 text-status-overdue px-1 rounded">OVR</span>}
+        {/* Row 2: end date + SE initials */}
+        <div className="flex items-center gap-2 mt-0.5">
+          <div className={`flex items-center gap-1 text-[10px] flex-1 ${overdue ? 'text-status-overdue font-semibold' : 'text-brand-navy-70'}`}>
+            <span>{formatDate(opp.poc_end_date) ?? '—'}</span>
+            {overdue && <span className="text-[8px] font-bold bg-status-overdue/10 text-status-overdue px-1 rounded">OVR</span>}
+          </div>
+          <div className="w-5 h-5 rounded-full bg-brand-purple flex-shrink-0 flex items-center justify-center text-[8px] font-bold text-white">
+            {initials(opp.se_owner_name)}
+          </div>
         </div>
-        {/* Expand toggle — stops click propagation */}
-        <button
-          onClick={e => { e.stopPropagation(); onToggleExpand(); }}
-          className="flex-shrink-0 p-0.5 text-brand-navy-30 hover:text-brand-navy transition-colors"
-          title={expanded ? 'Collapse' : 'Expand details'}
-        >
-          <svg className={`w-3.5 h-3.5 transition-transform ${expanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="m19 9-7 7-7-7" />
-          </svg>
-        </button>
       </div>
 
       {/* Expanded details */}
@@ -151,8 +153,8 @@ function PocCardCompact({ opp, expanded, onToggleExpand, onClick }: {
 }
 
 // ── Column ────────────────────────────────────────────────────────────────────
-function KanbanColumn({ title, cards, compact, expandedCards, onToggleExpand, onCardClick }: {
-  title: string; cards: PocOpp[]; compact: boolean;
+function KanbanColumn({ title, cards, compact, wide, expandedCards, onToggleExpand, onCardClick }: {
+  title: string; cards: PocOpp[]; compact: boolean; wide: boolean;
   expandedCards: Set<number>; onToggleExpand: (id: number) => void;
   onCardClick: (id: number) => void;
 }) {
@@ -160,7 +162,7 @@ function KanbanColumn({ title, cards, compact, expandedCards, onToggleExpand, on
   const dotClass   = COLUMN_DOT[title]   ?? 'bg-brand-navy-30';
 
   return (
-    <div className="w-72 flex-shrink-0 flex flex-col h-full">
+    <div className={`flex-shrink-0 flex flex-col h-full ${wide ? 'w-96' : 'w-72'}`}>
       <div className="flex items-center gap-2 mb-3 flex-shrink-0">
         <span className={`w-2 h-2 rounded-full flex-shrink-0 ${dotClass}`} />
         <h3 className="text-xs font-semibold text-brand-navy">{title}</h3>
@@ -309,6 +311,7 @@ export default function PocBoardPage() {
                 title={col}
                 cards={grouped[col] ?? []}
                 compact={compact}
+                wide={visibleCols.length <= 3}
                 expandedCards={expandedCards}
                 onToggleExpand={toggleCardExpand}
                 onCardClick={setSelectedId}
