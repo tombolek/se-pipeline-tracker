@@ -8,6 +8,7 @@ import { getInsightsNav, type InsightsNavItem } from '../utils/insightsNav';
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
 
 const NAV = [
+  { to: '/settings/how-to',     label: 'How To',      icon: HowToIcon     },
   { to: '/pipeline',            label: 'Pipeline',    icon: PipelineIcon  },
   { to: '/my-tasks',            label: 'My Tasks',    icon: TasksIcon     },
   { to: '/inbox',               label: 'Inbox',       icon: InboxIcon     },
@@ -22,7 +23,6 @@ const SETTINGS_NAV = [
   { to: '/settings/import',         label: 'Import',         icon: ImportIcon       },
   { to: '/settings/import-history', label: 'Import History', icon: HistoryIcon      },
   { to: '/settings/insights-menu',  label: 'Insights Menu',  icon: InsightIcon      },
-  { to: '/settings/how-to',         label: 'How To',         icon: HowToIcon        },
 ];
 
 export default function Sidebar() {
