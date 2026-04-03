@@ -188,7 +188,11 @@ export function AddTaskForm({
 }) {
   const [title, setTitle] = useState('');
   const [isNextStep, setIsNextStep] = useState(false);
-  const [dueDate, setDueDate] = useState('');
+  const [dueDate, setDueDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    return d.toISOString().slice(0, 10);
+  });
   const [saving, setSaving] = useState(false);
 
   async function submit(e: React.FormEvent) {
