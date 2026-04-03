@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams, Link } from 'react-router-dom';
 import api from '../../api/client';
 import type { ApiResponse } from '../../types';
 import StageBadge from '../../components/shared/StageBadge';
@@ -18,6 +19,7 @@ interface MissingNotesRow {
   arr: string;
   se_comments_updated_at: string | null;
   days_since_update: number | null;
+  se_owner_id: number | null;
   se_owner_name: string | null;
 }
 
@@ -36,6 +38,8 @@ export default function MissingNotesPage() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>('asc');
+  const [searchParams] = useSearchParams();
+  const seIdParam = searchParams.get('se_id') ? Number(searchParams.get('se_id')) : null;
 
   function handleSort(key: string) {
     if (sortKey !== key) { setSortKey(key); setSortDir('asc'); }
@@ -45,12 +49,15 @@ export default function MissingNotesPage() {
 
   function load() {
     setLoading(true);
-    api.get<ApiResponse<MissingNotesRow[]>>(`/insights/missing-notes?threshold_days=${threshold}`)
+    const seParam = seIdParam ? `&se_id=${seIdParam}` : '';
+    api.get<ApiResponse<MissingNotesRow[]>>(`/insights/missing-notes?threshold_days=${threshold}${seParam}`)
       .then(r => setRows(r.data.data))
       .finally(() => setLoading(false));
   }
 
-  useEffect(() => { load(); }, [threshold]);
+  useEffect(() => { load(); }, [threshold, seIdParam]);
+
+  const seFilterName = seIdParam ? (rows[0]?.se_owner_name ?? `SE #${seIdParam}`) : null;
 
   const colTypeMap = Object.fromEntries(COLS.map(c => [c.key, c.type])) as Record<string, ColType>;
   const displayed = sortKey
@@ -66,6 +73,14 @@ export default function MissingNotesPage() {
             <h1 className="text-xl font-semibold text-brand-navy">Missing Notes</h1>
             <p className="text-sm text-brand-navy-70 mt-0.5">Opportunities without recent SE comments</p>
           </div>
+          {seFilterName && (
+            <div className="flex items-center gap-2">
+              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-brand-purple/10 border border-brand-purple text-brand-purple">
+                SE: {seFilterName}
+              </span>
+              <Link to="/insights/missing-notes" className="text-xs text-brand-navy-70 hover:text-brand-navy">Show all</Link>
+            </div>
+          )}
           <div className="ml-auto flex items-center gap-2">
             {[14, 21, 30].map(d => (
               <button

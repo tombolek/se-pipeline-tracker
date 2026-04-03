@@ -12,18 +12,23 @@ interface WorkloadRow {
   open_tasks: string;
   overdue_tasks: string;
   next_steps: string;
+  fresh_comments: string;
+  stale_comments: string;
 }
 
-function Stat({ label, value, highlight, to }: { label: string; value: string; highlight?: boolean; to?: string }) {
+function Stat({ label, value, highlight, positiveHighlight, to }: {
+  label: string; value: string; highlight?: boolean; positiveHighlight?: boolean; to?: string;
+}) {
+  const color = highlight ? 'text-status-overdue' : positiveHighlight ? 'text-status-success' : 'text-brand-navy';
   const inner = (
     <>
-      <p className={`text-xl font-semibold ${highlight ? 'text-status-overdue' : 'text-brand-navy'}`}>{value}</p>
+      <p className={`text-xl font-semibold ${color}`}>{value}</p>
       <p className="text-[10px] text-brand-navy-70 uppercase tracking-wide mt-0.5">{label}</p>
     </>
   );
   if (to && parseInt(value) > 0) {
     return (
-      <Link to={to} className="bg-[#F5F5F7] rounded-xl p-3 text-center block hover:bg-brand-purple-30/40 transition-colors group">
+      <Link to={to} className="bg-[#F5F5F7] rounded-xl p-3 text-center block hover:bg-brand-purple-30/40 transition-colors">
         {inner}
       </Link>
     );
@@ -57,11 +62,13 @@ export default function TeamWorkloadPage() {
                   <p className="text-xs text-brand-navy-70">{r.email}</p>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <Stat label="Opps"       value={r.opp_count}     to={`/pipeline?se_id=${r.id}`} />
-                <Stat label="Open Tasks" value={r.open_tasks}    to={`/pipeline?se_id=${r.id}`} />
-                <Stat label="Overdue"    value={r.overdue_tasks} to={`/insights/overdue-tasks?se_id=${r.id}`} highlight={parseInt(r.overdue_tasks) > 0} />
-                <Stat label="Next Steps" value={r.next_steps}    to={`/pipeline?se_id=${r.id}`} />
+              <div className="grid grid-cols-3 gap-2">
+                <Stat label="Opps"         value={r.opp_count}       to={`/pipeline?se_id=${r.id}`} />
+                <Stat label="Open Tasks"   value={r.open_tasks}      to={`/pipeline?se_id=${r.id}`} />
+                <Stat label="Next Steps"   value={r.next_steps}      to={`/pipeline?se_id=${r.id}`} />
+                <Stat label="Overdue"      value={r.overdue_tasks}   to={`/insights/overdue-tasks?se_id=${r.id}`} highlight={parseInt(r.overdue_tasks) > 0} />
+                <Stat label="Stale Notes"  value={r.stale_comments}  to={`/insights/missing-notes?se_id=${r.id}`} highlight={parseInt(r.stale_comments) > 0} />
+                <Stat label="Fresh Notes"  value={r.fresh_comments}  to={`/pipeline?se_id=${r.id}`} positiveHighlight={parseInt(r.fresh_comments) > 0} />
               </div>
             </div>
           ))}

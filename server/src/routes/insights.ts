@@ -35,6 +35,10 @@ router.get('/stage-movement', auth, mgr, async (req: Request, res: Response): Pr
 // GET /insights/missing-notes?threshold_days=21
 router.get('/missing-notes', auth, mgr, async (req: Request, res: Response): Promise<void> => {
   const threshold = parseInt((req.query.threshold_days as string) ?? '21') || 21;
+  const seId = req.query.se_id ? parseInt(req.query.se_id as string) : null;
+
+  const params: unknown[] = [threshold];
+  const seFilter = seId ? `AND o.se_owner_id = $${params.push(seId)}` : '';
 
   const rows = await query(
     `SELECT
@@ -55,11 +59,12 @@ router.get('/missing-notes', auth, mgr, async (req: Request, res: Response): Pro
          o.se_comments_updated_at IS NULL
          OR o.se_comments_updated_at < now() - ($1 || ' days')::interval
        )
+       ${seFilter}
      ORDER BY o.se_comments_updated_at ASC NULLS FIRST`,
-    [threshold]
+    params
   );
 
-  res.json(ok(rows, { threshold_days: threshold }));
+  res.json(ok(rows, { threshold_days: threshold, se_id: seId }));
 });
 
 // GET /insights/team-workload
@@ -69,12 +74,20 @@ router.get('/team-workload', auth, mgr, async (_req: Request, res: Response): Pr
        u.id,
        u.name,
        u.email,
-       COUNT(DISTINCT o.id)                                                          AS opp_count,
-       COUNT(t.id) FILTER (WHERE t.is_deleted = false AND t.status != 'done')        AS open_tasks,
+       COUNT(DISTINCT o.id)                                                                        AS opp_count,
+       COUNT(t.id) FILTER (WHERE t.is_deleted = false AND t.status != 'done')                     AS open_tasks,
        COUNT(t.id) FILTER (WHERE t.is_deleted = false AND t.status != 'done'
-                             AND t.due_date < CURRENT_DATE)                          AS overdue_tasks,
+                             AND t.due_date < CURRENT_DATE)                                        AS overdue_tasks,
        COUNT(t.id) FILTER (WHERE t.is_deleted = false AND t.is_next_step = true
-                             AND t.status != 'done')                                 AS next_steps
+                             AND t.status != 'done')                                               AS next_steps,
+       COUNT(DISTINCT o.id) FILTER (
+         WHERE o.se_comments_updated_at >= now() - interval '7 days'
+       )                                                                                           AS fresh_comments,
+       COUNT(DISTINCT o.id) FILTER (
+         WHERE o.stage != 'Qualify'
+           AND (o.se_comments_updated_at IS NULL
+                OR o.se_comments_updated_at < now() - interval '21 days')
+       )                                                                                           AS stale_comments
      FROM users u
      LEFT JOIN opportunities o ON o.se_owner_id = u.id
        AND o.is_active = true AND o.is_closed_lost = false
