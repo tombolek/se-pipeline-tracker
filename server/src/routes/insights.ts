@@ -79,6 +79,11 @@ router.get('/team-workload', auth, mgr, async (_req: Request, res: Response): Pr
      LEFT JOIN opportunities o ON o.se_owner_id = u.id
        AND o.is_active = true AND o.is_closed_lost = false
      LEFT JOIN tasks t ON t.assigned_to_id = u.id
+       AND EXISTS (
+         SELECT 1 FROM opportunities op
+         WHERE op.id = t.opportunity_id
+           AND op.is_active = true AND op.is_closed_lost = false
+       )
      WHERE u.role = 'se' AND u.is_active = true
      GROUP BY u.id, u.name, u.email
      ORDER BY u.name`
@@ -103,6 +108,7 @@ router.get('/overdue-tasks', auth, mgr, async (_req: Request, res: Response): Pr
      WHERE t.is_deleted = false
        AND t.status NOT IN ('done')
        AND t.due_date < CURRENT_DATE
+       AND o.is_active = true AND o.is_closed_lost = false
      ORDER BY u.name ASC NULLS LAST, t.due_date ASC`
   );
 
