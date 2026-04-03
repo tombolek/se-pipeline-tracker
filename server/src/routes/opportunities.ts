@@ -545,13 +545,18 @@ router.get('/:id', auth, async (req: Request, res: Response): Promise<void> => {
   }));
 });
 
-// PATCH /opportunities/:id  (Manager only — se_owner_id)
-router.patch('/:id', auth, mgr, async (req: Request, res: Response): Promise<void> => {
+// PATCH /opportunities/:id  (se_owner_id)
+// Manager: can assign anyone with role=se
+// SE: can assign themselves if they don't own the opp;
+//     can assign any SE (or unassign) if they currently own it
+router.patch('/:id', auth, async (req: Request, res: Response): Promise<void> => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json(err('Invalid opportunity id')); return; }
 
+  const user = (req as AuthenticatedRequest).user!;
   const { se_owner_id } = req.body as { se_owner_id?: number | null };
 
+  // Validate target user is an active SE (when assigning)
   if (se_owner_id != null) {
     const seUser = await queryOne<{ role: string }>(
       `SELECT role FROM users WHERE id = $1 AND is_active = true`,
@@ -559,6 +564,21 @@ router.patch('/:id', auth, mgr, async (req: Request, res: Response): Promise<voi
     );
     if (!seUser) { res.status(400).json(err('User not found')); return; }
     if (seUser.role !== 'se') { res.status(400).json(err('Can only assign SE role users')); return; }
+  }
+
+  // SE-specific permission check
+  if (user.role === 'se') {
+    const opp = await queryOne<{ se_owner_id: number | null }>(
+      `SELECT se_owner_id FROM opportunities WHERE id = $1 AND is_active = true`,
+      [id]
+    );
+    if (!opp) { res.status(404).json(err('Opportunity not found')); return; }
+
+    const currentlyOwns = opp.se_owner_id === user.userId;
+    if (!currentlyOwns && se_owner_id !== user.userId) {
+      res.status(403).json(err('You can only assign yourself to this opportunity'));
+      return;
+    }
   }
 
   const updated = await queryOne<Record<string, unknown>>(

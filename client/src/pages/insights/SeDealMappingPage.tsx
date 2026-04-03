@@ -20,10 +20,12 @@ const DEFAULT_SE_MAPPING_COLS = DEFAULT_COLUMNS.se_mapping.filter(c => c !== SE_
 function SeAssignSelect({
   opp,
   ses,
+  currentUser,
   onAssigned,
 }: {
   opp: Opportunity;
   ses: User[];
+  currentUser: User;
   onAssigned: (oppId: number, se: { id: number; name: string; email: string } | null) => void;
 }) {
   const [saving, setSaving] = useState(false);
@@ -44,6 +46,15 @@ function SeAssignSelect({
     }
   }
 
+  const isManager = currentUser.role === 'manager';
+  const currentlyOwns = opp.se_owner?.id === currentUser.id;
+  // SE can see all options only if they own the opp; otherwise only themselves
+  const visibleSes = isManager || currentlyOwns
+    ? ses
+    : ses.filter(s => s.id === currentUser.id);
+  // Only managers or current owners can unassign
+  const canUnassign = isManager || currentlyOwns;
+
   return (
     <select
       value={opp.se_owner?.id ?? ''}
@@ -56,8 +67,8 @@ function SeAssignSelect({
           : 'border-status-warning text-status-warning bg-status-warning/10 font-medium'
       }`}
     >
-      <option value="">Unassigned</option>
-      {ses.map(se => (
+      {canUnassign && <option value="">Unassigned</option>}
+      {visibleSes.map(se => (
         <option key={se.id} value={se.id}>{se.name}</option>
       ))}
     </select>
@@ -230,7 +241,7 @@ export default function SeDealMappingPage() {
                     >
                       {/* Pinned SE assign selector */}
                       <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
-                        <SeAssignSelect opp={opp} ses={ses} onAssigned={handleAssigned} />
+                        <SeAssignSelect opp={opp} ses={ses} currentUser={currentUser!} onAssigned={handleAssigned} />
                       </td>
                       {visibleColumns.map(col => (
                         <td key={col} className="px-4 py-3 whitespace-nowrap">
