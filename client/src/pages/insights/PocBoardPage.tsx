@@ -211,19 +211,15 @@ export default function PocBoardPage() {
     });
   }
 
-  // Group into known columns; anything else → Other
+  // Group into known columns only; unrecognised statuses are silently dropped
   const knownSet = new Set<string>(COLUMNS);
   const grouped: Record<string, PocOpp[]> = {};
   for (const col of COLUMNS) grouped[col] = [];
-  const other: PocOpp[] = [];
   for (const opp of opps) {
     if (knownSet.has(opp.poc_status)) grouped[opp.poc_status].push(opp);
-    else other.push(opp);
   }
-  if (other.length > 0) grouped['Other'] = other;
 
-  const allCols = [...COLUMNS, ...(other.length > 0 ? ['Other' as const] : [])];
-  const visibleCols = hideEmpty ? allCols.filter(col => (grouped[col]?.length ?? 0) > 0) : allCols;
+  const visibleCols = hideEmpty ? COLUMNS.filter(col => grouped[col].length > 0) : [...COLUMNS];
 
   const activeCount = opps.filter(o => !o.is_closed_lost).length;
   const closedCount = opps.filter(o => o.is_closed_lost).length;
@@ -284,7 +280,7 @@ export default function PocBoardPage() {
 
         {/* Status bar — shows ALL columns even if empty */}
         <div className="flex items-center gap-3 flex-wrap">
-          {[...COLUMNS, ...(other.length > 0 ? ['Other'] : [])].map(col => {
+          {[...COLUMNS].map(col => {
             const count = grouped[col]?.length ?? 0;
             const dot   = COLUMN_DOT[col]    ?? 'bg-brand-navy-30';
             const color = COLUMN_COLORS[col] ?? 'bg-brand-navy-30/20 text-brand-navy-70 border-brand-navy-30';
