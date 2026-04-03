@@ -74,6 +74,7 @@ export default function TechBlockersPage() {
   const [loadingRecent, setLoadingRecent] = useState(false);
 
   const [summary, setSummary] = useState<string | null>(null);
+  const [summaryGeneratedAt, setSummaryGeneratedAt] = useState<string | null>(null);
   const [generatingSummary, setGeneratingSummary] = useState(false);
 
   useEffect(() => {
@@ -81,6 +82,15 @@ export default function TechBlockersPage() {
     api.get<ApiResponse<BlockerRow[]>>('/insights/tech-blockers')
       .then(r => setAllRows(r.data.data))
       .finally(() => setLoadingAll(false));
+    // Load cached summary
+    api.get<ApiResponse<{ summary: string; generated_at: string } | null>>('/insights/tech-blockers/ai-summary/cached')
+      .then(r => {
+        if (r.data.data) {
+          setSummary(r.data.data.summary);
+          setSummaryGeneratedAt(r.data.data.generated_at);
+        }
+      })
+      .catch(() => null);
   }, []);
 
   useEffect(() => {
@@ -93,9 +103,18 @@ export default function TechBlockersPage() {
 
   function generateSummary() {
     setGeneratingSummary(true);
-    api.post<ApiResponse<{ summary: string; count?: number }>>('/insights/tech-blockers/ai-summary', {})
-      .then(r => setSummary(r.data.data.summary))
+    api.post<ApiResponse<{ summary: string; generated_at: string; count?: number }>>('/insights/tech-blockers/ai-summary', {})
+      .then(r => {
+        setSummary(r.data.data.summary);
+        setSummaryGeneratedAt(r.data.data.generated_at);
+      })
       .finally(() => setGeneratingSummary(false));
+  }
+
+  function summaryAgeDays(): number | null {
+    if (!summaryGeneratedAt) return null;
+    const diff = Date.now() - new Date(summaryGeneratedAt).getTime();
+    return Math.floor(diff / 86_400_000);
   }
 
   // Apply status filter
@@ -128,12 +147,21 @@ export default function TechBlockersPage() {
       {/* AI Summary */}
       <div className="mb-5 bg-white rounded-2xl border border-brand-navy-30/40 p-4">
         <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <svg className="w-4 h-4 text-brand-purple flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z" />
             </svg>
             <span className="text-sm font-semibold text-brand-navy">AI Insights</span>
             <span className="text-xs text-brand-navy-70">— analyses {counts.active} non-green entries</span>
+            {summaryAgeDays() !== null && (
+              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                summaryAgeDays()! === 0 ? 'bg-green-100 text-green-700'
+                : summaryAgeDays()! <= 3 ? 'bg-yellow-100 text-yellow-700'
+                : 'bg-red-100 text-red-700'
+              }`}>
+                {summaryAgeDays() === 0 ? 'Generated today' : `${summaryAgeDays()}d old`}
+              </span>
+            )}
           </div>
           <button
             onClick={generateSummary}
@@ -148,7 +176,7 @@ export default function TechBlockersPage() {
                 </svg>
                 Generating…
               </>
-            ) : 'Generate Summary'}
+            ) : summary ? 'Regenerate' : 'Generate Summary'}
           </button>
         </div>
         {summary ? (

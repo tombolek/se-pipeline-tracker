@@ -259,6 +259,18 @@ router.get('/tech-blockers/recent', auth, mgr, async (req: Request, res: Respons
   res.json(ok(rows, { days }));
 });
 
+// GET /insights/tech-blockers/ai-summary/cached  — return persisted summary if any
+router.get('/tech-blockers/ai-summary/cached', auth, mgr, async (_req: Request, res: Response): Promise<void> => {
+  const rows = await query<{ content: string; generated_at: string }>(
+    `SELECT content, generated_at FROM ai_summary_cache WHERE key = 'tech-blockers'`
+  );
+  if (rows.length === 0) {
+    res.json(ok(null));
+    return;
+  }
+  res.json(ok({ summary: rows[0].content, generated_at: rows[0].generated_at }));
+});
+
 // POST /insights/tech-blockers/ai-summary  — Claude-powered summary of all blockers
 router.post('/tech-blockers/ai-summary', auth, mgr, async (req: Request, res: Response): Promise<void> => {
   const rows = await query<{
@@ -290,15 +302,24 @@ router.post('/tech-blockers/ai-summary', auth, mgr, async (req: Request, res: Re
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   const response = await anthropic.messages.create({
     model: 'claude-sonnet-4-6',
-    max_tokens: 500,
+    max_tokens: 1200,
     messages: [{
       role: 'user',
-      content: `You are analyzing technical blockers across a software sales team's pipeline (${rows.length} opportunities). Here are all recorded technical blockers:\n\n${context}\n\nProvide a concise summary (4-6 sentences) covering: the most common blocker themes or patterns, which deployment modes or stages are most affected, and any systemic issues the SE manager should prioritize addressing.`,
+      content: `You are analyzing technical blockers across a software sales team's pipeline (${rows.length} opportunities). Here are all recorded technical blockers:\n\n${context}\n\nProvide a structured summary covering: (1) the most common blocker themes or patterns, (2) which deployment modes or pipeline stages are most affected, and (3) the top 2-3 systemic issues the SE manager should prioritize. Be specific and name actual accounts where relevant. Use plain prose with no markdown formatting — no asterisks, no pound signs, no bullet dashes.`,
     }],
   });
 
   const summary = response.content.find(b => b.type === 'text')?.text ?? '';
-  res.json(ok({ summary, count: rows.length }));
+
+  // Persist to cache
+  await query(
+    `INSERT INTO ai_summary_cache (key, content, generated_at)
+     VALUES ('tech-blockers', $1, now())
+     ON CONFLICT (key) DO UPDATE SET content = $1, generated_at = now()`,
+    [summary]
+  );
+
+  res.json(ok({ summary, generated_at: new Date().toISOString(), count: rows.length }));
 });
 
 export default router;
