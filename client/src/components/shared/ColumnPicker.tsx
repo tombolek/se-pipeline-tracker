@@ -290,10 +290,10 @@ export default function ColumnPicker({ visibleColumns, defaultColumns, onChange,
               {/* Collapsible toggle */}
               <button
                 onClick={() => setAddOpen(v => !v)}
-                className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-gray-50 transition-colors"
+                className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-brand-purple-30/20 transition-colors group"
               >
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-navy-30">
-                  Add columns
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-purple">
+                  + Add columns
                 </p>
                 <ChevronIcon open={addOpen} />
               </button>
