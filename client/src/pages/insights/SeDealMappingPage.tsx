@@ -7,6 +7,7 @@ import { getColumnsForPage, DEFAULT_COLUMNS, COLUMN_BY_KEY } from '../../constan
 import ColumnPicker from '../../components/shared/ColumnPicker';
 import MultiSelectFilter from '../../components/shared/MultiSelectFilter';
 import { renderOpportunityCell } from '../../utils/renderOpportunityCell';
+import { sortFiscalPeriod } from '../../utils/formatters';
 import Drawer from '../../components/Drawer';
 import OpportunityDetail from '../../components/OpportunityDetail';
 import { useAuthStore } from '../../store/auth';
@@ -112,7 +113,7 @@ export default function SeDealMappingPage() {
     }
   }
 
-  const fiscalPeriods = [...new Set(opps.map(o => o.fiscal_period).filter(Boolean) as string[])].sort();
+  const fiscalPeriods = [...new Set(opps.map(o => o.fiscal_period).filter(Boolean) as string[])].sort(sortFiscalPeriod);
   const unassignedCount = opps.filter(o => !o.se_owner).length;
 
   const filtered = opps.filter(o => {

@@ -8,6 +8,7 @@ import OpportunityDetail from '../components/OpportunityDetail';
 import Drawer from '../components/Drawer';
 import ColumnPicker from '../components/shared/ColumnPicker';
 import MultiSelectFilter from '../components/shared/MultiSelectFilter';
+import { sortFiscalPeriod } from '../utils/formatters';
 import SortableHeader from '../components/shared/SortableHeader';
 import RowCapture from '../components/RowCapture';
 import { renderOpportunityCell } from '../utils/renderOpportunityCell';
@@ -126,7 +127,7 @@ export default function PipelinePage() {
   // Derive sorted fiscal periods from loaded data
   const fiscalPeriods = [...new Set(
     allOpps.map(o => o.fiscal_period).filter(Boolean) as string[]
-  )].sort();
+  )].sort(sortFiscalPeriod);
 
   // Apply all filters client-side
   const filtered = allOpps.filter(o => {

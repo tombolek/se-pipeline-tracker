@@ -24,6 +24,20 @@ export function formatARR(arr: number | string | null | undefined): string {
   return `$${n}`;
 }
 
+/**
+ * Sorts fiscal period strings like "Q1-2026" chronologically (year first, then quarter).
+ * Falls back to alphabetical for unrecognised formats.
+ */
+export function sortFiscalPeriod(a: string, b: string): number {
+  const parse = (s: string) => {
+    const m = s.match(/Q(\d+)[- ](\d{4})|(\d{4})[- ]Q(\d+)/i);
+    if (!m) return { year: 0, q: 0 };
+    return m[1] ? { q: parseInt(m[1]), year: parseInt(m[2]) } : { q: parseInt(m[4]), year: parseInt(m[3]) };
+  };
+  const pa = parse(a), pb = parse(b);
+  return pa.year !== pb.year ? pa.year - pb.year : pa.q - pb.q;
+}
+
 /** Returns number of days since the given date, or null if no date. */
 export function daysSince(d: string | null | undefined): number | null {
   if (!d) return null;
