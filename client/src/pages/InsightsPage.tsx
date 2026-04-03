@@ -8,6 +8,7 @@ import RfxBoardPage from './insights/RfxBoardPage';
 import DeployModePage from './insights/DeployModePage';
 import SeDealMappingPage from './insights/SeDealMappingPage';
 import ClosedLostStatsPage from './insights/ClosedLostStatsPage';
+import TechBlockersPage from './insights/TechBlockersPage';
 
 export default function InsightsPage() {
   const { pathname } = useLocation();
@@ -63,6 +64,7 @@ export default function InsightsPage() {
   let content;
   if (pathname.includes('team-workload')) content = <TeamWorkloadPage />;
   else if (pathname.includes('overdue-tasks')) content = <OverdueTasksPage />;
+  else if (pathname.includes('tech-blockers')) content = <TechBlockersPage />;
   else content = <StageMovementPage />;
 
   return (

@@ -1,3 +1,4 @@
+import Anthropic from '@anthropic-ai/sdk';
 import { Router, Request, Response } from 'express';
 import { query } from '../db/index.js';
 import { requireAuth, requireManager } from '../middleware/auth.js';
@@ -205,6 +206,80 @@ router.get('/closed-lost-stats', auth, mgr, async (req: Request, res: Response):
   );
 
   res.json(ok(rows, { days }));
+});
+
+// ── Technical Blockers ────────────────────────────────────────────────────────
+
+// GET /insights/tech-blockers  — all active opps that have technical_blockers content
+router.get('/tech-blockers', auth, mgr, async (req: Request, res: Response): Promise<void> => {
+  const rows = await query(
+    `SELECT o.id, o.name, o.account_name, o.stage, o.arr, o.arr_currency,
+            o.deploy_mode, o.technical_blockers, o.updated_at,
+            u.name AS se_owner_name
+     FROM opportunities o
+     LEFT JOIN users u ON o.se_owner_id = u.id
+     WHERE o.is_active = true AND o.is_closed_lost = false
+       AND o.technical_blockers IS NOT NULL AND length(o.technical_blockers) > 0
+     ORDER BY u.name NULLS LAST, o.name`
+  );
+  res.json(ok(rows));
+});
+
+// GET /insights/tech-blockers/recent?days=30  — recently changed from field history
+router.get('/tech-blockers/recent', auth, mgr, async (req: Request, res: Response): Promise<void> => {
+  const days = parseInt((req.query.days as string) ?? '30') || 30;
+  const rows = await query(
+    `SELECT o.id, o.name, o.account_name, o.stage, o.deploy_mode,
+            h.old_value, h.new_value, h.changed_at,
+            u.name AS se_owner_name
+     FROM opportunity_field_history h
+     JOIN opportunities o ON h.opportunity_id = o.id
+     LEFT JOIN users u ON o.se_owner_id = u.id
+     WHERE h.field_name = 'technical_blockers'
+       AND h.changed_at > now() - (interval '1 day' * $1)
+       AND o.is_active = true AND o.is_closed_lost = false
+     ORDER BY h.changed_at DESC`,
+    [days]
+  );
+  res.json(ok(rows, { days }));
+});
+
+// POST /insights/tech-blockers/ai-summary  — Claude-powered summary of all blockers
+router.post('/tech-blockers/ai-summary', auth, mgr, async (req: Request, res: Response): Promise<void> => {
+  const rows = await query<{
+    name: string; account_name: string; se_owner_name: string | null;
+    deploy_mode: string | null; stage: string; technical_blockers: string;
+  }>(
+    `SELECT o.name, o.account_name, o.stage, o.deploy_mode, o.technical_blockers,
+            u.name AS se_owner_name
+     FROM opportunities o
+     LEFT JOIN users u ON o.se_owner_id = u.id
+     WHERE o.is_active = true AND o.is_closed_lost = false
+       AND o.technical_blockers IS NOT NULL AND length(o.technical_blockers) > 0
+     ORDER BY o.name`
+  );
+
+  if (rows.length === 0) {
+    res.json(ok({ summary: 'No technical blockers have been recorded yet.' }));
+    return;
+  }
+
+  const context = rows.map(r =>
+    `• ${r.name} (${r.account_name}) — SE: ${r.se_owner_name ?? 'Unassigned'}, Stage: ${r.stage}, Deploy: ${r.deploy_mode ?? 'N/A'}\n  ${r.technical_blockers}`
+  ).join('\n\n');
+
+  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const response = await anthropic.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 500,
+    messages: [{
+      role: 'user',
+      content: `You are analyzing technical blockers across a software sales team's pipeline (${rows.length} opportunities). Here are all recorded technical blockers:\n\n${context}\n\nProvide a concise summary (4-6 sentences) covering: the most common blocker themes or patterns, which deployment modes or stages are most affected, and any systemic issues the SE manager should prioritize addressing.`,
+    }],
+  });
+
+  const summary = response.content.find(b => b.type === 'text')?.text ?? '';
+  res.json(ok({ summary, count: rows.length }));
 });
 
 export default router;

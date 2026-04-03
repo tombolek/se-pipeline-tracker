@@ -61,6 +61,10 @@ const COLUMN_MAP: Record<string, string | null> = {
   'poc type':                           'poc_type',
   'poc deployment type':                'poc_deploy_type',
   'rfx status':                         'rfx_status',
+  // Not in current SF export — will auto-map when the column is added to the report
+  'technical blockers / risk':          'technical_blockers',
+  'technical blockers/risk':            'technical_blockers',
+  'technical blockers':                 'technical_blockers',
 };
 
 // DB fields that are booleans in the opportunities table
@@ -224,8 +228,8 @@ export async function reconcileImport(
   const fieldHistoryEntries: FieldHistoryEntry[] = [];
 
   // Get all currently active (non-closed) SF IDs
-  const activeOpps = await query<{ id: number; sf_opportunity_id: string; stage: string; se_comments: string | null; manager_comments: string | null; next_step_sf: string | null }>(
-    `SELECT id, sf_opportunity_id, stage, se_comments, manager_comments, next_step_sf
+  const activeOpps = await query<{ id: number; sf_opportunity_id: string; stage: string; se_comments: string | null; manager_comments: string | null; next_step_sf: string | null; technical_blockers: string | null }>(
+    `SELECT id, sf_opportunity_id, stage, se_comments, manager_comments, next_step_sf, technical_blockers
      FROM opportunities
      WHERE is_active = true AND is_closed_lost = false`
   );
@@ -270,6 +274,12 @@ export async function reconcileImport(
         const newNextStep = row.dbFields['next_step_sf'] as string | null;
         if (newNextStep !== existing.next_step_sf) {
           fieldHistoryEntries.push({ opportunity_id: existing.id, field_name: 'next_step_sf', old_value: existing.next_step_sf, new_value: newNextStep });
+        }
+
+        // Track technical_blockers history
+        const newTechBlockers = row.dbFields['technical_blockers'] as string | null;
+        if (newTechBlockers !== existing.technical_blockers) {
+          fieldHistoryEntries.push({ opportunity_id: existing.id, field_name: 'technical_blockers', old_value: existing.technical_blockers, new_value: newTechBlockers });
         }
 
         // Track manager_comments freshness
