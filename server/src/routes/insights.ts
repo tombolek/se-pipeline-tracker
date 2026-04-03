@@ -276,18 +276,28 @@ router.post('/tech-blockers/ai-summary', auth, mgr, async (req: Request, res: Re
   const rows = await query<{
     name: string; account_name: string; se_owner_name: string | null;
     deploy_mode: string | null; stage: string; technical_blockers: string;
+    blocker_status: string;
   }>(
     `SELECT o.name, o.account_name, o.stage, o.deploy_mode, o.technical_blockers,
-            u.name AS se_owner_name
+            u.name AS se_owner_name,
+            CASE
+              WHEN o.technical_blockers ~ '^🔴' THEN 'red'
+              WHEN o.technical_blockers ~ '^🟠' THEN 'orange'
+              WHEN o.technical_blockers ~ '^🟡' THEN 'yellow'
+              WHEN o.technical_blockers ~ '^🟢' THEN 'green'
+              ELSE 'none'
+            END AS blocker_status
      FROM opportunities o
      LEFT JOIN users u ON o.se_owner_id = u.id
      WHERE o.is_active = true AND o.is_closed_lost = false
        AND o.technical_blockers IS NOT NULL AND length(o.technical_blockers) > 0
-       AND o.technical_blockers NOT ILIKE 'no %'
-       AND o.technical_blockers NOT ILIKE 'none%'
-       AND o.technical_blockers NOT ILIKE 'n/a%'
-       AND o.technical_blockers !~ '^🟢'
-     ORDER BY o.name`
+     ORDER BY
+       CASE
+         WHEN o.technical_blockers ~ '^🔴' THEN 1
+         WHEN o.technical_blockers ~ '^🟠' THEN 2
+         WHEN o.technical_blockers ~ '^🟡' THEN 3
+         ELSE 4
+       END, o.name`
   );
 
   if (rows.length === 0) {
@@ -295,17 +305,38 @@ router.post('/tech-blockers/ai-summary', auth, mgr, async (req: Request, res: Re
     return;
   }
 
+  const severityLabel: Record<string, string> = {
+    red: '[CRITICAL]', orange: '[HIGH]', yellow: '[MEDIUM]', green: '[LOW/NONE]', none: '[UNRATED]',
+  };
   const context = rows.map(r =>
-    `• ${r.name} (${r.account_name}) — SE: ${r.se_owner_name ?? 'Unassigned'}, Stage: ${r.stage}, Deploy: ${r.deploy_mode ?? 'N/A'}\n  ${r.technical_blockers}`
+    `${severityLabel[r.blocker_status] ?? '[UNRATED]'} ${r.name} (${r.account_name}) — SE: ${r.se_owner_name ?? 'Unassigned'}, Stage: ${r.stage}, Deploy: ${r.deploy_mode ?? 'N/A'}\n  ${r.technical_blockers}`
   ).join('\n\n');
+
+  const redCount = rows.filter(r => r.blocker_status === 'red').length;
+  const orangeCount = rows.filter(r => r.blocker_status === 'orange').length;
 
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   const response = await anthropic.messages.create({
     model: 'claude-sonnet-4-6',
-    max_tokens: 1200,
+    max_tokens: 1500,
     messages: [{
       role: 'user',
-      content: `You are analyzing technical blockers across a software sales team's pipeline (${rows.length} opportunities). Here are all recorded technical blockers:\n\n${context}\n\nProvide a structured summary covering: (1) the most common blocker themes or patterns, (2) which deployment modes or pipeline stages are most affected, and (3) the top 2-3 systemic issues the SE manager should prioritize. Be specific and name actual accounts where relevant. Use plain prose with no markdown formatting — no asterisks, no pound signs, no bullet dashes.`,
+      content: `You are analyzing technical blockers across a software sales engineering pipeline (${rows.length} opportunities total: ${redCount} critical 🔴, ${orangeCount} high 🟠, rest medium/low/unrated).
+
+Each entry is prefixed with its severity: [CRITICAL], [HIGH], [MEDIUM], [LOW/NONE], or [UNRATED]. Weight your analysis accordingly — critical and high blockers should drive the conclusions.
+
+${context}
+
+Write a structured analysis for the SE Manager. Use this exact format with markdown:
+
+## Most Common Blocker Themes
+Identify the 3-5 dominant patterns. For each theme, open with a short bold header on its own line, then a paragraph, then a short bullet list of the specific affected accounts. Weight your ordering by severity — themes that have more critical/high entries should rank higher even if they appear in fewer deals.
+
+## Most Affected Deployment Modes & Stages
+Paragraph analysis of which deployment modes (Agentic, SaaS, Self-managed, etc.) and pipeline stages carry the most blocker density and severity.
+
+## Top Priorities for SE Manager
+A numbered list of the 2-3 highest-leverage actions the SE manager should take, with brief rationale. Focus on systemic issues rather than account-by-account firefighting.`,
     }],
   });
 
@@ -319,7 +350,7 @@ router.post('/tech-blockers/ai-summary', auth, mgr, async (req: Request, res: Re
     [summary]
   );
 
-  res.json(ok({ summary, generated_at: new Date().toISOString(), count: rows.length }));
+  res.json(ok({ summary, generated_at: new Date().toISOString(), count: rows.length, red: redCount, orange: orangeCount }));
 });
 
 export default router;
