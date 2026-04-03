@@ -91,6 +91,7 @@ export default function SeDealMappingPage() {
   const [filterSe, setFilterSe] = useState<number | 'unassigned' | 'all'>(defaultFilter);
   const [filterStages, setFilterStages] = useState<string[]>([]);
   const [filterFiscalPeriods, setFilterFiscalPeriods] = useState<string[]>([]);
+  const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
     const cols = getColumnsForPage('se_mapping', currentUser?.column_prefs ?? null);
@@ -127,11 +128,13 @@ export default function SeDealMappingPage() {
   const fiscalPeriods = [...new Set(opps.map(o => o.fiscal_period).filter(Boolean) as string[])].sort(sortFiscalPeriod);
   const unassignedCount = opps.filter(o => !o.se_owner).length;
 
+  const searchLower = search.trim().toLowerCase();
   const filtered = opps.filter(o => {
     if (filterSe === 'unassigned' && o.se_owner) return false;
     if (typeof filterSe === 'number' && o.se_owner?.id !== filterSe) return false;
     if (filterStages.length > 0 && !filterStages.includes(o.stage)) return false;
     if (filterFiscalPeriods.length > 0 && !filterFiscalPeriods.includes(o.fiscal_period ?? '')) return false;
+    if (searchLower && !o.name.toLowerCase().includes(searchLower) && !(o.account_name ?? '').toLowerCase().includes(searchLower)) return false;
     return true;
   });
 
@@ -151,9 +154,20 @@ export default function SeDealMappingPage() {
           )}
         </div>
 
-        {/* Filter pills */}
+        {/* Search + Filter pills */}
         {!loading && (
           <div className="flex items-center gap-2 mt-4 flex-wrap">
+            <div className="relative">
+              <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-brand-navy-30 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search opportunities…"
+                className="pl-8 pr-3 py-1.5 rounded-lg border border-brand-navy-30 text-sm text-brand-navy placeholder:text-brand-navy-30 focus:outline-none focus:ring-2 focus:ring-brand-purple w-52"
+              />
+            </div>
             <MultiSelectFilter options={STAGES} selected={filterStages} onChange={setFilterStages} placeholder="All stages" />
             <MultiSelectFilter options={fiscalPeriods} selected={filterFiscalPeriods} onChange={setFilterFiscalPeriods} placeholder="All periods" />
             <button

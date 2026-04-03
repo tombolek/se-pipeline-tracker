@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { Opportunity, Task, Note, User } from '../types';
 import { getOpportunity, assignSeOwner } from '../api/opportunities';
 import { createTask, updateTask, deleteTask } from '../api/tasks';
@@ -127,6 +127,30 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
   const [loading, setLoading] = useState(true);
   const [showAddTask, setShowAddTask] = useState(false);
   const [assigningOwner, setAssigningOwner] = useState(false);
+
+  // Resizable right panel
+  const [rightWidth, setRightWidth] = useState(224); // 224px = w-56
+  const dragRef = useRef<{ startX: number; startWidth: number } | null>(null);
+
+  function onDragStart(e: React.MouseEvent) {
+    e.preventDefault();
+    dragRef.current = { startX: e.clientX, startWidth: rightWidth };
+    document.addEventListener('mousemove', onDragMove);
+    document.addEventListener('mouseup', onDragEnd);
+  }
+
+  function onDragMove(e: MouseEvent) {
+    if (!dragRef.current) return;
+    const delta = dragRef.current.startX - e.clientX;
+    const next = Math.min(480, Math.max(160, dragRef.current.startWidth + delta));
+    setRightWidth(next);
+  }
+
+  function onDragEnd() {
+    dragRef.current = null;
+    document.removeEventListener('mousemove', onDragMove);
+    document.removeEventListener('mouseup', onDragEnd);
+  }
   const [summary, setSummary] = useState<string | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
 
@@ -370,8 +394,15 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
 
       </div>
 
+      {/* ── Drag handle ── */}
+      <div
+        onMouseDown={onDragStart}
+        className="w-1 flex-shrink-0 bg-brand-navy-30/40 hover:bg-brand-purple cursor-col-resize transition-colors relative group"
+        title="Drag to resize"
+      />
+
       {/* ── Right: SF info panel ── */}
-      <div className="w-56 flex-shrink-0 border-l border-brand-navy-30/40 overflow-y-auto bg-white px-4 py-4">
+      <div className="flex-shrink-0 border-l-0 overflow-y-auto bg-white px-4 py-4" style={{ width: rightWidth }}>
         <a
           href={`https://ataccama.lightning.force.com/lightning/r/Opportunity/${opp.sf_opportunity_id}/view`}
           target="_blank"
