@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams, Link } from 'react-router-dom';
 import api from '../../api/client';
 import type { ApiResponse } from '../../types';
 import StageBadge from '../../components/shared/StageBadge';
@@ -24,6 +25,8 @@ interface OverdueGroup {
 export default function OverdueTasksPage() {
   const [groups, setGroups] = useState<OverdueGroup[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchParams] = useSearchParams();
+  const seIdParam = searchParams.get('se_id') ? Number(searchParams.get('se_id')) : null;
 
   useEffect(() => {
     api.get<ApiResponse<OverdueGroup[]>>('/insights/overdue-tasks')
@@ -31,17 +34,29 @@ export default function OverdueTasksPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const total = groups.reduce((sum, g) => sum + g.tasks.length, 0);
+  const visibleGroups = seIdParam ? groups.filter(g => g.se_id === seIdParam) : groups;
+  const seFilterName = seIdParam ? (groups.find(g => g.se_id === seIdParam)?.se_name ?? null) : null;
+  const total = visibleGroups.reduce((sum, g) => sum + g.tasks.length, 0);
 
   return (
     <div>
-      <PageHeader
-        title="Overdue Tasks"
-        subtitle={loading ? '' : `${total} overdue task${total !== 1 ? 's' : ''} across team`}
-      />
-      {loading ? <Loading /> : groups.length === 0 ? <Empty /> : (
+      <div className="flex items-start justify-between gap-4 mb-5">
+        <PageHeader
+          title="Overdue Tasks"
+          subtitle={loading ? '' : `${total} overdue task${total !== 1 ? 's' : ''} across team`}
+        />
+        {seFilterName && (
+          <div className="flex items-center gap-2 mt-1">
+            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-brand-purple/10 border border-brand-purple text-brand-purple">
+              SE: {seFilterName}
+            </span>
+            <Link to="/insights/overdue-tasks" className="text-xs text-brand-navy-70 hover:text-brand-navy">Show all</Link>
+          </div>
+        )}
+      </div>
+      {loading ? <Loading /> : visibleGroups.length === 0 ? <Empty /> : (
         <div className="space-y-6">
-          {groups.map(g => (
+          {visibleGroups.map(g => (
             <div key={g.se_id}>
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-6 h-6 rounded-full bg-brand-purple flex items-center justify-center text-[10px] font-semibold text-white">

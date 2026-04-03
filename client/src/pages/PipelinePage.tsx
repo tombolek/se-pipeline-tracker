@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import type { Opportunity } from '../types';
 import { listOpportunities } from '../api/opportunities';
 import { updateMyPreferences } from '../api/users';
@@ -59,12 +60,14 @@ function FilterBar({
   search, setSearch,
   stages, setStages,
   fiscalPeriods, selectedFiscalPeriods, setFiscalPeriods,
+  seFilterName, clearSeFilter,
   total,
   columnPicker,
 }: {
   search: string; setSearch: (v: string) => void;
   stages: string[]; setStages: (v: string[]) => void;
   fiscalPeriods: string[]; selectedFiscalPeriods: string[]; setFiscalPeriods: (v: string[]) => void;
+  seFilterName: string | null; clearSeFilter: () => void;
   total: number;
   columnPicker: React.ReactNode;
 }) {
@@ -79,6 +82,16 @@ function FilterBar({
       />
       <MultiSelectFilter options={STAGES} selected={stages} onChange={setStages} placeholder="All stages" />
       <MultiSelectFilter options={fiscalPeriods} selected={selectedFiscalPeriods} onChange={setFiscalPeriods} placeholder="All periods" />
+      {seFilterName && (
+        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-brand-purple/10 border border-brand-purple text-brand-purple">
+          SE: {seFilterName}
+          <button onClick={clearSeFilter} className="hover:text-brand-navy transition-colors" aria-label="Clear SE filter">
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </span>
+      )}
       {columnPicker}
       <span className="text-xs text-brand-navy-70 ml-auto">
         {total} opportunit{total !== 1 ? 'ies' : 'y'}
@@ -90,6 +103,7 @@ function FilterBar({
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function PipelinePage() {
   const { user, setUser } = useAuthStore();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [allOpps, setAllOpps] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -97,6 +111,8 @@ export default function PipelinePage() {
   const [search, setSearch] = useState('');
   const [stages, setStages] = useState<string[]>([]);
   const [selectedFiscalPeriods, setFiscalPeriods] = useState<string[]>([]);
+
+  const seIdParam = searchParams.get('se_id') ? Number(searchParams.get('se_id')) : null;
   const [visibleColumns, setVisibleColumns] = useState<string[]>(() =>
     getColumnsForPage('pipeline', user?.column_prefs ?? null)
   );
@@ -129,8 +145,18 @@ export default function PipelinePage() {
     allOpps.map(o => o.fiscal_period).filter(Boolean) as string[]
   )].sort(sortFiscalPeriod);
 
+  // Derive SE filter name from loaded data
+  const seFilterName = seIdParam
+    ? (allOpps.find(o => o.se_owner?.id === seIdParam)?.se_owner?.name ?? `SE #${seIdParam}`)
+    : null;
+
+  function clearSeFilter() {
+    setSearchParams(p => { p.delete('se_id'); return p; });
+  }
+
   // Apply all filters client-side
   const filtered = allOpps.filter(o => {
+    if (seIdParam && o.se_owner?.id !== seIdParam) return false;
     if (stages.length > 0 && !stages.includes(o.stage)) return false;
     if (selectedFiscalPeriods.length > 0 && !selectedFiscalPeriods.includes(o.fiscal_period ?? '')) return false;
     if (search) {
@@ -159,6 +185,7 @@ export default function PipelinePage() {
         search={search} setSearch={setSearch}
         stages={stages} setStages={setStages}
         fiscalPeriods={fiscalPeriods} selectedFiscalPeriods={selectedFiscalPeriods} setFiscalPeriods={setFiscalPeriods}
+        seFilterName={seFilterName} clearSeFilter={clearSeFilter}
         total={displayed.length}
         columnPicker={
           <ColumnPicker

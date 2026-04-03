@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../../api/client';
 import type { ApiResponse } from '../../types';
 import { PageHeader, Empty, Loading } from './shared';
@@ -13,13 +14,21 @@ interface WorkloadRow {
   next_steps: string;
 }
 
-function Stat({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
-  return (
-    <div className="bg-[#F5F5F7] rounded-xl p-3 text-center">
+function Stat({ label, value, highlight, to }: { label: string; value: string; highlight?: boolean; to?: string }) {
+  const inner = (
+    <>
       <p className={`text-xl font-semibold ${highlight ? 'text-status-overdue' : 'text-brand-navy'}`}>{value}</p>
       <p className="text-[10px] text-brand-navy-70 uppercase tracking-wide mt-0.5">{label}</p>
-    </div>
+    </>
   );
+  if (to && parseInt(value) > 0) {
+    return (
+      <Link to={to} className="bg-[#F5F5F7] rounded-xl p-3 text-center block hover:bg-brand-purple-30/40 transition-colors group">
+        {inner}
+      </Link>
+    );
+  }
+  return <div className="bg-[#F5F5F7] rounded-xl p-3 text-center">{inner}</div>;
 }
 
 export default function TeamWorkloadPage() {
@@ -49,10 +58,10 @@ export default function TeamWorkloadPage() {
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <Stat label="Opps" value={r.opp_count} />
-                <Stat label="Open Tasks" value={r.open_tasks} />
-                <Stat label="Overdue" value={r.overdue_tasks} highlight={parseInt(r.overdue_tasks) > 0} />
-                <Stat label="Next Steps" value={r.next_steps} />
+                <Stat label="Opps"       value={r.opp_count}     to={`/pipeline?se_id=${r.id}`} />
+                <Stat label="Open Tasks" value={r.open_tasks}    to={`/pipeline?se_id=${r.id}`} />
+                <Stat label="Overdue"    value={r.overdue_tasks} to={`/insights/overdue-tasks?se_id=${r.id}`} highlight={parseInt(r.overdue_tasks) > 0} />
+                <Stat label="Next Steps" value={r.next_steps}    to={`/pipeline?se_id=${r.id}`} />
               </div>
             </div>
           ))}
