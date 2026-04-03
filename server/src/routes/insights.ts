@@ -211,16 +211,31 @@ router.get('/closed-lost-stats', auth, mgr, async (req: Request, res: Response):
 // ── Technical Blockers ────────────────────────────────────────────────────────
 
 // GET /insights/tech-blockers  — all active opps that have technical_blockers content
+// Returns a `blocker_status` field: 'red' | 'orange' | 'yellow' | 'green' | 'none'
 router.get('/tech-blockers', auth, mgr, async (req: Request, res: Response): Promise<void> => {
   const rows = await query(
     `SELECT o.id, o.name, o.account_name, o.stage, o.arr, o.arr_currency,
             o.deploy_mode, o.technical_blockers, o.updated_at,
-            u.name AS se_owner_name
+            u.name AS se_owner_name,
+            CASE
+              WHEN o.technical_blockers ~ '^🔴' THEN 'red'
+              WHEN o.technical_blockers ~ '^🟠' THEN 'orange'
+              WHEN o.technical_blockers ~ '^🟡' THEN 'yellow'
+              WHEN o.technical_blockers ~ '^🟢' THEN 'green'
+              ELSE 'none'
+            END AS blocker_status
      FROM opportunities o
      LEFT JOIN users u ON o.se_owner_id = u.id
      WHERE o.is_active = true AND o.is_closed_lost = false
        AND o.technical_blockers IS NOT NULL AND length(o.technical_blockers) > 0
-     ORDER BY u.name NULLS LAST, o.name`
+     ORDER BY
+       CASE WHEN o.technical_blockers ~ '^🔴' THEN 1
+            WHEN o.technical_blockers ~ '^🟠' THEN 2
+            WHEN o.technical_blockers ~ '^🟡' THEN 3
+            WHEN o.technical_blockers ~ '^🟢' THEN 5
+            ELSE 4
+       END,
+       u.name NULLS LAST, o.name`
   );
   res.json(ok(rows));
 });
@@ -256,6 +271,10 @@ router.post('/tech-blockers/ai-summary', auth, mgr, async (req: Request, res: Re
      LEFT JOIN users u ON o.se_owner_id = u.id
      WHERE o.is_active = true AND o.is_closed_lost = false
        AND o.technical_blockers IS NOT NULL AND length(o.technical_blockers) > 0
+       AND o.technical_blockers NOT ILIKE 'no %'
+       AND o.technical_blockers NOT ILIKE 'none%'
+       AND o.technical_blockers NOT ILIKE 'n/a%'
+       AND o.technical_blockers !~ '^🟢'
      ORDER BY o.name`
   );
 

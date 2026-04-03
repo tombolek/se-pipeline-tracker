@@ -61,10 +61,7 @@ const COLUMN_MAP: Record<string, string | null> = {
   'poc type':                           'poc_type',
   'poc deployment type':                'poc_deploy_type',
   'rfx status':                         'rfx_status',
-  // Not in current SF export — will auto-map when the column is added to the report
-  'technical blockers / risk':          'technical_blockers',
   'technical blockers/risk':            'technical_blockers',
-  'technical blockers':                 'technical_blockers',
 };
 
 // DB fields that are booleans in the opportunities table
