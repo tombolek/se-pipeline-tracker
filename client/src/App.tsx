@@ -65,7 +65,7 @@ export default function App() {
             <Route path="/pipeline" element={<AppShell><PipelinePage /></AppShell>} />
             <Route path="/closed-lost" element={<AppShell><ClosedLostPage /></AppShell>} />
             <Route path="/my-tasks" element={<AppShell><MyTasksPage /></AppShell>} />
-            <Route path="/inbox" element={<AppShell><PlaceholderPage title="Inbox" /></AppShell>} />
+            <Route path="/inbox" element={<Navigate to="/my-tasks" replace />} />
             <Route path="/insights/*" element={<AppShell><InsightsPage /></AppShell>} />
             <Route path="/settings/*" element={<AppShell><SettingsPage /></AppShell>} />
             <Route path="/" element={<Navigate to="/pipeline" replace />} />

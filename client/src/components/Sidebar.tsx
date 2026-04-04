@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useAuthStore } from '../store/auth';
 import { usePipelineStore } from '../store/pipeline';
 import { listClosedLost } from '../api/opportunities';
+import { listInboxItems } from '../api/inbox';
 import { getInsightsNav, type InsightsNavItem } from '../utils/insightsNav';
 
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
@@ -10,7 +11,6 @@ const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigat
 const NAV = [
   { to: '/pipeline',            label: 'Pipeline',    icon: PipelineIcon  },
   { to: '/my-tasks',            label: 'My Tasks',    icon: TasksIcon     },
-  { to: '/inbox',               label: 'Inbox',       icon: InboxIcon     },
   { to: '/insights/se-mapping', label: 'SE Mapping',  icon: SeMappingIcon },
   { to: '/insights/poc-board',  label: 'PoC Board',   icon: PocIcon       },
   { to: '/insights/rfx-board',  label: 'RFx Board',   icon: RfxIcon       },
@@ -25,7 +25,7 @@ const SETTINGS_NAV = [
 
 export default function Sidebar() {
   const { user, logout } = useAuthStore();
-  const { closedLostUnread, setClosedLostUnread, openQuickCapture } = usePipelineStore();
+  const { closedLostUnread, setClosedLostUnread, inboxCount, setInboxCount, openQuickCapture } = usePipelineStore();
   const [insightsOpen, setInsightsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [insightsNav, setInsightsNav] = useState<InsightsNavItem[]>(() => getInsightsNav());
@@ -34,7 +34,10 @@ export default function Sidebar() {
     listClosedLost()
       .then(({ unreadCount }) => setClosedLostUnread(unreadCount))
       .catch(() => {});
-  }, [setClosedLostUnread]);
+    listInboxItems()
+      .then(items => setInboxCount(items.filter(i => i.status === 'open').length))
+      .catch(() => {});
+  }, [setClosedLostUnread, setInboxCount]);
 
   useEffect(() => {
     function onChanged() { setInsightsNav(getInsightsNav()); }
@@ -93,7 +96,12 @@ export default function Sidebar() {
               }
             >
               <Icon />
-              {label}
+              <span className="flex-1">{label}</span>
+              {to === '/my-tasks' && inboxCount > 0 && (
+                <span className="text-[10px] font-bold bg-brand-purple text-white rounded-full px-1.5 py-px min-w-[18px] text-center leading-tight">
+                  {inboxCount}
+                </span>
+              )}
             </NavLink>
           );
         })}
