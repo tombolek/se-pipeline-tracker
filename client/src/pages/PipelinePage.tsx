@@ -43,9 +43,9 @@ function OppRow({ opp, selected, onClick, onRefreshList, visibleColumns }: {
           {renderOpportunityCell(opp, col)}
         </td>
       ))}
-      <td className="px-3 py-3 text-brand-navy-30">
+      <td className="px-3 py-3 text-brand-navy-30 sticky right-0 bg-white group-hover:bg-brand-purple-30/10">
         <div className="flex items-center justify-end gap-1">
-          <RowCapture oppId={opp.id} oppName={opp.name} onSaved={onRefreshList} />
+          <RowCapture oppId={opp.id} oppName={opp.name} seOwnerId={opp.se_owner?.id ?? null} onSaved={onRefreshList} />
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
           </svg>
@@ -224,7 +224,7 @@ export default function PipelinePage() {
                     className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide whitespace-nowrap"
                   />
                 ))}
-                <th className="w-8" />
+                <th className="w-8 sticky right-0 bg-white" />
               </tr>
             </thead>
             <tbody>

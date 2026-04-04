@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { createNote } from '../api/notes';
 import { createTask } from '../api/tasks';
+import { listUsers } from '../api/users';
 import { useAuthStore } from '../store/auth';
+import type { User } from '../types';
 
 type CaptureType = 'note' | 'task';
 
@@ -14,16 +16,19 @@ function defaultDueDate() {
 interface Props {
   oppId: number;
   oppName: string;
+  seOwnerId?: number | null;
   onSaved?: () => void;
 }
 
-export default function RowCapture({ oppId, oppName, onSaved }: Props) {
+export default function RowCapture({ oppId, oppName, seOwnerId, onSaved }: Props) {
   const { user } = useAuthStore();
   const defaultType: CaptureType = user?.role === 'manager' ? 'task' : 'note';
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<CaptureType>(defaultType);
   const [text, setText] = useState('');
   const [dueDate, setDueDate] = useState(defaultDueDate);
+  const [assignedTo, setAssignedTo] = useState<number | null>(seOwnerId ?? null);
+  const [users, setUsers] = useState<User[]>([]);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [pos, setPos] = useState({ top: 0, left: 0 });
@@ -34,14 +39,18 @@ export default function RowCapture({ oppId, oppName, onSaved }: Props) {
   function openPopover(e: React.MouseEvent) {
     e.stopPropagation();
     const rect = btnRef.current!.getBoundingClientRect();
-    // Place popover below-left of button, clamped to viewport
-    const left = Math.min(rect.right - 260, window.innerWidth - 276);
+    const left = Math.min(rect.right - 280, window.innerWidth - 296);
     setPos({ top: rect.bottom + 6, left: Math.max(8, left) });
     setText('');
     setType(defaultType);
     setDueDate(defaultDueDate());
+    setAssignedTo(seOwnerId ?? null);
     setSaved(false);
     setOpen(true);
+    // Lazy-load users for assignee selector
+    if (users.length === 0) {
+      listUsers().then(setUsers).catch(() => {});
+    }
   }
 
   function close() {
@@ -49,12 +58,10 @@ export default function RowCapture({ oppId, oppName, onSaved }: Props) {
     setSaving(false);
   }
 
-  // Autofocus input when popover opens
   useEffect(() => {
     if (open) setTimeout(() => inputRef.current?.focus(), 30);
   }, [open]);
 
-  // Escape key closes
   const onKey = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape') close();
   }, []);
@@ -73,7 +80,11 @@ export default function RowCapture({ oppId, oppName, onSaved }: Props) {
       if (type === 'note') {
         await createNote(oppId, text.trim());
       } else {
-        await createTask(oppId, { title: text.trim(), due_date: dueDate });
+        await createTask(oppId, {
+          title: text.trim(),
+          due_date: dueDate,
+          ...(assignedTo != null ? { assigned_to_id: assignedTo } : {}),
+        });
       }
       setSaved(true);
       onSaved?.();
@@ -85,13 +96,13 @@ export default function RowCapture({ oppId, oppName, onSaved }: Props) {
 
   return (
     <>
-      {/* Trigger button — visible on parent group-hover */}
+      {/* Trigger button — always visible */}
       <button
         ref={btnRef}
         type="button"
         onClick={openPopover}
         title="Quick capture"
-        className="opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity w-6 h-6 rounded-md flex items-center justify-center text-brand-navy-70 hover:bg-brand-purple/10 hover:text-brand-purple"
+        className="w-6 h-6 rounded-md flex items-center justify-center text-brand-navy-70 hover:bg-brand-purple/10 hover:text-brand-purple transition-colors"
       >
         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -101,15 +112,10 @@ export default function RowCapture({ oppId, oppName, onSaved }: Props) {
       {/* Popover + backdrop */}
       {open && (
         <>
-          {/* Invisible backdrop to catch outside clicks */}
-          <div
-            className="fixed inset-0 z-40"
-            onClick={close}
-          />
+          <div className="fixed inset-0 z-40" onClick={close} />
 
-          {/* Popover card */}
           <div
-            className="fixed z-50 w-64 bg-white rounded-xl shadow-xl border border-brand-navy-30/40 p-3"
+            className="fixed z-50 w-72 bg-white rounded-xl shadow-xl border border-brand-navy-30/40 p-3"
             style={{ top: pos.top, left: pos.left }}
             onClick={e => e.stopPropagation()}
           >
@@ -131,7 +137,6 @@ export default function RowCapture({ oppId, oppName, onSaved }: Props) {
               ))}
             </div>
 
-            {/* Input */}
             <form onSubmit={handleSave}>
               <input
                 ref={inputRef}
@@ -142,19 +147,32 @@ export default function RowCapture({ oppId, oppName, onSaved }: Props) {
                 className="w-full px-2.5 py-1.5 rounded-lg border border-brand-navy-30 text-sm text-brand-navy placeholder:text-brand-navy-70 focus:outline-none focus:ring-2 focus:ring-brand-purple focus:border-transparent mb-2"
               />
 
-              {/* Due date (task only) */}
               {type === 'task' && (
-                <input
-                  type="date"
-                  value={dueDate}
-                  onChange={e => setDueDate(e.target.value)}
-                  className="w-full px-2.5 py-1.5 rounded-lg border border-brand-navy-30 text-xs text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-purple focus:border-transparent mb-2"
-                />
+                <>
+                  {/* Due date */}
+                  <input
+                    type="date"
+                    value={dueDate}
+                    onChange={e => setDueDate(e.target.value)}
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-brand-navy-30 text-xs text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-purple focus:border-transparent mb-2"
+                  />
+
+                  {/* Assignee */}
+                  <select
+                    value={assignedTo ?? ''}
+                    onChange={e => setAssignedTo(e.target.value ? Number(e.target.value) : null)}
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-brand-navy-30 text-xs text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-purple focus:border-transparent mb-2 bg-white"
+                  >
+                    <option value="">Unassigned</option>
+                    {users.map(u => (
+                      <option key={u.id} value={u.id}>{u.name}</option>
+                    ))}
+                  </select>
+                </>
               )}
 
-              {/* Footer */}
               <div className="flex items-center justify-between">
-                <p className="text-[10px] text-brand-navy-70 truncate max-w-[130px]" title={oppName}>
+                <p className="text-[10px] text-brand-navy-70 truncate max-w-[140px]" title={oppName}>
                   → {oppName}
                 </p>
                 <button

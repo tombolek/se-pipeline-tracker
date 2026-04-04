@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import api from '../../api/client';
 import type { ApiResponse } from '../../types';
 import StageBadge from '../../components/shared/StageBadge';
+import MultiSelectFilter from '../../components/shared/MultiSelectFilter';
 import { formatDate } from '../../utils/formatters';
 import { PageHeader, Empty, Loading } from './shared';
 
@@ -133,6 +134,25 @@ export default function TechBlockersPage() {
   const [loadingAll, setLoadingAll] = useState(true);
   const [loadingRecent, setLoadingRecent] = useState(false);
 
+  // Multi-select filters ([] = all shown)
+  const [deployFilter, setDeployFilter] = useState<string[]>([]);
+  const [seFilter, setSeFilter] = useState<string[]>([]);
+  const [stageFilter, setStageFilter] = useState<string[]>([]);
+
+  function resetFilters() {
+    setDeployFilter([]);
+    setSeFilter([]);
+    setStageFilter([]);
+    setStatusFilter('active');
+  }
+
+  const deployOptions = useMemo(() =>
+    [...new Set(allRows.map(r => r.deploy_mode ?? '—'))].sort(), [allRows]);
+  const seOptions = useMemo(() =>
+    [...new Set(allRows.map(r => r.se_owner_name ?? 'Unassigned'))].sort(), [allRows]);
+  const stageOptions = useMemo(() =>
+    [...new Set(allRows.map(r => r.stage))].sort(), [allRows]);
+
   const [summary, setSummary] = useState<string | null>(null);
   const [summaryGeneratedAt, setSummaryGeneratedAt] = useState<string | null>(null);
   const [generatingSummary, setGeneratingSummary] = useState(false);
@@ -177,11 +197,18 @@ export default function TechBlockersPage() {
     return Math.floor(diff / 86_400_000);
   }
 
-  // Apply status filter
+  // Apply all filters
   const filteredRows = allRows.filter(r => {
-    if (statusFilter === 'active') return !isNoBlocker(r);
-    if (statusFilter === 'all') return true;
-    return r.blocker_status === statusFilter;
+    // Status filter
+    if (statusFilter === 'active' && isNoBlocker(r)) return false;
+    if (statusFilter !== 'active' && statusFilter !== 'all' && r.blocker_status !== statusFilter) return false;
+    // Deploy mode filter
+    if (deployFilter.length > 0 && !deployFilter.includes(r.deploy_mode ?? '—')) return false;
+    // SE owner filter
+    if (seFilter.length > 0 && !seFilter.includes(r.se_owner_name ?? 'Unassigned')) return false;
+    // Stage filter
+    if (stageFilter.length > 0 && !stageFilter.includes(r.stage)) return false;
+    return true;
   });
 
   // Status counts for filter buttons
@@ -318,6 +345,38 @@ export default function TechBlockersPage() {
           </div>
         )}
       </div>
+
+      {/* Multi-select filters (All tab only) */}
+      {tab === 'all' && !loadingAll && allRows.length > 0 && (
+        <div className="flex items-center gap-2 mb-3 flex-wrap">
+          <MultiSelectFilter
+            options={deployOptions}
+            selected={deployFilter}
+            onChange={setDeployFilter}
+            placeholder="Deploy Mode"
+          />
+          <MultiSelectFilter
+            options={seOptions}
+            selected={seFilter}
+            onChange={setSeFilter}
+            placeholder="SE Owner"
+          />
+          <MultiSelectFilter
+            options={stageOptions}
+            selected={stageFilter}
+            onChange={setStageFilter}
+            placeholder="Stage"
+          />
+          {(deployFilter.length > 0 || seFilter.length > 0 || stageFilter.length > 0 || statusFilter !== 'active') && (
+            <button
+              onClick={resetFilters}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium border border-brand-navy-30 text-brand-navy-70 hover:border-brand-navy hover:text-brand-navy transition-colors"
+            >
+              Reset filters
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Status filter bar (All tab only) */}
       {tab === 'all' && !loadingAll && allRows.length > 0 && (
