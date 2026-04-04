@@ -9,6 +9,7 @@ import DeployModePage from './insights/DeployModePage';
 import SeDealMappingPage from './insights/SeDealMappingPage';
 import ClosedLostStatsPage from './insights/ClosedLostStatsPage';
 import TechBlockersPage from './insights/TechBlockersPage';
+import AgenticQualPage from './insights/AgenticQualPage';
 
 export default function InsightsPage() {
   const { pathname } = useLocation();
@@ -65,6 +66,7 @@ export default function InsightsPage() {
   if (pathname.includes('team-workload')) content = <TeamWorkloadPage />;
   else if (pathname.includes('overdue-tasks')) content = <OverdueTasksPage />;
   else if (pathname.includes('tech-blockers')) content = <TechBlockersPage />;
+  else if (pathname.includes('agentic-qual')) content = <AgenticQualPage />;
   else content = <StageMovementPage />;
 
   return (

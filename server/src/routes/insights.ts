@@ -372,4 +372,108 @@ A numbered list of the 2-3 highest-leverage actions the SE manager should take, 
   res.json(ok({ summary, generated_at: new Date().toISOString(), count: rows.length, red: redCount, orange: orangeCount }));
 });
 
+// ── Agentic Qualification ──────────────────────────────────────────────────────
+
+// GET /insights/agentic-qual  — all active opps that have agentic_qual content
+router.get('/agentic-qual', auth, mgr, async (_req: Request, res: Response): Promise<void> => {
+  const rows = await query(
+    `SELECT o.id, o.name, o.account_name, o.stage, o.arr, o.arr_currency,
+            o.deploy_mode, o.team, o.record_type, o.agentic_qual, o.updated_at,
+            u.name AS se_owner_name
+     FROM opportunities o
+     LEFT JOIN users u ON o.se_owner_id = u.id
+     WHERE o.is_active = true AND o.is_closed_lost = false
+       AND o.agentic_qual IS NOT NULL AND length(o.agentic_qual) > 0
+     ORDER BY u.name NULLS LAST, o.name`
+  );
+  res.json(ok(rows));
+});
+
+// GET /insights/agentic-qual/recent?days=30  — recently changed from field history
+router.get('/agentic-qual/recent', auth, mgr, async (req: Request, res: Response): Promise<void> => {
+  const days = parseInt((req.query.days as string) ?? '30') || 30;
+  const rows = await query(
+    `SELECT o.id, o.name, o.account_name, o.stage, o.deploy_mode,
+            h.old_value, h.new_value, h.changed_at,
+            u.name AS se_owner_name
+     FROM opportunity_field_history h
+     JOIN opportunities o ON h.opportunity_id = o.id
+     LEFT JOIN users u ON o.se_owner_id = u.id
+     WHERE h.field_name = 'agentic_qual'
+       AND h.changed_at > now() - (interval '1 day' * $1)
+       AND o.is_active = true AND o.is_closed_lost = false
+     ORDER BY h.changed_at DESC`,
+    [days]
+  );
+  res.json(ok(rows, { days }));
+});
+
+// GET /insights/agentic-qual/ai-summary/cached
+router.get('/agentic-qual/ai-summary/cached', auth, mgr, async (_req: Request, res: Response): Promise<void> => {
+  const rows = await query<{ content: string; generated_at: string }>(
+    `SELECT content, generated_at FROM ai_summary_cache WHERE key = 'agentic-qual'`
+  );
+  if (rows.length === 0) { res.json(ok(null)); return; }
+  res.json(ok({ summary: rows[0].content, generated_at: rows[0].generated_at }));
+});
+
+// POST /insights/agentic-qual/ai-summary
+router.post('/agentic-qual/ai-summary', auth, mgr, async (_req: Request, res: Response): Promise<void> => {
+  const rows = await query<{
+    name: string; account_name: string; se_owner_name: string | null;
+    deploy_mode: string | null; stage: string; agentic_qual: string;
+  }>(
+    `SELECT o.name, o.account_name, o.stage, o.deploy_mode, o.agentic_qual,
+            u.name AS se_owner_name
+     FROM opportunities o
+     LEFT JOIN users u ON o.se_owner_id = u.id
+     WHERE o.is_active = true AND o.is_closed_lost = false
+       AND o.agentic_qual IS NOT NULL AND length(o.agentic_qual) > 0
+     ORDER BY u.name NULLS LAST, o.name`
+  );
+
+  if (rows.length === 0) {
+    res.json(ok({ summary: 'No Agentic Qualification data has been recorded yet.' }));
+    return;
+  }
+
+  const context = rows.map(r =>
+    `${r.name} (${r.account_name}) — SE: ${r.se_owner_name ?? 'Unassigned'}, Stage: ${r.stage}, Deploy: ${r.deploy_mode ?? 'N/A'}\n  ${r.agentic_qual}`
+  ).join('\n\n');
+
+  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const response = await anthropic.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 1500,
+    messages: [{
+      role: 'user',
+      content: `You are analyzing Agentic Qualification data across a software sales engineering pipeline (${rows.length} opportunities). The "Agentic Qual" field explains why a deal is NOT an Agentic opportunity — i.e., why the customer would use the Core platform (PaaS/PaaS+/Self-managed) instead of the Agentic (cloud-only, AI-native) product.
+
+${context}
+
+Write a structured analysis for the SE Manager. Use this exact format with markdown:
+
+## Common Reasons Deals Aren't Agentic
+Identify the 3-5 dominant patterns explaining why deals can't be Agentic. For each theme, open with a short bold header on its own line, then a paragraph explaining the pattern, then a short bullet list of the specific affected accounts.
+
+## Deployment Mode & Stage Distribution
+Paragraph analysis of which deployment modes and pipeline stages have the most non-Agentic deals, and what this signals about the pipeline.
+
+## Opportunities to Revisit
+A numbered list of 2-3 accounts or situations where the Agentic qualification might be re-evaluated, with brief rationale based on their current stage and notes.`,
+    }],
+  });
+
+  const summary = response.content.find(b => b.type === 'text')?.text ?? '';
+
+  await query(
+    `INSERT INTO ai_summary_cache (key, content, generated_at)
+     VALUES ('agentic-qual', $1, now())
+     ON CONFLICT (key) DO UPDATE SET content = $1, generated_at = now()`,
+    [summary]
+  );
+
+  res.json(ok({ summary, generated_at: new Date().toISOString(), count: rows.length }));
+});
+
 export default router;
