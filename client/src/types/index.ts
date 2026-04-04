@@ -107,6 +107,7 @@ export interface User {
   role: 'manager' | 'se';
   is_active: boolean;
   show_qualify: boolean;
+  force_password_change: boolean;
   column_prefs: ColumnPrefs | null;
   created_at: string;
   last_login_at: string | null;

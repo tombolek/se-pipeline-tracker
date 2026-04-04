@@ -14,3 +14,8 @@ export async function getMe(): Promise<User> {
   const { data } = await api.get<ApiResponse<User>>('/auth/me');
   return data.data;
 }
+
+export async function changePassword(password: string): Promise<User> {
+  const { data } = await api.post<ApiResponse<User>>('/auth/change-password', { password });
+  return data.data;
+}

@@ -19,5 +19,8 @@ export default function ProtectedRoute() {
 
   if (!token) return <Navigate to="/login" replace />;
 
+  // Force password change before accessing anything else
+  if (user?.force_password_change) return <Navigate to="/change-password" replace />;
+
   return <Outlet />;
 }

@@ -4,7 +4,7 @@ import { query, queryOne } from '../db/index.js';
 import { requireAuth, requireManager } from '../middleware/auth.js';
 import { AuthenticatedRequest, ColumnPrefs, User, ok, err } from '../types/index.js';
 
-const USER_COLS = `id, email, name, role, is_active, show_qualify, column_prefs, created_at, last_login_at`;
+const USER_COLS = `id, email, name, role, is_active, show_qualify, force_password_change, column_prefs, created_at, last_login_at`;
 
 const router = Router();
 const auth = requireAuth as unknown as (req: Request, res: Response, next: () => void) => void;
@@ -136,7 +136,7 @@ router.post('/:id/reset-password', auth, mgr, async (req: Request, res: Response
 
   const password_hash = await bcrypt.hash(password.trim(), 10);
   const user = await queryOne<User>(
-    `UPDATE users SET password_hash = $1 WHERE id = $2 AND is_deleted = false
+    `UPDATE users SET password_hash = $1, force_password_change = true WHERE id = $2 AND is_deleted = false
      RETURNING ${USER_COLS}`,
     [password_hash, id]
   );

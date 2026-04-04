@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import LoginPage from './pages/LoginPage';
+import ChangePasswordPage from './pages/ChangePasswordPage';
 import PipelinePage from './pages/PipelinePage';
 import ClosedLostPage from './pages/ClosedLostPage';
 import MyTasksPage from './pages/MyTasksPage';
@@ -50,6 +51,7 @@ export default function App() {
       <AuthInit>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/change-password" element={<ChangePasswordPage />} />
           <Route element={<ProtectedRoute />}>
             <Route element={<AppShell><Navigate to="/pipeline" /></AppShell>} path="/" />
             <Route path="/pipeline" element={<AppShell><PipelinePage /></AppShell>} />
