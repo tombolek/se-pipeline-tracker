@@ -44,9 +44,10 @@ export default function MultiSelectFilter({ options, selected, onChange, placeho
 
   const active = selected.length > 0;
 
+  const baseName = placeholder.replace(/^All\s+/i, '');
   const label = selected.length === 0
     ? placeholder
-    : `${placeholder} (${selected.length})`;
+    : `${baseName} (${selected.length})`;
 
   return (
     <div className="relative" ref={ref}>
