@@ -17,7 +17,7 @@ A browser-based workspace for an SE Manager and their Solutions Engineering team
 9. [User Roles & Access](#user-roles--access)
 10. [Salesforce Import Pipeline](#salesforce-import-pipeline)
 11. [Brand & Design System](#brand--design-system)
-12. [Future Roadmap](#future-roadmap)
+12. [Deployment](#deployment)
 
 ---
 
@@ -55,14 +55,18 @@ This tool pulls deal data from Salesforce via a CSV/XLS export and layers a nati
 |----------|-------|
 | See which deals changed stage recently | Insights → Stage Movement |
 | Find deals with no recent SE notes | Insights → Missing Notes |
-| See team workload at a glance | Insights → Team Workload |
+| See team workload and comment freshness at a glance | Insights → Team Workload |
 | Find overdue tasks across the team | Insights → Overdue Tasks |
 | Track active PoCs | Insights → PoC Board |
 | Track RFx responses | Insights → RFx Board |
-| See pipeline breakdown by deployment model (PaaS+ vs SaaS) | Insights → DeployMode Overview |
-| Filter DeployMode view by fiscal quarter | DeployMode — quarter multi-select |
+| See pipeline breakdown by deployment model | Insights → DeployMode Overview |
+| Review technical blockers across the pipeline | Insights → Tech Blockers |
+| Analyse closed lost deals by reason and stage | Insights → Closed Lost Stats |
+| Assign or reassign SE owners across deals | Insights → SE Deal Mapping |
+| Generate an AI analysis of pipeline blockers | Insights → Tech Blockers → AI Insights |
+| Drill into a specific SE's workload or overdue tasks | Team Workload — click any stat |
 | Manage team members and their roles | Settings → Users |
-| View Salesforce import history | Settings → Import History |
+| View Salesforce import history and roll back imports | Settings → Import History |
 | Customize which Insights pages appear in the sidebar | Settings → Insights Menu |
 | Trigger a Salesforce data import | Settings → Import (file upload) |
 
@@ -74,11 +78,11 @@ This tool pulls deal data from Salesforce via a CSV/XLS export and layers a nati
 - Paginated list of active (open) opportunities
 - Default view: **Build Value and above** — Qualify stage hidden by default
 - Qualify toggle: per-user preference (stored in DB), shows count of hidden Qualify deals
-- Columns: Opportunity name, Account, Stage, ARR, Close Date, AE Owner, SE Owner, Open Tasks, SE Comments freshness
+- Columns: configurable via **Column Picker** — reorderable, saveable per user
 - **SE Comments freshness indicator**: green dot (≤7 days), amber (8–21 days), red (>21 days), grey (never)
-- Filters: Stage, SE Owner, text search
-- Sort: Close Date, ARR, Stage, SE Comments age
-- Quick Capture button on each row (hover to reveal) — creates a note or task without opening the full detail view
+- Filters: Stage (multi-select), Fiscal Period (multi-select), text search; deep-link filter `?se_id=<n>` pre-filters by SE owner (used from Team Workload drill-through)
+- Sort: any column, click header to cycle asc/desc/off
+- Quick Capture button on each row (hover to reveal)
 
 ### Closed Lost (`/closed-lost`)
 - Deals that disappeared from the SF import (= Closed Lost)
@@ -92,15 +96,14 @@ This tool pulls deal data from Salesforce via a CSV/XLS export and layers a nati
 - Left column (working area): Next Steps (top), Tasks, Notes
 - Right column (read-only SF data): stage, ARR, close date, AE owner, deploy mode, PoC status, competitors
 - Collapsible SF fields: Next Step, Manager Comments, SE Comments (with freshness badge), Technical Blockers
-- **AI Summary** button — calls Claude API with all deal context (tasks, notes, SF fields) to produce a one-click summary
+- **AI Summary** button — calls Claude API with all deal context to produce a one-click summary
 - Inline task creation, editing (pencil icon), status changes, deletion
 - Append-only notes with author and timestamp
 
 ### My Tasks (`/my-tasks`)
 - All open tasks assigned to the logged-in user across all deals
 - Grouped sections: Overdue → Today → This Week → Later → No Due Date → Completed (collapsible)
-- Inline edit (pencil icon), status change, delete
-- Completed section collapsed by default
+- Inline edit, status change, delete
 
 ### Inbox (`/inbox`)
 - Personal scratch pad — jot things down without linking to a deal yet
@@ -114,6 +117,12 @@ This tool pulls deal data from Salesforce via a CSV/XLS export and layers a nati
 - If linked: goes directly to that deal's tasks or notes
 - If unlinked: saves to Inbox
 
+### Column Picker
+- Available on Pipeline and SE Deal Mapping views
+- Drag-and-drop or arrow buttons to reorder columns
+- Saved per user in the database (`column_prefs` JSONB field)
+- Reset to default button
+
 ### Manager Insights
 
 #### Stage Movement (`/insights/stage-movement`)
@@ -123,50 +132,75 @@ This tool pulls deal data from Salesforce via a CSV/XLS export and layers a nati
 #### Missing Notes (`/insights/missing-notes`)
 - Deals where `se_comments_updated_at` is null or older than a threshold (14 / 21 / 30 days, configurable)
 - Sorted most stale first
-- Clickable rows open the Opportunity Detail drawer
-- Quick Capture button per row for fast note entry
+- Supports `?se_id=<n>` deep-link filter (used from Team Workload drill-through)
+- Clickable rows open the Opportunity Detail drawer; Quick Capture button per row
 
 #### Team Workload (`/insights/team-workload`)
-- Per-SE summary: deal count, open tasks, overdue tasks, next steps
+- Per-user cards (all active users, not just SEs) showing 6 stats in a 3×2 grid:
+  - **Opps** — active opportunities assigned
+  - **Open Tasks** — open/in-progress tasks
+  - **Next Steps** — tasks flagged as next steps
+  - **Overdue** — overdue tasks (highlighted red when >0)
+  - **Stale Notes** — opps with SE comments >21 days old or never updated (highlighted red)
+  - **Fresh Notes** — opps with SE comments ≤7 days old (highlighted green)
+- All non-zero stats are **clickable links**: Opps/Open Tasks/Next Steps → pipeline filtered by SE; Overdue → overdue tasks filtered by SE; Stale Notes → missing notes filtered by SE
 
 #### Overdue Tasks (`/insights/overdue-tasks`)
 - All overdue tasks across the team, grouped by SE
+- Supports `?se_id=<n>` deep-link filter from Team Workload
 
 #### PoC Board (`/insights/poc-board`)
-- Kanban-style board of all deals with a PoC Status set
-- Columns by PoC status
+- Kanban board of deals with a PoC Status set; unrecognised/empty statuses excluded
+- **Status bar** at top: all four columns shown as colored pills with counts (empty ones dimmed)
+- **Hide empty columns toggle** (default ON): removes zero-card columns from the board
+- **Compact card toggle**: slim 2-row cards showing opp name + end date + SE initials; per-card expand chevron reveals full details inline
+- Column width adapts: `w-96` when ≤3 columns visible, `w-72` for 4 columns
 
 #### RFx Board (`/insights/rfx-board`)
-- Kanban-style board of deals with an RFx Status set
+- **View switcher**: Kanban (default) or List view
+- **Kanban**: In Review = 1 card wide, In Progress + Completed = 2 cards wide
+- **List view**: sortable table with filter bar (RFx Status, SE Owner, AE Owner)
+- Clicking any card/row opens the Opportunity Detail drawer
 
 #### DeployMode Overview (`/insights/deploy-mode`)
-- Stat cards per deployment model (PaaS+, SaaS, other) showing deal count and total ARR
+- Stat cards per deployment model showing deal count and total ARR
 - Clicking a stat card filters the deal table below
-- **Quarter filter**: multi-select dropdown derived from `fiscal_period` field (e.g. Q2-2026, Q3-2026)
-- Deal table columns: Opportunity, Stage, ARR, Close Date, SE Comments, Agentic Qualification, Technical Blockers, AE/SE Owner
-- Clicking a row opens the Opportunity Detail drawer
+- Quarter filter (multi-select), sortable table
+
+#### Tech Blockers (`/insights/tech-blockers`)
+- Table of all active opps with a Technical Blockers/Risk value
+- Status badge based on emoji prefix: 🔴 Critical / 🟠 High / 🟡 Medium / 🟢 Low/None
+- Status filter bar (Active blockers / by severity / All)
+- **Recently Changed tab**: field history for `technical_blockers` with 14/30/60/90d window
+- **AI Insights panel** (collapsible, collapsed by default):
+  - Summary cached in DB; freshness badge shows age (green today / yellow ≤3d / red 4d+)
+  - Includes all entries, weighted by severity; rendered as structured markdown
+  - "Regenerate" button to refresh; "Generate Summary" on first run
+
+#### Closed Lost Stats (`/insights/closed-lost-stats`)
+- Analysis of closed lost deals by reason, stage, deployment mode, and time period
+
+#### SE Deal Mapping (`/insights/se-deal-mapping`)
+- Kanban or table view for assigning/reassigning SE owners across all active opportunities
+- Drag-and-drop between SE columns in kanban view
+- Sortable table view with column picker
+- Filter by SE, stage, text search
 
 ### Settings (Manager only)
 
 #### Users (`/settings/users`)
 - List all team members with role badge, last login, active/inactive status
-- Add new user (name, email, role, temporary password)
-- Toggle role (Manager ↔ SE) per row
-- Deactivate / Reactivate users (soft delete — own account is protected)
+- Add new user; toggle role; deactivate/reactivate
 
 #### Import History (`/settings/import`)
-- Log of all Salesforce data imports: date, filename, rows processed, added/updated/closed lost counts, status badge
+- Log of all imports with rollback capability (most recent import can be undone)
 
 #### Insights Menu (`/settings/insights-menu`)
 - Drag-and-drop reorder of Insights sidebar items
-- Show/hide individual pages
-- Up/Down arrow buttons as an alternative to drag
-- Reset to default button
-- Changes apply instantly to the sidebar via localStorage + custom event
+- Show/hide individual pages; reset to default
 
 ### Sidebar Navigation
-- Collapsible **Insights** and **Settings** sections (collapsed by default)
-- Main nav order: Pipeline → My Tasks → Inbox → Closed Lost
+- Collapsible **Insights** and **Settings** sections
 - Insights nav order is user-configurable (see Insights Menu above)
 
 ---
@@ -175,17 +209,17 @@ This tool pulls deal data from Salesforce via a CSV/XLS export and layers a nati
 
 | Layer | Technology | Notes |
 |-------|------------|-------|
-| Frontend | React 18 + TypeScript + Vite | Component-based, strict TS |
+| Frontend | React 18 + TypeScript + Vite | Strict TS |
 | Styling | Tailwind CSS | Custom Ataccama brand token configuration |
 | State management | Zustand | Auth store, pipeline store |
 | HTTP client | Axios | Typed API functions per domain |
-| Backend | Node.js + Express + TypeScript | REST API, compiled with `tsx` |
-| Database | PostgreSQL 16 | Via Docker; production-ready (maps directly to RDS/Azure DB) |
+| Backend | Node.js + Express + TypeScript | REST API |
+| Database | PostgreSQL 16 | Docker locally; AWS RDS in production |
 | ORM | Raw SQL via `pg` | Parameterized queries throughout — no ORM |
-| Auth | JWT + bcrypt | Stateless sessions; Google SSO slot built into architecture |
-| AI | Anthropic Claude API (`claude-sonnet-4-5`) | Opportunity summarization |
+| Auth | JWT + bcrypt | Stateless sessions |
+| AI | Anthropic Claude API (`claude-sonnet-4-6`) | Opportunity summarization + Tech Blockers analysis |
 | Containerization | Docker + Docker Compose | One-command local start |
-| Dev environment | Windows + WSL2 | WSL2 mirrored networking mode required |
+| Hosting | AWS EC2 + CloudFront + S3 | EC2 runs the backend container; S3/CloudFront serves the frontend |
 
 ### Key frontend libraries
 - `react-router-dom` v6 — client-side routing
@@ -198,7 +232,7 @@ This tool pulls deal data from Salesforce via a CSV/XLS export and layers a nati
 - `pg` — PostgreSQL client
 - `bcrypt` — password hashing
 - `jsonwebtoken` — JWT signing/verification
-- `multer` — file upload handling (for SF imports)
+- `multer` — file upload handling
 - `@anthropic-ai/sdk` — Claude API client
 - `node-html-parser` — parses Salesforce's HTML-in-XLS export format
 
@@ -227,23 +261,28 @@ se-pipeline-tracker/
 │       ├── components/
 │       │   ├── Sidebar.tsx          # Nav with collapsible sections, dynamic insights nav
 │       │   ├── Drawer.tsx           # Slide-in panel used by all list views
-│       │   ├── OpportunityDetail.tsx # Full deal detail panel
-│       │   ├── ProtectedRoute.tsx   # Auth guard
+│       │   ├── OpportunityDetail.tsx
+│       │   ├── ProtectedRoute.tsx
 │       │   ├── QuickCapture.tsx     # Ctrl+K global modal
 │       │   ├── RowCapture.tsx       # Inline quick-capture on list rows
+│       │   ├── ColumnPicker.tsx     # Reorderable column selector
 │       │   ├── opportunity/
-│       │   │   ├── TaskSection.tsx  # Task list + add + inline edit
-│       │   │   └── NoteSection.tsx  # Append-only notes list + add
+│       │   │   ├── TaskSection.tsx
+│       │   │   └── NoteSection.tsx
 │       │   └── shared/
-│       │       ├── StageBadge.tsx   # Colored stage pill
-│       │       └── StatusChip.tsx   # Task status chip
+│       │       ├── StageBadge.tsx
+│       │       ├── StatusChip.tsx
+│       │       ├── FreshnessDot.tsx
+│       │       ├── MultiSelectFilter.tsx  # Generic multi-select dropdown
+│       │       ├── SortableHeader.tsx     # Clickable sortable table header
+│       │       └── TruncatedCell.tsx
 │       ├── pages/
 │       │   ├── LoginPage.tsx
 │       │   ├── PipelinePage.tsx
 │       │   ├── ClosedLostPage.tsx
 │       │   ├── MyTasksPage.tsx
 │       │   ├── InsightsPage.tsx     # Pathname-based sub-router for all insight views
-│       │   ├── SettingsPage.tsx     # Pathname-based sub-router for settings
+│       │   ├── SettingsPage.tsx
 │       │   ├── insights/
 │       │   │   ├── StageMovementPage.tsx
 │       │   │   ├── MissingNotesPage.tsx
@@ -252,57 +291,71 @@ se-pipeline-tracker/
 │       │   │   ├── PocBoardPage.tsx
 │       │   │   ├── RfxBoardPage.tsx
 │       │   │   ├── DeployModePage.tsx
+│       │   │   ├── TechBlockersPage.tsx
+│       │   │   ├── ClosedLostStatsPage.tsx
+│       │   │   ├── SeDealMappingPage.tsx
 │       │   │   └── shared.tsx       # Loading, Empty shared components
 │       │   └── settings/
 │       │       ├── UsersPage.tsx
 │       │       ├── ImportHistoryPage.tsx
-│       │       └── InsightsMenuPage.tsx
+│       │       ├── InsightsMenuPage.tsx
+│       │       └── HowToPage.tsx
 │       ├── store/
-│       │   ├── auth.ts              # User + token state, login/logout
-│       │   └── pipeline.ts          # Closed lost unread count, quick capture open state
+│       │   ├── auth.ts
+│       │   └── pipeline.ts
 │       ├── types/
-│       │   └── index.ts             # Shared TypeScript interfaces (User, Task, Note, etc.)
+│       │   └── index.ts
 │       └── utils/
-│           ├── formatters.ts        # formatARR, formatDate, daysSinceLabel
-│           └── insightsNav.ts       # Insights nav config — localStorage persistence + defaults
+│           ├── formatters.ts
+│           ├── insightsNav.ts       # Insights nav config — localStorage + defaults
+│           ├── sortRows.ts          # Generic multi-type sort utility
+│           └── renderOpportunityCell.tsx  # Renders any opp column by key
 │
 ├── server/                          # Node.js + Express + TypeScript
 │   ├── package.json
 │   ├── tsconfig.json
-│   ├── migrations/                  # Numbered SQL files — run in order
+│   ├── migrations/                  # Numbered SQL files — run in order on startup
 │   │   ├── 001_create_users.sql
 │   │   ├── 002_create_opportunities.sql
 │   │   ├── 003_create_tasks.sql
 │   │   ├── 004_create_notes.sql
 │   │   ├── 005_create_inbox_items.sql
-│   │   └── 006_create_imports.sql
+│   │   ├── 006_create_imports.sql
+│   │   ├── 007_add_import_rollback.sql
+│   │   ├── 008_create_field_history.sql
+│   │   ├── 009_add_column_prefs.sql
+│   │   └── 010_create_ai_summary_cache.sql
 │   ├── scripts/
-│   │   ├── migrate.ts               # Runs all migrations in order
-│   │   ├── seed.ts                  # Creates sample users + opportunities
-│   │   └── sample-import.xls        # Sample SF export for testing imports
+│   │   ├── migrate.ts
+│   │   ├── seed.ts
+│   │   ├── backfill-se-comment-dates.ts
+│   │   └── sample-import.xls
 │   └── src/
-│       ├── index.ts                 # Express app entry point + route registration
+│       ├── index.ts
 │       ├── db/
 │       │   └── index.ts             # pg Pool, query(), queryOne() helpers
 │       ├── middleware/
-│       │   └── auth.ts              # requireAuth, requireManager JWT middleware
+│       │   └── auth.ts              # requireAuth, requireManager
 │       ├── types/
-│       │   └── index.ts             # AuthenticatedRequest, User, ok(), err() helpers
+│       │   └── index.ts
 │       ├── services/
 │       │   └── importService.ts     # SF file parser + reconciliation logic
 │       └── routes/
-│           ├── auth.ts              # POST /auth/login, POST /auth/logout, GET /auth/me
-│           ├── opportunities.ts     # GET/PATCH opportunities, POST import, GET import/history
-│           ├── tasks.ts             # POST/PATCH/DELETE tasks
-│           ├── notes.ts             # GET/POST notes (append-only)
-│           ├── inbox.ts             # GET/POST/PATCH/DELETE inbox items, POST convert
+│           ├── auth.ts
+│           ├── opportunities.ts
+│           ├── tasks.ts
+│           ├── notes.ts
+│           ├── inbox.ts
 │           ├── insights.ts          # All GET /insights/* endpoints
-│           └── users.ts             # GET/POST/PATCH/DELETE users, PATCH me/preferences
+│           └── users.ts
 │
-├── docker-compose.yml               # PostgreSQL 16 service
-├── .env.example                     # Template — commit this
-├── .env                             # Real secrets — never commit
-└── CLAUDE.md                        # Full project specification for AI-assisted development
+├── scripts/
+│   └── deploy.sh                    # Full deploy or --server-only to AWS EC2 + S3/CloudFront
+├── infra/                           # AWS CloudFormation stack definition
+├── docker-compose.yml               # Local development (PostgreSQL only)
+├── docker-compose.prod.yml          # Production (server + DB containers on EC2)
+├── .env.example
+└── CLAUDE.md                        # Project specification for AI-assisted development
 ```
 
 ---
@@ -320,7 +373,8 @@ se-pipeline-tracker/
 | `password_hash` | text | bcrypt, cost 10 |
 | `role` | text | `manager` or `se` |
 | `is_active` | boolean | Soft delete flag |
-| `show_qualify` | boolean | Pipeline filter preference (per-user) |
+| `show_qualify` | boolean | Pipeline filter preference |
+| `column_prefs` | JSONB | Saved column layouts per page |
 | `last_login_at` | timestamptz | Updated on each login |
 
 #### `opportunities`
@@ -330,14 +384,14 @@ Key columns:
 - `sf_opportunity_id` — immutable SF record ID, reconciliation key
 - `name`, `account_name`, `stage`, `arr`, `close_date` — core SF fields
 - `deploy_mode`, `fiscal_period` — deployment model and fiscal quarter
-- `se_comments`, `se_comments_updated_at` — SE comments + freshness tracking
-- `technical_blockers`, `agentic_qual` — MEDDPICC fields
+- `se_comments`, `se_comments_updated_at` — SE comments + freshness tracking (timestamp derived from date written in the comment text, not import time)
+- `technical_blockers` — mapped from "Technical Blockers/Risk" SF field; emoji prefix (🔴/🟠/🟡/🟢) denotes severity
 - `poc_status`, `poc_start_date`, `poc_end_date`, `poc_type` — PoC tracking
 - `rfx_status` — RFx tracking
 - `stage_changed_at`, `previous_stage` — powers Stage Movement insight
 - `se_owner_id` — app-managed SE assignment (not from SF)
 - `is_closed_lost`, `closed_at`, `closed_lost_seen` — closed lost tracking
-- `sf_raw_fields` JSONB — all 55 SF columns stored raw (future columns auto-captured)
+- `sf_raw_fields` JSONB — all SF columns stored raw; future columns auto-captured
 
 #### `tasks`
 | Column | Notes |
@@ -345,7 +399,7 @@ Key columns:
 | `opportunity_id` | FK to opportunities |
 | `title`, `description` | Task content |
 | `status` | `open`, `in_progress`, `done`, `blocked` |
-| `is_next_step` | Promoted to Next Steps section in detail view |
+| `is_next_step` | Promoted to Next Steps section |
 | `due_date` | Drives grouping in My Tasks |
 | `assigned_to_id` | FK to users |
 | `is_deleted` | Soft delete |
@@ -357,7 +411,27 @@ Append-only — no UPDATE or DELETE ever issued on this table.
 Personal scratch pad per user. Supports conversion to tasks or notes on an opportunity.
 
 #### `imports`
-Log of every SF import: filename, row counts, added/updated/closed-lost counts, status, error log.
+Log of every SF import: filename, row counts, added/updated/closed-lost counts, status, error log. Supports rollback of the most recent import.
+
+#### `opportunity_field_history`
+Tracks value changes for key SF fields (stage, se_comments, technical_blockers, etc.) on every import. Powers the Stage Movement and Tech Blockers Recently Changed views.
+
+| Column | Notes |
+|--------|-------|
+| `opportunity_id` | FK to opportunities |
+| `import_id` | FK to imports |
+| `field_name` | e.g. `stage`, `technical_blockers` |
+| `old_value`, `new_value` | String values before/after |
+| `changed_at` | Timestamp of the import |
+
+#### `ai_summary_cache`
+Stores the last generated AI summary per key (currently `tech-blockers`).
+
+| Column | Notes |
+|--------|-------|
+| `key` | TEXT PRIMARY KEY — e.g. `tech-blockers` |
+| `content` | Full summary text |
+| `generated_at` | When it was generated |
 
 ---
 
@@ -377,20 +451,22 @@ Response envelope: `{ "data": ..., "error": null, "meta": {} }`
 ### Opportunities
 | Method | Path | Access | Description |
 |--------|------|--------|-------------|
-| GET | `/opportunities` | Auth | Pipeline list; supports `?search=`, `?stage=`, `?se_owner=`, `?include_qualify=` |
+| GET | `/opportunities` | Auth | Pipeline list; `?search=`, `?stage=`, `?include_qualify=` |
 | GET | `/opportunities/:id` | Auth | Full detail with tasks + notes |
 | PATCH | `/opportunities/:id` | Manager | Update `se_owner_id` |
-| POST | `/opportunities/import` | Manager | Upload SF export (multipart or raw POST) |
+| POST | `/opportunities/import` | Manager | Upload SF export (multipart) |
 | GET | `/opportunities/import/history` | Manager | Last 50 imports |
+| POST | `/opportunities/import/:id/rollback` | Manager | Roll back a specific import |
 | GET | `/opportunities/closed-lost` | Auth | Closed lost list with unread count |
 | POST | `/opportunities/closed-lost/mark-read` | Auth | Mark records as seen |
+| POST | `/opportunities/:id/summary` | Auth | Generate AI summary via Claude API |
 
 ### Tasks
 | Method | Path | Access | Description |
 |--------|------|--------|-------------|
 | GET | `/tasks` | Auth | Current user's tasks |
-| POST | `/opportunities/:id/tasks` | Auth | Create task on an opportunity |
-| PATCH | `/tasks/:id` | Auth | Update title, description, status, due_date, is_next_step |
+| POST | `/opportunities/:id/tasks` | Auth | Create task |
+| PATCH | `/tasks/:id` | Auth | Update task |
 | DELETE | `/tasks/:id` | Auth | Soft delete |
 
 ### Notes
@@ -402,36 +478,36 @@ Response envelope: `{ "data": ..., "error": null, "meta": {} }`
 ### Inbox
 | Method | Path | Access | Description |
 |--------|------|--------|-------------|
-| GET | `/inbox` | Auth | Current user's open inbox items |
+| GET | `/inbox` | Auth | Current user's open items |
 | POST | `/inbox` | Auth | Create jot |
-| PATCH | `/inbox/:id` | Auth | Edit text, mark done |
-| POST | `/inbox/:id/convert` | Auth | Link to opportunity, convert to task or note |
+| PATCH | `/inbox/:id` | Auth | Edit or mark done |
+| POST | `/inbox/:id/convert` | Auth | Convert to task or note on an opportunity |
 | DELETE | `/inbox/:id` | Auth | Soft delete |
 
 ### Insights (Manager only)
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/insights/stage-movement` | `?days=7\|14\|30` |
-| GET | `/insights/missing-notes` | `?threshold_days=` |
-| GET | `/insights/team-workload` | Per-SE task/deal counts |
-| GET | `/insights/overdue-tasks` | Grouped by SE |
-| GET | `/insights/rfx` | All deals with rfx_status set |
-| GET | `/insights/poc` | All deals with poc_status set |
-| GET | `/insights/deploy-mode` | All active deals with deploy_mode |
+| GET | `/insights/missing-notes` | `?threshold_days=&se_id=` |
+| GET | `/insights/team-workload` | Per-user task/deal/comment counts |
+| GET | `/insights/overdue-tasks` | Grouped by user; `?se_id=` |
+| GET | `/insights/rfx` | All deals with `rfx_status` set |
+| GET | `/insights/poc` | All deals with a known `poc_status` |
+| GET | `/insights/deploy-mode` | Active deals with `deploy_mode` |
+| GET | `/insights/closed-lost-stats` | Closed lost breakdown by reason/stage |
+| GET | `/insights/tech-blockers` | Active opps with `technical_blockers`; includes computed `blocker_status` |
+| GET | `/insights/tech-blockers/recent` | `?days=14\|30\|60\|90` — field history for `technical_blockers` |
+| GET | `/insights/tech-blockers/ai-summary/cached` | Returns persisted AI summary or null |
+| POST | `/insights/tech-blockers/ai-summary` | Generate + persist new AI summary |
 
 ### Users (Manager only)
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/users` | All users |
 | POST | `/users` | Create user |
-| PATCH | `/users/me/preferences` | Update `show_qualify` for current user |
+| PATCH | `/users/me/preferences` | Update `show_qualify`, `column_prefs` |
 | PATCH | `/users/:id` | Update name, email, role, is_active |
-| DELETE | `/users/:id` | Soft deactivate (can't self-deactivate) |
-
-### AI
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/opportunities/:id/summary` | Generate AI summary via Claude API |
+| DELETE | `/users/:id` | Soft deactivate |
 
 ---
 
@@ -468,12 +544,12 @@ cp .env.example .env
 docker compose up -d
 
 # 4. Verify DB is healthy
-docker ps   # look for 'se-pipeline-tracker-db-1' with status 'healthy'
+docker ps   # look for container with status 'healthy'
 
 # 5. Run migrations
 cd server && npm install && npm run migrate
 
-# 6. Seed sample data (1 manager, 3 SEs, 5 opportunities)
+# 6. Seed sample data
 npm run seed
 
 # 7. Start the backend
@@ -504,15 +580,14 @@ cd client && npm run dev       # frontend (terminal 2)
 | Variable | Description |
 |----------|-------------|
 | `POSTGRES_DB` | Database name (default: `se_pipeline`) |
-| `POSTGRES_USER` | DB user (default: `pipeline_user`) |
+| `POSTGRES_USER` | DB user |
 | `POSTGRES_PASSWORD` | DB password |
-| `POSTGRES_PORT` | DB port (default: `5432`) |
 | `DATABASE_URL` | Full connection string for the backend |
 | `PORT` | Backend server port (default: `3001`) |
-| `JWT_SECRET` | Secret for signing JWTs — use a long random string in production |
+| `JWT_SECRET` | Secret for signing JWTs |
 | `JWT_EXPIRES_IN` | Token TTL (default: `7d`) |
-| `ANTHROPIC_API_KEY` | API key for AI summary feature |
-| `VITE_API_URL` | Backend base URL seen by the browser (default: `http://localhost:3001/api/v1`) |
+| `ANTHROPIC_API_KEY` | API key for AI summary features |
+| `VITE_API_URL` | Backend base URL seen by the browser |
 
 ---
 
@@ -531,144 +606,33 @@ cd client && npm run dev       # frontend (terminal 2)
 | Manage users | — | ✓ |
 | Configure Insights menu | — | ✓ |
 
-The Insights sidebar section is hidden for SE role. All `/insights/*` and `/users` API routes enforce `requireManager` middleware — a 403 is returned if an SE attempts to call them directly.
+All `/insights/*` and `/users` API routes enforce `requireManager` middleware — a 403 is returned if an SE attempts to call them directly.
 
 ---
 
 ## Salesforce Import Pipeline
 
-Salesforce data comes in as an XLS export of an Opportunities report. The file is actually **HTML-in-XLS format** (Salesforce's default export) — it is parsed as an HTML table, not a native XLS binary.
-
-### How to generate the export file
-
-1. Open the Salesforce Opportunities report (the pre-built report shared with the team)
-2. Click **Export** → choose **Excel Format (.xls)**
-3. Save the file and upload it via **Settings → Import**
-
-The file must contain an **"Opportunity ID"** column — this is the immutable reconciliation key.
+Salesforce data comes in as an XLS export of an Opportunities report. The file is **HTML-in-XLS format** (Salesforce's default export) — it is parsed as an HTML table, not a native XLS binary.
 
 ### Import flow
 
-1. **Preview** — upload the file to get a dry-run diff (no data is changed yet): rows parsed, new deals, updated deals, removed from open pipeline
-2. **Confirm** — review the counts and click **Confirm & Import** to apply the changes
-3. The server processes each row:
-   - **Match found** (SF ID already in DB): update all SF-owned fields; if `stage` changed → record `stage_changed_at` and `previous_stage`; if `se_comments` changed → update `se_comments_updated_at` freshness timestamp; never touch `se_owner_id`, tasks, or notes
-   - **New SF ID**: insert a new opportunity record
-   - **SF ID absent from this import but previously active**: mark as Closed Lost (`is_closed_lost = true`, `closed_at = now()`)
-4. Every raw row is stored in the `sf_raw_fields` JSONB column — future SF columns are automatically captured without a schema migration
-5. A pre-import snapshot is saved for rollback. The most recent import can be undone via **Settings → Import** or **Settings → Import History**
+1. **Upload** the file via Settings → Import
+2. **Preview** — dry-run diff: rows parsed, new deals, updated deals, removed from open pipeline
+3. **Confirm** — apply the changes
+4. The server processes each row:
+   - **Match found**: update all SF-owned fields; if `stage` changed → record in `opportunity_field_history`; if `se_comments` changed → update `se_comments_updated_at` (parsed from the date written inside the comment text, not import time); if `technical_blockers` changed → record in field history
+   - **New SF ID**: insert new opportunity record
+   - **SF ID absent**: mark as Closed Lost (`is_closed_lost = true`, `closed_at = now()`)
+5. Every raw row is stored in `sf_raw_fields` JSONB — future SF columns auto-captured
+6. Import logged to `imports` table; most recent import can be rolled back
 
-### Important notes
+### SE Comments freshness
 
-- The import always contains **open opportunities only** — there is no "Closed Lost" status in the SF export feed
-- The **first import** establishes the baseline; from the second import onwards, absent SF IDs are treated as newly Closed Lost
-- Fields not yet present in the current SF export (e.g. `technical_blockers`) will auto-populate from `sf_raw_fields` once Salesforce includes them — no code change needed
+`se_comments_updated_at` is derived from the **date written inside the comment text** (e.g. "BM_26SEPT", "Jan 15, 2026") using a 14-pattern regex cascade with "nearest past date" year inference. This gives an accurate freshness signal even for comments that haven't changed in recent imports. Coverage: ~97% of real comment entries.
 
-### Import file field reference
+### Field reference
 
-The expected Salesforce export contains the following 55 columns. Column headers are matched case-insensitively and trimmed.
-
-#### Core deal fields
-
-| SF Column Header | DB Field | Type | Notes |
-|---|---|---|---|
-| Opportunity ID | `sf_opportunity_id` | text | **Required** — reconciliation key, never changes |
-| Opportunity Name | `name` | text | |
-| Account ID | `account_id` | text | SF Account record ID |
-| Account Name | `account_name` | text | |
-| Account Segment | `account_segment` | text | e.g. Enterprise, Commercial |
-| Account Industry | `account_industry` | text | |
-| Stage | `stage` | text | e.g. Build Value, Proposal Sent |
-| Close Date | `close_date` | date | |
-| Close Month | `close_month` | date | |
-| Fiscal Period | `fiscal_period` | text | e.g. Q2-2026 |
-| Fiscal Year | `fiscal_year` | text | |
-| Opportunity Record Type | `record_type` | text | New Logo, Upsell, Renewal, etc. |
-| Team | `team` | text | e.g. NA Enterprise, EMEA |
-| Target Account | `key_deal` | boolean | true/false/yes |
-| Key Deal | `key_deal` | boolean | Alias for Target Account |
-
-#### Commercial fields
-
-| SF Column Header | DB Field | Type | Notes |
-|---|---|---|---|
-| Annualized ARR | `arr` | numeric | Currency symbols and commas stripped automatically |
-| Annualized ARR Currency | `arr_currency` | text | e.g. USD, EUR |
-| Annualized ARR (converted) | `arr_converted` | numeric | Converted to base currency |
-| Opportunity Owner | `ae_owner_name` | text | AE name |
-
-#### Sales & marketing fields
-
-| SF Column Header | DB Field | Type | Notes |
-|---|---|---|---|
-| Sales Plays | `sales_plays` | text | |
-| Lead Source | `lead_source` | text | |
-| Opportunity Source | `opportunity_source` | text | |
-| Channel Source (Grouped) | `channel_source` | text | |
-| BizDev | `biz_dev` | text | |
-
-#### Deployment fields
-
-| SF Column Header | DB Field | Type | Notes |
-|---|---|---|---|
-| DeployMode | `deploy_mode` | text | e.g. PaaS+, SaaS |
-| DeployLoc | `deploy_location` | text | |
-
-#### MEDDPICC & deal context
-
-| SF Column Header | DB Field | Type | Notes |
-|---|---|---|---|
-| Next Step | `next_step_sf` | text | AE-entered next step; changes tracked in field history |
-| Manager Comments | `manager_comments` | text | Freshness tracked via `manager_comments_updated_at` |
-| Sales Engineering Comments | `se_comments` | text | Freshness tracked via `se_comments_updated_at` |
-| PSM Comments | `psm_comments` | text | |
-| Budget | `budget` | text | |
-| Authority | `authority` | text | |
-| Need | `need` | text | |
-| Timeline | `timeline` | text | |
-| Metrics | `metrics` | text | |
-| Economic Buyer | `economic_buyer` | text | |
-| Decision Criteria | `decision_criteria` | text | |
-| Decision Process | `decision_process` | text | |
-| Paper Process | `paper_process` | text | |
-| Implicate the Pain | `implicate_pain` | text | |
-| Champion | `champion` | text | |
-| Engaged Competitors | `engaged_competitors` | text | |
-| Agentic Qualification | `agentic_qual` | text | |
-
-#### Partner fields
-
-| SF Column Header | DB Field | Type | Notes |
-|---|---|---|---|
-| Sourcing Partner | `sourcing_partner` | text | |
-| Sourcing Partner - Internal Tier | `sourcing_partner_tier` | text | |
-| Influencing Partner | `influencing_partner` | text | |
-| Partner Manager | `partner_manager` | text | |
-
-#### PoC fields
-
-| SF Column Header | DB Field | Type | Notes |
-|---|---|---|---|
-| PoC Status | `poc_status` | text | e.g. In Progress, Wrapping Up |
-| PoC Estimated Start Date | `poc_start_date` | date | |
-| PoC Estimated End Date | `poc_end_date` | date | |
-| PoC Type | `poc_type` | text | |
-| PoC Deployment Type | `poc_deploy_type` | text | |
-
-#### RFx fields
-
-| SF Column Header | DB Field | Type | Notes |
-|---|---|---|---|
-| RFx Status | `rfx_status` | text | e.g. In Review, In Progress, Completed |
-
-#### Raw-only fields (stored in `sf_raw_fields` JSONB, not promoted to a dedicated column)
-
-| SF Column Header | Notes |
-|---|---|
-| Annualized ARR (converted) Currency | Currency code for the converted ARR value |
-| Potential Pull Forward | Stored for reference |
-
-> **Any column not listed above** is also captured automatically in `sf_raw_fields` and will not cause the import to fail. This means new Salesforce columns are safe to add to the report without any code changes.
+The expected SF export contains columns mapped per `server/src/services/importService.ts`. All columns are also stored in `sf_raw_fields` JSONB regardless — new SF columns never cause import failures.
 
 ---
 
@@ -694,33 +658,24 @@ Typography: **Poppins** (Google Fonts) — 300/400/500/600 weights.
 
 ---
 
-## Future Roadmap
+## Deployment
 
-Features designed for but not yet implemented (architecture already supports them):
+The app runs on AWS infrastructure deployed via `scripts/deploy.sh`:
 
-### Near-term
-- **Inbox page** — currently a placeholder; backend is complete
-- **SE owner assignment UI** — PATCH endpoint exists, frontend control not yet added to opportunity detail
-- **Role-based route guard on frontend** — SEs can reach `/insights/*` by typing the URL directly; a redirect guard would close this gap
-- **Password change** — users currently can't change their own password; requires a new endpoint
+- **Frontend**: built with Vite, uploaded to S3, served via CloudFront
+- **Backend**: Docker container running on EC2, proxied from CloudFront
+- **Database**: PostgreSQL 16 in a Docker container on the same EC2 instance (data volume persisted)
+- **Migrations**: run automatically on every server container start
 
-### Medium-term
-- **Automated SF import** — `POST /opportunities/import` already accepts programmatic POSTs; a scheduled script or Cowork integration can trigger it without any backend changes
-- **Email / Slack forwarding to Inbox** — `inbox_items` table has `source`, `source_ref` columns ready; needs a webhook receiver
-- **Slack notifications** — overdue tasks, stage changes; needs a notification service module + Slack bot token
-- **Google SSO** — Ataccama Google Workspace login; JWT architecture has the provider-swap slot ready
+```bash
+# Full deploy (frontend + backend)
+bash scripts/deploy.sh
 
-### Longer-term
-- **AE read-only access** — view-only role with no task/note creation
-- **Sales leadership dashboard** — cross-team rollup view
-- **Mobile layout** — Tailwind breakpoints used from day one; primarily a CSS effort
-- **Export to CSV / PDF** — deal lists and insight views
-- **Multi-team support** — currently single-team; would require a `team_id` FK on users and opportunities
+# Server only (skip frontend build + S3 upload)
+bash scripts/deploy.sh --server-only
+```
 
-### Cloud migration path
-Everything runs in Docker Compose — cloud deployment is a container lift-and-shift:
-- **AWS**: RDS (PostgreSQL) + ECS Fargate (backend) + S3/CloudFront (frontend) + Secrets Manager
-- **Azure**: Azure Database for PostgreSQL + Container Apps + Static Web Apps + Key Vault
+Infrastructure is defined in `infra/` as a CloudFormation stack (EC2 instance, S3 bucket, CloudFront distribution, security groups).
 
 ---
 
@@ -729,7 +684,7 @@ Everything runs in Docker Compose — cloud deployment is a container lift-and-s
 ### Adding a new Insights page
 1. Create `client/src/pages/insights/YourPage.tsx`
 2. Add a route case in `client/src/pages/InsightsPage.tsx`
-3. Add the default entry to `DEFAULT_INSIGHTS_NAV` in `client/src/utils/insightsNav.ts` — it will automatically appear in the sidebar and in the Insights Menu settings page
+3. Add the default entry to `DEFAULT_INSIGHTS_NAV` in `client/src/utils/insightsNav.ts`
 4. Add a backend endpoint in `server/src/routes/insights.ts`
 
 ### Adding a new SF field
@@ -739,8 +694,7 @@ If Salesforce adds a column to the export:
 
 ### Running migrations manually
 ```bash
-cd server
-npm run migrate
+cd server && npm run migrate
 ```
 
 ### Wiping and re-seeding the database
