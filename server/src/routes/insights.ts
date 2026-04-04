@@ -147,7 +147,7 @@ router.get('/rfx', auth, mgr, async (_req: Request, res: Response): Promise<void
   const rows = await query(
     `SELECT
        o.id, o.name, o.account_name, o.stage, o.arr, o.arr_currency,
-       o.rfx_status, o.team,
+       o.rfx_status, o.team, o.record_type,
        o.ae_owner_name,
        o.is_closed_lost,
        u.id   AS se_owner_id,
@@ -234,7 +234,7 @@ router.get('/closed-lost-stats', auth, mgr, async (req: Request, res: Response):
 router.get('/tech-blockers', auth, mgr, async (req: Request, res: Response): Promise<void> => {
   const rows = await query(
     `SELECT o.id, o.name, o.account_name, o.stage, o.arr, o.arr_currency,
-            o.deploy_mode, o.team, o.technical_blockers, o.updated_at,
+            o.deploy_mode, o.team, o.record_type, o.technical_blockers, o.updated_at,
             u.name AS se_owner_name,
             CASE
               WHEN o.technical_blockers ~ '^🔴' THEN 'red'

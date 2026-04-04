@@ -216,6 +216,7 @@ export default function SeDealMappingPage() {
   const [filterStages, setFilterStages] = useState<string[]>([]);
   const [filterFiscalPeriods, setFilterFiscalPeriods] = useState<string[]>([]);
   const [filterTeams, setFilterTeams] = useState<string[]>(['EMEA', 'NA Enterprise', 'NA Strategic', 'ANZ']);
+  const [filterRecordTypes, setFilterRecordTypes] = useState<string[]>([]);
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [view, setView] = useState<'table' | 'kanban'>('table');
@@ -296,6 +297,7 @@ export default function SeDealMappingPage() {
 
   const fiscalPeriods = [...new Set(opps.map(o => o.fiscal_period).filter(Boolean) as string[])].sort(sortFiscalPeriod);
   const teamOptions = [...new Set(opps.map(o => o.team).filter(Boolean) as string[])].sort();
+  const recordTypeOptions = [...new Set(opps.map(o => o.record_type).filter(Boolean) as string[])].sort();
   const unassignedCount = opps.filter(o => !o.se_owner).length;
 
   const searchLower = search.trim().toLowerCase();
@@ -305,6 +307,7 @@ export default function SeDealMappingPage() {
     if (filterStages.length > 0 && !filterStages.includes(o.stage)) return false;
     if (filterFiscalPeriods.length > 0 && !filterFiscalPeriods.includes(o.fiscal_period ?? '')) return false;
     if (filterTeams.length > 0 && !filterTeams.includes(o.team ?? '')) return false;
+    if (filterRecordTypes.length > 0 && !filterRecordTypes.includes(o.record_type ?? '')) return false;
     if (searchLower && !o.name.toLowerCase().includes(searchLower) && !(o.account_name ?? '').toLowerCase().includes(searchLower)) return false;
     return true;
   });
@@ -384,6 +387,7 @@ export default function SeDealMappingPage() {
             <MultiSelectFilter options={STAGES} selected={filterStages} onChange={setFilterStages} placeholder="All stages" />
             <MultiSelectFilter options={fiscalPeriods} selected={filterFiscalPeriods} onChange={setFilterFiscalPeriods} placeholder="All periods" />
             <MultiSelectFilter options={teamOptions} selected={filterTeams} onChange={setFilterTeams} placeholder="All teams" />
+            <MultiSelectFilter options={recordTypeOptions} selected={filterRecordTypes} onChange={setFilterRecordTypes} placeholder="All types" />
             <button
               onClick={() => setFilterSe('all')}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${

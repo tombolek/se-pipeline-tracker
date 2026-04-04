@@ -15,6 +15,7 @@ interface BlockerRow {
   stage: string;
   deploy_mode: string | null;
   team: string | null;
+  record_type: string | null;
   technical_blockers: string;
   blocker_status: BlockerStatus;
   se_owner_name: string | null;
@@ -140,12 +141,14 @@ export default function TechBlockersPage() {
   const [seFilter, setSeFilter] = useState<string[]>([]);
   const [stageFilter, setStageFilter] = useState<string[]>([]);
   const [teamFilter, setTeamFilter] = useState<string[]>(['EMEA', 'NA Enterprise', 'NA Strategic', 'ANZ']);
+  const [recordTypeFilter, setRecordTypeFilter] = useState<string[]>([]);
 
   function resetFilters() {
     setDeployFilter([]);
     setSeFilter([]);
     setStageFilter([]);
     setTeamFilter(['EMEA', 'NA Enterprise', 'NA Strategic', 'ANZ']);
+    setRecordTypeFilter([]);
     setStatusFilter('active');
   }
 
@@ -157,6 +160,8 @@ export default function TechBlockersPage() {
     [...new Set(allRows.map(r => r.stage))].sort(), [allRows]);
   const teamOptions = useMemo(() =>
     [...new Set(allRows.map(r => r.team ?? '—'))].sort(), [allRows]);
+  const recordTypeOptions = useMemo(() =>
+    [...new Set(allRows.map(r => r.record_type).filter(Boolean) as string[])].sort(), [allRows]);
 
   const [summary, setSummary] = useState<string | null>(null);
   const [summaryGeneratedAt, setSummaryGeneratedAt] = useState<string | null>(null);
@@ -215,6 +220,8 @@ export default function TechBlockersPage() {
     if (stageFilter.length > 0 && !stageFilter.includes(r.stage)) return false;
     // Team filter
     if (teamFilter.length > 0 && !teamFilter.includes(r.team ?? '—')) return false;
+    // Record type filter
+    if (recordTypeFilter.length > 0 && !recordTypeFilter.includes(r.record_type ?? '')) return false;
     return true;
   });
 
@@ -380,7 +387,13 @@ export default function TechBlockersPage() {
             onChange={setTeamFilter}
             placeholder="All teams"
           />
-          {(deployFilter.length > 0 || seFilter.length > 0 || stageFilter.length > 0 ||
+          <MultiSelectFilter
+            options={recordTypeOptions}
+            selected={recordTypeFilter}
+            onChange={setRecordTypeFilter}
+            placeholder="All types"
+          />
+          {(deployFilter.length > 0 || seFilter.length > 0 || stageFilter.length > 0 || recordTypeFilter.length > 0 ||
             JSON.stringify(teamFilter.slice().sort()) !== JSON.stringify(['ANZ', 'EMEA', 'NA Enterprise', 'NA Strategic']) ||
             statusFilter !== 'active') && (
             <button

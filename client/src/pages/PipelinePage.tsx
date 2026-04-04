@@ -199,6 +199,7 @@ function FilterBar({
   stages, setStages,
   fiscalPeriods, selectedFiscalPeriods, setFiscalPeriods,
   teams, teamOptions, setTeams,
+  recordTypes, recordTypeOptions, setRecordTypes,
   seFilterName, clearSeFilter,
   total,
   columnPicker,
@@ -207,6 +208,7 @@ function FilterBar({
   stages: string[]; setStages: (v: string[]) => void;
   fiscalPeriods: string[]; selectedFiscalPeriods: string[]; setFiscalPeriods: (v: string[]) => void;
   teams: string[]; teamOptions: string[]; setTeams: (v: string[]) => void;
+  recordTypes: string[]; recordTypeOptions: string[]; setRecordTypes: (v: string[]) => void;
   seFilterName: string | null; clearSeFilter: () => void;
   total: number;
   columnPicker: React.ReactNode;
@@ -223,6 +225,7 @@ function FilterBar({
       <MultiSelectFilter options={STAGES} selected={stages} onChange={setStages} placeholder="All stages" />
       <MultiSelectFilter options={fiscalPeriods} selected={selectedFiscalPeriods} onChange={setFiscalPeriods} placeholder="All periods" />
       <MultiSelectFilter options={teamOptions} selected={teams} onChange={setTeams} placeholder="All teams" />
+      <MultiSelectFilter options={recordTypeOptions} selected={recordTypes} onChange={setRecordTypes} placeholder="All types" />
       {seFilterName && (
         <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-brand-purple/10 border border-brand-purple text-brand-purple">
           SE: {seFilterName}
@@ -253,6 +256,7 @@ export default function PipelinePage() {
   const [stages, setStages] = useState<string[]>([]);
   const [selectedFiscalPeriods, setFiscalPeriods] = useState<string[]>([]);
   const [teams, setTeams] = useState<string[]>(DEFAULT_TEAMS);
+  const [recordTypes, setRecordTypes] = useState<string[]>([]);
 
   const seIdParam = searchParams.get('se_id') ? Number(searchParams.get('se_id')) : null;
   const [visibleColumns, setVisibleColumns] = useState<string[]>(() =>
@@ -288,6 +292,7 @@ export default function PipelinePage() {
   )].sort(sortFiscalPeriod);
 
   const teamOptions = [...new Set(allOpps.map(o => o.team).filter(Boolean) as string[])].sort();
+  const recordTypeOptions = [...new Set(allOpps.map(o => o.record_type).filter(Boolean) as string[])].sort();
 
   // Derive SE filter name from loaded data
   const seFilterName = seIdParam
@@ -304,6 +309,7 @@ export default function PipelinePage() {
     if (stages.length > 0 && !stages.includes(o.stage)) return false;
     if (selectedFiscalPeriods.length > 0 && !selectedFiscalPeriods.includes(o.fiscal_period ?? '')) return false;
     if (teams.length > 0 && !teams.includes(o.team ?? '')) return false;
+    if (recordTypes.length > 0 && !recordTypes.includes(o.record_type ?? '')) return false;
     if (search) {
       const q = search.toLowerCase();
       if (!o.name.toLowerCase().includes(q) && !(o.account_name ?? '').toLowerCase().includes(q)) return false;
@@ -331,6 +337,7 @@ export default function PipelinePage() {
         stages={stages} setStages={setStages}
         fiscalPeriods={fiscalPeriods} selectedFiscalPeriods={selectedFiscalPeriods} setFiscalPeriods={setFiscalPeriods}
         teams={teams} teamOptions={teamOptions} setTeams={setTeams}
+        recordTypes={recordTypes} recordTypeOptions={recordTypeOptions} setRecordTypes={setRecordTypes}
         seFilterName={seFilterName} clearSeFilter={clearSeFilter}
         total={displayed.length}
         columnPicker={

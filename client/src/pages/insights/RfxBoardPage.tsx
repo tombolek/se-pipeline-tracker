@@ -18,6 +18,7 @@ interface RfxOpp {
   arr_currency: string;
   rfx_status: string;
   team: string | null;
+  record_type: string | null;
   ae_owner_name: string | null;
   se_owner_name: string | null;
   is_closed_lost: boolean;
@@ -134,7 +135,8 @@ export default function RfxBoardPage() {
   const [filterStatus, setFilterStatus] = useState<string[]>([]);
   const [filterSe, setFilterSe]         = useState<string[]>([]);
   const [filterAe, setFilterAe]         = useState<string[]>([]);
-  const [filterTeams, setFilterTeams]   = useState<string[]>(['EMEA', 'NA Enterprise', 'NA Strategic', 'ANZ']);
+  const [filterTeams, setFilterTeams]       = useState<string[]>(['EMEA', 'NA Enterprise', 'NA Strategic', 'ANZ']);
+  const [filterRecordTypes, setFilterRecordTypes] = useState<string[]>([]);
 
   // List sort
   const [sortKey, setSortKey] = useState<string | null>(null);
@@ -153,8 +155,12 @@ export default function RfxBoardPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Kanban grouping (team filter applies here too)
-  const kanbanOpps = filterTeams.length > 0 ? opps.filter(o => filterTeams.includes(o.team ?? '')) : opps;
+  // Kanban grouping (team + record type filters apply here too)
+  const kanbanOpps = opps.filter(o => {
+    if (filterTeams.length > 0 && !filterTeams.includes(o.team ?? '')) return false;
+    if (filterRecordTypes.length > 0 && !filterRecordTypes.includes(o.record_type ?? '')) return false;
+    return true;
+  });
   const knownSet = new Set<string>(COLUMNS);
   const grouped: Record<string, RfxOpp[]> = {};
   for (const col of COLUMNS) grouped[col] = [];
@@ -168,7 +174,8 @@ export default function RfxBoardPage() {
   const statusOptions = [...new Set(opps.map(o => o.rfx_status).filter(Boolean))].sort();
   const seOptions     = [...new Set(opps.map(o => o.se_owner_name).filter(Boolean) as string[])].sort();
   const aeOptions     = [...new Set(opps.map(o => o.ae_owner_name).filter(Boolean) as string[])].sort();
-  const teamOptions   = [...new Set(opps.map(o => o.team).filter(Boolean) as string[])].sort();
+  const teamOptions       = [...new Set(opps.map(o => o.team).filter(Boolean) as string[])].sort();
+  const recordTypeOptions = [...new Set(opps.map(o => o.record_type).filter(Boolean) as string[])].sort();
 
   // Apply list filters + sort
   const filtered = opps.filter(o => {
@@ -176,6 +183,7 @@ export default function RfxBoardPage() {
     if (filterSe.length > 0 && !filterSe.includes(o.se_owner_name ?? '')) return false;
     if (filterAe.length > 0 && !filterAe.includes(o.ae_owner_name ?? '')) return false;
     if (filterTeams.length > 0 && !filterTeams.includes(o.team ?? '')) return false;
+    if (filterRecordTypes.length > 0 && !filterRecordTypes.includes(o.record_type ?? '')) return false;
     return true;
   });
   const colTypeMap = Object.fromEntries(LIST_COLS.map(c => [c.key, c.type])) as Record<string, ColType>;
@@ -224,9 +232,10 @@ export default function RfxBoardPage() {
           </div>
         </div>
 
-        {/* Filters — team always shown; list-only filters shown in list view */}
+        {/* Filters — team + type always shown; list-only filters shown in list view */}
         <div className="flex items-center gap-2 mt-4 flex-wrap">
-          <MultiSelectFilter options={teamOptions} selected={filterTeams} onChange={setFilterTeams} placeholder="All teams" />
+          <MultiSelectFilter options={teamOptions}       selected={filterTeams}       onChange={setFilterTeams}       placeholder="All teams" />
+          <MultiSelectFilter options={recordTypeOptions} selected={filterRecordTypes} onChange={setFilterRecordTypes} placeholder="All types" />
           {view === 'list' && (
             <>
               <MultiSelectFilter options={statusOptions} selected={filterStatus} onChange={setFilterStatus} placeholder="All statuses" />
