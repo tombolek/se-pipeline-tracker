@@ -37,16 +37,6 @@ function AppShell({ children }: { children: React.ReactNode }) {
   );
 }
 
-function PlaceholderPage({ title }: { title: string }) {
-  return (
-    <div className="flex-1 flex items-center justify-center bg-[#F5F5F7]">
-      <div className="text-center">
-        <p className="text-lg font-semibold text-brand-navy">{title}</p>
-        <p className="text-sm text-brand-navy-70 mt-1">Coming soon</p>
-      </div>
-    </div>
-  );
-}
 
 function AuthInit({ children }: { children: React.ReactNode }) {
   const checkAuth = useAuthStore((s) => s.checkAuth);
