@@ -28,6 +28,11 @@ export async function deleteUser(id: number): Promise<void> {
   await api.delete(`/users/${id}`);
 }
 
+export async function resetUserPassword(id: number, password: string): Promise<User> {
+  const { data } = await api.post<ApiResponse<User>>(`/users/${id}/reset-password`, { password });
+  return data.data;
+}
+
 export async function updateMyPreferences(
   prefs: { show_qualify?: boolean; column_prefs?: ColumnPrefs }
 ): Promise<User> {

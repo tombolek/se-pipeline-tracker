@@ -10,10 +10,10 @@ const router = Router();
 const auth = requireAuth as unknown as (req: Request, res: Response, next: () => void) => void;
 const mgr  = requireManager as unknown as (req: Request, res: Response, next: () => void) => void;
 
-// GET /users — list all users (Manager only)
+// GET /users — list all non-deleted users (Manager only)
 router.get('/', auth, mgr, async (_req: Request, res: Response): Promise<void> => {
   const rows = await query<User>(
-    `SELECT ${USER_COLS} FROM users ORDER BY name ASC`
+    `SELECT ${USER_COLS} FROM users WHERE is_deleted = false ORDER BY name ASC`
   );
   res.json(ok(rows));
 });
@@ -123,16 +123,40 @@ router.patch('/:id', auth, mgr, async (req: Request, res: Response): Promise<voi
   res.json(ok(user));
 });
 
-// DELETE /users/:id — soft delete (Manager only, can't self-delete)
+// POST /users/:id/reset-password — set a new password (Manager only)
+router.post('/:id/reset-password', auth, mgr, async (req: Request, res: Response): Promise<void> => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json(err('Invalid user id')); return; }
+
+  const { password } = req.body as { password?: string };
+  if (!password?.trim() || password.trim().length < 6) {
+    res.status(400).json(err('Password must be at least 6 characters'));
+    return;
+  }
+
+  const password_hash = await bcrypt.hash(password.trim(), 10);
+  const user = await queryOne<User>(
+    `UPDATE users SET password_hash = $1 WHERE id = $2 AND is_deleted = false
+     RETURNING ${USER_COLS}`,
+    [password_hash, id]
+  );
+  if (!user) { res.status(404).json(err('User not found')); return; }
+  res.json(ok(user));
+});
+
+// DELETE /users/:id — mark as deleted (Manager only, can't self-delete)
 router.delete('/:id', auth, mgr, async (req: Request, res: Response): Promise<void> => {
   const id = parseInt(req.params.id, 10);
   const { userId } = (req as AuthenticatedRequest).user;
 
   if (isNaN(id)) { res.status(400).json(err('Invalid user id')); return; }
-  if (id === userId) { res.status(400).json(err('Cannot deactivate your own account')); return; }
+  if (id === userId) { res.status(400).json(err('Cannot delete your own account')); return; }
+
+  // Unassign from any opportunities they own
+  await query(`UPDATE opportunities SET se_owner_id = NULL WHERE se_owner_id = $1`, [id]);
 
   const user = await queryOne<User>(
-    `UPDATE users SET is_active = false WHERE id = $1
+    `UPDATE users SET is_deleted = true, is_active = false WHERE id = $1 AND is_deleted = false
      RETURNING ${USER_COLS}`,
     [id]
   );
