@@ -196,11 +196,19 @@ export default function DeployModePage() {
   useEffect(() => { load(); }, []);
 
   // Derive sorted unique quarters from deals
+  function parseQuarterKey(q: string): number {
+    // Handles formats: "Q2-2025", "Q1 FY2026", "FY2026-Q1", "FY26 Q2", etc.
+    const yearMatch = q.match(/(?:FY)?(\d{4}|\d{2})/);
+    const qMatch = q.match(/Q(\d)/i);
+    const year = yearMatch ? parseInt(yearMatch[1]) + (yearMatch[1].length === 2 ? 2000 : 0) : 9999;
+    const quarter = qMatch ? parseInt(qMatch[1]) : 0;
+    return year * 10 + quarter;
+  }
   const quarters = Array.from(new Set(deals.map(dealQuarter)))
     .sort((a, b) => {
       if (a === 'No Date') return 1;
       if (b === 'No Date') return -1;
-      return a.localeCompare(b);
+      return parseQuarterKey(a) - parseQuarterKey(b);
     });
 
   // Apply quarter filter first, then mode filter
