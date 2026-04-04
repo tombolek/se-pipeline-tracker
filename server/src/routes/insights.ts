@@ -235,7 +235,7 @@ router.get('/tech-blockers', auth, mgr, async (req: Request, res: Response): Pro
   const rows = await query(
     `SELECT o.id, o.name, o.account_name, o.stage, o.arr, o.arr_currency,
             o.deploy_mode, o.team, o.record_type, o.technical_blockers, o.updated_at,
-            u.name AS se_owner_name,
+            u.id AS se_owner_id, u.name AS se_owner_name,
             CASE
               WHEN o.technical_blockers ~ '^🔴' THEN 'red'
               WHEN o.technical_blockers ~ '^🟠' THEN 'orange'
@@ -379,7 +379,7 @@ router.get('/agentic-qual', auth, mgr, async (_req: Request, res: Response): Pro
   const rows = await query(
     `SELECT o.id, o.name, o.account_name, o.stage, o.arr, o.arr_currency,
             o.deploy_mode, o.team, o.record_type, o.agentic_qual, o.updated_at,
-            u.name AS se_owner_name
+            u.id AS se_owner_id, u.name AS se_owner_name
      FROM opportunities o
      LEFT JOIN users u ON o.se_owner_id = u.id
      WHERE o.is_active = true AND o.is_closed_lost = false

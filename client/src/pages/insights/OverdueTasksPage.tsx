@@ -5,6 +5,7 @@ import type { ApiResponse } from '../../types';
 import StageBadge from '../../components/shared/StageBadge';
 import { formatDate } from '../../utils/formatters';
 import { PageHeader, Empty, Loading } from './shared';
+import { useTeamScope } from '../../hooks/useTeamScope';
 
 interface OverdueTask {
   id: number;
@@ -34,7 +35,9 @@ export default function OverdueTasksPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const visibleGroups = seIdParam ? groups.filter(g => g.se_id === seIdParam) : groups;
+  const { seIds } = useTeamScope();
+  const scopeFiltered = seIds.size > 0 ? groups.filter(g => seIds.has(g.se_id)) : groups;
+  const visibleGroups = seIdParam ? scopeFiltered.filter(g => g.se_id === seIdParam) : scopeFiltered;
   const seFilterName = seIdParam ? (groups.find(g => g.se_id === seIdParam)?.se_name ?? null) : null;
   const total = visibleGroups.reduce((sum, g) => sum + g.tasks.length, 0);
 

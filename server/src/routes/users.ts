@@ -4,7 +4,7 @@ import { query, queryOne } from '../db/index.js';
 import { requireAuth, requireManager } from '../middleware/auth.js';
 import { AuthenticatedRequest, ColumnPrefs, User, ok, err } from '../types/index.js';
 
-const USER_COLS = `id, email, name, role, is_active, show_qualify, force_password_change, column_prefs, created_at, last_login_at`;
+const USER_COLS = `id, email, name, role, is_active, show_qualify, force_password_change, manager_id, column_prefs, created_at, last_login_at`;
 
 const router = Router();
 const auth = requireAuth as unknown as (req: Request, res: Response, next: () => void) => void;
@@ -94,13 +94,14 @@ router.patch('/me/preferences', auth, async (req: Request, res: Response): Promi
   res.json(ok(user));
 });
 
-// PATCH /users/:id — update name, email, role, is_active (Manager only)
+// PATCH /users/:id — update name, email, role, is_active, manager_id (Manager only)
 router.patch('/:id', auth, mgr, async (req: Request, res: Response): Promise<void> => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) { res.status(400).json(err('Invalid user id')); return; }
 
-  const { name, email, role, is_active } = req.body as Partial<{
-    name: string; email: string; role: string; is_active: boolean;
+  const body = req.body as Record<string, unknown>;
+  const { name, email, role, is_active, manager_id } = body as Partial<{
+    name: string; email: string; role: string; is_active: boolean; manager_id: number | null;
   }>;
 
   if (role !== undefined && role !== 'manager' && role !== 'se') {
@@ -108,15 +109,23 @@ router.patch('/:id', auth, mgr, async (req: Request, res: Response): Promise<voi
     return;
   }
 
+  // Build dynamic SET clause so manager_id can be explicitly set to null
+  const setClauses: string[] = [];
+  const params: unknown[] = [];
+  function addField(col: string, val: unknown) { params.push(val); setClauses.push(`${col} = $${params.length}`); }
+
+  if (name !== undefined) addField('name', name.trim());
+  if (email !== undefined) addField('email', email.toLowerCase().trim());
+  if (role !== undefined) addField('role', role);
+  if (is_active !== undefined) addField('is_active', is_active);
+  if ('manager_id' in body) addField('manager_id', typeof manager_id === 'number' ? manager_id : null);
+
+  if (setClauses.length === 0) { res.status(400).json(err('No fields to update')); return; }
+
+  params.push(id);
   const user = await queryOne<User>(
-    `UPDATE users SET
-       name      = COALESCE($1, name),
-       email     = COALESCE($2, email),
-       role      = COALESCE($3, role),
-       is_active = COALESCE($4, is_active)
-     WHERE id = $5
-     RETURNING ${USER_COLS}`,
-    [name?.trim() ?? null, email?.toLowerCase().trim() ?? null, role ?? null, is_active ?? null, id]
+    `UPDATE users SET ${setClauses.join(', ')} WHERE id = $${params.length} RETURNING ${USER_COLS}`,
+    params
   );
 
   if (!user) { res.status(404).json(err('User not found')); return; }

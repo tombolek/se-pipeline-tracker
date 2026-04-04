@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import api from '../../api/client';
 import type { ApiResponse } from '../../types';
+import { useTeamScope } from '../../hooks/useTeamScope';
 import StageBadge from '../../components/shared/StageBadge';
 import MultiSelectFilter from '../../components/shared/MultiSelectFilter';
 import { formatDate } from '../../utils/formatters';
@@ -15,6 +16,7 @@ interface AgenticRow {
   team: string | null;
   record_type: string | null;
   agentic_qual: string;
+  se_owner_id: number | null;
   se_owner_name: string | null;
   updated_at: string;
 }
@@ -112,16 +114,22 @@ export default function AgenticQualPage() {
     setRecordTypeFilter([]);
   }
 
+  const { seIds } = useTeamScope();
+  const scopedRows = useMemo(() =>
+    seIds.size > 0 ? allRows.filter(r => r.se_owner_id !== null && seIds.has(r.se_owner_id)) : allRows,
+    [allRows, seIds]
+  );
+
   const deployOptions = useMemo(() =>
-    [...new Set(allRows.map(r => r.deploy_mode ?? '—'))].sort(), [allRows]);
+    [...new Set(scopedRows.map(r => r.deploy_mode ?? '—'))].sort(), [scopedRows]);
   const seOptions = useMemo(() =>
-    [...new Set(allRows.map(r => r.se_owner_name ?? 'Unassigned'))].sort(), [allRows]);
+    [...new Set(scopedRows.map(r => r.se_owner_name ?? 'Unassigned'))].sort(), [scopedRows]);
   const stageOptions = useMemo(() =>
-    [...new Set(allRows.map(r => r.stage))].sort(), [allRows]);
+    [...new Set(scopedRows.map(r => r.stage))].sort(), [scopedRows]);
   const teamOptions = useMemo(() =>
-    [...new Set(allRows.map(r => r.team ?? '—'))].sort(), [allRows]);
+    [...new Set(scopedRows.map(r => r.team ?? '—'))].sort(), [scopedRows]);
   const recordTypeOptions = useMemo(() =>
-    [...new Set(allRows.map(r => r.record_type).filter(Boolean) as string[])].sort(), [allRows]);
+    [...new Set(scopedRows.map(r => r.record_type).filter(Boolean) as string[])].sort(), [scopedRows]);
 
   useEffect(() => {
     setLoadingAll(true);
@@ -162,7 +170,7 @@ export default function AgenticQualPage() {
     return Math.floor(diff / 86_400_000);
   }
 
-  const filteredRows = allRows.filter(r => {
+  const filteredRows = scopedRows.filter(r => {
     if (deployFilter.length > 0 && !deployFilter.includes(r.deploy_mode ?? '—')) return false;
     if (seFilter.length > 0 && !seFilter.includes(r.se_owner_name ?? 'Unassigned')) return false;
     if (stageFilter.length > 0 && !stageFilter.includes(r.stage)) return false;

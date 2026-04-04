@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import api from '../../api/client';
 import type { ApiResponse } from '../../types';
+import { useTeamScope } from '../../hooks/useTeamScope';
 import { formatARR, formatDate } from '../../utils/formatters';
 import { Loading } from './shared';
 
@@ -16,6 +17,7 @@ interface ClosedLostDeal {
   team: string | null;
   ae_owner_name: string | null;
   closed_at: string | null;
+  se_owner_id: number | null;
   se_owner_name: string | null;
 }
 
@@ -226,10 +228,16 @@ export default function ClosedLostStatsPage() {
     }));
   }
 
-  const totalArr = deals.reduce((s, d) => s + (parseFloat(d.arr) || 0), 0);
+  const { seIds } = useTeamScope();
+  const scopedDeals = useMemo(() =>
+    seIds.size > 0 ? deals.filter(d => d.se_owner_id !== null && seIds.has(d.se_owner_id)) : deals,
+    [deals, seIds]
+  );
+
+  const totalArr = scopedDeals.reduce((s, d) => s + (parseFloat(d.arr) || 0), 0);
 
   // Apply cross-chart filter: show deals matching ALL active slice selections
-  const filteredDeals = deals.filter(d => {
+  const filteredDeals = scopedDeals.filter(d => {
     for (const [dim, active] of Object.entries(activeSlices) as [Dimension, string | null][]) {
       if (!active) continue;
       const val = (d[dim] as string | null) ?? 'Unknown';

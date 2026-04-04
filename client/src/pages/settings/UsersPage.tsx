@@ -96,7 +96,7 @@ function ResetPasswordRow({ user, onDone }: { user: User; onDone: () => void }) 
 
   if (success) {
     return (
-      <td colSpan={6} className="px-4 py-3 bg-status-success/5">
+      <td colSpan={7} className="px-4 py-3 bg-status-success/5">
         <span className="text-xs text-status-success font-medium flex items-center gap-1.5">
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
           Password updated for {user.name}
@@ -106,7 +106,7 @@ function ResetPasswordRow({ user, onDone }: { user: User; onDone: () => void }) 
   }
 
   return (
-    <td colSpan={6} className="px-4 py-2 bg-brand-purple/5">
+    <td colSpan={7} className="px-4 py-2 bg-brand-purple/5">
       <form onSubmit={handleSubmit} className="flex items-center gap-2">
         <span className="text-xs text-brand-navy-70">New password for <span className="font-medium text-brand-navy">{user.name}</span>:</span>
         <input
@@ -201,6 +201,16 @@ export default function UsersPage() {
     setUpdatingId(u.id);
     try {
       const updated = await updateUser(u.id, { is_active: !u.is_active });
+      setUsers(prev => prev.map(x => x.id === updated.id ? updated : x));
+    } finally {
+      setUpdatingId(null);
+    }
+  }
+
+  async function updateManagerId(u: User, managerId: number | null) {
+    setUpdatingId(u.id);
+    try {
+      const updated = await updateUser(u.id, { manager_id: managerId });
       setUsers(prev => prev.map(x => x.id === updated.id ? updated : x));
     } finally {
       setUpdatingId(null);
@@ -314,7 +324,7 @@ export default function UsersPage() {
           <table className="w-full">
             <thead className="border-b border-brand-navy-30/40">
               <tr>
-                {['Name', 'Email', 'Role', 'Last Login', 'Status', 'Actions'].map(h => (
+                {['Name', 'Email', 'Role', 'Reports To', 'Last Login', 'Status', 'Actions'].map(h => (
                   <th key={h} className="px-4 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
@@ -337,6 +347,23 @@ export default function UsersPage() {
                     </td>
                     <td className="px-4 py-3 text-sm text-brand-navy-70">{u.email}</td>
                     <td className="px-4 py-3"><RoleBadge role={u.role} /></td>
+                    <td className="px-4 py-3">
+                      {u.role === 'se' ? (
+                        <select
+                          value={u.manager_id ?? ''}
+                          onChange={e => updateManagerId(u, e.target.value ? parseInt(e.target.value) : null)}
+                          disabled={isUpdating}
+                          className="text-xs border border-brand-navy-30 rounded-lg px-2 py-1 text-brand-navy focus:outline-none focus:ring-1 focus:ring-brand-purple disabled:opacity-50"
+                        >
+                          <option value="">Unassigned</option>
+                          {users.filter(m => m.role === 'manager').map(m => (
+                            <option key={m.id} value={m.id}>{m.name}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className="text-xs text-brand-navy-30">—</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-xs text-brand-navy-70">{u.last_login_at ? formatDate(u.last_login_at) : <span className="text-brand-navy-30">Never</span>}</td>
                     <td className="px-4 py-3">
                       {u.is_active

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import api from '../../api/client';
 import type { ApiResponse } from '../../types';
 import { PageHeader, Empty, Loading } from './shared';
+import { useTeamScope } from '../../hooks/useTeamScope';
 
 interface WorkloadRow {
   id: number;
@@ -39,6 +40,7 @@ function Stat({ label, value, highlight, positiveHighlight, to }: {
 export default function TeamWorkloadPage() {
   const [rows, setRows] = useState<WorkloadRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const { seIds } = useTeamScope();
 
   useEffect(() => {
     api.get<ApiResponse<WorkloadRow[]>>('/insights/team-workload')
@@ -46,12 +48,14 @@ export default function TeamWorkloadPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  const scopedRows = seIds.size > 0 ? rows.filter(r => seIds.has(r.id)) : rows;
+
   return (
     <div>
       <PageHeader title="Team Workload" subtitle="Open opportunities and tasks per SE" />
-      {loading ? <Loading /> : rows.length === 0 ? <Empty /> : (
+      {loading ? <Loading /> : scopedRows.length === 0 ? <Empty /> : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {rows.map(r => (
+          {scopedRows.map(r => (
             <div key={r.id} className="bg-white rounded-2xl border border-brand-navy-30/40 p-5">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-9 h-9 rounded-full bg-brand-purple flex items-center justify-center text-sm font-semibold text-white flex-shrink-0">

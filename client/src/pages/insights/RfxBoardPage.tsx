@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../../api/client';
 import type { ApiResponse } from '../../types';
+import { useTeamScope } from '../../hooks/useTeamScope';
 import { formatARR } from '../../utils/formatters';
 import Drawer from '../../components/Drawer';
 import OpportunityDetail from '../../components/OpportunityDetail';
@@ -20,6 +21,7 @@ interface RfxOpp {
   team: string | null;
   record_type: string | null;
   ae_owner_name: string | null;
+  se_owner_id: number | null;
   se_owner_name: string | null;
   is_closed_lost: boolean;
 }
@@ -128,6 +130,7 @@ export default function RfxBoardPage() {
   const [opps, setOpps]       = useState<RfxOpp[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState<string | null>(null);
+  const { seIds } = useTeamScope();
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [view, setView]       = useState<'kanban' | 'list'>('kanban');
 
@@ -155,8 +158,13 @@ export default function RfxBoardPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  // Apply team scope first, then page filters
+  const scopedOpps = seIds.size > 0
+    ? opps.filter(o => o.se_owner_id !== null && seIds.has(o.se_owner_id))
+    : opps;
+
   // Kanban grouping (team + record type filters apply here too)
-  const kanbanOpps = opps.filter(o => {
+  const kanbanOpps = scopedOpps.filter(o => {
     if (filterTeams.length > 0 && !filterTeams.includes(o.team ?? '')) return false;
     if (filterRecordTypes.length > 0 && !filterRecordTypes.includes(o.record_type ?? '')) return false;
     return true;
@@ -171,14 +179,14 @@ export default function RfxBoardPage() {
   }
 
   // List filter options (unique values)
-  const statusOptions = [...new Set(opps.map(o => o.rfx_status).filter(Boolean))].sort();
-  const seOptions     = [...new Set(opps.map(o => o.se_owner_name).filter(Boolean) as string[])].sort();
-  const aeOptions     = [...new Set(opps.map(o => o.ae_owner_name).filter(Boolean) as string[])].sort();
-  const teamOptions       = [...new Set(opps.map(o => o.team).filter(Boolean) as string[])].sort();
-  const recordTypeOptions = [...new Set(opps.map(o => o.record_type).filter(Boolean) as string[])].sort();
+  const statusOptions = [...new Set(scopedOpps.map(o => o.rfx_status).filter(Boolean))].sort();
+  const seOptions     = [...new Set(scopedOpps.map(o => o.se_owner_name).filter(Boolean) as string[])].sort();
+  const aeOptions     = [...new Set(scopedOpps.map(o => o.ae_owner_name).filter(Boolean) as string[])].sort();
+  const teamOptions       = [...new Set(scopedOpps.map(o => o.team).filter(Boolean) as string[])].sort();
+  const recordTypeOptions = [...new Set(scopedOpps.map(o => o.record_type).filter(Boolean) as string[])].sort();
 
   // Apply list filters + sort
-  const filtered = opps.filter(o => {
+  const filtered = scopedOpps.filter(o => {
     if (filterStatus.length > 0 && !filterStatus.includes(o.rfx_status)) return false;
     if (filterSe.length > 0 && !filterSe.includes(o.se_owner_name ?? '')) return false;
     if (filterAe.length > 0 && !filterAe.includes(o.ae_owner_name ?? '')) return false;
@@ -191,8 +199,8 @@ export default function RfxBoardPage() {
     ? sortRows(filtered, sortKey, sortDir, k => colTypeMap[k] ?? 'string')
     : filtered;
 
-  const activeCount = opps.filter(o => !o.is_closed_lost).length;
-  const closedCount = opps.filter(o => o.is_closed_lost).length;
+  const activeCount = scopedOpps.filter(o => !o.is_closed_lost).length;
+  const closedCount = scopedOpps.filter(o => o.is_closed_lost).length;
 
   if (loading) return <div className="flex items-center justify-center h-full text-sm text-brand-navy-70">Loading…</div>;
   if (error)   return <div className="px-8 py-6 text-sm text-status-overdue">{error}</div>;

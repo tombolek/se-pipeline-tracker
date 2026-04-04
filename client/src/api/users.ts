@@ -18,7 +18,7 @@ export async function createUser(payload: {
 
 export async function updateUser(
   id: number,
-  payload: Partial<{ name: string; email: string; role: 'manager' | 'se'; is_active: boolean }>
+  payload: Partial<{ name: string; email: string; role: 'manager' | 'se'; is_active: boolean; manager_id: number | null }>
 ): Promise<User> {
   const { data } = await api.patch<ApiResponse<User>>(`/users/${id}`, payload);
   return data.data;

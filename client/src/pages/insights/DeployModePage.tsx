@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import api from '../../api/client';
+import { useTeamScope } from '../../hooks/useTeamScope';
 import type { ApiResponse } from '../../types';
 import StageBadge from '../../components/shared/StageBadge';
 import SortableHeader from '../../components/shared/SortableHeader';
@@ -23,6 +24,7 @@ interface DeployDeal {
   agentic_qual: string | null;
   technical_blockers: string | null;
   ae_owner_name: string | null;
+  se_owner_id: number | null;
   se_owner_name: string | null;
 }
 
@@ -195,6 +197,12 @@ export default function DeployModePage() {
 
   useEffect(() => { load(); }, []);
 
+  const { seIds } = useTeamScope();
+  const scopedDeals = useMemo(() =>
+    seIds.size > 0 ? deals.filter(d => d.se_owner_id !== null && seIds.has(d.se_owner_id)) : deals,
+    [deals, seIds]
+  );
+
   // Derive sorted unique quarters from deals
   function parseQuarterKey(q: string): number {
     // Handles formats: "Q2-2025", "Q1 FY2026", "FY2026-Q1", "FY26 Q2", etc.
@@ -204,7 +212,7 @@ export default function DeployModePage() {
     const quarter = qMatch ? parseInt(qMatch[1]) : 0;
     return year * 10 + quarter;
   }
-  const quarters = Array.from(new Set(deals.map(dealQuarter)))
+  const quarters = Array.from(new Set(scopedDeals.map(dealQuarter)))
     .sort((a, b) => {
       if (a === 'No Date') return 1;
       if (b === 'No Date') return -1;
@@ -213,8 +221,8 @@ export default function DeployModePage() {
 
   // Apply quarter filter first, then mode filter
   const quarterFiltered = selectedQuarters.length === 0
-    ? deals
-    : deals.filter(d => selectedQuarters.includes(dealQuarter(d)));
+    ? scopedDeals
+    : scopedDeals.filter(d => selectedQuarters.includes(dealQuarter(d)));
 
   function toggleQuarter(q: string) {
     setSelectedQuarters(prev =>

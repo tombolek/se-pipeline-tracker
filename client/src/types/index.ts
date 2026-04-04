@@ -108,6 +108,7 @@ export interface User {
   is_active: boolean;
   show_qualify: boolean;
   force_password_change: boolean;
+  manager_id: number | null;
   column_prefs: ColumnPrefs | null;
   created_at: string;
   last_login_at: string | null;

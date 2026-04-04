@@ -8,6 +8,11 @@ interface PipelineState {
   quickCaptureOpen: boolean;
   openQuickCapture: () => void;
   closeQuickCapture: () => void;
+  // Team scope: null = Full View; number = show only SEs whose manager_id matches
+  teamScopeManagerId: number | null;
+  teamScopeInitialized: boolean;
+  setTeamScopeManagerId: (id: number | null) => void;
+  initTeamScope: (managerId: number) => void;
 }
 
 export const usePipelineStore = create<PipelineState>((set) => ({
@@ -18,4 +23,8 @@ export const usePipelineStore = create<PipelineState>((set) => ({
   quickCaptureOpen: false,
   openQuickCapture: () => set({ quickCaptureOpen: true }),
   closeQuickCapture: () => set({ quickCaptureOpen: false }),
+  teamScopeManagerId: null,
+  teamScopeInitialized: false,
+  setTeamScopeManagerId: (id) => set({ teamScopeManagerId: id }),
+  initTeamScope: (managerId) => set({ teamScopeManagerId: managerId, teamScopeInitialized: true }),
 }));

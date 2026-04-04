@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../../api/client';
 import type { ApiResponse } from '../../types';
+import { useTeamScope } from '../../hooks/useTeamScope';
 import { formatDate, formatARR } from '../../utils/formatters';
 import Drawer from '../../components/Drawer';
 import OpportunityDetail from '../../components/OpportunityDetail';
@@ -17,6 +18,7 @@ interface PocOpp {
   poc_end_date: string | null;
   poc_type: string | null;
   ae_owner_name: string | null;
+  se_owner_id: number | null;
   se_owner_name: string | null;
   is_closed_lost: boolean;
 }
@@ -193,6 +195,7 @@ export default function PocBoardPage() {
   const [opps, setOpps]       = useState<PocOpp[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState<string | null>(null);
+  const { seIds } = useTeamScope();
   const [selectedId, setSelectedId]   = useState<number | null>(null);
   const [hideEmpty, setHideEmpty]     = useState(true);   // default ON
   const [compact, setCompact]         = useState(false);
@@ -213,18 +216,23 @@ export default function PocBoardPage() {
     });
   }
 
+  // Apply team scope
+  const scopedOpps = seIds.size > 0
+    ? opps.filter(o => o.se_owner_id !== null && seIds.has(o.se_owner_id))
+    : opps;
+
   // Group into known columns only; unrecognised statuses are silently dropped
   const knownSet = new Set<string>(COLUMNS);
   const grouped: Record<string, PocOpp[]> = {};
   for (const col of COLUMNS) grouped[col] = [];
-  for (const opp of opps) {
+  for (const opp of scopedOpps) {
     if (knownSet.has(opp.poc_status)) grouped[opp.poc_status].push(opp);
   }
 
   const visibleCols = hideEmpty ? COLUMNS.filter(col => grouped[col].length > 0) : [...COLUMNS];
 
-  const activeCount = opps.filter(o => !o.is_closed_lost).length;
-  const closedCount = opps.filter(o => o.is_closed_lost).length;
+  const activeCount = scopedOpps.filter(o => !o.is_closed_lost).length;
+  const closedCount = scopedOpps.filter(o => o.is_closed_lost).length;
 
   if (loading) return <div className="flex items-center justify-center h-full text-sm text-brand-navy-70">Loading…</div>;
   if (error)   return <div className="px-8 py-6 text-sm text-status-overdue">{error}</div>;

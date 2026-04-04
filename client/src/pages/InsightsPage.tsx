@@ -1,4 +1,6 @@
 import { useLocation } from 'react-router-dom';
+import { useAuthStore } from '../store/auth';
+import TeamScopeSelector from '../components/shared/TeamScopeSelector';
 import StageMovementPage from './insights/StageMovementPage';
 import MissingNotesPage from './insights/MissingNotesPage';
 import TeamWorkloadPage from './insights/TeamWorkloadPage';
@@ -11,53 +13,77 @@ import ClosedLostStatsPage from './insights/ClosedLostStatsPage';
 import TechBlockersPage from './insights/TechBlockersPage';
 import AgenticQualPage from './insights/AgenticQualPage';
 
+function ScopeBar() {
+  const { user } = useAuthStore();
+  if (user?.role !== 'manager') return null;
+  return (
+    <div className="flex-shrink-0 flex justify-end px-8 pt-3 pb-0">
+      <TeamScopeSelector />
+    </div>
+  );
+}
+
 export default function InsightsPage() {
   const { pathname } = useLocation();
 
-  // Kanban boards need horizontal scroll — render with their own layout
+  // Full-height pages (kanban boards + scroll-managed pages) get their own flex container
   if (pathname.includes('poc-board')) {
     return (
       <div className="flex-1 overflow-hidden bg-[#F5F5F7] flex flex-col relative">
-        <PocBoardPage />
+        <ScopeBar />
+        <div className="flex-1 overflow-hidden flex flex-col">
+          <PocBoardPage />
+        </div>
       </div>
     );
   }
   if (pathname.includes('rfx-board')) {
     return (
       <div className="flex-1 overflow-hidden bg-[#F5F5F7] flex flex-col relative">
-        <RfxBoardPage />
+        <ScopeBar />
+        <div className="flex-1 overflow-hidden flex flex-col">
+          <RfxBoardPage />
+        </div>
       </div>
     );
   }
-
   if (pathname.includes('missing-notes')) {
     return (
       <div className="flex-1 overflow-hidden bg-[#F5F5F7] flex flex-col relative">
-        <MissingNotesPage />
+        <ScopeBar />
+        <div className="flex-1 overflow-hidden flex flex-col">
+          <MissingNotesPage />
+        </div>
       </div>
     );
   }
-
   if (pathname.includes('deploy-mode')) {
     return (
       <div className="flex-1 overflow-hidden bg-[#F5F5F7] flex flex-col relative">
-        <DeployModePage />
+        <ScopeBar />
+        <div className="flex-1 overflow-hidden flex flex-col">
+          <DeployModePage />
+        </div>
       </div>
     );
   }
-
   if (pathname.includes('closed-lost-stats')) {
     return (
       <div className="flex-1 overflow-hidden bg-[#F5F5F7] flex flex-col relative">
-        <ClosedLostStatsPage />
+        <ScopeBar />
+        <div className="flex-1 overflow-hidden flex flex-col">
+          <ClosedLostStatsPage />
+        </div>
       </div>
     );
   }
-
   if (pathname.includes('se-mapping')) {
     return (
       <div className="flex-1 overflow-hidden bg-[#F5F5F7] flex flex-col relative">
-        <SeDealMappingPage />
+        <ScopeBar />
+        <div className="flex-1 overflow-hidden flex flex-col">
+          <SeDealMappingPage />
+        </div>
       </div>
     );
   }
@@ -70,8 +96,11 @@ export default function InsightsPage() {
   else content = <StageMovementPage />;
 
   return (
-    <div className="flex-1 overflow-y-auto bg-[#F5F5F7] px-8 py-6">
-      {content}
+    <div className="flex-1 bg-[#F5F5F7] flex flex-col overflow-hidden">
+      <ScopeBar />
+      <div className="flex-1 overflow-y-auto px-8 py-6">
+        {content}
+      </div>
     </div>
   );
 }

@@ -10,6 +10,7 @@ import RowCapture from '../../components/RowCapture';
 import Drawer from '../../components/Drawer';
 import OpportunityDetail from '../../components/OpportunityDetail';
 import { sortRows, type SortDir, type ColType } from '../../utils/sortRows';
+import { useTeamScope } from '../../hooks/useTeamScope';
 
 interface MissingNotesRow {
   id: number;
@@ -57,12 +58,18 @@ export default function MissingNotesPage() {
 
   useEffect(() => { load(); }, [threshold, seIdParam]);
 
+  const { seIds } = useTeamScope();
+
   const seFilterName = seIdParam ? (rows[0]?.se_owner_name ?? `SE #${seIdParam}`) : null;
+
+  const scopedRows = seIds.size > 0
+    ? rows.filter(r => r.se_owner_id !== null && seIds.has(r.se_owner_id))
+    : rows;
 
   const colTypeMap = Object.fromEntries(COLS.map(c => [c.key, c.type])) as Record<string, ColType>;
   const displayed = sortKey
-    ? sortRows(rows, sortKey, sortDir, k => colTypeMap[k] ?? 'string')
-    : rows;
+    ? sortRows(scopedRows, sortKey, sortDir, k => colTypeMap[k] ?? 'string')
+    : scopedRows;
 
   return (
     <div className="flex flex-col h-full relative overflow-hidden">

@@ -4,6 +4,7 @@ import type { ApiResponse } from '../../types';
 import StageBadge from '../../components/shared/StageBadge';
 import { formatARR, formatDate } from '../../utils/formatters';
 import { PageHeader, Empty, Loading } from './shared';
+import { useTeamScope } from '../../hooks/useTeamScope';
 
 interface StageMovementRow {
   id: number;
@@ -15,6 +16,7 @@ interface StageMovementRow {
   previous_stage: string;
   stage_changed_at: string;
   ae_owner_name: string;
+  se_owner_id: number | null;
   se_owner_name: string | null;
 }
 
@@ -22,6 +24,7 @@ export default function StageMovementPage() {
   const [days, setDays] = useState(14);
   const [rows, setRows] = useState<StageMovementRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const { seIds } = useTeamScope();
 
   useEffect(() => {
     setLoading(true);
@@ -29,6 +32,10 @@ export default function StageMovementPage() {
       .then(r => setRows(r.data.data))
       .finally(() => setLoading(false));
   }, [days]);
+
+  const scopedRows = seIds.size > 0
+    ? rows.filter(r => r.se_owner_id !== null && seIds.has(r.se_owner_id))
+    : rows;
 
   return (
     <div>
@@ -51,7 +58,7 @@ export default function StageMovementPage() {
         </div>
       </div>
 
-      {loading ? <Loading /> : rows.length === 0 ? <Empty /> : (
+      {loading ? <Loading /> : scopedRows.length === 0 ? <Empty /> : (
         <div className="bg-white rounded-2xl border border-brand-navy-30/40 overflow-hidden">
           <table className="w-full">
             <thead className="border-b border-brand-navy-30/40">
@@ -62,7 +69,7 @@ export default function StageMovementPage() {
               </tr>
             </thead>
             <tbody>
-              {rows.map(r => (
+              {scopedRows.map(r => (
                 <tr key={r.id} className="border-b border-brand-navy-30/20 last:border-0 hover:bg-gray-50">
                   <td className="px-4 py-3">
                     <p className="text-sm font-medium text-brand-navy">{r.name}</p>

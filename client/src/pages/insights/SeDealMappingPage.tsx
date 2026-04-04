@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import api from '../../api/client';
 import { listUsers } from '../../api/users';
 import { updateMyPreferences } from '../../api/users';
+import { useTeamScope } from '../../hooks/useTeamScope';
 import type { ApiResponse, User, Opportunity } from '../../types';
 import { getColumnsForPage, DEFAULT_COLUMNS, COLUMN_BY_KEY } from '../../constants/columnDefs';
 import ColumnPicker from '../../components/shared/ColumnPicker';
@@ -295,13 +296,23 @@ export default function SeDealMappingPage() {
     return false;
   }
 
-  const fiscalPeriods = [...new Set(opps.map(o => o.fiscal_period).filter(Boolean) as string[])].sort(sortFiscalPeriod);
-  const teamOptions = [...new Set(opps.map(o => o.team).filter(Boolean) as string[])].sort();
-  const recordTypeOptions = [...new Set(opps.map(o => o.record_type).filter(Boolean) as string[])].sort();
-  const unassignedCount = opps.filter(o => !o.se_owner).length;
+  const { seIds } = useTeamScope();
+  const scopedOpps = useMemo(() =>
+    seIds.size > 0 ? opps.filter(o => o.se_owner !== null && seIds.has(o.se_owner.id)) : opps,
+    [opps, seIds]
+  );
+  const scopedSes = useMemo(() =>
+    seIds.size > 0 ? ses.filter(s => seIds.has(s.id)) : ses,
+    [ses, seIds]
+  );
+
+  const fiscalPeriods = [...new Set(scopedOpps.map(o => o.fiscal_period).filter(Boolean) as string[])].sort(sortFiscalPeriod);
+  const teamOptions = [...new Set(scopedOpps.map(o => o.team).filter(Boolean) as string[])].sort();
+  const recordTypeOptions = [...new Set(scopedOpps.map(o => o.record_type).filter(Boolean) as string[])].sort();
+  const unassignedCount = scopedOpps.filter(o => !o.se_owner).length;
 
   const searchLower = search.trim().toLowerCase();
-  const filtered = opps.filter(o => {
+  const filtered = scopedOpps.filter(o => {
     if (filterSe === 'unassigned' && o.se_owner) return false;
     if (typeof filterSe === 'number' && o.se_owner?.id !== filterSe) return false;
     if (filterStages.length > 0 && !filterStages.includes(o.stage)) return false;
@@ -320,12 +331,12 @@ export default function SeDealMappingPage() {
     kanbanColumns.push({ seId: null, label: 'Unassigned' });
   }
   if (typeof filterSe === 'number') {
-    const se = ses.find(s => s.id === filterSe);
+    const se = scopedSes.find(s => s.id === filterSe);
     if (se) kanbanColumns.push({ seId: se.id, label: se.name });
     // Also show unassigned in SE filter mode so you can drop back
     kanbanColumns.unshift({ seId: null, label: 'Unassigned' });
   } else {
-    ses.forEach(se => kanbanColumns.push({ seId: se.id, label: se.name }));
+    scopedSes.forEach(se => kanbanColumns.push({ seId: se.id, label: se.name }));
   }
 
   function oppsForColumn(seId: number | null) {
@@ -396,7 +407,7 @@ export default function SeDealMappingPage() {
                   : 'border-brand-navy-30 text-brand-navy-70 hover:border-brand-navy'
               }`}
             >
-              All deals <span className="ml-1 opacity-70">{opps.length}</span>
+              All deals <span className="ml-1 opacity-70">{scopedOpps.length}</span>
             </button>
             <button
               onClick={() => setFilterSe('unassigned')}
@@ -408,8 +419,8 @@ export default function SeDealMappingPage() {
             >
               Unassigned <span className="ml-1 opacity-70">{unassignedCount}</span>
             </button>
-            {ses.map(se => {
-              const count = opps.filter(o => o.se_owner?.id === se.id).length;
+            {scopedSes.map(se => {
+              const count = scopedOpps.filter(o => o.se_owner?.id === se.id).length;
               return (
                 <button
                   key={se.id}
