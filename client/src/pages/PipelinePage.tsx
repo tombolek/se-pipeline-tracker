@@ -191,11 +191,14 @@ function OppRow({ opp, selected, onClick, onRefreshList, visibleColumns }: {
   );
 }
 
+const DEFAULT_TEAMS = ['EMEA', 'NA Enterprise', 'NA Strategic', 'ANZ'];
+
 // ── Filter bar ────────────────────────────────────────────────────────────────
 function FilterBar({
   search, setSearch,
   stages, setStages,
   fiscalPeriods, selectedFiscalPeriods, setFiscalPeriods,
+  teams, teamOptions, setTeams,
   seFilterName, clearSeFilter,
   total,
   columnPicker,
@@ -203,6 +206,7 @@ function FilterBar({
   search: string; setSearch: (v: string) => void;
   stages: string[]; setStages: (v: string[]) => void;
   fiscalPeriods: string[]; selectedFiscalPeriods: string[]; setFiscalPeriods: (v: string[]) => void;
+  teams: string[]; teamOptions: string[]; setTeams: (v: string[]) => void;
   seFilterName: string | null; clearSeFilter: () => void;
   total: number;
   columnPicker: React.ReactNode;
@@ -218,6 +222,7 @@ function FilterBar({
       />
       <MultiSelectFilter options={STAGES} selected={stages} onChange={setStages} placeholder="All stages" />
       <MultiSelectFilter options={fiscalPeriods} selected={selectedFiscalPeriods} onChange={setFiscalPeriods} placeholder="All periods" />
+      <MultiSelectFilter options={teamOptions} selected={teams} onChange={setTeams} placeholder="All teams" />
       {seFilterName && (
         <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-brand-purple/10 border border-brand-purple text-brand-purple">
           SE: {seFilterName}
@@ -247,6 +252,7 @@ export default function PipelinePage() {
   const [search, setSearch] = useState('');
   const [stages, setStages] = useState<string[]>([]);
   const [selectedFiscalPeriods, setFiscalPeriods] = useState<string[]>([]);
+  const [teams, setTeams] = useState<string[]>(DEFAULT_TEAMS);
 
   const seIdParam = searchParams.get('se_id') ? Number(searchParams.get('se_id')) : null;
   const [visibleColumns, setVisibleColumns] = useState<string[]>(() =>
@@ -281,6 +287,8 @@ export default function PipelinePage() {
     allOpps.map(o => o.fiscal_period).filter(Boolean) as string[]
   )].sort(sortFiscalPeriod);
 
+  const teamOptions = [...new Set(allOpps.map(o => o.team).filter(Boolean) as string[])].sort();
+
   // Derive SE filter name from loaded data
   const seFilterName = seIdParam
     ? (allOpps.find(o => o.se_owner?.id === seIdParam)?.se_owner?.name ?? `SE #${seIdParam}`)
@@ -295,6 +303,7 @@ export default function PipelinePage() {
     if (seIdParam && o.se_owner?.id !== seIdParam) return false;
     if (stages.length > 0 && !stages.includes(o.stage)) return false;
     if (selectedFiscalPeriods.length > 0 && !selectedFiscalPeriods.includes(o.fiscal_period ?? '')) return false;
+    if (teams.length > 0 && !teams.includes(o.team ?? '')) return false;
     if (search) {
       const q = search.toLowerCase();
       if (!o.name.toLowerCase().includes(q) && !(o.account_name ?? '').toLowerCase().includes(q)) return false;
@@ -321,6 +330,7 @@ export default function PipelinePage() {
         search={search} setSearch={setSearch}
         stages={stages} setStages={setStages}
         fiscalPeriods={fiscalPeriods} selectedFiscalPeriods={selectedFiscalPeriods} setFiscalPeriods={setFiscalPeriods}
+        teams={teams} teamOptions={teamOptions} setTeams={setTeams}
         seFilterName={seFilterName} clearSeFilter={clearSeFilter}
         total={displayed.length}
         columnPicker={

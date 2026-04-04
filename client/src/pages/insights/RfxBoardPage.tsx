@@ -17,6 +17,7 @@ interface RfxOpp {
   arr: number | null;
   arr_currency: string;
   rfx_status: string;
+  team: string | null;
   ae_owner_name: string | null;
   se_owner_name: string | null;
   is_closed_lost: boolean;
@@ -133,6 +134,7 @@ export default function RfxBoardPage() {
   const [filterStatus, setFilterStatus] = useState<string[]>([]);
   const [filterSe, setFilterSe]         = useState<string[]>([]);
   const [filterAe, setFilterAe]         = useState<string[]>([]);
+  const [filterTeams, setFilterTeams]   = useState<string[]>(['EMEA', 'NA Enterprise', 'NA Strategic', 'ANZ']);
 
   // List sort
   const [sortKey, setSortKey] = useState<string | null>(null);
@@ -151,12 +153,13 @@ export default function RfxBoardPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Kanban grouping
+  // Kanban grouping (team filter applies here too)
+  const kanbanOpps = filterTeams.length > 0 ? opps.filter(o => filterTeams.includes(o.team ?? '')) : opps;
   const knownSet = new Set<string>(COLUMNS);
   const grouped: Record<string, RfxOpp[]> = {};
   for (const col of COLUMNS) grouped[col] = [];
   const other: RfxOpp[] = [];
-  for (const opp of opps) {
+  for (const opp of kanbanOpps) {
     if (knownSet.has(opp.rfx_status)) grouped[opp.rfx_status].push(opp);
     else other.push(opp);
   }
@@ -165,12 +168,14 @@ export default function RfxBoardPage() {
   const statusOptions = [...new Set(opps.map(o => o.rfx_status).filter(Boolean))].sort();
   const seOptions     = [...new Set(opps.map(o => o.se_owner_name).filter(Boolean) as string[])].sort();
   const aeOptions     = [...new Set(opps.map(o => o.ae_owner_name).filter(Boolean) as string[])].sort();
+  const teamOptions   = [...new Set(opps.map(o => o.team).filter(Boolean) as string[])].sort();
 
   // Apply list filters + sort
   const filtered = opps.filter(o => {
     if (filterStatus.length > 0 && !filterStatus.includes(o.rfx_status)) return false;
     if (filterSe.length > 0 && !filterSe.includes(o.se_owner_name ?? '')) return false;
     if (filterAe.length > 0 && !filterAe.includes(o.ae_owner_name ?? '')) return false;
+    if (filterTeams.length > 0 && !filterTeams.includes(o.team ?? '')) return false;
     return true;
   });
   const colTypeMap = Object.fromEntries(LIST_COLS.map(c => [c.key, c.type])) as Record<string, ColType>;
@@ -219,15 +224,18 @@ export default function RfxBoardPage() {
           </div>
         </div>
 
-        {/* List view filters */}
-        {view === 'list' && (
-          <div className="flex items-center gap-2 mt-4 flex-wrap">
-            <MultiSelectFilter options={statusOptions} selected={filterStatus} onChange={setFilterStatus} placeholder="All statuses" />
-            <MultiSelectFilter options={seOptions}     selected={filterSe}     onChange={setFilterSe}     placeholder="All SEs" />
-            <MultiSelectFilter options={aeOptions}     selected={filterAe}     onChange={setFilterAe}     placeholder="All AEs" />
-            <span className="text-xs text-brand-navy-70 ml-auto">{displayed.length} opportunit{displayed.length !== 1 ? 'ies' : 'y'}</span>
-          </div>
-        )}
+        {/* Filters — team always shown; list-only filters shown in list view */}
+        <div className="flex items-center gap-2 mt-4 flex-wrap">
+          <MultiSelectFilter options={teamOptions} selected={filterTeams} onChange={setFilterTeams} placeholder="All teams" />
+          {view === 'list' && (
+            <>
+              <MultiSelectFilter options={statusOptions} selected={filterStatus} onChange={setFilterStatus} placeholder="All statuses" />
+              <MultiSelectFilter options={seOptions}     selected={filterSe}     onChange={setFilterSe}     placeholder="All SEs" />
+              <MultiSelectFilter options={aeOptions}     selected={filterAe}     onChange={setFilterAe}     placeholder="All AEs" />
+              <span className="text-xs text-brand-navy-70 ml-auto">{displayed.length} opportunit{displayed.length !== 1 ? 'ies' : 'y'}</span>
+            </>
+          )}
+        </div>
       </div>
 
       {opps.length === 0 ? (

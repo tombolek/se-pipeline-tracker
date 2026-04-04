@@ -14,6 +14,7 @@ interface BlockerRow {
   account_name: string;
   stage: string;
   deploy_mode: string | null;
+  team: string | null;
   technical_blockers: string;
   blocker_status: BlockerStatus;
   se_owner_name: string | null;
@@ -134,15 +135,17 @@ export default function TechBlockersPage() {
   const [loadingAll, setLoadingAll] = useState(true);
   const [loadingRecent, setLoadingRecent] = useState(false);
 
-  // Multi-select filters ([] = all shown)
+  // Multi-select filters ([] = all shown, except teamFilter which defaults to 4 teams)
   const [deployFilter, setDeployFilter] = useState<string[]>([]);
   const [seFilter, setSeFilter] = useState<string[]>([]);
   const [stageFilter, setStageFilter] = useState<string[]>([]);
+  const [teamFilter, setTeamFilter] = useState<string[]>(['EMEA', 'NA Enterprise', 'NA Strategic', 'ANZ']);
 
   function resetFilters() {
     setDeployFilter([]);
     setSeFilter([]);
     setStageFilter([]);
+    setTeamFilter(['EMEA', 'NA Enterprise', 'NA Strategic', 'ANZ']);
     setStatusFilter('active');
   }
 
@@ -152,6 +155,8 @@ export default function TechBlockersPage() {
     [...new Set(allRows.map(r => r.se_owner_name ?? 'Unassigned'))].sort(), [allRows]);
   const stageOptions = useMemo(() =>
     [...new Set(allRows.map(r => r.stage))].sort(), [allRows]);
+  const teamOptions = useMemo(() =>
+    [...new Set(allRows.map(r => r.team ?? '—'))].sort(), [allRows]);
 
   const [summary, setSummary] = useState<string | null>(null);
   const [summaryGeneratedAt, setSummaryGeneratedAt] = useState<string | null>(null);
@@ -208,6 +213,8 @@ export default function TechBlockersPage() {
     if (seFilter.length > 0 && !seFilter.includes(r.se_owner_name ?? 'Unassigned')) return false;
     // Stage filter
     if (stageFilter.length > 0 && !stageFilter.includes(r.stage)) return false;
+    // Team filter
+    if (teamFilter.length > 0 && !teamFilter.includes(r.team ?? '—')) return false;
     return true;
   });
 
@@ -367,7 +374,15 @@ export default function TechBlockersPage() {
             onChange={setStageFilter}
             placeholder="Stage"
           />
-          {(deployFilter.length > 0 || seFilter.length > 0 || stageFilter.length > 0 || statusFilter !== 'active') && (
+          <MultiSelectFilter
+            options={teamOptions}
+            selected={teamFilter}
+            onChange={setTeamFilter}
+            placeholder="All teams"
+          />
+          {(deployFilter.length > 0 || seFilter.length > 0 || stageFilter.length > 0 ||
+            JSON.stringify(teamFilter.slice().sort()) !== JSON.stringify(['ANZ', 'EMEA', 'NA Enterprise', 'NA Strategic']) ||
+            statusFilter !== 'active') && (
             <button
               onClick={resetFilters}
               className="px-3 py-1.5 rounded-lg text-xs font-medium border border-brand-navy-30 text-brand-navy-70 hover:border-brand-navy hover:text-brand-navy transition-colors"
