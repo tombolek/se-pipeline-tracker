@@ -550,7 +550,7 @@ export default function CalendarPage() {
   const is1m = viewMode === '1m';
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-white min-h-0 max-h-[90vh]">
+    <div className="flex-1 flex flex-col overflow-hidden bg-white min-h-0 max-h-[95vh]">
       {/* ── Header ── */}
       <div className="flex-shrink-0 flex items-center gap-3 px-6 py-3 border-b border-brand-navy-30 bg-white flex-wrap">
         {/* Month nav */}
