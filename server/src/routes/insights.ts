@@ -476,4 +476,60 @@ A numbered list of 2-3 accounts or situations where the Agentic qualification mi
   res.json(ok({ summary, generated_at: new Date().toISOString(), count: rows.length }));
 });
 
+// GET /insights/calendar — POCs, RFPs with submission date, and tasks with due dates
+// Accessible to all authenticated users; managers see all data, SEs see their own.
+router.get('/calendar', auth, async (req: Request, res: Response): Promise<void> => {
+  const user = (req as unknown as { user: { id: number; role: string } }).user;
+  const isManager = user.role === 'manager';
+  const uid = user.id;
+
+  const seFilter   = isManager ? '' : `AND o.se_owner_id = ${uid}`;
+  const taskFilter = isManager ? '' : `AND t.assigned_to_id = ${uid}`;
+
+  const [pocs, rfps, tasks] = await Promise.all([
+    query(
+      `SELECT o.id, o.name, o.account_name, o.poc_status,
+              o.poc_start_date, o.poc_end_date, o.poc_type,
+              u.id   AS se_owner_id,
+              u.name AS se_owner_name
+         FROM opportunities o
+         LEFT JOIN users u ON u.id = o.se_owner_id
+        WHERE o.poc_status IS NOT NULL AND o.poc_status != ''
+          AND o.is_active = true
+          AND (o.poc_start_date IS NOT NULL OR o.poc_end_date IS NOT NULL)
+          ${seFilter}
+        ORDER BY o.poc_start_date ASC NULLS LAST`
+    ),
+    query(
+      `SELECT o.id, o.name, o.account_name, o.rfx_status, o.rfx_submission_date,
+              u.id   AS se_owner_id,
+              u.name AS se_owner_name
+         FROM opportunities o
+         LEFT JOIN users u ON u.id = o.se_owner_id
+        WHERE o.rfx_status IS NOT NULL AND o.rfx_status != ''
+          AND o.rfx_submission_date IS NOT NULL
+          AND o.is_active = true
+          ${seFilter}
+        ORDER BY o.rfx_submission_date ASC`
+    ),
+    query(
+      `SELECT t.id, t.title, t.status, t.due_date, t.is_next_step,
+              o.id   AS opportunity_id,
+              o.name AS opportunity_name,
+              u.id   AS assigned_to_id,
+              u.name AS assigned_to_name
+         FROM tasks t
+         JOIN opportunities o ON o.id = t.opportunity_id
+         LEFT JOIN users u ON u.id = t.assigned_to_id
+        WHERE t.is_deleted = false
+          AND t.due_date IS NOT NULL
+          ${taskFilter}
+        ORDER BY t.due_date ASC`
+    ),
+  ]);
+
+  res.json(ok({ pocs, rfps, tasks }));
+});
+
 export default router;
+

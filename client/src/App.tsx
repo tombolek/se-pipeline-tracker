@@ -6,6 +6,7 @@ import PipelinePage from './pages/PipelinePage';
 import ClosedLostPage from './pages/ClosedLostPage';
 import MyTasksPage from './pages/MyTasksPage';
 import InsightsPage from './pages/InsightsPage';
+import CalendarPage from './pages/CalendarPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import Sidebar from './components/Sidebar';
 import QuickCapture from './components/QuickCapture';
@@ -58,6 +59,7 @@ export default function App() {
             <Route path="/closed-lost" element={<AppShell><ClosedLostPage /></AppShell>} />
             <Route path="/my-tasks" element={<AppShell><MyTasksPage /></AppShell>} />
             <Route path="/inbox" element={<Navigate to="/my-tasks" replace />} />
+            <Route path="/calendar" element={<AppShell><CalendarPage /></AppShell>} />
             <Route path="/insights/*" element={<AppShell><InsightsPage /></AppShell>} />
             <Route path="/settings/*" element={<AppShell><SettingsPage /></AppShell>} />
             <Route path="/" element={<Navigate to="/pipeline" replace />} />

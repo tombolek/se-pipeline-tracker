@@ -11,6 +11,7 @@ const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigat
 const NAV = [
   { to: '/pipeline',            label: 'Pipeline',    icon: PipelineIcon  },
   { to: '/my-tasks',            label: 'My Tasks',    icon: TasksIcon     },
+  { to: '/calendar',            label: 'Calendar',    icon: CalendarIcon  },
   { to: '/insights/se-mapping', label: 'SE Mapping',  icon: SeMappingIcon },
   { to: '/insights/poc-board',  label: 'PoC Board',   icon: PocIcon       },
   { to: '/insights/rfx-board',  label: 'RFx Board',   icon: RfxIcon       },
@@ -284,6 +285,14 @@ function HistoryIcon() {
   return (
     <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  );
+}
+
+function CalendarIcon() {
+  return (
+    <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
     </svg>
   );
 }
