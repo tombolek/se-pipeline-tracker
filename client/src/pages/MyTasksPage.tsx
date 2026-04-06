@@ -273,7 +273,7 @@ function TaskCard({ task, onUpdate, onDelete }: {
         </div>
         <div className="flex items-center gap-2 mt-2 flex-wrap">
           <select value={task.status} onChange={e => handleStatusChange(e.target.value as Task['status'])}
-            className={`text-[10px] px-2 py-0.5 rounded-full border-0 font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-brand-purple ${STATUS_STYLES[task.status]}`}>
+            className={`text-[10px] px-2 py-0.5 rounded border-0 font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-brand-purple ${STATUS_STYLES[task.status]}`}>
             {(Object.keys(STATUS_LABELS) as Task['status'][]).map(s => (
               <option key={s} value={s}>{STATUS_LABELS[s]}</option>
             ))}

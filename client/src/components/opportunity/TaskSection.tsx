@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { Task, User } from '../../types';
 import { updateTask } from '../../api/tasks';
 import { formatDate } from '../../utils/formatters';
-import { STATUS_STYLES, STATUS_LABELS } from '../shared/StatusChip';
+import { STATUS_STYLES, STATUS_DOT, STATUS_LABELS } from '../shared/StatusChip';
 
 // ── EditTaskForm ───────────────────────────────────────────────────────────────
 
@@ -134,14 +134,15 @@ export function TaskRow({
             </span>
           )}
           {readOnly ? (
-            <span className={`text-[10px] px-1.5 py-px rounded-full font-medium ${STATUS_STYLES[task.status]}`}>
+            <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-px rounded font-medium ${STATUS_STYLES[task.status]}`}>
+              <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${STATUS_DOT[task.status]}`} />
               {STATUS_LABELS[task.status]}
             </span>
           ) : (
             <select
               value={task.status}
               onChange={e => onStatusChange(task.id, e.target.value as Task['status'])}
-              className={`text-[10px] px-1.5 py-px rounded-full border-0 font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-brand-purple ${STATUS_STYLES[task.status]}`}
+              className={`text-[10px] px-1.5 py-px rounded border-0 font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-brand-purple ${STATUS_STYLES[task.status]}`}
             >
               {(Object.keys(STATUS_LABELS) as Task['status'][]).map(s => (
                 <option key={s} value={s}>{STATUS_LABELS[s]}</option>
