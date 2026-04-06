@@ -3,9 +3,9 @@ const STAGE_COLORS: Record<string, string> = {
   'Develop Solution':      'bg-brand-purple-30 text-brand-purple',
   'Build Value':           'bg-brand-purple/10 text-brand-purple',
   'Proposal Sent':         'bg-brand-navy/10 text-brand-navy',
-  'Submitted for Booking': 'bg-status-warning/20 text-amber-700',
+  'Submitted for Booking': 'bg-amber-50 text-amber-800',
   'Negotiate':             'bg-orange-50 text-orange-600',
-  'Closed Won':            'bg-status-success/15 text-emerald-700',
+  'Closed Won':            'bg-emerald-50 text-emerald-800',
 };
 
 export default function StageBadge({ stage }: { stage: string }) {

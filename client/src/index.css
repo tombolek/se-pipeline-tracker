@@ -10,10 +10,10 @@
   --color-brand-navy:      #1A0C42;
   --color-brand-navy-70:   #665D81;
   --color-brand-navy-30:   #CCC9D5;
-  --color-status-overdue:  #FF464C;
-  --color-status-warning:  #FFAB00;
-  --color-status-info:     #00DDFF;
-  --color-status-success:  #00E5B6;
+  --color-status-overdue:  #D94040;
+  --color-status-warning:  #C98A00;
+  --color-status-info:     #2585C7;
+  --color-status-success:  #1A9E80;
   --font-sans: 'Poppins', system-ui, sans-serif;
 }
 
