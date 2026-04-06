@@ -3,6 +3,8 @@ import api from '../api/client';
 import type { ApiResponse } from '../types';
 import { useTeamScope } from '../hooks/useTeamScope';
 import TeamScopeSelector from '../components/shared/TeamScopeSelector';
+import Drawer from '../components/Drawer';
+import OpportunityDetail from '../components/OpportunityDetail';
 
 // ── Raw API types ─────────────────────────────────────────────────────────────
 
@@ -61,6 +63,7 @@ interface CalEvent {
   isDone: boolean;
   isEstimatedStart: boolean;
   isEstimatedEnd: boolean;
+  opportunityId: number;
 }
 
 interface LaneItem {
@@ -135,6 +138,13 @@ function formatMonthYear(d: Date): string {
   return d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 }
 
+function format3mRange(start: Date): string {
+  const end = addMonths(start, 2);
+  const s = start.toLocaleDateString('en-US', { month: 'short' });
+  const e = end.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  return `${s} – ${e}`;
+}
+
 function initials(name: string | null): string {
   if (!name) return '?';
   return name.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase();
@@ -177,6 +187,7 @@ function normalizePoc(p: CalPoc): CalEvent | null {
     status: p.poc_status,
     isDone: /complet|done|finish/i.test(p.poc_status),
     isEstimatedStart: isEstStart, isEstimatedEnd: isEstEnd,
+    opportunityId: p.id,
   };
 }
 
@@ -190,6 +201,7 @@ function normalizeRfp(r: CalRfp): CalEvent {
     status: r.rfx_status,
     isDone: /submitted|complet/i.test(r.rfx_status),
     isEstimatedStart: false, isEstimatedEnd: false,
+    opportunityId: r.id,
   };
 }
 
@@ -203,6 +215,7 @@ function normalizeTask(t: CalTask): CalEvent {
     status: t.status,
     isDone: t.status === 'done',
     isEstimatedStart: false, isEstimatedEnd: false,
+    opportunityId: t.opportunity_id,
   };
 }
 
@@ -239,16 +252,16 @@ function typeIcon(type: CalEvent['type'], isDone: boolean) {
   return isDone ? '✅' : '☐';
 }
 
-function EventChip({ event, colorMap, onClick }: {
+function EventChip({ event, colorMap, onEventClick }: {
   event: CalEvent;
   colorMap: Map<number, string>;
-  onClick?: () => void;
+  onEventClick: (oppId: number) => void;
 }) {
   const color = getColor(event.seId, colorMap);
   const icon  = typeIcon(event.type, event.isDone);
   return (
     <div
-      onClick={onClick}
+      onClick={() => onEventClick(event.opportunityId)}
       className={`flex items-center gap-0.5 px-1 rounded text-white text-[10px] leading-[18px] cursor-pointer hover:opacity-80 overflow-hidden whitespace-nowrap ${event.isDone ? 'opacity-50' : ''}`}
       style={{ background: color }}
       title={`${event.label} · ${event.sublabel}`}
@@ -264,17 +277,22 @@ function EventChip({ event, colorMap, onClick }: {
 
 // ── SpanBar ───────────────────────────────────────────────────────────────────
 
-function SpanBar({ item, colorMap }: { item: LaneItem; colorMap: Map<number, string> }) {
+function SpanBar({ item, colorMap, onEventClick }: {
+  item: LaneItem;
+  colorMap: Map<number, string>;
+  onEventClick: (oppId: number) => void;
+}) {
   const { event, colStart, colEnd, isStart, isEnd, lane } = item;
   const color = getColor(event.seId, colorMap);
   const leftPct  = (colStart / 7) * 100;
   const widthPct = ((colEnd - colStart + 1) / 7) * 100;
-  const labelSuffix = (event.isEstimatedStart ? '*' : '') + (event.isEstimatedEnd ? '*' : '');
+  const labelSuffix = event.isEstimatedStart || event.isEstimatedEnd ? '*' : '';
   const showLabel = isStart || colStart === 0;
 
   return (
     <div
-      className={`absolute flex items-center text-white text-[10px] overflow-hidden cursor-pointer hover:opacity-80 ${event.isDone ? 'opacity-50' : ''}`}
+      onClick={() => onEventClick(event.opportunityId)}
+      className={`absolute flex items-center text-white text-[10px] overflow-hidden cursor-pointer hover:opacity-80 pointer-events-auto ${event.isDone ? 'opacity-50' : ''}`}
       style={{
         left:   `calc(${leftPct}% + ${isStart ? 2 : 0}px)`,
         width:  `calc(${widthPct}% - ${(isStart ? 2 : 0) + (isEnd ? 2 : 0)}px)`,
@@ -291,7 +309,7 @@ function SpanBar({ item, colorMap }: { item: LaneItem; colorMap: Map<number, str
             {initials(event.seName)}
           </span>
           <span className="mx-0.5 flex-shrink-0">🔬</span>
-          <span className="truncate">{event.label}{labelSuffix ? <sup>{labelSuffix}</sup> : null}</span>
+          <span className="truncate">{event.label}{labelSuffix}</span>
         </>
       )}
     </div>
@@ -300,11 +318,12 @@ function SpanBar({ item, colorMap }: { item: LaneItem; colorMap: Map<number, str
 
 // ── DayPopover ────────────────────────────────────────────────────────────────
 
-function DayPopover({ date, events, colorMap, onClose }: {
+function DayPopover({ date, events, colorMap, onClose, onEventClick }: {
   date: Date;
   events: CalEvent[];
   colorMap: Map<number, string>;
   onClose: () => void;
+  onEventClick: (oppId: number) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -333,8 +352,12 @@ function DayPopover({ date, events, colorMap, onClose }: {
             const color = getColor(evt.seId, colorMap);
             const icon  = typeIcon(evt.type, evt.isDone);
             return (
-              <div key={evt.id} className={`flex items-start gap-2 p-2 rounded-lg ${evt.isDone ? 'opacity-50' : ''}`}
-                style={{ background: color + '18', borderLeft: `3px solid ${color}` }}>
+              <div
+                key={evt.id}
+                onClick={() => { onEventClick(evt.opportunityId); onClose(); }}
+                className={`flex items-start gap-2 p-2 rounded-lg cursor-pointer hover:opacity-80 transition-opacity ${evt.isDone ? 'opacity-50' : ''}`}
+                style={{ background: color + '18', borderLeft: `3px solid ${color}` }}
+              >
                 <span className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-[9px] font-bold text-white mt-0.5"
                   style={{ background: color }}>
                   {initials(evt.seName)}
@@ -361,12 +384,14 @@ function DayPopover({ date, events, colorMap, onClose }: {
 
 // ── WeekRow ───────────────────────────────────────────────────────────────────
 
-function WeekRow({ week, events, viewMonth, colorMap, onMoreClick }: {
+function WeekRow({ week, events, viewMonth, colorMap, onMoreClick, onEventClick, stretch }: {
   week: Date[];
   events: CalEvent[];
   viewMonth: Date;
   colorMap: Map<number, string>;
   onMoreClick: (date: Date, events: CalEvent[]) => void;
+  onEventClick: (oppId: number) => void;
+  stretch: boolean;
 }) {
   const weekStart = week[0];
   const weekEnd   = week[6];
@@ -378,12 +403,15 @@ function WeekRow({ week, events, viewMonth, colorMap, onMoreClick }: {
   const spansH    = numLanes * 22;
 
   return (
-    <div className="grid grid-cols-7 border-b border-brand-navy-30 relative" style={{ minHeight: 100 + spansH }}>
-      {/* Span bars layer */}
+    <div
+      className={`grid grid-cols-7 border-b border-brand-navy-30 relative ${stretch ? 'flex-1' : ''}`}
+      style={{ minHeight: 120 + spansH }}
+    >
+      {/* Span bars layer — pointer-events-none on container, pointer-events-auto on each bar */}
       {numLanes > 0 && (
         <div className="absolute inset-x-0 top-0 pointer-events-none" style={{ height: spansH }}>
           {laneItems.map((item, i) => (
-            <SpanBar key={`${item.event.id}-${i}`} item={item} colorMap={colorMap} />
+            <SpanBar key={`${item.event.id}-${i}`} item={item} colorMap={colorMap} onEventClick={onEventClick} />
           ))}
         </div>
       )}
@@ -413,7 +441,7 @@ function WeekRow({ week, events, viewMonth, colorMap, onMoreClick }: {
             </div>
             <div className="space-y-px">
               {visible.map(evt => (
-                <EventChip key={evt.id} event={evt} colorMap={colorMap} />
+                <EventChip key={evt.id} event={evt} colorMap={colorMap} onEventClick={onEventClick} />
               ))}
               {overflow > 0 && (
                 <button
@@ -434,19 +462,21 @@ function WeekRow({ week, events, viewMonth, colorMap, onMoreClick }: {
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 type EventType = 'poc' | 'rfp' | 'task';
+type ViewMode  = '1m' | '3m';
 
 export default function CalendarPage() {
   const today = useMemo(() => new Date(), []);
-  const [month, setMonth]       = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
-  const [data, setData]         = useState<CalendarData>({ pocs: [], rfps: [], tasks: [] });
-  const [loading, setLoading]   = useState(true);
-  const [types, setTypes]       = useState<Set<EventType>>(new Set(['poc', 'rfp', 'task']));
-  const [filterSe, setFilterSe] = useState<number | null>(null);
-  const [popover, setPopover]   = useState<{ date: Date; events: CalEvent[] } | null>(null);
+  const [month, setMonth]           = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
+  const [data, setData]             = useState<CalendarData>({ pocs: [], rfps: [], tasks: [] });
+  const [loading, setLoading]       = useState(true);
+  const [types, setTypes]           = useState<Set<EventType>>(new Set(['poc', 'rfp', 'task']));
+  const [filterSe, setFilterSe]     = useState<number | null>(null);
+  const [viewMode, setViewMode]     = useState<ViewMode>('1m');
+  const [popover, setPopover]       = useState<{ date: Date; events: CalEvent[] } | null>(null);
+  const [selectedOppId, setSelectedOppId] = useState<number | null>(null);
 
   const { seIds, isFiltered } = useTeamScope();
 
-  // Fetch all calendar data once
   useEffect(() => {
     setLoading(true);
     api.get<ApiResponse<CalendarData>>('/insights/calendar')
@@ -455,25 +485,22 @@ export default function CalendarPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Stable color map: assign colors by sorted SE id
   const colorMap = useMemo(() => {
     const ids = new Set<number>();
-    data.pocs.forEach(p => p.se_owner_id  && ids.add(p.se_owner_id));
-    data.rfps.forEach(r => r.se_owner_id  && ids.add(r.se_owner_id));
+    data.pocs.forEach(p => p.se_owner_id    && ids.add(p.se_owner_id));
+    data.rfps.forEach(r => r.se_owner_id    && ids.add(r.se_owner_id));
     data.tasks.forEach(t => t.assigned_to_id && ids.add(t.assigned_to_id));
     return buildColorMap([...ids]);
   }, [data]);
 
-  // Unique SEs for the filter bar
   const allSes = useMemo(() => {
     const map = new Map<number, string>();
-    data.pocs.forEach(p  => { if (p.se_owner_id  && p.se_owner_name)  map.set(p.se_owner_id,  p.se_owner_name); });
-    data.rfps.forEach(r  => { if (r.se_owner_id  && r.se_owner_name)  map.set(r.se_owner_id,  r.se_owner_name); });
+    data.pocs.forEach(p  => { if (p.se_owner_id   && p.se_owner_name)   map.set(p.se_owner_id,   p.se_owner_name); });
+    data.rfps.forEach(r  => { if (r.se_owner_id   && r.se_owner_name)   map.set(r.se_owner_id,   r.se_owner_name); });
     data.tasks.forEach(t => { if (t.assigned_to_id && t.assigned_to_name) map.set(t.assigned_to_id, t.assigned_to_name); });
     return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1]));
   }, [data]);
 
-  // Normalize events
   const allEvents = useMemo<CalEvent[]>(() => {
     const evts: CalEvent[] = [];
     if (types.has('poc'))  data.pocs.forEach(p  => { const e = normalizePoc(p);  if (e) evts.push(e); });
@@ -482,7 +509,6 @@ export default function CalendarPage() {
     return evts;
   }, [data, types]);
 
-  // Apply team scope + SE filter
   const scopedEvents = useMemo(() => {
     let evts = allEvents;
     if (isFiltered && seIds.size > 0) {
@@ -494,10 +520,22 @@ export default function CalendarPage() {
     return evts;
   }, [allEvents, seIds, isFiltered, filterSe]);
 
-  const weeks = useMemo(() => getWeeks(month), [month]);
+  // Week sections: 1 month or 3 months
+  const weekSections = useMemo(() => {
+    if (viewMode === '1m') return [{ sectionMonth: month, weeks: getWeeks(month) }];
+    return [0, 1, 2].map(i => {
+      const m = addMonths(month, i);
+      return { sectionMonth: m, weeks: getWeeks(m) };
+    });
+  }, [month, viewMode]);
 
   const handleMoreClick = useCallback((date: Date, events: CalEvent[]) => {
     setPopover({ date, events });
+  }, []);
+
+  const handleEventClick = useCallback((oppId: number) => {
+    setSelectedOppId(oppId);
+    setPopover(null);
   }, []);
 
   const toggleType = (t: EventType) => {
@@ -509,12 +547,14 @@ export default function CalendarPage() {
     });
   };
 
+  const is1m = viewMode === '1m';
+
   return (
     <div className="flex flex-col h-full overflow-hidden bg-white">
       {/* ── Header ── */}
-      <div className="flex-shrink-0 flex items-center gap-4 px-6 py-3 border-b border-brand-navy-30 bg-white">
+      <div className="flex-shrink-0 flex items-center gap-3 px-6 py-3 border-b border-brand-navy-30 bg-white flex-wrap">
         {/* Month nav */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           <button
             onClick={() => setMonth(m => addMonths(m, -1))}
             className="w-7 h-7 flex items-center justify-center rounded-lg border border-brand-navy-30 text-brand-navy-70 hover:bg-gray-50 transition-colors"
@@ -525,9 +565,9 @@ export default function CalendarPage() {
           </button>
           <button
             onClick={() => setMonth(new Date(today.getFullYear(), today.getMonth(), 1))}
-            className="text-sm font-semibold text-brand-navy min-w-[160px] text-center hover:text-brand-purple transition-colors"
+            className="text-sm font-semibold text-brand-navy min-w-[150px] text-center hover:text-brand-purple transition-colors"
           >
-            {formatMonthYear(month)}
+            {is1m ? formatMonthYear(month) : format3mRange(month)}
           </button>
           <button
             onClick={() => setMonth(m => addMonths(m, 1))}
@@ -537,6 +577,23 @@ export default function CalendarPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
             </svg>
           </button>
+        </div>
+
+        {/* 1M / 3M toggle */}
+        <div className="flex rounded-lg border border-brand-navy-30 overflow-hidden text-xs">
+          {(['1m', '3m'] as ViewMode[]).map(v => (
+            <button
+              key={v}
+              onClick={() => setViewMode(v)}
+              className={`px-2.5 py-1 font-medium transition-colors ${
+                viewMode === v
+                  ? 'bg-brand-navy text-white'
+                  : 'bg-white text-brand-navy-70 hover:bg-gray-50'
+              } ${v === '3m' ? 'border-l border-brand-navy-30' : ''}`}
+            >
+              {v.toUpperCase()}
+            </button>
+          ))}
         </div>
 
         <div className="w-px h-5 bg-brand-navy-30" />
@@ -603,8 +660,6 @@ export default function CalendarPage() {
         )}
 
         <div className="flex-1" />
-
-        {/* Team scope */}
         <TeamScopeSelector />
       </div>
 
@@ -612,9 +667,9 @@ export default function CalendarPage() {
       {loading ? (
         <div className="flex-1 flex items-center justify-center text-sm text-brand-navy-70">Loading…</div>
       ) : (
-        <div className="flex-1 overflow-auto">
+        <div className={`overflow-auto ${is1m ? 'flex flex-col flex-1' : ''}`}>
           {/* DOW header */}
-          <div className="grid grid-cols-7 border-b border-brand-navy-30 sticky top-0 bg-white z-10">
+          <div className="grid grid-cols-7 border-b border-brand-navy-30 sticky top-0 bg-white z-10 flex-shrink-0">
             {DOW.map(d => (
               <div key={d} className="text-center py-2 text-[11px] font-semibold uppercase tracking-wide text-brand-navy-70 border-r last:border-r-0 border-brand-navy-30">
                 {d}
@@ -622,39 +677,65 @@ export default function CalendarPage() {
             ))}
           </div>
 
-          {/* Weeks */}
-          {weeks.map((week, wi) => (
-            <WeekRow
-              key={wi}
-              week={week}
-              events={scopedEvents}
-              viewMonth={month}
-              colorMap={colorMap}
-              onMoreClick={handleMoreClick}
-            />
-          ))}
+          {/* Week sections */}
+          <div className={is1m ? 'flex flex-col flex-1 min-h-0' : ''}>
+            {weekSections.map(({ sectionMonth, weeks }) => (
+              <div key={sectionMonth.toISOString()} className={is1m ? 'flex flex-col flex-1 min-h-0' : ''}>
+                {/* Month divider in 3m mode */}
+                {!is1m && (
+                  <div className="sticky top-[33px] z-[9] px-4 py-1.5 bg-brand-navy-30/30 border-b border-brand-navy-30">
+                    <span className="text-xs font-semibold text-brand-navy-70 uppercase tracking-wide">
+                      {formatMonthYear(sectionMonth)}
+                    </span>
+                  </div>
+                )}
+                {weeks.map((week, wi) => (
+                  <WeekRow
+                    key={wi}
+                    week={week}
+                    events={scopedEvents}
+                    viewMonth={sectionMonth}
+                    colorMap={colorMap}
+                    onMoreClick={handleMoreClick}
+                    onEventClick={handleEventClick}
+                    stretch={is1m}
+                  />
+                ))}
+              </div>
+            ))}
+          </div>
 
           {/* Legend */}
-          <div className="flex items-center gap-4 px-6 py-3 border-t border-brand-navy-30 text-[10px] text-brand-navy-70">
+          <div className="flex items-center gap-4 px-6 py-3 border-t border-brand-navy-30 text-[10px] text-brand-navy-70 flex-shrink-0">
             <span className="font-semibold uppercase tracking-wide">Legend:</span>
             <span>🔬 POC span</span>
             <span>📄 RFP submission date</span>
             <span>☐ Task due date</span>
             <span className="ml-2 text-brand-navy-30">|</span>
             <span>* = estimated date (21-day assumption)</span>
+            <span className="ml-2 text-brand-navy-30">|</span>
+            <span>Click any item to open opportunity detail</span>
           </div>
         </div>
       )}
 
-      {/* Popover */}
+      {/* +N more popover */}
       {popover && (
         <DayPopover
           date={popover.date}
           events={popover.events}
           colorMap={colorMap}
           onClose={() => setPopover(null)}
+          onEventClick={handleEventClick}
         />
       )}
+
+      {/* Opportunity detail drawer */}
+      <Drawer open={selectedOppId !== null} onClose={() => setSelectedOppId(null)}>
+        {selectedOppId !== null && (
+          <OpportunityDetail key={selectedOppId} oppId={selectedOppId} />
+        )}
+      </Drawer>
     </div>
   );
 }
