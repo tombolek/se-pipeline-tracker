@@ -479,7 +479,7 @@ export default function CalendarPage() {
   const [popover, setPopover]       = useState<{ date: Date; events: CalEvent[] } | null>(null);
   const [selectedOppId, setSelectedOppId] = useState<number | null>(null);
 
-  const { filterOppUnionUnion } = useTeamScope();
+  const { filterOppUnion } = useTeamScope();
 
   useEffect(() => {
     setLoading(true);
