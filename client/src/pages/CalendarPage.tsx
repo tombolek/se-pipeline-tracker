@@ -257,19 +257,37 @@ function typeIcon(type: CalEvent['type'], isDone: boolean) {
   return isDone ? '✅' : '☐';
 }
 
-function EventChip({ event, colorMap, onEventClick }: {
+// Prevents the click handler firing immediately after a drag completes
+let _dragJustEnded = false;
+
+function EventChip({ event, colorMap, onEventClick, onTaskDragStart, onTaskDragEnd }: {
   event: CalEvent;
   colorMap: Map<number, string>;
   onEventClick: (oppId: number) => void;
+  onTaskDragStart?: (taskId: number) => void;
+  onTaskDragEnd?: () => void;
 }) {
-  const color = getColor(event.seId, colorMap);
-  const icon  = typeIcon(event.type, event.isDone);
+  const color  = getColor(event.seId, colorMap);
+  const icon   = typeIcon(event.type, event.isDone);
+  const isTask = event.type === 'task';
+  const taskId = isTask ? parseInt(event.id.split('-')[1]) : null;
+
   return (
     <div
-      onClick={() => onEventClick(event.opportunityId)}
-      className={`flex items-center gap-0.5 px-1 rounded text-white text-[10px] leading-[18px] cursor-pointer hover:opacity-80 overflow-hidden whitespace-nowrap ${event.isDone ? 'opacity-50' : ''}`}
+      onClick={() => {
+        if (_dragJustEnded) { _dragJustEnded = false; return; }
+        onEventClick(event.opportunityId);
+      }}
+      draggable={isTask}
+      onDragStart={isTask && taskId !== null ? e => {
+        e.dataTransfer.setData('taskId', String(taskId));
+        e.dataTransfer.effectAllowed = 'move';
+        onTaskDragStart?.(taskId);
+      } : undefined}
+      onDragEnd={isTask ? () => { _dragJustEnded = true; onTaskDragEnd?.(); } : undefined}
+      className={`flex items-center gap-0.5 px-1 rounded text-white text-[10px] leading-[18px] overflow-hidden whitespace-nowrap hover:opacity-80 ${event.isDone ? 'opacity-50' : ''} ${isTask ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'}`}
       style={{ background: color }}
-      title={`${event.label} · ${event.sublabel}`}
+      title={`${event.label} · ${event.sublabel}${isTask ? ' · Drag to reschedule' : ''}`}
     >
       <span className="w-3.5 h-3.5 rounded-full bg-white/25 flex items-center justify-center flex-shrink-0 text-[7px] font-bold">
         {initials(event.seName)}
@@ -389,7 +407,7 @@ function DayPopover({ date, events, colorMap, onClose, onEventClick }: {
 
 // ── WeekRow ───────────────────────────────────────────────────────────────────
 
-function WeekRow({ week, events, viewMonth, colorMap, onMoreClick, onEventClick, stretch }: {
+function WeekRow({ week, events, viewMonth, colorMap, onMoreClick, onEventClick, stretch, onTaskDrop, draggingTaskId, onTaskDragStart, onTaskDragEnd }: {
   week: Date[];
   events: CalEvent[];
   viewMonth: Date;
@@ -397,7 +415,12 @@ function WeekRow({ week, events, viewMonth, colorMap, onMoreClick, onEventClick,
   onMoreClick: (date: Date, events: CalEvent[]) => void;
   onEventClick: (oppId: number) => void;
   stretch: boolean;
+  onTaskDrop: (taskId: number, date: Date) => void;
+  draggingTaskId: number | null;
+  onTaskDragStart: (taskId: number) => void;
+  onTaskDragEnd: () => void;
 }) {
+  const [dropTargetDay, setDropTargetDay] = useState<number | null>(null);
   const weekStart = week[0];
   const weekEnd   = week[6];
   const today     = new Date();
@@ -429,10 +452,25 @@ function WeekRow({ week, events, viewMonth, colorMap, onMoreClick, onEventClick,
         const visible  = dayChips.slice(0, MAX_CHIPS);
         const overflow = dayChips.length - MAX_CHIPS;
 
+        const isDragTarget = draggingTaskId !== null && dropTargetDay === di;
         return (
           <div
             key={di}
-            className={`border-r last:border-r-0 border-brand-navy-30 px-1.5 pb-1.5 ${!inMonth ? 'bg-gray-50/70' : ''}`}
+            onDragOver={draggingTaskId !== null ? e => {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = 'move';
+              setDropTargetDay(di);
+            } : undefined}
+            onDragLeave={draggingTaskId !== null ? e => {
+              if (!e.currentTarget.contains(e.relatedTarget as Node)) setDropTargetDay(null);
+            } : undefined}
+            onDrop={draggingTaskId !== null ? e => {
+              e.preventDefault();
+              const id = parseInt(e.dataTransfer.getData('taskId'));
+              if (!isNaN(id)) onTaskDrop(id, day);
+              setDropTargetDay(null);
+            } : undefined}
+            className={`border-r last:border-r-0 border-brand-navy-30 px-1.5 pb-1.5 transition-colors ${!inMonth ? 'bg-gray-50/70' : ''} ${isDragTarget ? 'bg-brand-purple/10 ring-1 ring-inset ring-brand-purple/40' : ''}`}
             style={{ paddingTop: spansH + 4 }}
           >
             <div className={`text-[11px] font-medium w-5 h-5 flex items-center justify-center rounded-full mb-1 ${
@@ -446,7 +484,8 @@ function WeekRow({ week, events, viewMonth, colorMap, onMoreClick, onEventClick,
             </div>
             <div className="space-y-px">
               {visible.map(evt => (
-                <EventChip key={evt.id} event={evt} colorMap={colorMap} onEventClick={onEventClick} />
+                <EventChip key={evt.id} event={evt} colorMap={colorMap} onEventClick={onEventClick}
+                  onTaskDragStart={onTaskDragStart} onTaskDragEnd={onTaskDragEnd} />
               ))}
               {overflow > 0 && (
                 <button
@@ -479,6 +518,7 @@ export default function CalendarPage() {
   const [viewMode, setViewMode]     = useState<ViewMode>('1m');
   const [popover, setPopover]       = useState<{ date: Date; events: CalEvent[] } | null>(null);
   const [selectedOppId, setSelectedOppId] = useState<number | null>(null);
+  const [draggingTaskId, setDraggingTaskId] = useState<number | null>(null);
 
   const { filterOppUnion, isOutOfTerritory, teamNames } = useTeamScope();
 
@@ -556,6 +596,32 @@ export default function CalendarPage() {
   const handleEventClick = useCallback((oppId: number) => {
     setSelectedOppId(oppId);
     setPopover(null);
+  }, []);
+
+  const handleTaskDragStart = useCallback((taskId: number) => setDraggingTaskId(taskId), []);
+  const handleTaskDragEnd   = useCallback(() => setDraggingTaskId(null), []);
+
+  const handleTaskDrop = useCallback(async (taskId: number, date: Date) => {
+    setDraggingTaskId(null);
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    const dateStr = `${y}-${m}-${d}`;
+
+    // Optimistic update
+    setData(prev => ({
+      ...prev,
+      tasks: prev.tasks.map(t => t.id === taskId ? { ...t, due_date: dateStr } : t),
+    }));
+
+    try {
+      await api.patch(`/tasks/${taskId}`, { due_date: dateStr });
+    } catch {
+      // Revert by reloading
+      api.get<ApiResponse<CalendarData>>('/insights/calendar')
+        .then(r => setData(r.data.data))
+        .catch(() => {});
+    }
   }, []);
 
   const toggleType = (t: EventType) => {
@@ -725,6 +791,10 @@ export default function CalendarPage() {
                     onMoreClick={handleMoreClick}
                     onEventClick={handleEventClick}
                     stretch={is1m}
+                    onTaskDrop={handleTaskDrop}
+                    draggingTaskId={draggingTaskId}
+                    onTaskDragStart={handleTaskDragStart}
+                    onTaskDragEnd={handleTaskDragEnd}
                   />
                 ))}
               </div>
@@ -741,6 +811,8 @@ export default function CalendarPage() {
             <span>* = estimated date (21-day assumption)</span>
             <span className="ml-2 text-brand-navy-30">|</span>
             <span>Click any item to open opportunity detail</span>
+            <span className="ml-2 text-brand-navy-30">|</span>
+            <span>Drag tasks to reschedule due date</span>
           </div>
         </div>
       )}
