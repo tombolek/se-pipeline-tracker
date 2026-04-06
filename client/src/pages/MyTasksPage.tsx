@@ -64,7 +64,7 @@ function OppSearchPopover({ onSelect, onClose }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-32" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl border border-brand-navy-30/40 w-[480px] overflow-hidden"
+      <div className="bg-white rounded-lg shadow-lg border border-brand-navy-30/40 w-[480px] overflow-hidden"
         onClick={e => e.stopPropagation()}>
         <div className="px-4 py-3 border-b border-brand-navy-30/30">
           <input ref={inputRef} value={q} onChange={e => setQ(e.target.value)}

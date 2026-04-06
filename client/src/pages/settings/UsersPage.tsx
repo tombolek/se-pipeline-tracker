@@ -50,7 +50,7 @@ function AddUserModal({ onClose, onCreated }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-xl border border-brand-navy-30/40 w-full max-w-md mx-4 p-6" onClick={e => e.stopPropagation()}>
+      <div className="bg-white rounded-lg shadow-lg border border-brand-navy-30/40 w-full max-w-md mx-4 p-6" onClick={e => e.stopPropagation()}>
         <h2 className="text-base font-semibold text-brand-navy mb-5">Add User</h2>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
@@ -118,7 +118,7 @@ function ResetPasswordModal({ user, onClose }: { user: User; onClose: () => void
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-xl border border-brand-navy-30/40 w-full max-w-sm mx-4 p-6" onClick={e => e.stopPropagation()}>
+      <div className="bg-white rounded-lg shadow-lg border border-brand-navy-30/40 w-full max-w-sm mx-4 p-6" onClick={e => e.stopPropagation()}>
         <h2 className="text-base font-semibold text-brand-navy mb-1">Reset password</h2>
         <p className="text-xs text-brand-navy-70 mb-5">Set a new temporary password for <span className="font-medium text-brand-navy">{user.name}</span>.</p>
         {done ? (
@@ -166,7 +166,7 @@ function ConfirmRoleModal({ user, onClose, onConfirm }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="bg-white rounded-2xl shadow-xl border border-brand-navy-30/40 w-full max-w-sm mx-4 p-6">
+      <div className="bg-white rounded-lg shadow-lg border border-brand-navy-30/40 w-full max-w-sm mx-4 p-6">
         <h2 className="text-base font-semibold text-brand-navy mb-1">
           Change role to {toRole}?
         </h2>
@@ -219,7 +219,7 @@ function ReassignWorkloadModal({ user, activeUsers, onClose, onDone }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-xl border border-brand-navy-30/40 w-full max-w-sm mx-4 p-6" onClick={e => e.stopPropagation()}>
+      <div className="bg-white rounded-lg shadow-lg border border-brand-navy-30/40 w-full max-w-sm mx-4 p-6" onClick={e => e.stopPropagation()}>
         <h2 className="text-base font-semibold text-brand-navy mb-1">Reassign workload</h2>
         <p className="text-xs text-brand-navy-70 mb-5">
           All tasks assigned to and open opportunities owned by <span className="font-medium text-brand-navy">{user.name}</span> will be transferred to:
@@ -279,7 +279,7 @@ function DeactivateModal({ user, activeUsers, onClose, onDone }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-xl border border-brand-navy-30/40 w-full max-w-md mx-4 p-6" onClick={e => e.stopPropagation()}>
+      <div className="bg-white rounded-lg shadow-lg border border-brand-navy-30/40 w-full max-w-md mx-4 p-6" onClick={e => e.stopPropagation()}>
         <div className="flex items-center gap-3 mb-4">
           <div className="w-9 h-9 rounded-full bg-status-warning/10 flex items-center justify-center flex-shrink-0">
             <svg className="w-5 h-5 text-status-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -353,7 +353,7 @@ function ReassignManagerModal({ se, managers, onClose, onDone }: {
 
   return (
     <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+      <div className="bg-white rounded-lg shadow-lg w-full max-w-sm p-6">
         <h2 className="text-base font-semibold text-brand-navy mb-0.5">Re-assign manager</h2>
         <p className="text-xs text-brand-navy-70 mb-5">Choose a new reporting manager for <span className="font-medium text-brand-navy">{se.name}</span>.</p>
 

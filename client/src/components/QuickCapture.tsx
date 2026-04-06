@@ -121,7 +121,7 @@ export default function QuickCapture() {
       {/* Modal card */}
       <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
         <div
-          className="w-full max-w-lg bg-white rounded-2xl shadow-2xl pointer-events-auto"
+          className="w-full max-w-lg bg-white rounded-lg shadow-lg pointer-events-auto"
           onClick={e => e.stopPropagation()}
         >
           {/* Header */}
