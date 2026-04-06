@@ -522,12 +522,23 @@ export default function CalendarPage() {
     return evts;
   }, [allEvents, filterOppUnion, filterSe]);
 
+  const outOfTerritoryItems = useMemo(() => {
+    if (teamNames.size === 0) return [];
+    const seen = new Set<number>();
+    const items: { id: number; name: string; team: string | null }[] = [];
+    for (const e of scopedEvents) {
+      if (isOutOfTerritory({ team: e.team }) && !seen.has(e.opportunityId)) {
+        seen.add(e.opportunityId);
+        items.push({ id: e.opportunityId, name: e.label, team: e.team });
+      }
+    }
+    return items;
+  }, [scopedEvents, isOutOfTerritory, teamNames]);
+
   const outOfTerritoryTeams = useMemo(() => {
     if (teamNames.size === 0) return [];
-    return [...new Set(
-      scopedEvents.filter(e => isOutOfTerritory({ team: e.team })).map(e => e.team as string).filter(Boolean)
-    )].sort();
-  }, [scopedEvents, isOutOfTerritory, teamNames]);
+    return [...new Set(outOfTerritoryItems.map(i => i.team as string).filter(Boolean))].sort();
+  }, [outOfTerritoryItems, teamNames]);
 
   // Week sections: 1 month or 3 months
   const weekSections = useMemo(() => {
@@ -674,7 +685,7 @@ export default function CalendarPage() {
 
       {outOfTerritoryTeams.length > 0 && (
         <div className="px-6 py-2 flex-shrink-0">
-          <OutOfTerritoryBanner teams={outOfTerritoryTeams} />
+          <OutOfTerritoryBanner teams={outOfTerritoryTeams} items={outOfTerritoryItems} />
         </div>
       )}
 
