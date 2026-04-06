@@ -287,6 +287,75 @@ function DeactivateModal({ user, activeUsers, onClose, onDone }: {
   );
 }
 
+// ── Reassign Manager Modal ────────────────────────────────────────────────────
+
+function ReassignManagerModal({ se, managers, onClose, onDone }: {
+  se: User;
+  managers: User[];
+  onClose: () => void;
+  onDone: (updated: User) => void;
+}) {
+  const [selectedId, setSelectedId] = useState<number | ''>(se.manager_id ?? '');
+  const [saving, setSaving] = useState(false);
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      const updated = await updateUser(se.id, { manager_id: selectedId === '' ? null : selectedId as number });
+      onDone(updated);
+    } finally { setSaving(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+        <h2 className="text-base font-semibold text-brand-navy mb-0.5">Re-assign manager</h2>
+        <p className="text-xs text-brand-navy-70 mb-5">Choose a new reporting manager for <span className="font-medium text-brand-navy">{se.name}</span>.</p>
+
+        <div className="space-y-2 mb-6">
+          <button
+            onClick={() => setSelectedId('')}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-sm transition-colors ${
+              selectedId === '' ? 'border-brand-purple bg-brand-purple/5 text-brand-navy' : 'border-brand-navy-30/60 text-brand-navy-70 hover:border-brand-navy-30'
+            }`}
+          >
+            <span className="w-7 h-7 rounded-full bg-brand-navy-30/30 flex items-center justify-center text-brand-navy-70 text-xs font-medium flex-shrink-0">—</span>
+            <span className="font-medium">No manager</span>
+            {selectedId === '' && <span className="ml-auto text-brand-purple">✓</span>}
+          </button>
+          {managers.map(m => (
+            <button
+              key={m.id}
+              onClick={() => setSelectedId(m.id)}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-sm transition-colors ${
+                selectedId === m.id ? 'border-brand-purple bg-brand-purple/5 text-brand-navy' : 'border-brand-navy-30/60 text-brand-navy-70 hover:border-brand-navy-30'
+              }`}
+            >
+              <UserAvatar user={m} size={7} />
+              <div className="min-w-0 text-left">
+                <p className="font-medium text-brand-navy truncate">{m.name}</p>
+                <p className="text-[11px] text-brand-navy-70 truncate">{m.email}</p>
+              </div>
+              {selectedId === m.id && <span className="ml-auto text-brand-purple flex-shrink-0">✓</span>}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex justify-end gap-2">
+          <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-brand-navy-70 hover:bg-gray-100 transition-colors">Cancel</button>
+          <button
+            onClick={handleSave}
+            disabled={saving || selectedId === (se.manager_id ?? '')}
+            className="px-4 py-2 rounded-lg bg-brand-purple text-white text-sm font-semibold hover:bg-brand-purple-70 disabled:opacity-50 transition-colors"
+          >
+            {saving ? 'Saving…' : 'Confirm'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Tab: Org Chart ─────────────────────────────────────────────────────────────
 
 function OrgChartTab({ users, setUsers, availableTeams, currentUserId }: {
@@ -296,18 +365,11 @@ function OrgChartTab({ users, setUsers, availableTeams, currentUserId }: {
   currentUserId: number | undefined;
 }) {
   const [updatingId, setUpdatingId] = useState<number | null>(null);
+  const [reassignTarget, setReassignTarget] = useState<User | null>(null);
 
   const managers = users.filter(u => u.role === 'manager');
   const seUsers = users.filter(u => u.role === 'se');
   const unassigned = seUsers.filter(u => !u.manager_id || !managers.find(m => m.id === u.manager_id));
-
-  async function handleReassign(se: User, managerId: number | null) {
-    setUpdatingId(se.id);
-    try {
-      const updated = await updateUser(se.id, { manager_id: managerId });
-      setUsers(prev => prev.map(u => u.id === updated.id ? updated : u));
-    } finally { setUpdatingId(null); }
-  }
 
   async function handleToggleTerritory(mgr: User, territory: string) {
     setUpdatingId(mgr.id);
@@ -322,6 +384,7 @@ function OrgChartTab({ users, setUsers, availableTeams, currentUserId }: {
   }
 
   function SeCard({ se }: { se: User }) {
+    const currentMgr = managers.find(m => m.id === se.manager_id);
     return (
       <div className={`flex items-center gap-3 py-2.5 px-3 rounded-xl hover:bg-brand-purple-30/20 transition-colors ${!se.is_active ? 'opacity-50' : ''}`}>
         <UserAvatar user={se} size={7} />
@@ -329,22 +392,32 @@ function OrgChartTab({ users, setUsers, availableTeams, currentUserId }: {
           <p className="text-sm font-medium text-brand-navy truncate">{se.name}</p>
           <p className="text-[11px] text-brand-navy-70 truncate">{se.email}</p>
         </div>
-        {!se.is_active && <span className="text-[10px] text-brand-navy-30 font-medium">Inactive</span>}
-        <select
-          value={se.manager_id ?? ''}
-          onChange={e => handleReassign(se, e.target.value ? parseInt(e.target.value) : null)}
+        {!se.is_active && <span className="text-[10px] text-brand-navy-30 font-medium mr-1">Inactive</span>}
+        <button
+          onClick={() => setReassignTarget(se)}
           disabled={updatingId === se.id}
-          className="text-xs border border-brand-navy-30 rounded-lg px-2 py-1 text-brand-navy focus:outline-none focus:ring-1 focus:ring-brand-purple disabled:opacity-50 bg-white"
+          className="text-xs px-2.5 py-1 rounded-lg border border-brand-navy-30 text-brand-navy-70 hover:border-brand-purple hover:text-brand-purple transition-colors disabled:opacity-40 whitespace-nowrap"
+          title={currentMgr ? `Currently reporting to ${currentMgr.name}` : 'No manager assigned'}
         >
-          <option value="">No manager</option>
-          {managers.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-        </select>
+          Re-assign
+        </button>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
+      {reassignTarget && (
+        <ReassignManagerModal
+          se={reassignTarget}
+          managers={managers}
+          onClose={() => setReassignTarget(null)}
+          onDone={updated => {
+            setUsers(prev => prev.map(u => u.id === updated.id ? updated : u));
+            setReassignTarget(null);
+          }}
+        />
+      )}
       {managers.length === 0 && (
         <div className="text-sm text-brand-navy-70 py-8 text-center">No managers found.</div>
       )}
@@ -580,22 +653,35 @@ function AccessManagementTab({ users, setUsers, currentUserId }: {
 // ── Tab: Access Audit ──────────────────────────────────────────────────────────
 
 function AccessAuditTab({ users }: { users: User[] }) {
-  const sorted = [...users]
-        .sort((a, b) => {
-      if (!a.last_login_at && !b.last_login_at) return 0;
-      if (!a.last_login_at) return 1;
-      if (!b.last_login_at) return -1;
-      return new Date(b.last_login_at).getTime() - new Date(a.last_login_at).getTime();
-    });
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+
+  const sorted = [...users].sort((a, b) => {
+    if (!a.last_login_at && !b.last_login_at) return 0;
+    if (!a.last_login_at) return sortDir === 'desc' ? 1 : -1;
+    if (!b.last_login_at) return sortDir === 'desc' ? -1 : 1;
+    const diff = new Date(b.last_login_at).getTime() - new Date(a.last_login_at).getTime();
+    return sortDir === 'desc' ? diff : -diff;
+  });
 
   return (
     <div className="bg-white rounded-2xl border border-brand-navy-30/40 overflow-hidden">
       <table className="w-full">
         <thead className="border-b border-brand-navy-30/40">
           <tr>
-            {['User', 'Role', 'Status', 'Last Login'].map(h => (
+            {(['User', 'Role', 'Status'] as const).map(h => (
               <th key={h} className="px-4 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">{h}</th>
             ))}
+            <th className="px-4 py-2.5 text-left">
+              <button
+                onClick={() => setSortDir(d => d === 'desc' ? 'asc' : 'desc')}
+                className="flex items-center gap-1 text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide hover:text-brand-purple transition-colors group"
+              >
+                Last Login
+                <span className="text-brand-navy-30 group-hover:text-brand-purple transition-colors">
+                  {sortDir === 'desc' ? '↓' : '↑'}
+                </span>
+              </button>
+            </th>
           </tr>
         </thead>
         <tbody>
