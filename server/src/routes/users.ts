@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt';
 import { query, queryOne } from '../db/index.js';
 import { requireAuth, requireManager } from '../middleware/auth.js';
 import { AuthenticatedRequest, ColumnPrefs, User, ok, err } from '../types/index.js';
+import { logAudit } from '../services/auditLog.js';
 
 const USER_COLS = `id, email, name, role, is_active, show_qualify, force_password_change, manager_id, column_prefs, teams, created_at, last_login_at`;
 
@@ -47,6 +48,11 @@ router.post('/', auth, mgr, async (req: Request, res: Response): Promise<void> =
     [name.trim(), email.toLowerCase().trim(), role, password_hash]
   );
   res.status(201).json(ok(user));
+  logAudit(req, {
+    action: 'CREATE_USER', resourceType: 'user',
+    resourceId: user!.id, resourceName: user!.name,
+    after: { email: user!.email, role },
+  });
 });
 
 // PATCH /users/me/preferences — update show_qualify and/or column_prefs for current user
@@ -131,6 +137,16 @@ router.patch('/:id', auth, mgr, async (req: Request, res: Response): Promise<voi
 
   if (!user) { res.status(404).json(err('User not found')); return; }
   res.json(ok(user));
+  const changedFields: Record<string, unknown> = {};
+  if (name      !== undefined) changedFields.name      = name;
+  if (email     !== undefined) changedFields.email     = email;
+  if (role      !== undefined) changedFields.role      = role;
+  if (is_active !== undefined) changedFields.is_active = is_active;
+  logAudit(req, {
+    action: 'UPDATE_USER', resourceType: 'user',
+    resourceId: id, resourceName: user.name,
+    after: changedFields,
+  });
 });
 
 // POST /users/:id/reset-password — set a new password (Manager only)
@@ -152,6 +168,10 @@ router.post('/:id/reset-password', auth, mgr, async (req: Request, res: Response
   );
   if (!user) { res.status(404).json(err('User not found')); return; }
   res.json(ok(user));
+  logAudit(req, {
+    action: 'RESET_PASSWORD', resourceType: 'user',
+    resourceId: id, resourceName: user.name,
+  });
 });
 
 // POST /users/:id/reassign-workload — transfer tasks + open opp ownership to another user (Manager only)
@@ -189,6 +209,11 @@ router.post('/:id/reassign-workload', auth, mgr, async (req: Request, res: Respo
     tasks_reassigned: reassignedTasks.length,
     opps_reassigned: reassignedOpps.length,
   }));
+  logAudit(req, {
+    action: 'REASSIGN_WORKLOAD', resourceType: 'user',
+    resourceId: id,
+    after: { to_user_id: to_user_id, tasks: reassignedTasks.length, opps: reassignedOpps.length },
+  });
 });
 
 // DELETE /users/:id — mark as deleted (Manager only, can't self-delete)
@@ -209,6 +234,10 @@ router.delete('/:id', auth, mgr, async (req: Request, res: Response): Promise<vo
   );
   if (!user) { res.status(404).json(err('User not found')); return; }
   res.json(ok(user));
+  logAudit(req, {
+    action: 'DELETE_USER', resourceType: 'user',
+    resourceId: id, resourceName: user.name,
+  });
 });
 
 export default router;

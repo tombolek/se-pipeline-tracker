@@ -5,6 +5,7 @@ import { query, queryOne } from '../db/index.js';
 import { requireAuth, requireManager } from '../middleware/auth.js';
 import { parseImportFile, reconcileImport, previewImport } from '../services/importService.js';
 import { AuthenticatedRequest, ok, err } from '../types/index.js';
+import { logAudit } from '../services/auditLog.js';
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
@@ -30,6 +31,11 @@ router.post('/import', auth, mgr, upload.single('file'), async (req: Request, re
     }
     const stats = await reconcileImport(rows, req.file.originalname);
     res.json(ok(stats, { filename: req.file.originalname }));
+    logAudit(req, {
+      action: 'IMPORT', resourceType: 'import',
+      resourceName: req.file.originalname,
+      after: stats,
+    });
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Import failed';
     res.status(422).json(err(message));
@@ -272,6 +278,12 @@ router.post('/:id/tasks', auth, async (req: Request, res: Response): Promise<voi
      is_next_step ?? false, due_date ?? null, assigned_to_id ?? userId, userId]
   );
   res.status(201).json(ok(task));
+  logAudit(req, {
+    action: 'CREATE_TASK', resourceType: 'task',
+    resourceId: (task as Record<string, unknown>).id as number,
+    resourceName: title.trim(),
+    after: { opportunity_id: oppId, title: title.trim(), status: status ?? 'open' },
+  });
 });
 
 // POST /opportunities/:id/summary  — AI deal summary
@@ -601,6 +613,11 @@ router.patch('/:id', auth, async (req: Request, res: Response): Promise<void> =>
     : null;
 
   res.json(ok({ ...updated, se_owner }));
+  logAudit(req, {
+    action: 'ASSIGN_SE', resourceType: 'opportunity',
+    resourceId: id, resourceName: updated.name as string,
+    after: { se_owner_id: se_owner_id ?? null, se_owner_name: se_owner?.name ?? null },
+  });
 });
 
 export default router;

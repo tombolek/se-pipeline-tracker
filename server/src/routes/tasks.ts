@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { query, queryOne } from '../db/index.js';
 import { requireAuth } from '../middleware/auth.js';
 import { AuthenticatedRequest, ok, err } from '../types/index.js';
+import { logAudit } from '../services/auditLog.js';
 
 const router = Router();
 const auth = requireAuth as unknown as (req: Request, res: Response, next: () => void) => void;
@@ -80,6 +81,12 @@ router.patch('/:id', auth, async (req: Request, res: Response): Promise<void> =>
   );
 
   res.json(ok(updated));
+  logAudit(req, {
+    action: 'UPDATE_TASK', resourceType: 'task',
+    resourceId: id, resourceName: String(existing.title ?? ''),
+    before: { status: existing.status, due_date: existing.due_date },
+    after: { status: status ?? existing.status, due_date: due_date !== undefined ? due_date : existing.due_date },
+  });
 });
 
 // DELETE /tasks/:id  (soft delete)
@@ -96,6 +103,7 @@ router.delete('/:id', auth, async (req: Request, res: Response): Promise<void> =
   if (!task) { res.status(404).json(err('Task not found')); return; }
 
   res.json(ok({ deleted: true, id }));
+  logAudit(req, { action: 'DELETE_TASK', resourceType: 'task', resourceId: id });
 });
 
 export default router;

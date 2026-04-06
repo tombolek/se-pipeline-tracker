@@ -12,6 +12,8 @@ import notesRoutes from './routes/notes.js';
 import insightsRoutes from './routes/insights.js';
 import inboxRoutes from './routes/inbox.js';
 import usersRoutes from './routes/users.js';
+import auditRoutes from './routes/audit.js';
+import { query } from './db/index.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -30,6 +32,11 @@ app.use('/api/v1/opportunities/:id/notes', notesRoutes);
 app.use('/api/v1/insights', insightsRoutes);
 app.use('/api/v1/inbox', inboxRoutes);
 app.use('/api/v1/users', usersRoutes);
+app.use('/api/v1/audit', auditRoutes);
+
+// Retention cleanup — purge rows older than 180 days on startup
+query(`DELETE FROM events    WHERE timestamp < now() - interval '180 days'`).catch(() => {});
+query(`DELETE FROM audit_log WHERE timestamp < now() - interval '180 days'`).catch(() => {});
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

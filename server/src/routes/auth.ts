@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import { queryOne } from '../db/index.js';
 import { requireAuth } from '../middleware/auth.js';
 import { AuthenticatedRequest, User, ok, err } from '../types/index.js';
+import { logAudit } from '../services/auditLog.js';
 
 const router = Router();
 
@@ -46,11 +47,18 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
 
   const { password_hash: _, ...safeUser } = user;
   res.json(ok({ token, user: safeUser }));
+
+  logAudit(req, {
+    action: 'LOGIN', resourceType: 'user',
+    resourceId: user.id, resourceName: user.name,
+    userId: user.id, userRole: user.role,
+  });
 });
 
 // POST /auth/logout  (stateless — client discards token)
-router.post('/logout', (_req: Request, res: Response): void => {
+router.post('/logout', (req: Request, res: Response): void => {
   res.json(ok({ message: 'Logged out' }));
+  logAudit(req, { action: 'LOGOUT', resourceType: 'user', resourceId: '' });
 });
 
 // GET /auth/me

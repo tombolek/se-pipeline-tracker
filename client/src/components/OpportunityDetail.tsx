@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { track } from '../hooks/useTracking';
 import type { Opportunity, Task, Note, User } from '../types';
 import { getOpportunity, assignSeOwner } from '../api/opportunities';
 import { createTask, updateTask, deleteTask } from '../api/tasks';
@@ -173,6 +174,7 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
   }, []);
 
   useEffect(() => { reload(); }, [reload]);
+  useEffect(() => { track('open', 'opportunity', oppId); }, [oppId]);
 
   async function handleTaskStatusChange(id: number, status: Task['status']) {
     await updateTask(id, { status });

@@ -4,10 +4,12 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:3001/api/v1',
 });
 
-// Attach JWT token to every request
+// Attach JWT token + session ID to every request
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
+  const token     = localStorage.getItem('token');
+  const sessionId = sessionStorage.getItem('sessionId');
+  if (token)     config.headers.Authorization  = `Bearer ${token}`;
+  if (sessionId) config.headers['X-Session-Id'] = sessionId;
   return config;
 });
 

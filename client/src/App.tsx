@@ -11,11 +11,14 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Sidebar from './components/Sidebar';
 import QuickCapture from './components/QuickCapture';
 import SettingsPage from './pages/SettingsPage';
+import AuditPage from './pages/AuditPage';
 import { useAuthStore } from './store/auth';
 import { usePipelineStore } from './store/pipeline';
+import { usePageTracking } from './hooks/useTracking';
 
 function AppShell({ children }: { children: React.ReactNode }) {
   const openQuickCapture = usePipelineStore((s) => s.openQuickCapture);
+  usePageTracking();
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -62,6 +65,7 @@ export default function App() {
             <Route path="/calendar" element={<AppShell><CalendarPage /></AppShell>} />
             <Route path="/insights/*" element={<AppShell><InsightsPage /></AppShell>} />
             <Route path="/settings/*" element={<AppShell><SettingsPage /></AppShell>} />
+            <Route path="/audit"      element={<AppShell><AuditPage /></AppShell>} />
             <Route path="/" element={<Navigate to="/pipeline" replace />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
