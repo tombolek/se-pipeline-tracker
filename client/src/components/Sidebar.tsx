@@ -5,31 +5,34 @@ import { usePipelineStore } from '../store/pipeline';
 import { listClosedLost } from '../api/opportunities';
 import { listInboxItems } from '../api/inbox';
 import { getInsightsNav, type InsightsNavItem } from '../utils/insightsNav';
+import { getMainNav, type MainNavItem } from '../utils/mainNav';
 
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
 
-const NAV = [
-  { to: '/pipeline',            label: 'Pipeline',    icon: PipelineIcon  },
-  { to: '/my-tasks',            label: 'My Tasks',    icon: TasksIcon     },
-  { to: '/calendar',            label: 'Calendar',    icon: CalendarIcon  },
-  { to: '/insights/se-mapping', label: 'SE Mapping',  icon: SeMappingIcon },
-  { to: '/insights/poc-board',  label: 'PoC Board',   icon: PocIcon       },
-  { to: '/insights/rfx-board',  label: 'RFx Board',   icon: RfxIcon       },
+const SETTINGS_NAV = [
+  { to: '/settings/users',        label: 'Users',          icon: UsersIcon   },
+  { to: '/settings/import',       label: 'Import',         icon: ImportIcon  },
+  { to: '/settings/import-history', label: 'Import History', icon: HistoryIcon },
+  { to: '/settings/menu-settings', label: 'Menu Settings',  icon: InsightIcon },
 ];
 
-const SETTINGS_NAV = [
-  { to: '/settings/users',          label: 'Users',          icon: UsersIcon        },
-  { to: '/settings/import',         label: 'Import',         icon: ImportIcon       },
-  { to: '/settings/import-history', label: 'Import History', icon: HistoryIcon      },
-  { to: '/settings/insights-menu',  label: 'Insights Menu',  icon: InsightIcon      },
-];
+function MainNavIcon({ icon }: { icon: MainNavItem['icon'] }) {
+  if (icon === 'pipeline')   return <PipelineIcon />;
+  if (icon === 'tasks')      return <TasksIcon />;
+  if (icon === 'calendar')   return <CalendarIcon />;
+  if (icon === 'se-mapping') return <SeMappingIcon />;
+  if (icon === 'poc')        return <PocIcon />;
+  if (icon === 'rfx')        return <RfxIcon />;
+  return <InsightIcon />;
+}
 
 export default function Sidebar() {
   const { user, logout } = useAuthStore();
   const { closedLostUnread, setClosedLostUnread, inboxCount, setInboxCount, openQuickCapture } = usePipelineStore();
-  const [insightsOpen, setInsightsOpen] = useState(false);
+  const [insightsOpen, setInsightsOpen] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [insightsNav, setInsightsNav] = useState<InsightsNavItem[]>(() => getInsightsNav());
+  const [mainNav, setMainNav] = useState<MainNavItem[]>(() => getMainNav());
 
   useEffect(() => {
     listClosedLost()
@@ -41,9 +44,14 @@ export default function Sidebar() {
   }, [setClosedLostUnread, setInboxCount]);
 
   useEffect(() => {
-    function onChanged() { setInsightsNav(getInsightsNav()); }
-    window.addEventListener('insightsNavChanged', onChanged);
-    return () => window.removeEventListener('insightsNavChanged', onChanged);
+    function onInsightsChanged() { setInsightsNav(getInsightsNav()); }
+    function onMainChanged() { setMainNav(getMainNav()); }
+    window.addEventListener('insightsNavChanged', onInsightsChanged);
+    window.addEventListener('mainNavChanged', onMainChanged);
+    return () => {
+      window.removeEventListener('insightsNavChanged', onInsightsChanged);
+      window.removeEventListener('mainNavChanged', onMainChanged);
+    };
   }, []);
 
   return (
@@ -60,52 +68,25 @@ export default function Sidebar() {
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-2 space-y-0.5 overflow-y-auto">
-        {NAV.map(({ to, label, icon: Icon }) => {
-          if (to === '/closed-lost') {
-            return (
-              <NavLink
-                key={to}
-                to={to}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    isActive
-                      ? 'bg-brand-pink text-white'
-                      : 'text-white/70 hover:text-white hover:bg-white/10'
-                  }`
-                }
-              >
-                <Icon />
-                <span className="flex-1">{label}</span>
-                {closedLostUnread > 0 && (
-                  <span className="text-[10px] font-bold bg-brand-pink text-white rounded-full px-1.5 py-px min-w-[18px] text-center leading-tight">
-                    {closedLostUnread}
-                  </span>
-                )}
-              </NavLink>
-            );
-          }
-          return (
-            <NavLink
-              key={to}
-              to={to}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-brand-pink text-white'
-                    : 'text-white/70 hover:text-white hover:bg-white/10'
-                }`
-              }
-            >
-              <Icon />
-              <span className="flex-1">{label}</span>
-              {to === '/my-tasks' && inboxCount > 0 && (
-                <span className="text-[10px] font-bold bg-brand-purple text-white rounded-full px-1.5 py-px min-w-[18px] text-center leading-tight">
-                  {inboxCount}
-                </span>
-              )}
-            </NavLink>
-          );
-        })}
+        {mainNav.filter(i => i.visible).map(({ to, label, icon }) => (
+          <NavLink
+            key={to}
+            to={to}
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                isActive ? 'bg-brand-pink text-white' : 'text-white/70 hover:text-white hover:bg-white/10'
+              }`
+            }
+          >
+            <MainNavIcon icon={icon} />
+            <span className="flex-1">{label}</span>
+            {to === '/my-tasks' && inboxCount > 0 && (
+              <span className="text-[10px] font-bold bg-brand-purple text-white rounded-full px-1.5 py-px min-w-[18px] text-center leading-tight">
+                {inboxCount}
+              </span>
+            )}
+          </NavLink>
+        ))}
 
         {user?.role === 'manager' && (
           <>

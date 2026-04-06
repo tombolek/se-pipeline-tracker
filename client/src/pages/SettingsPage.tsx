@@ -11,7 +11,7 @@ export default function SettingsPage() {
   let content;
   if (pathname.includes('import-history'))  content = <ImportHistoryPage />;
   else if (pathname.includes('import'))     content = <ImportPage />;
-  else if (pathname.includes('insights-menu')) content = <InsightsMenuPage />;
+  else if (pathname.includes('menu-settings') || pathname.includes('insights-menu')) content = <InsightsMenuPage />;
   else if (pathname.includes('how-to'))     content = <HowToPage />;
   else                                      content = <UsersPage />;
 
