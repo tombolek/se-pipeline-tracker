@@ -195,7 +195,7 @@ export default function PocBoardPage() {
   const [opps, setOpps]       = useState<PocOpp[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState<string | null>(null);
-  const { seIds } = useTeamScope();
+  const { filterOpp } = useTeamScope();
   const [selectedId, setSelectedId]   = useState<number | null>(null);
   const [hideEmpty, setHideEmpty]     = useState(true);   // default ON
   const [compact, setCompact]         = useState(false);
@@ -217,9 +217,7 @@ export default function PocBoardPage() {
   }
 
   // Apply team scope
-  const scopedOpps = seIds.size > 0
-    ? opps.filter(o => o.se_owner_id !== null && seIds.has(o.se_owner_id))
-    : opps;
+  const scopedOpps = opps.filter(filterOpp);
 
   // Group into known columns only; unrecognised statuses are silently dropped
   const knownSet = new Set<string>(COLUMNS);

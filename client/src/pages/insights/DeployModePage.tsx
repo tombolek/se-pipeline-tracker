@@ -197,11 +197,8 @@ export default function DeployModePage() {
 
   useEffect(() => { load(); }, []);
 
-  const { seIds } = useTeamScope();
-  const scopedDeals = useMemo(() =>
-    seIds.size > 0 ? deals.filter(d => d.se_owner_id !== null && seIds.has(d.se_owner_id)) : deals,
-    [deals, seIds]
-  );
+  const { filterOpp } = useTeamScope();
+  const scopedDeals = useMemo(() => deals.filter(filterOpp), [deals, filterOpp]);
 
   // Derive sorted unique quarters from deals
   function parseQuarterKey(q: string): number {

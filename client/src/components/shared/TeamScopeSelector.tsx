@@ -9,7 +9,7 @@ import { useTeamScope } from '../../hooks/useTeamScope';
 export default function TeamScopeSelector() {
   const { user } = useAuthStore();
   const { setTeamScopeManagerId } = usePipelineStore();
-  const { seIds, isFiltered, isManager } = useTeamScope();
+  const { seIds, teamName, isFiltered, isManager } = useTeamScope();
 
   if (!isManager) return null;
 
@@ -25,7 +25,7 @@ export default function TeamScopeSelector() {
               : 'bg-white text-brand-navy-70 hover:bg-gray-50'
           }`}
         >
-          My Team{isFiltered ? ` (${seIds.size})` : ''}
+          My Team{isFiltered ? (teamName ? ` · ${teamName}` : seIds.size > 0 ? ` (${seIds.size})` : '') : ''}
         </button>
         <button
           onClick={() => setTeamScopeManagerId(null)}

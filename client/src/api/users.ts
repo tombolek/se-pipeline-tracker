@@ -1,6 +1,11 @@
 import api from './client';
 import type { User, ColumnPrefs, ApiResponse } from '../types';
 
+export async function listTeams(): Promise<string[]> {
+  const { data } = await api.get<ApiResponse<string[]>>('/opportunities/teams');
+  return data.data;
+}
+
 export async function listUsers(): Promise<User[]> {
   const { data } = await api.get<ApiResponse<User[]>>('/users');
   return data.data;
@@ -18,7 +23,7 @@ export async function createUser(payload: {
 
 export async function updateUser(
   id: number,
-  payload: Partial<{ name: string; email: string; role: 'manager' | 'se'; is_active: boolean; manager_id: number | null }>
+  payload: Partial<{ name: string; email: string; role: 'manager' | 'se'; is_active: boolean; manager_id: number | null; team: string | null }>
 ): Promise<User> {
   const { data } = await api.patch<ApiResponse<User>>(`/users/${id}`, payload);
   return data.data;

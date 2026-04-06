@@ -58,13 +58,11 @@ export default function MissingNotesPage() {
 
   useEffect(() => { load(); }, [threshold, seIdParam]);
 
-  const { seIds } = useTeamScope();
+  const { filterOpp } = useTeamScope();
 
   const seFilterName = seIdParam ? (rows[0]?.se_owner_name ?? `SE #${seIdParam}`) : null;
 
-  const scopedRows = seIds.size > 0
-    ? rows.filter(r => r.se_owner_id !== null && seIds.has(r.se_owner_id))
-    : rows;
+  const scopedRows = rows.filter(filterOpp);
 
   const colTypeMap = Object.fromEntries(COLS.map(c => [c.key, c.type])) as Record<string, ColType>;
   const displayed = sortKey

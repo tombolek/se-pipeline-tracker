@@ -296,14 +296,15 @@ export default function SeDealMappingPage() {
     return false;
   }
 
-  const { seIds } = useTeamScope();
+  const { seIds, teamName, filterOpp } = useTeamScope();
   const scopedOpps = useMemo(() =>
-    seIds.size > 0 ? opps.filter(o => o.se_owner !== null && seIds.has(o.se_owner.id)) : opps,
-    [opps, seIds]
+    opps.filter(o => filterOpp({ se_owner_id: o.se_owner?.id ?? null, team: o.team })),
+    [opps, filterOpp]
   );
+  // In team mode all SEs are available for assignment; in SE mode restrict to team members
   const scopedSes = useMemo(() =>
-    seIds.size > 0 ? ses.filter(s => seIds.has(s.id)) : ses,
-    [ses, seIds]
+    teamName ? ses : seIds.size > 0 ? ses.filter(s => seIds.has(s.id)) : ses,
+    [ses, seIds, teamName]
   );
 
   const fiscalPeriods = [...new Set(scopedOpps.map(o => o.fiscal_period).filter(Boolean) as string[])].sort(sortFiscalPeriod);

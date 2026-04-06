@@ -228,11 +228,8 @@ export default function ClosedLostStatsPage() {
     }));
   }
 
-  const { seIds } = useTeamScope();
-  const scopedDeals = useMemo(() =>
-    seIds.size > 0 ? deals.filter(d => d.se_owner_id !== null && seIds.has(d.se_owner_id)) : deals,
-    [deals, seIds]
-  );
+  const { filterOpp } = useTeamScope();
+  const scopedDeals = useMemo(() => deals.filter(filterOpp), [deals, filterOpp]);
 
   const totalArr = scopedDeals.reduce((s, d) => s + (parseFloat(d.arr) || 0), 0);
 

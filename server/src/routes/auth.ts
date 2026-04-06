@@ -17,7 +17,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
   }
 
   const user = await queryOne<User & { password_hash: string }>(
-    `SELECT id, email, name, role, is_active, show_qualify, force_password_change, column_prefs,
+    `SELECT id, email, name, role, is_active, show_qualify, force_password_change, column_prefs, team,
             created_at, last_login_at, password_hash
      FROM users WHERE email = $1 AND is_active = true AND is_deleted = false`,
     [email.toLowerCase().trim()]
@@ -57,7 +57,7 @@ router.post('/logout', (_req: Request, res: Response): void => {
 router.get('/me', requireAuth as unknown as (req: Request, res: Response, next: () => void) => void, async (req: Request, res: Response): Promise<void> => {
   const { userId } = (req as AuthenticatedRequest).user;
   const user = await queryOne<User>(
-    `SELECT id, email, name, role, is_active, show_qualify, force_password_change, column_prefs,
+    `SELECT id, email, name, role, is_active, show_qualify, force_password_change, column_prefs, team,
             created_at, last_login_at
      FROM users WHERE id = $1`,
     [userId]
@@ -83,7 +83,7 @@ router.post('/change-password', requireAuth as unknown as (req: Request, res: Re
   const user = await queryOne<User>(
     `UPDATE users SET password_hash = $1, force_password_change = false
      WHERE id = $2
-     RETURNING id, email, name, role, is_active, show_qualify, force_password_change, column_prefs, created_at, last_login_at`,
+     RETURNING id, email, name, role, is_active, show_qualify, force_password_change, column_prefs, team, created_at, last_login_at`,
     [password_hash, userId]
   );
   if (!user) { res.status(404).json(err('User not found')); return; }

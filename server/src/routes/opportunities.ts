@@ -240,6 +240,14 @@ router.post('/closed-lost/mark-read', auth, async (req: Request, res: Response):
   res.json(ok({ marked: ids?.length ?? 'all' }));
 });
 
+// GET /opportunities/teams — distinct non-null team values (for manager territory assignment)
+router.get('/teams', auth, async (_req: Request, res: Response): Promise<void> => {
+  const rows = await query<{ team: string }>(
+    `SELECT DISTINCT team FROM opportunities WHERE team IS NOT NULL AND team != '' ORDER BY team ASC`
+  );
+  res.json(ok(rows.map(r => r.team)));
+});
+
 // POST /opportunities/:id/tasks
 router.post('/:id/tasks', auth, async (req: Request, res: Response): Promise<void> => {
   const { userId } = (req as AuthenticatedRequest).user;

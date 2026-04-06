@@ -16,6 +16,7 @@ interface CalPoc {
   poc_start_date: string | null;
   poc_end_date: string | null;
   poc_type: string | null;
+  team: string | null;
   se_owner_id: number | null;
   se_owner_name: string | null;
 }
@@ -26,6 +27,7 @@ interface CalRfp {
   account_name: string | null;
   rfx_status: string;
   rfx_submission_date: string;
+  team: string | null;
   se_owner_id: number | null;
   se_owner_name: string | null;
 }
@@ -37,6 +39,7 @@ interface CalTask {
   due_date: string;
   opportunity_id: number;
   opportunity_name: string;
+  opportunity_team: string | null;
   assigned_to_id: number | null;
   assigned_to_name: string | null;
 }
@@ -64,6 +67,7 @@ interface CalEvent {
   isEstimatedStart: boolean;
   isEstimatedEnd: boolean;
   opportunityId: number;
+  team: string | null;
 }
 
 interface LaneItem {
@@ -187,7 +191,7 @@ function normalizePoc(p: CalPoc): CalEvent | null {
     status: p.poc_status,
     isDone: /complet|done|finish/i.test(p.poc_status),
     isEstimatedStart: isEstStart, isEstimatedEnd: isEstEnd,
-    opportunityId: p.id,
+    opportunityId: p.id, team: p.team,
   };
 }
 
@@ -201,7 +205,7 @@ function normalizeRfp(r: CalRfp): CalEvent {
     status: r.rfx_status,
     isDone: /submitted|complet/i.test(r.rfx_status),
     isEstimatedStart: false, isEstimatedEnd: false,
-    opportunityId: r.id,
+    opportunityId: r.id, team: r.team,
   };
 }
 
@@ -215,7 +219,7 @@ function normalizeTask(t: CalTask): CalEvent {
     status: t.status,
     isDone: t.status === 'done',
     isEstimatedStart: false, isEstimatedEnd: false,
-    opportunityId: t.opportunity_id,
+    opportunityId: t.opportunity_id, team: t.opportunity_team,
   };
 }
 
@@ -475,7 +479,7 @@ export default function CalendarPage() {
   const [popover, setPopover]       = useState<{ date: Date; events: CalEvent[] } | null>(null);
   const [selectedOppId, setSelectedOppId] = useState<number | null>(null);
 
-  const { seIds, isFiltered } = useTeamScope();
+  const { filterOpp } = useTeamScope();
 
   useEffect(() => {
     setLoading(true);
@@ -510,15 +514,12 @@ export default function CalendarPage() {
   }, [data, types]);
 
   const scopedEvents = useMemo(() => {
-    let evts = allEvents;
-    if (isFiltered && seIds.size > 0) {
-      evts = evts.filter(e => e.seId !== null && seIds.has(e.seId));
-    }
+    let evts = allEvents.filter(e => filterOpp({ se_owner_id: e.seId, team: e.team }));
     if (filterSe !== null) {
       evts = evts.filter(e => e.seId === filterSe);
     }
     return evts;
-  }, [allEvents, seIds, isFiltered, filterSe]);
+  }, [allEvents, filterOpp, filterSe]);
 
   // Week sections: 1 month or 3 months
   const weekSections = useMemo(() => {

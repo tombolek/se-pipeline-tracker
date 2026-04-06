@@ -4,7 +4,7 @@ import { query, queryOne } from '../db/index.js';
 import { requireAuth, requireManager } from '../middleware/auth.js';
 import { AuthenticatedRequest, ColumnPrefs, User, ok, err } from '../types/index.js';
 
-const USER_COLS = `id, email, name, role, is_active, show_qualify, force_password_change, manager_id, column_prefs, created_at, last_login_at`;
+const USER_COLS = `id, email, name, role, is_active, show_qualify, force_password_change, manager_id, column_prefs, team, created_at, last_login_at`;
 
 const router = Router();
 const auth = requireAuth as unknown as (req: Request, res: Response, next: () => void) => void;
@@ -100,8 +100,8 @@ router.patch('/:id', auth, mgr, async (req: Request, res: Response): Promise<voi
   if (isNaN(id)) { res.status(400).json(err('Invalid user id')); return; }
 
   const body = req.body as Record<string, unknown>;
-  const { name, email, role, is_active, manager_id } = body as Partial<{
-    name: string; email: string; role: string; is_active: boolean; manager_id: number | null;
+  const { name, email, role, is_active, manager_id, team } = body as Partial<{
+    name: string; email: string; role: string; is_active: boolean; manager_id: number | null; team: string | null;
   }>;
 
   if (role !== undefined && role !== 'manager' && role !== 'se') {
@@ -119,6 +119,7 @@ router.patch('/:id', auth, mgr, async (req: Request, res: Response): Promise<voi
   if (role !== undefined) addField('role', role);
   if (is_active !== undefined) addField('is_active', is_active);
   if ('manager_id' in body) addField('manager_id', typeof manager_id === 'number' ? manager_id : null);
+  if ('team' in body) addField('team', team ?? null);
 
   if (setClauses.length === 0) { res.status(400).json(err('No fields to update')); return; }
 

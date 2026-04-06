@@ -24,7 +24,7 @@ export default function StageMovementPage() {
   const [days, setDays] = useState(14);
   const [rows, setRows] = useState<StageMovementRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const { seIds } = useTeamScope();
+  const { filterOpp } = useTeamScope();
 
   useEffect(() => {
     setLoading(true);
@@ -33,9 +33,7 @@ export default function StageMovementPage() {
       .finally(() => setLoading(false));
   }, [days]);
 
-  const scopedRows = seIds.size > 0
-    ? rows.filter(r => r.se_owner_id !== null && seIds.has(r.se_owner_id))
-    : rows;
+  const scopedRows = rows.filter(filterOpp);
 
   return (
     <div>

@@ -154,11 +154,8 @@ export default function TechBlockersPage() {
     setStatusFilter('active');
   }
 
-  const { seIds } = useTeamScope();
-  const scopedRows = useMemo(() =>
-    seIds.size > 0 ? allRows.filter(r => r.se_owner_id !== null && seIds.has(r.se_owner_id)) : allRows,
-    [allRows, seIds]
-  );
+  const { filterOpp } = useTeamScope();
+  const scopedRows = useMemo(() => allRows.filter(filterOpp), [allRows, filterOpp]);
 
   const deployOptions = useMemo(() =>
     [...new Set(scopedRows.map(r => r.deploy_mode ?? '—'))].sort(), [scopedRows]);

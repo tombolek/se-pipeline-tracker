@@ -489,7 +489,7 @@ router.get('/calendar', auth, async (req: Request, res: Response): Promise<void>
   const [pocs, rfps, tasks] = await Promise.all([
     query(
       `SELECT o.id, o.name, o.account_name, o.poc_status,
-              o.poc_start_date, o.poc_end_date, o.poc_type,
+              o.poc_start_date, o.poc_end_date, o.poc_type, o.team,
               u.id   AS se_owner_id,
               u.name AS se_owner_name
          FROM opportunities o
@@ -501,7 +501,7 @@ router.get('/calendar', auth, async (req: Request, res: Response): Promise<void>
         ORDER BY o.poc_start_date ASC NULLS LAST`
     ),
     query(
-      `SELECT o.id, o.name, o.account_name, o.rfx_status, o.rfx_submission_date,
+      `SELECT o.id, o.name, o.account_name, o.rfx_status, o.rfx_submission_date, o.team,
               u.id   AS se_owner_id,
               u.name AS se_owner_name
          FROM opportunities o
@@ -516,6 +516,7 @@ router.get('/calendar', auth, async (req: Request, res: Response): Promise<void>
       `SELECT t.id, t.title, t.status, t.due_date, t.is_next_step,
               o.id   AS opportunity_id,
               o.name AS opportunity_name,
+              o.team AS opportunity_team,
               u.id   AS assigned_to_id,
               u.name AS assigned_to_name
          FROM tasks t
