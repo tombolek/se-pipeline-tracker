@@ -536,30 +536,30 @@ function AccessManagementTab({ users, setUsers, currentUserId }: {
                     {u.last_login_at ? formatDate(u.last_login_at) : <span className="text-brand-navy-30">Never</span>}
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-1.5 flex-wrap">
+                    <div className="grid grid-cols-2 gap-1 w-[196px]">
                       <button onClick={() => handleToggleRole(u)} disabled={isUpdating}
-                        className="text-xs px-2.5 py-1 rounded-lg border border-brand-navy-30 text-brand-navy-70 hover:border-brand-purple hover:text-brand-purple transition-colors disabled:opacity-40">
+                        className="text-xs px-2 py-1.5 rounded-lg border border-brand-navy-30 text-brand-navy-70 hover:border-brand-purple hover:text-brand-purple transition-colors disabled:opacity-40 text-center whitespace-nowrap">
                         {u.role === 'manager' ? 'Make SE' : 'Make Manager'}
                       </button>
                       {u.is_active ? (
                         <button onClick={() => !isSelf && setDeactivateTarget(u)}
                           disabled={isSelf || isUpdating}
                           title={isSelf ? "Can't deactivate your own account" : undefined}
-                          className="text-xs px-2.5 py-1 rounded-lg border border-brand-navy-30 text-brand-navy-70 hover:border-status-warning hover:text-status-warning transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                          className="text-xs px-2 py-1.5 rounded-lg border border-brand-navy-30 text-brand-navy-70 hover:border-status-warning hover:text-status-warning transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-center whitespace-nowrap">
                           Deactivate
                         </button>
                       ) : (
                         <button onClick={() => handleReactivate(u)} disabled={isUpdating}
-                          className="text-xs px-2.5 py-1 rounded-lg border border-brand-navy-30 text-brand-navy-70 hover:border-status-success hover:text-status-success transition-colors disabled:opacity-40">
+                          className="text-xs px-2 py-1.5 rounded-lg border border-brand-navy-30 text-brand-navy-70 hover:border-status-success hover:text-status-success transition-colors disabled:opacity-40 text-center whitespace-nowrap">
                           Reactivate
                         </button>
                       )}
                       <button onClick={() => setResetTarget(u)} disabled={isUpdating}
-                        className="text-xs px-2.5 py-1 rounded-lg border border-brand-navy-30 text-brand-navy-70 hover:border-brand-purple hover:text-brand-purple transition-colors disabled:opacity-40">
+                        className="text-xs px-2 py-1.5 rounded-lg border border-brand-navy-30 text-brand-navy-70 hover:border-brand-purple hover:text-brand-purple transition-colors disabled:opacity-40 text-center whitespace-nowrap">
                         Reset pwd
                       </button>
                       <button onClick={() => setReassignTarget(u)} disabled={isUpdating}
-                        className="text-xs px-2.5 py-1 rounded-lg border border-brand-navy-30 text-brand-navy-70 hover:border-brand-navy hover:text-brand-navy transition-colors disabled:opacity-40">
+                        className="text-xs px-2 py-1.5 rounded-lg border border-brand-navy-30 text-brand-navy-70 hover:border-brand-navy hover:text-brand-navy transition-colors disabled:opacity-40 text-center whitespace-nowrap">
                         Reassign
                       </button>
                     </div>
