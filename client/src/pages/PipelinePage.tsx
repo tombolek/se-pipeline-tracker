@@ -200,6 +200,7 @@ function FilterBar({
   fiscalPeriods, selectedFiscalPeriods, setFiscalPeriods,
   teams, teamOptions, setTeams,
   recordTypes, recordTypeOptions, setRecordTypes,
+  myDeals, setMyDeals,
   seFilterName, clearSeFilter,
   total,
   columnPicker,
@@ -209,6 +210,7 @@ function FilterBar({
   fiscalPeriods: string[]; selectedFiscalPeriods: string[]; setFiscalPeriods: (v: string[]) => void;
   teams: string[]; teamOptions: string[]; setTeams: (v: string[]) => void;
   recordTypes: string[]; recordTypeOptions: string[]; setRecordTypes: (v: string[]) => void;
+  myDeals: boolean; setMyDeals: (v: boolean) => void;
   seFilterName: string | null; clearSeFilter: () => void;
   total: number;
   columnPicker: React.ReactNode;
@@ -226,6 +228,16 @@ function FilterBar({
       <MultiSelectFilter options={fiscalPeriods} selected={selectedFiscalPeriods} onChange={setFiscalPeriods} placeholder="All periods" />
       <MultiSelectFilter options={teamOptions} selected={teams} onChange={setTeams} placeholder="All teams" />
       <MultiSelectFilter options={recordTypeOptions} selected={recordTypes} onChange={setRecordTypes} placeholder="All types" />
+      <button
+        onClick={() => setMyDeals(!myDeals)}
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
+          myDeals
+            ? 'bg-brand-purple/10 border-brand-purple text-brand-purple'
+            : 'border-brand-navy-30 text-brand-navy-70 hover:border-brand-navy hover:text-brand-navy'
+        }`}
+      >
+        My deals
+      </button>
       {seFilterName && (
         <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-brand-purple/10 border border-brand-purple text-brand-purple">
           SE: {seFilterName}
@@ -265,6 +277,7 @@ export default function PipelinePage() {
   const [visibleColumns, setVisibleColumns] = useState<string[]>(() =>
     getColumnsForPage('pipeline', user?.column_prefs ?? null)
   );
+  const [myDeals, setMyDeals] = useState(() => user?.role === 'se');
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>('asc');
 
@@ -329,6 +342,7 @@ export default function PipelinePage() {
 
   // Apply all filters client-side
   const filtered = allOpps.filter(o => {
+    if (myDeals && o.se_owner?.id !== user?.id) return false;
     if (seIdParam && o.se_owner?.id !== seIdParam) return false;
     if (stages.length > 0 && !stages.includes(o.stage)) return false;
     if (selectedFiscalPeriods.length > 0 && !selectedFiscalPeriods.includes(o.fiscal_period ?? '')) return false;
@@ -362,6 +376,7 @@ export default function PipelinePage() {
         fiscalPeriods={fiscalPeriods} selectedFiscalPeriods={selectedFiscalPeriods} setFiscalPeriods={setFiscalPeriods}
         teams={teams} teamOptions={teamOptions} setTeams={setTeams}
         recordTypes={recordTypes} recordTypeOptions={recordTypeOptions} setRecordTypes={setRecordTypes}
+        myDeals={myDeals} setMyDeals={setMyDeals}
         seFilterName={seFilterName} clearSeFilter={clearSeFilter}
         total={displayed.length}
         columnPicker={
