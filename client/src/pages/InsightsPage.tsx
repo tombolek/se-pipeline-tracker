@@ -30,7 +30,6 @@ export default function InsightsPage() {
   if (pathname.includes('poc-board')) {
     return (
       <div className="flex-1 overflow-hidden bg-[#F5F5F7] flex flex-col relative">
-        <ScopeBar />
         <div className="flex-1 overflow-hidden flex flex-col">
           <PocBoardPage />
         </div>
