@@ -161,9 +161,11 @@ export default function RfxBoardPage() {
 
   // Apply team scope (territory OR SE-owned), then page filters
   const scopedOpps = opps.filter(filterOppUnion);
-  const outOfTerritoryTeams = teamNames.size > 0
-    ? [...new Set(scopedOpps.filter(o => isOutOfTerritory({ team: o.team })).map(o => o.team as string).filter(Boolean))].sort()
+  const outOfTerritoryItems = teamNames.size > 0
+    ? scopedOpps.filter(o => isOutOfTerritory({ team: o.team }) && o.team)
+        .map(o => ({ id: o.id, name: o.name, team: o.team! }))
     : [];
+  const outOfTerritoryTeams = [...new Set(outOfTerritoryItems.map(o => o.team))].sort();
 
   // Kanban grouping (team + record type filters apply here too)
   const kanbanOpps = scopedOpps.filter(o => {
@@ -211,7 +213,7 @@ export default function RfxBoardPage() {
     <div className="flex flex-col h-full relative">
       {/* Header */}
       <div className="px-8 pt-6 pb-4 flex-shrink-0 space-y-3">
-        {outOfTerritoryTeams.length > 0 && <OutOfTerritoryBanner teams={outOfTerritoryTeams} />}
+        {outOfTerritoryTeams.length > 0 && <OutOfTerritoryBanner teams={outOfTerritoryTeams} items={outOfTerritoryItems} />}
         <div className="flex items-center gap-3">
           <div>
             <h1 className="text-xl font-semibold text-brand-navy">RFx Board</h1>

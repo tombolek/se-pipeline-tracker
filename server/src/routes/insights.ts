@@ -87,7 +87,18 @@ router.get('/team-workload', auth, mgr, async (_req: Request, res: Response): Pr
          WHERE o.stage != 'Qualify'
            AND (o.se_comments_updated_at IS NULL
                 OR o.se_comments_updated_at < now() - interval '21 days')
-       )                                                                                           AS stale_comments
+       )                                                                                           AS stale_comments,
+       COALESCE((
+         SELECT json_agg(json_build_object('team', t.team, 'count', t.cnt) ORDER BY t.cnt DESC)
+         FROM (
+           SELECT o2.team, COUNT(*)::int AS cnt
+           FROM opportunities o2
+           WHERE o2.se_owner_id = u.id
+             AND o2.is_active = true AND o2.is_closed_lost = false
+             AND o2.team IS NOT NULL AND o2.team != ''
+           GROUP BY o2.team
+         ) t
+       ), '[]'::json)                                                                             AS team_breakdown
      FROM users u
      LEFT JOIN opportunities o ON o.se_owner_id = u.id
        AND o.is_active = true AND o.is_closed_lost = false
