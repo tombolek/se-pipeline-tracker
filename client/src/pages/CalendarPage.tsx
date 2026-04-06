@@ -525,9 +525,9 @@ export default function CalendarPage() {
   const outOfTerritoryItems = useMemo(() => {
     if (teamNames.size === 0) return [];
     const seen = new Set<number>();
-    const items: { id: number; name: string; team: string | null }[] = [];
+    const items: { id: number; name: string; team: string }[] = [];
     for (const e of scopedEvents) {
-      if (isOutOfTerritory({ team: e.team }) && !seen.has(e.opportunityId)) {
+      if (isOutOfTerritory({ team: e.team }) && e.team && !seen.has(e.opportunityId)) {
         seen.add(e.opportunityId);
         items.push({ id: e.opportunityId, name: e.label, team: e.team });
       }
