@@ -74,7 +74,7 @@ function OppSearchPopover({ onSelect, onClose }: {
         <div className="max-h-72 overflow-y-auto">
           {loading && <p className="px-4 py-3 text-xs text-brand-navy-70">Searching…</p>}
           {!loading && q.trim() && results.length === 0 && (
-            <p className="px-4 py-3 text-xs text-brand-navy-70">No results.</p>
+            <p className="px-4 py-3 text-xs text-brand-navy-70">No open deals match this search. Closed deals aren't shown here.</p>
           )}
           {results.map(o => (
             <button key={o.id} onClick={() => onSelect(o)}
@@ -302,6 +302,15 @@ function TaskCard({ task, onUpdate, onDelete }: {
 }
 
 // ── Section ───────────────────────────────────────────────────────────────────
+const SECTION_EMPTY: Record<string, string> = {
+  'Overdue':      'Nothing overdue — clear.',
+  'Today':        'Nothing due today.',
+  'This Week':    'Clear for now.',
+  'Later':        'Nothing scheduled further out.',
+  'No Due Date':  'No undated tasks.',
+  'Completed':    'No completed tasks yet.',
+};
+
 function Section({ title, count, color, tasks, onUpdate, onDelete, collapsible = false }: {
   title: string; count: number; color: string; tasks: Task[];
   onUpdate: (id: number, patch: Partial<Task>) => void;
@@ -309,14 +318,13 @@ function Section({ title, count, color, tasks, onUpdate, onDelete, collapsible =
   collapsible?: boolean;
 }) {
   const [open, setOpen] = useState(!collapsible);
-  if (count === 0) return null;
   return (
     <div>
-      <button onClick={() => setOpen(!open)} disabled={!collapsible}
+      <button onClick={() => collapsible && setOpen(!open)} disabled={!collapsible}
         className="flex items-center gap-2 mb-3 w-full text-left">
         <span className={`w-2 h-2 rounded-full flex-shrink-0 ${color}`} />
         <h2 className="text-xs font-semibold uppercase tracking-widest text-brand-navy-70">{title}</h2>
-        <span className="text-[10px] bg-brand-navy-30/60 text-brand-navy-70 rounded-full px-1.5 py-px font-medium">{count}</span>
+        {count > 0 && <span className="text-[10px] bg-brand-navy-30/60 text-brand-navy-70 rounded-full px-1.5 py-px font-medium">{count}</span>}
         {collapsible && (
           <svg className={`w-3.5 h-3.5 text-brand-navy-30 ml-auto transition-transform ${open ? 'rotate-180' : ''}`}
             fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -326,7 +334,10 @@ function Section({ title, count, color, tasks, onUpdate, onDelete, collapsible =
       </button>
       {open && (
         <div className="space-y-2 mb-6">
-          {tasks.map(t => <TaskCard key={t.id} task={t} onUpdate={onUpdate} onDelete={onDelete} />)}
+          {count === 0
+            ? <p className="text-xs text-brand-navy-30 pl-4">{SECTION_EMPTY[title] ?? 'All clear.'}</p>
+            : tasks.map(t => <TaskCard key={t.id} task={t} onUpdate={onUpdate} onDelete={onDelete} />)
+          }
         </div>
       )}
     </div>
