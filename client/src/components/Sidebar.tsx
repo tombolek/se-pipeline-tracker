@@ -148,30 +148,31 @@ export default function Sidebar() {
 
       {/* User footer */}
       <div className="px-3 pt-3 pb-4 border-t border-white/10">
-        {/* Quick Capture + How To — side by side, half-width each */}
-        <div className="flex gap-1 mb-1">
-          <button
-            onClick={openQuickCapture}
-            className="flex items-center gap-1.5 flex-1 px-2 py-1.5 rounded-lg text-xs text-white/50 hover:text-white/80 hover:bg-white/10 transition-colors"
-          >
-            <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-            <span className="truncate">Capture</span>
-            <span className="text-[10px] text-white/30 ml-auto">{isMac ? '⌘K' : 'Ctrl+K'}</span>
-          </button>
-          <NavLink
-            to="/settings/how-to"
-            className={({ isActive }) =>
-              `flex items-center gap-1.5 flex-1 px-2 py-1.5 rounded-lg text-xs transition-colors ${
-                isActive ? 'text-white bg-white/15' : 'text-white/50 hover:text-white/80 hover:bg-white/10'
-              }`
-            }
-          >
-            <HowToIcon />
-            <span className="truncate">How To</span>
-          </NavLink>
-        </div>
+        {/* Quick Capture */}
+        <button
+          onClick={openQuickCapture}
+          className="flex items-center gap-1.5 w-full px-2 py-1.5 rounded-lg text-xs text-white/50 hover:text-white/80 hover:bg-white/10 transition-colors mb-0.5"
+        >
+          <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+          <span>Capture</span>
+          <span className="text-[10px] text-white/30 ml-auto">{isMac ? '⌘K' : 'Ctrl+K'}</span>
+        </button>
+        {/* How To — full-width, visually distinct */}
+        <NavLink
+          to="/settings/how-to"
+          className={({ isActive }) =>
+            `flex items-center gap-2 w-full px-2 py-2 rounded-lg text-xs font-medium transition-colors mb-1 border ${
+              isActive
+                ? 'text-white bg-white/15 border-white/25'
+                : 'text-white/70 border-white/20 hover:text-white hover:bg-white/10 hover:border-white/30'
+            }`
+          }
+        >
+          <HowToIcon />
+          <span>How To</span>
+        </NavLink>
 
         <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg">
           <div className="w-7 h-7 rounded-full bg-brand-purple flex items-center justify-center text-xs font-semibold flex-shrink-0">

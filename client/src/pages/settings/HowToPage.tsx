@@ -4,6 +4,7 @@ const SECTIONS = [
   { id: 'pipeline',    label: 'Pipeline' },
   { id: 'closed-lost', label: 'Closed Lost' },
   { id: 'my-tasks',    label: 'My Tasks' },
+  { id: 'calendar',    label: 'Calendar' },
   { id: 'inbox',       label: 'Inbox & Quick Capture' },
   { id: 'se-mapping',  label: 'SE Deal Mapping' },
   { id: 'poc-board',   label: 'PoC Board' },
@@ -117,7 +118,7 @@ export default function HowToPage() {
         <Li><strong>Stage</strong> — multi-select, all stages checked by default. Uncheck any to hide that stage.</Li>
         <Li><strong>Fiscal Period</strong> — same multi-select behaviour as Stage.</Li>
         <Li><strong>Search</strong> — live text filter on opportunity name and account name.</Li>
-        <Li><strong>Columns</strong> — choose which columns are visible; preference is saved.</Li>
+        <Li><strong>Columns</strong> — choose which columns are visible and reorder them; preference is saved per user.</Li>
       </Ul>
 
       <SubTitle>SE Comments freshness</SubTitle>
@@ -160,8 +161,20 @@ export default function HowToPage() {
         <Li>Click an opportunity name to jump straight to its detail view.</Li>
       </Ul>
 
-      {/* ── 4. Inbox ── */}
-      <SectionTitle id="inbox">4. Inbox & Quick Capture</SectionTitle>
+      {/* ── 4. Calendar ── */}
+      <SectionTitle id="calendar">4. Calendar</SectionTitle>
+      <RoleTag role="all" />
+      <P>A month-by-month calendar view that consolidates upcoming PoC timelines, RFx submission deadlines, and task due dates in one place.</P>
+      <Ul>
+        <Li><strong>PoC events</strong> — multi-day bars spanning the PoC start and end dates. Overdue end dates are highlighted in red.</Li>
+        <Li><strong>RFx events</strong> — single-day markers on the RFx submission date.</Li>
+        <Li><strong>Tasks</strong> — your open tasks appear on their due date.</Li>
+        <Li>Click any event to open the full opportunity detail.</Li>
+      </Ul>
+      <InfoBox>Use the team scope selector (top-right) to toggle between your own events and the full team view.</InfoBox>
+
+      {/* ── 5. Inbox ── */}
+      <SectionTitle id="inbox">5. Inbox & Quick Capture</SectionTitle>
       <RoleTag role="all" />
       <P>A personal scratch pad for capturing thoughts before they're linked to a deal.</P>
 
@@ -176,10 +189,10 @@ export default function HowToPage() {
       <SubTitle>Inbox page</SubTitle>
       <P>Lists all unlinked jots. From here you can link a jot to an opportunity (converting it to a task or note), mark a todo done, or delete it. The sidebar badge counts unresolved items.</P>
 
-      {/* ── 5. SE Mapping ── */}
-      <SectionTitle id="se-mapping">5. SE Deal Mapping</SectionTitle>
+      {/* ── 6. SE Mapping ── */}
+      <SectionTitle id="se-mapping">6. SE Deal Mapping</SectionTitle>
       <RoleTag role="all" />
-      <P>A dedicated view for managing which SE owns each opportunity — the SE Deal Mapping table.</P>
+      <P>A dedicated view for managing which SE owns each opportunity.</P>
 
       <SubTitle>Who can assign whom?</SubTitle>
       <div className="overflow-hidden rounded-xl border border-brand-navy-30/40 mb-4">
@@ -214,47 +227,60 @@ export default function HowToPage() {
         <Li><strong>SE buttons</strong> — quickly show All deals, Unassigned deals, or deals for a specific SE.</Li>
       </Ul>
 
-      {/* ── 6. PoC Board ── */}
-      <SectionTitle id="poc-board">6. PoC Board</SectionTitle>
-      <RoleTag role="manager" />
+      {/* ── 7. PoC Board ── */}
+      <SectionTitle id="poc-board">7. PoC Board</SectionTitle>
+      <RoleTag role="all" />
       <P>A kanban-style board showing all active opportunities with a PoC status set in Salesforce. Columns correspond to PoC stages (Identified, In Progress, In Deployment, Completed, etc.).</P>
       <Ul>
         <Li>Only shows <strong>active (open)</strong> opportunities — closed-lost deals are excluded.</Li>
         <Li>PoC dates are pulled from Salesforce. Overdue end dates are highlighted in red.</Li>
+        <Li>Use the <strong>Hide empty columns</strong> toggle (on by default) to keep the board compact.</Li>
+        <Li>Use the <strong>Compact cards</strong> toggle for a condensed view; expand individual cards inline with the chevron.</Li>
         <Li>Click any card to open the full opportunity detail.</Li>
       </Ul>
 
-      {/* ── 7. RFx Board ── */}
-      <SectionTitle id="rfx-board">7. RFx Board</SectionTitle>
-      <RoleTag role="manager" />
-      <P>A kanban board for active opportunities with an RFx status (RFP, RFI, RFQ, etc.) in Salesforce. Cards are grouped by their RFx stage.</P>
+      {/* ── 8. RFx Board ── */}
+      <SectionTitle id="rfx-board">8. RFx Board</SectionTitle>
+      <RoleTag role="all" />
+      <P>Tracks active opportunities with an RFx status (RFP, RFI, RFQ, etc.) from Salesforce.</P>
       <Ul>
+        <Li>Switch between <strong>Kanban</strong> (grouped by RFx stage) and <strong>List</strong> view using the toggle at the top.</Li>
+        <Li>List view is sortable and filterable by RFx Status, SE Owner, and AE Owner.</Li>
         <Li>Only shows <strong>active (open)</strong> opportunities — closed-lost deals are excluded.</Li>
-        <Li>Click any card to open the full opportunity detail.</Li>
+        <Li>Click any card or row to open the full opportunity detail.</Li>
       </Ul>
 
-      {/* ── 8. Insights ── */}
-      <SectionTitle id="insights">8. Insights</SectionTitle>
+      {/* ── 9. Insights ── */}
+      <SectionTitle id="insights">9. Insights</SectionTitle>
       <RoleTag role="manager" />
-      <P>A set of manager-only intelligence views for spotting issues across the team.</P>
+      <P>A set of manager-only intelligence views for spotting issues across the team. Which views appear in the sidebar can be configured via <strong>Settings → Menu Settings</strong>.</P>
 
       <SubTitle>Stage Movement</SubTitle>
       <P>Shows opportunities whose Salesforce stage changed in the last 7, 14, or 30 days (toggle in the top-right). Useful for tracking pipeline velocity and catching unexpected stage drops.</P>
 
       <SubTitle>Missing Notes</SubTitle>
-      <P>Lists deals where the SE has not updated their SE Comments in Salesforce for longer than a configurable threshold (default 21 days), sorted from most stale to least. Use this to chase SEs for deal updates.</P>
+      <P>Lists deals where the SE has not updated their SE Comments in Salesforce for longer than a configurable threshold (default 21 days), sorted from most stale to least. Use this to chase SEs for deal updates. Click any row to open the opportunity detail, or use the Quick Capture button per row.</P>
 
       <SubTitle>Team Workload</SubTitle>
-      <P>Per-SE summary: number of assigned opportunities, open tasks, overdue tasks, and next steps. Helps spot when someone is overloaded or has deals going unmanaged.</P>
+      <P>Per-SE summary cards showing six stats: assigned opportunities, open tasks, next steps, overdue tasks, stale notes, and fresh notes. All non-zero stats are clickable — they drill through to the relevant filtered view (pipeline, overdue tasks, or missing notes filtered by that SE).</P>
 
       <SubTitle>Overdue Tasks</SubTitle>
-      <P>All overdue tasks across the entire team, grouped by SE. Filters to focus on a specific SE are available.</P>
+      <P>All overdue tasks across the entire team, grouped by SE. The SE filter and a <code>?se_id=</code> deep-link from Team Workload let you focus on a specific person.</P>
 
-      <SubTitle>Other views</SubTitle>
-      <P>Additional insight views (Deploy Mode, Closed Lost Stats, etc.) may be toggled on/off via <strong>Settings → Insights Menu</strong>.</P>
+      <SubTitle>Tech Blockers</SubTitle>
+      <P>A table of all active opportunities with a Technical Blockers/Risk value set in Salesforce. Each entry is colour-coded by severity emoji prefix (🔴 Critical, 🟠 High, 🟡 Medium, 🟢 Low/None). The <strong>Recently Changed</strong> tab shows field-history changes over a 14–90 day window. The collapsible <strong>AI Insights</strong> panel generates a Claude-powered summary of blockers across the pipeline — click <em>Generate Summary</em> to run it, or <em>Regenerate</em> to refresh.</P>
 
-      {/* ── 9. Settings ── */}
-      <SectionTitle id="settings">9. Settings</SectionTitle>
+      <SubTitle>DeployMode Overview</SubTitle>
+      <P>Stat cards per deployment model (SaaS, PaaS+, etc.) showing deal count and total ARR. Click a stat card to filter the deal table below to that deployment type. Supports a multi-select quarter filter.</P>
+
+      <SubTitle>Closed Lost Stats</SubTitle>
+      <P>Analysis of closed lost deals broken down by reason, stage at close, and deployment model. Filter by time period to focus on recent losses.</P>
+
+      <SubTitle>Agentic Qual</SubTitle>
+      <P>Lists active opportunities with an Agentic Qualification value set in Salesforce. The <strong>Recently Changed</strong> tab shows field-history changes so you can track how agentic qualification is evolving across the pipeline.</P>
+
+      {/* ── 10. Settings ── */}
+      <SectionTitle id="settings">10. Settings</SectionTitle>
       <RoleTag role="manager" />
 
       <SubTitle>Users</SubTitle>
@@ -271,10 +297,14 @@ export default function HowToPage() {
       <InfoBox><strong>First import tip:</strong> the very first import establishes the baseline. Any deal not in that file will immediately be flagged as Closed Lost, so make sure the first upload contains all currently-open opportunities.</InfoBox>
 
       <SubTitle>Import History</SubTitle>
-      <P>A log of every import: timestamp, filename, how many records were added, updated, or closed, and any errors. Useful for auditing and troubleshooting.</P>
+      <P>A log of every import: timestamp, filename, how many records were added, updated, or closed, and any errors. The most recent import can be rolled back if needed.</P>
 
-      <SubTitle>Insights Menu</SubTitle>
-      <P>Configure which insight views appear in the sidebar under the <em>Insights</em> section. Toggle individual views on or off; reorder them by dragging.</P>
+      <SubTitle>Menu Settings</SubTitle>
+      <P>Configure which items appear in the sidebar. Two sections can be customised:</P>
+      <Ul>
+        <Li><strong>Main nav</strong> — toggle visibility of Calendar, SE Mapping, PoC Board, and RFx Board; reorder them by dragging.</Li>
+        <Li><strong>Insights nav</strong> — toggle and reorder the manager Insights views that appear under the collapsible Insights section.</Li>
+      </Ul>
 
       <div className="h-8" />
     </div>

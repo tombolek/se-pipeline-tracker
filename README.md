@@ -45,6 +45,7 @@ This tool pulls deal data from Salesforce via a CSV/XLS export and layers a nati
 | Track next steps and tasks per deal | Opportunity detail — Tasks section |
 | Add technical notes to a deal | Opportunity detail — Notes section |
 | See all my tasks across all deals, grouped by urgency | My Tasks page |
+| See upcoming PoC timelines, RFx deadlines, and task due dates | Calendar page |
 | Quickly jot something down without leaving the current view | Quick Capture (Ctrl+K) |
 | Link a jot to a deal and convert it to a task or note | Inbox page |
 | See when my SE comments are going stale | Pipeline — freshness indicator on each row |
@@ -67,7 +68,7 @@ This tool pulls deal data from Salesforce via a CSV/XLS export and layers a nati
 | Drill into a specific SE's workload or overdue tasks | Team Workload — click any stat |
 | Manage team members and their roles | Settings → Users |
 | View Salesforce import history and roll back imports | Settings → Import History |
-| Customize which Insights pages appear in the sidebar | Settings → Insights Menu |
+| Customize which Insights and nav pages appear in the sidebar | Settings → Menu Settings |
 | Trigger a Salesforce data import | Settings → Import (file upload) |
 
 ---
@@ -83,6 +84,14 @@ This tool pulls deal data from Salesforce via a CSV/XLS export and layers a nati
 - Filters: Stage (multi-select), Fiscal Period (multi-select), text search; deep-link filter `?se_id=<n>` pre-filters by SE owner (used from Team Workload drill-through)
 - Sort: any column, click header to cycle asc/desc/off
 - Quick Capture button on each row (hover to reveal)
+
+### Calendar (`/calendar`)
+- Month-by-month view consolidating PoC timelines, RFx submission dates, and task due dates
+- **PoC events**: multi-day bars spanning PoC start → end date; overdue end dates highlighted red
+- **RFx events**: single-day markers on the RFx submission date
+- **Tasks**: open tasks appear on their due date
+- Team scope selector to switch between personal and full-team view
+- Click any event to open the opportunity detail drawer
 
 ### Closed Lost (`/closed-lost`)
 - Deals that disappeared from the SF import (= Closed Lost)
@@ -180,6 +189,11 @@ This tool pulls deal data from Salesforce via a CSV/XLS export and layers a nati
 #### Closed Lost Stats (`/insights/closed-lost-stats`)
 - Analysis of closed lost deals by reason, stage, deployment mode, and time period
 
+#### Agentic Qual (`/insights/agentic-qual`)
+- Table of active opportunities with an Agentic Qualification value set in Salesforce
+- **Recently Changed tab**: field history for `agentic_qual` with 14/30/60/90d window
+- Filter by SE owner, stage, and text search
+
 #### SE Deal Mapping (`/insights/se-deal-mapping`)
 - Kanban or table view for assigning/reassigning SE owners across all active opportunities
 - Drag-and-drop between SE columns in kanban view
@@ -192,16 +206,22 @@ This tool pulls deal data from Salesforce via a CSV/XLS export and layers a nati
 - List all team members with role badge, last login, active/inactive status
 - Add new user; toggle role; deactivate/reactivate
 
-#### Import History (`/settings/import`)
+#### Import (`/settings/import`)
+- Upload a Salesforce Opportunities `.xls` export to sync deal data
+- Dry-run preview before confirming
+
+#### Import History (`/settings/import-history`)
 - Log of all imports with rollback capability (most recent import can be undone)
 
-#### Insights Menu (`/settings/insights-menu`)
-- Drag-and-drop reorder of Insights sidebar items
-- Show/hide individual pages; reset to default
+#### Menu Settings (`/settings/menu-settings`)
+- **Main nav**: toggle visibility and reorder Calendar, SE Mapping, PoC Board, RFx Board
+- **Insights nav**: toggle and reorder manager Insights pages in the sidebar
+- Drag-and-drop reorder; reset to default
 
 ### Sidebar Navigation
-- Collapsible **Insights** and **Settings** sections
-- Insights nav order is user-configurable (see Insights Menu above)
+- Collapsible **Insights** and **Settings** sections (manager only)
+- Main nav items (Calendar, SE Mapping, PoC Board, RFx Board) are user-configurable
+- Insights nav order is user-configurable (see Menu Settings above)
 
 ---
 
@@ -209,8 +229,8 @@ This tool pulls deal data from Salesforce via a CSV/XLS export and layers a nati
 
 | Layer | Technology | Notes |
 |-------|------------|-------|
-| Frontend | React 18 + TypeScript + Vite | Strict TS |
-| Styling | Tailwind CSS | Custom Ataccama brand token configuration |
+| Frontend | React 19 + TypeScript + Vite | Strict TS |
+| Styling | Tailwind CSS 4 | Custom Ataccama brand token configuration |
 | State management | Zustand | Auth store, pipeline store |
 | HTTP client | Axios | Typed API functions per domain |
 | Backend | Node.js + Express + TypeScript | REST API |
@@ -222,7 +242,7 @@ This tool pulls deal data from Salesforce via a CSV/XLS export and layers a nati
 | Hosting | AWS EC2 + CloudFront + S3 | EC2 runs the backend container; S3/CloudFront serves the frontend |
 
 ### Key frontend libraries
-- `react-router-dom` v6 — client-side routing
+- `react-router-dom` v7 — client-side routing
 - `zustand` — lightweight global state
 - `axios` — HTTP client
 - `tailwindcss` — utility-first CSS
@@ -278,9 +298,11 @@ se-pipeline-tracker/
 │       │       └── TruncatedCell.tsx
 │       ├── pages/
 │       │   ├── LoginPage.tsx
+│       │   ├── ChangePasswordPage.tsx
 │       │   ├── PipelinePage.tsx
 │       │   ├── ClosedLostPage.tsx
 │       │   ├── MyTasksPage.tsx
+│       │   ├── CalendarPage.tsx     # Month view: PoC timelines, RFx dates, task due dates
 │       │   ├── InsightsPage.tsx     # Pathname-based sub-router for all insight views
 │       │   ├── SettingsPage.tsx
 │       │   ├── insights/
@@ -294,11 +316,13 @@ se-pipeline-tracker/
 │       │   │   ├── TechBlockersPage.tsx
 │       │   │   ├── ClosedLostStatsPage.tsx
 │       │   │   ├── SeDealMappingPage.tsx
+│       │   │   ├── AgenticQualPage.tsx
 │       │   │   └── shared.tsx       # Loading, Empty shared components
 │       │   └── settings/
 │       │       ├── UsersPage.tsx
+│       │       ├── ImportPage.tsx
 │       │       ├── ImportHistoryPage.tsx
-│       │       ├── InsightsMenuPage.tsx
+│       │       ├── InsightsMenuPage.tsx  # Menu Settings — main nav + insights nav config
 │       │       └── HowToPage.tsx
 │       ├── store/
 │       │   ├── auth.ts
@@ -308,8 +332,8 @@ se-pipeline-tracker/
 │       └── utils/
 │           ├── formatters.ts
 │           ├── insightsNav.ts       # Insights nav config — localStorage + defaults
-│           ├── sortRows.ts          # Generic multi-type sort utility
-│           └── renderOpportunityCell.tsx  # Renders any opp column by key
+│           ├── mainNav.ts           # Main nav config — localStorage + defaults
+│           └── sortRows.ts          # Generic multi-type sort utility
 │
 ├── server/                          # Node.js + Express + TypeScript
 │   ├── package.json
@@ -499,13 +523,15 @@ Response envelope: `{ "data": ..., "error": null, "meta": {} }`
 | GET | `/insights/tech-blockers/recent` | `?days=14\|30\|60\|90` — field history for `technical_blockers` |
 | GET | `/insights/tech-blockers/ai-summary/cached` | Returns persisted AI summary or null |
 | POST | `/insights/tech-blockers/ai-summary` | Generate + persist new AI summary |
+| GET | `/insights/agentic-qual` | Active opps with `agentic_qual` set |
+| GET | `/insights/agentic-qual/recent` | `?days=14\|30\|60\|90` — field history for `agentic_qual` |
 
 ### Users (Manager only)
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/users` | All users |
 | POST | `/users` | Create user |
-| PATCH | `/users/me/preferences` | Update `show_qualify`, `column_prefs` |
+| PATCH | `/users/me/preferences` | Update `show_qualify`, `column_prefs`, main nav config |
 | PATCH | `/users/:id` | Update name, email, role, is_active |
 | DELETE | `/users/:id` | Soft deactivate |
 
