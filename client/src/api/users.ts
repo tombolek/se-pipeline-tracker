@@ -38,6 +38,17 @@ export async function resetUserPassword(id: number, password: string): Promise<U
   return data.data;
 }
 
+export async function reassignWorkload(
+  fromUserId: number,
+  toUserId: number
+): Promise<{ tasks_reassigned: number; opps_reassigned: number }> {
+  const { data } = await api.post<ApiResponse<{ tasks_reassigned: number; opps_reassigned: number }>>(
+    `/users/${fromUserId}/reassign-workload`,
+    { to_user_id: toUserId }
+  );
+  return data.data;
+}
+
 export async function updateMyPreferences(
   prefs: { show_qualify?: boolean; column_prefs?: ColumnPrefs }
 ): Promise<User> {

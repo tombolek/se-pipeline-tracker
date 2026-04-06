@@ -154,6 +154,43 @@ router.post('/:id/reset-password', auth, mgr, async (req: Request, res: Response
   res.json(ok(user));
 });
 
+// POST /users/:id/reassign-workload — transfer tasks + open opp ownership to another user (Manager only)
+router.post('/:id/reassign-workload', auth, mgr, async (req: Request, res: Response): Promise<void> => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json(err('Invalid user id')); return; }
+
+  const { to_user_id } = req.body as { to_user_id?: number };
+  if (!to_user_id || isNaN(Number(to_user_id))) {
+    res.status(400).json(err('to_user_id is required'));
+    return;
+  }
+
+  const target = await queryOne<{ id: number }>(
+    'SELECT id FROM users WHERE id = $1 AND is_active = true AND is_deleted = false',
+    [to_user_id]
+  );
+  if (!target) { res.status(400).json(err('Target user not found or inactive')); return; }
+
+  const reassignedTasks = await query<{ id: number }>(
+    `UPDATE tasks SET assigned_to_id = $1
+     WHERE assigned_to_id = $2 AND is_deleted = false
+     RETURNING id`,
+    [to_user_id, id]
+  );
+
+  const reassignedOpps = await query<{ id: number }>(
+    `UPDATE opportunities SET se_owner_id = $1, updated_at = now()
+     WHERE se_owner_id = $2 AND is_closed_lost = false AND is_active = true
+     RETURNING id`,
+    [to_user_id, id]
+  );
+
+  res.json(ok({
+    tasks_reassigned: reassignedTasks.length,
+    opps_reassigned: reassignedOpps.length,
+  }));
+});
+
 // DELETE /users/:id — mark as deleted (Manager only, can't self-delete)
 router.delete('/:id', auth, mgr, async (req: Request, res: Response): Promise<void> => {
   const id = parseInt(req.params.id, 10);
