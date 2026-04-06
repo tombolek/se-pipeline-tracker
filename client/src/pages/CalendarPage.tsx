@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import api from '../api/client';
 import type { ApiResponse } from '../types';
 import { useTeamScope } from '../hooks/useTeamScope';
+import OutOfTerritoryBanner from '../components/shared/OutOfTerritoryBanner';
 import TeamScopeSelector from '../components/shared/TeamScopeSelector';
 import Drawer from '../components/Drawer';
 import OpportunityDetail from '../components/OpportunityDetail';
@@ -479,7 +480,7 @@ export default function CalendarPage() {
   const [popover, setPopover]       = useState<{ date: Date; events: CalEvent[] } | null>(null);
   const [selectedOppId, setSelectedOppId] = useState<number | null>(null);
 
-  const { filterOppUnion } = useTeamScope();
+  const { filterOppUnion, isOutOfTerritory, teamNames } = useTeamScope();
 
   useEffect(() => {
     setLoading(true);
@@ -520,6 +521,13 @@ export default function CalendarPage() {
     }
     return evts;
   }, [allEvents, filterOppUnion, filterSe]);
+
+  const outOfTerritoryTeams = useMemo(() => {
+    if (teamNames.size === 0) return [];
+    return [...new Set(
+      scopedEvents.filter(e => isOutOfTerritory({ team: e.team })).map(e => e.team as string).filter(Boolean)
+    )].sort();
+  }, [scopedEvents, isOutOfTerritory, teamNames]);
 
   // Week sections: 1 month or 3 months
   const weekSections = useMemo(() => {
@@ -663,6 +671,12 @@ export default function CalendarPage() {
         <div className="flex-1" />
         <TeamScopeSelector />
       </div>
+
+      {outOfTerritoryTeams.length > 0 && (
+        <div className="px-6 py-2 flex-shrink-0">
+          <OutOfTerritoryBanner teams={outOfTerritoryTeams} />
+        </div>
+      )}
 
       {/* ── Calendar grid ── */}
       {loading ? (

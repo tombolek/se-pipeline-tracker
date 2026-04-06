@@ -98,6 +98,18 @@ export function useTeamScope() {
     [isFiltered, teamNames, seIds, user?.id]
   );
 
+  /**
+   * Returns true when an item is shown via SE-ownership rather than territory
+   * membership. Used to drive the "out of territory" info banner.
+   */
+  const isOutOfTerritory = useCallback(
+    (item: { team?: string | null }) => {
+      if (!isFiltered || teamNames.size === 0) return false;
+      return item.team == null || !teamNames.has(item.team);
+    },
+    [isFiltered, teamNames]
+  );
+
   return {
     seIds,
     teamNames,
@@ -106,5 +118,6 @@ export function useTeamScope() {
     isManager,
     filterOpp,
     filterOppUnion,
+    isOutOfTerritory,
   };
 }

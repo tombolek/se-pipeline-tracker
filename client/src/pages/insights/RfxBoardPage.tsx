@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../../api/client';
 import type { ApiResponse } from '../../types';
 import { useTeamScope } from '../../hooks/useTeamScope';
+import OutOfTerritoryBanner from '../../components/shared/OutOfTerritoryBanner';
 import { formatARR } from '../../utils/formatters';
 import Drawer from '../../components/Drawer';
 import OpportunityDetail from '../../components/OpportunityDetail';
@@ -130,7 +131,7 @@ export default function RfxBoardPage() {
   const [opps, setOpps]       = useState<RfxOpp[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState<string | null>(null);
-  const { filterOppUnion } = useTeamScope();
+  const { filterOppUnion, isOutOfTerritory, teamNames } = useTeamScope();
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [view, setView]       = useState<'kanban' | 'list'>('kanban');
 
@@ -160,6 +161,9 @@ export default function RfxBoardPage() {
 
   // Apply team scope (territory OR SE-owned), then page filters
   const scopedOpps = opps.filter(filterOppUnion);
+  const outOfTerritoryTeams = teamNames.size > 0
+    ? [...new Set(scopedOpps.filter(o => isOutOfTerritory({ team: o.team })).map(o => o.team as string).filter(Boolean))].sort()
+    : [];
 
   // Kanban grouping (team + record type filters apply here too)
   const kanbanOpps = scopedOpps.filter(o => {
@@ -206,7 +210,8 @@ export default function RfxBoardPage() {
   return (
     <div className="flex flex-col h-full relative">
       {/* Header */}
-      <div className="px-8 pt-6 pb-4 flex-shrink-0">
+      <div className="px-8 pt-6 pb-4 flex-shrink-0 space-y-3">
+        {outOfTerritoryTeams.length > 0 && <OutOfTerritoryBanner teams={outOfTerritoryTeams} />}
         <div className="flex items-center gap-3">
           <div>
             <h1 className="text-xl font-semibold text-brand-navy">RFx Board</h1>

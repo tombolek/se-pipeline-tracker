@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../../api/client';
 import type { ApiResponse } from '../../types';
 import { useTeamScope } from '../../hooks/useTeamScope';
+import OutOfTerritoryBanner from '../../components/shared/OutOfTerritoryBanner';
 import { formatDate, formatARR } from '../../utils/formatters';
 import Drawer from '../../components/Drawer';
 import OpportunityDetail from '../../components/OpportunityDetail';
@@ -196,7 +197,7 @@ export default function PocBoardPage() {
   const [opps, setOpps]       = useState<PocOpp[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState<string | null>(null);
-  const { filterOppUnion } = useTeamScope();
+  const { filterOppUnion, isOutOfTerritory, teamNames } = useTeamScope();
   const [selectedId, setSelectedId]   = useState<number | null>(null);
   const [hideEmpty, setHideEmpty]     = useState(true);   // default ON
   const [compact, setCompact]         = useState(false);
@@ -219,6 +220,9 @@ export default function PocBoardPage() {
 
   // Apply team scope (territory OR SE-owned)
   const scopedOpps = opps.filter(filterOppUnion);
+  const outOfTerritoryTeams = teamNames.size > 0
+    ? [...new Set(scopedOpps.filter(o => isOutOfTerritory({ team: o.team })).map(o => o.team as string).filter(Boolean))].sort()
+    : [];
 
   // Group into known columns only; unrecognised statuses are silently dropped
   const knownSet = new Set<string>(COLUMNS);
@@ -240,6 +244,7 @@ export default function PocBoardPage() {
     <div className="flex flex-col h-full relative">
       {/* Header */}
       <div className="px-8 pt-6 pb-4 flex-shrink-0 space-y-4">
+        {outOfTerritoryTeams.length > 0 && <OutOfTerritoryBanner teams={outOfTerritoryTeams} />}
         <div className="flex items-center gap-3">
           <div>
             <h1 className="text-xl font-semibold text-brand-navy">PoC Board</h1>
