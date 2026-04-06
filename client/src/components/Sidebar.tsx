@@ -169,7 +169,7 @@ export default function Sidebar() {
           <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
           </svg>
-          <span>Capture</span>
+          <span>Quick note or task</span>
           <span className="text-[10px] text-white/30 ml-auto">{isMac ? '⌘K' : 'Ctrl+K'}</span>
         </button>
         {/* How To — full-width, visually distinct */}
