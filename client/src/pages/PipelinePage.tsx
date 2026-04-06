@@ -261,6 +261,7 @@ export default function PipelinePage() {
   const [recordTypes, setRecordTypes] = useState<string[]>([]);
 
   const seIdParam = searchParams.get('se_id') ? Number(searchParams.get('se_id')) : null;
+  const allTeamsParam = searchParams.get('all_teams') === '1';
   const [visibleColumns, setVisibleColumns] = useState<string[]>(() =>
     getColumnsForPage('pipeline', user?.column_prefs ?? null)
   );
@@ -300,12 +301,14 @@ export default function PipelinePage() {
   }, [user, users]);
 
   // Set teams filter default once when effective teams become known
+  // Skip default when all_teams=1 param is present (e.g. cross-territory drill-through)
   useEffect(() => {
+    if (allTeamsParam) { defaultTeamsSet.current = true; return; }
     if (!defaultTeamsSet.current && effectiveTeams.length > 0) {
       setTeams(effectiveTeams);
       defaultTeamsSet.current = true;
     }
-  }, [effectiveTeams]);
+  }, [allTeamsParam, effectiveTeams]);
 
   // Derive sorted fiscal periods from loaded data
   const fiscalPeriods = [...new Set(

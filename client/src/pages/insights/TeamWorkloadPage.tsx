@@ -101,7 +101,7 @@ export default function TeamWorkloadPage() {
                     <Stat
                       label="Cross-territory"
                       value={String(crossCount)}
-                      to={crossCount > 0 ? `/pipeline?se_id=${r.id}` : undefined}
+                      to={crossCount > 0 ? `/pipeline?se_id=${r.id}&all_teams=1` : undefined}
                       highlight={crossCount > 0}
                       tooltip={crossTip || undefined}
                     />
