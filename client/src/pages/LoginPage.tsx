@@ -21,67 +21,67 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#F5F5F7]">
-      <div className="w-full max-w-sm">
-        {/* Logo / brand header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-brand-purple mb-4">
-            <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <div className="w-full max-w-sm px-4">
+        {/* Inline wordmark — replaces the large centred icon */}
+        <div className="flex items-center gap-2 mb-8">
+          <div className="w-6 h-6 rounded-md bg-brand-purple flex items-center justify-center flex-shrink-0">
+            <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
             </svg>
           </div>
-          <h1 className="text-2xl font-semibold text-brand-navy">Pipeline Tracker</h1>
-          <p className="text-sm text-brand-navy-70 mt-1">Ataccama SE Team</p>
+          <span className="text-sm font-semibold text-brand-navy tracking-tight">Pipeline Tracker</span>
         </div>
 
-        {/* Login card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-brand-navy-30 p-8">
-          <h2 className="text-lg font-medium text-brand-navy mb-6">Sign in to your account</h2>
+        {/* Single heading — no card wrapper, no duplicate title */}
+        <h1 className="text-xl font-semibold text-brand-navy leading-snug tracking-tight mb-1">Welcome back</h1>
+        <p className="text-sm text-brand-navy-70 mb-8">Sign in with your Ataccama account to continue.</p>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-brand-navy mb-1.5">
-                Email
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                autoFocus
-                placeholder="you@ataccama.com"
-                className="w-full px-3.5 py-2.5 rounded-lg border border-brand-navy-30 text-sm text-brand-navy placeholder:text-brand-navy-70 focus:outline-none focus:ring-2 focus:ring-brand-purple focus:border-transparent transition"
-              />
-            </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-brand-navy-70 mb-1.5 tracking-wide">
+              Email
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              autoFocus
+              placeholder="you@ataccama.com"
+              className="w-full px-3.5 py-2.5 rounded-lg border border-brand-navy-30 text-sm text-brand-navy placeholder:text-brand-navy-30 focus:outline-none focus:ring-[3px] focus:ring-brand-purple/15 focus:border-brand-purple transition"
+            />
+          </div>
 
-            <div>
-              <label className="block text-sm font-medium text-brand-navy mb-1.5">
-                Password
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                placeholder="••••••••"
-                className="w-full px-3.5 py-2.5 rounded-lg border border-brand-navy-30 text-sm text-brand-navy placeholder:text-brand-navy-70 focus:outline-none focus:ring-2 focus:ring-brand-purple focus:border-transparent transition"
-              />
-            </div>
+          <div>
+            <label className="block text-xs font-medium text-brand-navy-70 mb-1.5 tracking-wide">
+              Password
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              placeholder="••••••••"
+              className="w-full px-3.5 py-2.5 rounded-lg border border-brand-navy-30 text-sm text-brand-navy placeholder:text-brand-navy-30 focus:outline-none focus:ring-[3px] focus:ring-brand-purple/15 focus:border-brand-purple transition"
+            />
+          </div>
 
-            {error && (
-              <p className="text-sm text-status-overdue bg-red-50 border border-red-100 rounded-lg px-3.5 py-2.5">
-                {error}
-              </p>
-            )}
+          {error && (
+            <p className="text-sm text-status-overdue bg-red-50 border border-red-100 rounded-lg px-3.5 py-2.5">
+              {error}
+            </p>
+          )}
 
+          <div className="pt-1">
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-2.5 px-4 bg-brand-purple hover:bg-brand-purple-70 disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition focus:outline-none focus:ring-2 focus:ring-brand-purple focus:ring-offset-2"
+              className="py-2 px-6 bg-brand-purple hover:bg-brand-purple-70 disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition focus:outline-none focus:ring-2 focus:ring-brand-purple focus:ring-offset-2"
             >
               {isLoading ? 'Signing in…' : 'Sign in'}
             </button>
-          </form>
-        </div>
+          </div>
+        </form>
       </div>
     </div>
   );
