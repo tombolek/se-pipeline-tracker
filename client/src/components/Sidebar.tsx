@@ -28,7 +28,7 @@ function MainNavIcon({ icon }: { icon: MainNavItem['icon'] }) {
 
 export default function Sidebar() {
   const { user, logout } = useAuthStore();
-  const { closedLostUnread, setClosedLostUnread, inboxCount, setInboxCount, openQuickCapture } = usePipelineStore();
+  const { setClosedLostUnread, inboxCount, setInboxCount, openQuickCapture } = usePipelineStore();
   const [insightsOpen, setInsightsOpen] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [insightsNav, setInsightsNav] = useState<InsightsNavItem[]>(() => getInsightsNav());
