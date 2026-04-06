@@ -129,16 +129,16 @@ function NameCellWithCapture({ opp, onSaved }: { opp: Opportunity; onSaved?: () 
             </div>
             <form onSubmit={handleSave}>
               <input ref={inputRef} type="text" value={text} onChange={e => setText(e.target.value)}
-                placeholder={type === 'note' ? 'Write a note…' : 'Task title…'}
-                className="w-full px-2.5 py-1.5 rounded-lg border border-brand-navy-30 text-sm text-brand-navy placeholder:text-brand-navy-70 focus:outline-none focus:ring-2 focus:ring-brand-purple focus:border-transparent mb-2"
+                placeholder={type === 'note' ? 'SE comments, next steps, context…' : 'What needs doing…'}
+                className="w-full px-2.5 py-1.5 rounded-lg border border-brand-navy-30 text-sm text-brand-navy placeholder:text-brand-navy-70 focus:outline-none focus:ring-[3px] focus:ring-brand-purple/15 focus:border-brand-purple mb-2"
               />
               {type === 'task' && (
                 <>
                   <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)}
-                    className="w-full px-2.5 py-1.5 rounded-lg border border-brand-navy-30 text-xs text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-purple focus:border-transparent mb-2"
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-brand-navy-30 text-xs text-brand-navy focus:outline-none focus:ring-[3px] focus:ring-brand-purple/15 focus:border-brand-purple mb-2"
                   />
                   <select value={assignedTo ?? ''} onChange={e => setAssignedTo(e.target.value ? Number(e.target.value) : null)}
-                    className="w-full px-2.5 py-1.5 rounded-lg border border-brand-navy-30 text-xs text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-purple focus:border-transparent mb-2 bg-white">
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-brand-navy-30 text-xs text-brand-navy focus:outline-none focus:ring-[3px] focus:ring-brand-purple/15 focus:border-brand-purple mb-2 bg-white">
                     <option value="">Unassigned</option>
                     {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
                   </select>
@@ -172,8 +172,8 @@ function OppRow({ opp, selected, onClick, onRefreshList, visibleColumns }: {
       onClick={onClick}
       className={`group border-b border-brand-navy-30/30 cursor-pointer transition-colors ${
         selected
-          ? 'bg-brand-purple-30/20 border-l-2 border-l-brand-purple'
-          : 'hover:bg-brand-purple-30/10'
+          ? 'bg-brand-purple/[0.04] border-l-2 border-l-brand-purple-70'
+          : 'hover:bg-brand-navy/[0.025]'
       }`}
     >
       {visibleColumns.map(col => (
@@ -222,7 +222,7 @@ function FilterBar({
         placeholder="Search opportunities…"
         value={search}
         onChange={e => setSearch(e.target.value)}
-        className="flex-1 min-w-[160px] max-w-xs px-3 py-1.5 rounded-lg border border-brand-navy-30 text-sm text-brand-navy placeholder:text-brand-navy-70 focus:outline-none focus:ring-2 focus:ring-brand-purple focus:border-transparent"
+        className="flex-1 min-w-[160px] max-w-xs px-3 py-1.5 rounded-lg border border-brand-navy-30 text-sm text-brand-navy placeholder:text-brand-navy-70 focus:outline-none focus:ring-[3px] focus:ring-brand-purple/15 focus:border-brand-purple"
       />
       <MultiSelectFilter options={STAGES} selected={stages} onChange={setStages} placeholder="All stages" />
       <MultiSelectFilter options={fiscalPeriods} selected={selectedFiscalPeriods} onChange={setFiscalPeriods} placeholder="All periods" />
@@ -397,8 +397,9 @@ export default function PipelinePage() {
           <div className="px-5 py-4 text-sm text-status-overdue">{error}</div>
         )}
         {!loading && !error && displayed.length === 0 && (
-          <div className="flex items-center justify-center py-20 text-sm text-brand-navy-70">
-            No opportunities found.
+          <div className="flex flex-col items-center justify-center py-20 text-center gap-1.5">
+            <p className="text-sm font-medium text-brand-navy-70">No deals match your filters</p>
+            <p className="text-xs text-brand-navy-30">Try adjusting the stage, SE, or close date filters, or clear the search.</p>
           </div>
         )}
         {!loading && displayed.length > 0 && (

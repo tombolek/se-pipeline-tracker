@@ -144,7 +144,7 @@ export default function RowCapture({ oppId, oppName, seOwnerId, onSaved }: Props
                 value={text}
                 onChange={e => setText(e.target.value)}
                 placeholder={type === 'note' ? 'Write a note…' : 'Task title…'}
-                className="w-full px-2.5 py-1.5 rounded-lg border border-brand-navy-30 text-sm text-brand-navy placeholder:text-brand-navy-70 focus:outline-none focus:ring-2 focus:ring-brand-purple focus:border-transparent mb-2"
+                className="w-full px-2.5 py-1.5 rounded-lg border border-brand-navy-30 text-sm text-brand-navy placeholder:text-brand-navy-70 focus:outline-none focus:ring-[3px] focus:ring-brand-purple/15 focus:border-brand-purple mb-2"
               />
 
               {type === 'task' && (
@@ -154,14 +154,14 @@ export default function RowCapture({ oppId, oppName, seOwnerId, onSaved }: Props
                     type="date"
                     value={dueDate}
                     onChange={e => setDueDate(e.target.value)}
-                    className="w-full px-2.5 py-1.5 rounded-lg border border-brand-navy-30 text-xs text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-purple focus:border-transparent mb-2"
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-brand-navy-30 text-xs text-brand-navy focus:outline-none focus:ring-[3px] focus:ring-brand-purple/15 focus:border-brand-purple mb-2"
                   />
 
                   {/* Assignee */}
                   <select
                     value={assignedTo ?? ''}
                     onChange={e => setAssignedTo(e.target.value ? Number(e.target.value) : null)}
-                    className="w-full px-2.5 py-1.5 rounded-lg border border-brand-navy-30 text-xs text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-purple focus:border-transparent mb-2 bg-white"
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-brand-navy-30 text-xs text-brand-navy focus:outline-none focus:ring-[3px] focus:ring-brand-purple/15 focus:border-brand-purple mb-2 bg-white"
                   >
                     <option value="">Unassigned</option>
                     {users.map(u => (

@@ -145,13 +145,13 @@ export default function QuickCapture() {
                   key={t}
                   type="button"
                   onClick={() => setType(t)}
-                  className={`px-4 py-1 rounded-md text-xs font-semibold transition-colors capitalize ${
+                  className={`px-4 py-1 rounded-md text-xs font-semibold transition-colors ${
                     type === t
                       ? 'bg-white text-brand-navy shadow-sm'
                       : 'text-brand-navy-70 hover:text-brand-navy'
                   }`}
                 >
-                  {t}
+                  {t === 'note' ? 'Note on deal' : 'Task for someone'}
                 </button>
               ))}
             </div>
@@ -167,9 +167,9 @@ export default function QuickCapture() {
                   handleSubmit(e as unknown as React.FormEvent);
                 }
               }}
-              placeholder={type === 'note' ? 'Write a note…' : 'Task title…'}
+              placeholder={type === 'note' ? 'SE comments, next steps, context…' : 'What needs doing…'}
               rows={4}
-              className="w-full px-3 py-2.5 rounded-xl border border-brand-navy-30 text-sm text-brand-navy placeholder:text-brand-navy-70 resize-none focus:outline-none focus:ring-2 focus:ring-brand-purple focus:border-transparent"
+              className="w-full px-3 py-2.5 rounded-lg border border-brand-navy-30 text-sm text-brand-navy placeholder:text-brand-navy-70 resize-none focus:outline-none focus:ring-[3px] focus:ring-brand-purple/15 focus:border-brand-purple"
             />
 
             {/* Due date (task only) */}
@@ -180,7 +180,7 @@ export default function QuickCapture() {
                   type="date"
                   value={dueDate}
                   onChange={e => setDueDate(e.target.value)}
-                  className="px-3 py-1.5 rounded-lg border border-brand-navy-30 text-sm text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-purple focus:border-transparent"
+                  className="px-3 py-1.5 rounded-lg border border-brand-navy-30 text-sm text-brand-navy focus:outline-none focus:ring-[3px] focus:ring-brand-purple/15 focus:border-brand-purple"
                 />
               </div>
             )}
@@ -213,10 +213,10 @@ export default function QuickCapture() {
                     onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
                     onFocus={() => oppResults.length > 0 && setShowDropdown(true)}
                     placeholder="Search opportunities…"
-                    className="w-full px-3 py-2 rounded-lg border border-brand-navy-30 text-sm text-brand-navy placeholder:text-brand-navy-70 focus:outline-none focus:ring-2 focus:ring-brand-purple focus:border-transparent"
+                    className="w-full px-3 py-2 rounded-lg border border-brand-navy-30 text-sm text-brand-navy placeholder:text-brand-navy-70 focus:outline-none focus:ring-[3px] focus:ring-brand-purple/15 focus:border-brand-purple"
                   />
                   {showDropdown && (
-                    <div className="absolute z-10 w-full mt-1 bg-white border border-brand-navy-30 rounded-xl shadow-lg overflow-hidden">
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-brand-navy-30 rounded-lg shadow-lg overflow-hidden">
                       {oppResults.map(opp => (
                         <button
                           key={opp.id}

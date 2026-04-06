@@ -63,7 +63,7 @@ export default function ChangePasswordPage() {
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 placeholder="Min. 6 characters"
-                className="w-full px-3 py-2.5 rounded-xl border border-brand-navy-30 text-sm text-brand-navy placeholder:text-brand-navy-30 focus:outline-none focus:ring-2 focus:ring-brand-purple focus:border-transparent"
+                className="w-full px-3 py-2.5 rounded-lg border border-brand-navy-30 text-sm text-brand-navy placeholder:text-brand-navy-30 focus:outline-none focus:ring-[3px] focus:ring-brand-purple/15 focus:border-brand-purple"
               />
             </div>
             <div>
@@ -75,7 +75,7 @@ export default function ChangePasswordPage() {
                 value={confirm}
                 onChange={e => setConfirm(e.target.value)}
                 placeholder="Repeat your new password"
-                className="w-full px-3 py-2.5 rounded-xl border border-brand-navy-30 text-sm text-brand-navy placeholder:text-brand-navy-30 focus:outline-none focus:ring-2 focus:ring-brand-purple focus:border-transparent"
+                className="w-full px-3 py-2.5 rounded-lg border border-brand-navy-30 text-sm text-brand-navy placeholder:text-brand-navy-30 focus:outline-none focus:ring-[3px] focus:ring-brand-purple/15 focus:border-brand-purple"
               />
             </div>
 
