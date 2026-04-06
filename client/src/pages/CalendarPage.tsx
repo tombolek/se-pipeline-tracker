@@ -87,7 +87,8 @@ const SE_PALETTE = [
 // ── Pure helpers ──────────────────────────────────────────────────────────────
 
 function parseLocalDate(s: string): Date {
-  const [y, m, d] = s.split('-').map(Number);
+  // pg-node serializes DATE as ISO strings like "2026-04-07T00:00:00.000Z"; slice to get YYYY-MM-DD
+  const [y, m, d] = s.slice(0, 10).split('-').map(Number);
   return new Date(y, m - 1, d);
 }
 
