@@ -139,7 +139,7 @@ function ResetPasswordRow({ user, onDone }: { user: User; onDone: () => void }) 
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function UsersPage() {
-  const { user: currentUser } = useAuthStore();
+  const { user: currentUser, setUser } = useAuthStore();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -218,6 +218,8 @@ export default function UsersPage() {
         : [...current, territory];
       const updated = await updateUser(u.id, { teams });
       setUsers(prev => prev.map(x => x.id === updated.id ? updated : x));
+      // Keep auth store in sync when the logged-in user modifies their own territories
+      if (u.id === currentUser?.id) setUser(updated);
     } finally {
       setUpdatingId(null);
     }

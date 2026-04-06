@@ -298,7 +298,8 @@ export default function SeDealMappingPage() {
 
   const { seIds, teamNames, filterOpp } = useTeamScope();
   const scopedOpps = useMemo(() =>
-    opps.filter(o => filterOpp({ se_owner_id: o.se_owner?.id ?? null, team: o.team })),
+    // Always include unassigned opps so they can be assigned; for assigned opps apply normal scope filter
+    opps.filter(o => !o.se_owner || filterOpp({ se_owner_id: o.se_owner.id, team: o.team })),
     [opps, filterOpp]
   );
   // In team mode all SEs are available for assignment; in SE mode restrict to team members
