@@ -35,9 +35,9 @@ export default function OverdueTasksPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const { seIds, teamName } = useTeamScope();
+  const { seIds, teamNames } = useTeamScope();
   // In team mode groups can't be filtered by team (SE-level aggregates); show all SEs
-  const scopeFiltered = teamName ? groups : seIds.size > 0 ? groups.filter(g => seIds.has(g.se_id)) : groups;
+  const scopeFiltered = teamNames.size > 0 ? groups : seIds.size > 0 ? groups.filter(g => seIds.has(g.se_id)) : groups;
   const visibleGroups = seIdParam ? scopeFiltered.filter(g => g.se_id === seIdParam) : scopeFiltered;
   const seFilterName = seIdParam ? (groups.find(g => g.se_id === seIdParam)?.se_name ?? null) : null;
   const total = visibleGroups.reduce((sum, g) => sum + g.tasks.length, 0);

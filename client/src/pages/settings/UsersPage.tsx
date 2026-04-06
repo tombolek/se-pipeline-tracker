@@ -209,10 +209,14 @@ export default function UsersPage() {
     }
   }
 
-  async function updateTeam(u: User, team: string | null) {
+  async function toggleTerritory(u: User, territory: string) {
     setUpdatingId(u.id);
     try {
-      const updated = await updateUser(u.id, { team });
+      const current = u.teams ?? [];
+      const teams = current.includes(territory)
+        ? current.filter(t => t !== territory)
+        : [...current, territory];
+      const updated = await updateUser(u.id, { teams });
       setUsers(prev => prev.map(x => x.id === updated.id ? updated : x));
     } finally {
       setUpdatingId(null);
@@ -361,17 +365,26 @@ export default function UsersPage() {
                     <td className="px-4 py-3"><RoleBadge role={u.role} /></td>
                     <td className="px-4 py-3">
                       {u.role === 'manager' ? (
-                        <select
-                          value={u.team ?? ''}
-                          onChange={e => updateTeam(u, e.target.value || null)}
-                          disabled={isUpdating}
-                          className="text-xs border border-brand-navy-30 rounded-lg px-2 py-1 text-brand-navy focus:outline-none focus:ring-1 focus:ring-brand-purple disabled:opacity-50"
-                        >
-                          <option value="">None</option>
-                          {availableTeams.map(t => (
-                            <option key={t} value={t}>{t}</option>
-                          ))}
-                        </select>
+                        <div className="flex flex-wrap gap-1">
+                          {availableTeams.map(t => {
+                            const active = (u.teams ?? []).includes(t);
+                            return (
+                              <button
+                                key={t}
+                                onClick={() => toggleTerritory(u, t)}
+                                disabled={isUpdating}
+                                className={`text-[10px] font-semibold px-2 py-0.5 rounded-full transition-colors disabled:opacity-50 ${
+                                  active
+                                    ? 'bg-brand-purple text-white'
+                                    : 'bg-brand-navy-30/30 text-brand-navy-70 hover:bg-brand-purple/10 hover:text-brand-purple'
+                                }`}
+                              >
+                                {t}
+                              </button>
+                            );
+                          })}
+                          {availableTeams.length === 0 && <span className="text-xs text-brand-navy-30">No territories</span>}
+                        </div>
                       ) : (
                         <span className="text-xs text-brand-navy-30">—</span>
                       )}

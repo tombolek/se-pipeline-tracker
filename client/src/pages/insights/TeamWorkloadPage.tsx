@@ -40,7 +40,7 @@ function Stat({ label, value, highlight, positiveHighlight, to }: {
 export default function TeamWorkloadPage() {
   const [rows, setRows] = useState<WorkloadRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const { seIds, teamName } = useTeamScope();
+  const { seIds, teamNames } = useTeamScope();
 
   useEffect(() => {
     api.get<ApiResponse<WorkloadRow[]>>('/insights/team-workload')
@@ -49,7 +49,7 @@ export default function TeamWorkloadPage() {
   }, []);
 
   // In team mode rows can't be filtered by team (SE-level aggregates); show all SEs
-  const scopedRows = teamName ? rows : seIds.size > 0 ? rows.filter(r => seIds.has(r.id)) : rows;
+  const scopedRows = teamNames.size > 0 ? rows : seIds.size > 0 ? rows.filter(r => seIds.has(r.id)) : rows;
 
   return (
     <div>
