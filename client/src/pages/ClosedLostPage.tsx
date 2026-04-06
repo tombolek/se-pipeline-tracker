@@ -25,8 +25,8 @@ function ClosedRow({ item, selected, onClick, visibleColumns }: {
       onClick={onClick}
       className={`border-b border-brand-navy-30/30 cursor-pointer transition-colors ${
         selected
-          ? 'bg-brand-purple-30/20 border-l-2 border-l-brand-purple'
-          : 'hover:bg-brand-purple-30/10'
+          ? 'bg-brand-purple/[0.04] border-l-2 border-l-brand-purple-70'
+          : 'hover:bg-brand-navy/[0.025]'
       }`}
     >
       {visibleColumns.map(col => (

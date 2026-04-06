@@ -135,8 +135,8 @@ export default function MissingNotesPage() {
                       onClick={() => setSelectedId(r.id)}
                       className={`group border-b border-brand-navy-30/20 last:border-0 cursor-pointer transition-colors ${
                         selected
-                          ? 'bg-brand-purple-30/20 border-l-2 border-l-brand-purple'
-                          : 'hover:bg-brand-purple-30/10'
+                          ? 'bg-brand-purple/[0.04] border-l-2 border-l-brand-purple-70'
+                          : 'hover:bg-brand-navy/[0.025]'
                       }`}
                     >
                       <td className="px-4 py-3">
