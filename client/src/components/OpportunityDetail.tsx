@@ -265,7 +265,7 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
               <p className="text-sm text-brand-navy-70 mt-0.5">{opp.account_name ?? '—'}</p>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-              {!isReadOnly && !opp.se_owner && user?.role !== 'manager' && (
+              {!isReadOnly && !opp.se_owner && (
                 <button
                   onClick={handleAssignSelf}
                   disabled={assigningOwner}

@@ -571,7 +571,6 @@ router.patch('/:id', auth, async (req: Request, res: Response): Promise<void> =>
       [se_owner_id]
     );
     if (!seUser) { res.status(400).json(err('User not found')); return; }
-    if (seUser.role !== 'se') { res.status(400).json(err('Can only assign SE role users')); return; }
   }
 
   // SE-specific permission check
