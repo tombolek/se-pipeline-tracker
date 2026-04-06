@@ -3,6 +3,7 @@ import api from '../../api/client';
 import type { ApiResponse } from '../../types';
 import { useTeamScope } from '../../hooks/useTeamScope';
 import OutOfTerritoryBanner from '../../components/shared/OutOfTerritoryBanner';
+import TeamScopeSelector from '../../components/shared/TeamScopeSelector';
 import { formatARR } from '../../utils/formatters';
 import Drawer from '../../components/Drawer';
 import OpportunityDetail from '../../components/OpportunityDetail';
@@ -213,7 +214,7 @@ export default function RfxBoardPage() {
     <div className="flex flex-col h-full relative">
       {/* Header */}
       <div className="px-8 pt-6 pb-4 flex-shrink-0 space-y-3">
-        {outOfTerritoryTeams.length > 0 && <OutOfTerritoryBanner teams={outOfTerritoryTeams} items={outOfTerritoryItems} />}
+        {/* Row 1: title + scope + view toggle */}
         <div className="flex items-center gap-3">
           <div>
             <h1 className="text-xl font-semibold text-brand-navy">RFx Board</h1>
@@ -222,31 +223,36 @@ export default function RfxBoardPage() {
             </p>
           </div>
 
-          {/* View toggle */}
-          <div className="ml-auto flex items-center gap-1 bg-brand-navy-30/20 rounded-lg p-0.5">
-            <button
-              onClick={() => setView('list')}
-              title="List view"
-              className={`p-1.5 rounded-md transition-colors ${view === 'list' ? 'bg-white shadow-sm text-brand-purple' : 'text-brand-navy-70 hover:text-brand-navy'}`}
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 14h18M10 3v18M3 6a3 3 0 013-3h12a3 3 0 013 3v12a3 3 0 01-3 3H6a3 3 0 01-3-3V6z" />
-              </svg>
-            </button>
-            <button
-              onClick={() => setView('kanban')}
-              title="Kanban view"
-              className={`p-1.5 rounded-md transition-colors ${view === 'kanban' ? 'bg-white shadow-sm text-brand-purple' : 'text-brand-navy-70 hover:text-brand-navy'}`}
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
-              </svg>
-            </button>
+          <div className="ml-auto flex items-center gap-2">
+            {/* Scope selector */}
+            <TeamScopeSelector />
+
+            {/* View toggle */}
+            <div className="flex items-center gap-1 bg-brand-navy-30/20 rounded-lg p-0.5">
+              <button
+                onClick={() => setView('list')}
+                title="List view"
+                className={`p-1.5 rounded-md transition-colors ${view === 'list' ? 'bg-white shadow-sm text-brand-purple' : 'text-brand-navy-70 hover:text-brand-navy'}`}
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 14h18M10 3v18M3 6a3 3 0 013-3h12a3 3 0 013 3v12a3 3 0 01-3 3H6a3 3 0 01-3-3V6z" />
+                </svg>
+              </button>
+              <button
+                onClick={() => setView('kanban')}
+                title="Kanban view"
+                className={`p-1.5 rounded-md transition-colors ${view === 'kanban' ? 'bg-white shadow-sm text-brand-purple' : 'text-brand-navy-70 hover:text-brand-navy'}`}
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Filters — team + type always shown; list-only filters shown in list view */}
-        <div className="flex items-center gap-2 mt-4 flex-wrap">
+        {/* Row 2: filters */}
+        <div className="flex items-center gap-2 flex-wrap">
           <MultiSelectFilter options={teamOptions}       selected={filterTeams}       onChange={setFilterTeams}       placeholder="All teams" />
           <MultiSelectFilter options={recordTypeOptions} selected={filterRecordTypes} onChange={setFilterRecordTypes} placeholder="All types" />
           {view === 'list' && (
@@ -258,6 +264,9 @@ export default function RfxBoardPage() {
             </>
           )}
         </div>
+
+        {/* Row 3: out-of-territory banner (only when applicable) */}
+        {outOfTerritoryTeams.length > 0 && <OutOfTerritoryBanner teams={outOfTerritoryTeams} items={outOfTerritoryItems} />}
       </div>
 
       {opps.length === 0 ? (
