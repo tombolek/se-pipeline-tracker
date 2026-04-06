@@ -352,7 +352,7 @@ function OrgChartTab({ users, setUsers, availableTeams, currentUserId }: {
         const reports = seUsers.filter(u => u.manager_id === mgr.id);
         const isSelf = mgr.id === currentUserId;
         return (
-          <div key={mgr.id} className={`bg-white rounded-2xl border border-brand-navy-30/40 overflow-hidden ${!mgr.is_active ? 'opacity-60' : ''}`}>
+          <div key={mgr.id} className={`bg-white rounded-2xl border-2 border-brand-navy-30 shadow-sm overflow-hidden ${!mgr.is_active ? 'opacity-60' : ''}`}>
             {/* Manager header */}
             <div className="flex items-start gap-3 px-5 py-4 border-b border-brand-navy-30/30 bg-brand-purple-30/10">
               <UserAvatar user={mgr} size={9} />
@@ -400,7 +400,7 @@ function OrgChartTab({ users, setUsers, availableTeams, currentUserId }: {
 
       {/* Unassigned SEs */}
       {unassigned.length > 0 && (
-        <div className="bg-white rounded-2xl border border-brand-navy-30/40 overflow-hidden">
+        <div className="bg-white rounded-2xl border-2 border-brand-navy-30 shadow-sm overflow-hidden">
           <div className="px-5 py-3 border-b border-brand-navy-30/30 bg-gray-50">
             <span className="text-xs font-semibold text-brand-navy-70 uppercase tracking-wide">Not assigned to a manager</span>
           </div>
