@@ -38,17 +38,23 @@ export function useTeamScope() {
     return new Set(user.teams);
   }, [isFiltered, user?.teams]);
 
-  // SE-based filtering: only when My Team is active AND manager has no territory teams
-  const seIds = useMemo(() => {
-    if (!isManager || teamScopeManagerId === null || teamNames.size > 0 || users.length === 0) {
-      return new Set<number>();
-    }
+  // SE IDs of all direct reports — always populated when My Team scope is active.
+  // Used by filterOppUnion for cross-territory ownership checks.
+  const teamSeIds = useMemo(() => {
+    if (!isManager || teamScopeManagerId === null || users.length === 0) return new Set<number>();
     const s = new Set<number>();
     for (const u of users) {
       if (u.manager_id === teamScopeManagerId) s.add(u.id);
     }
     return s;
-  }, [isManager, teamScopeManagerId, teamNames, users]);
+  }, [isManager, teamScopeManagerId, users]);
+
+  // SE-based filtering for filterOpp: only active when manager has NO territory teams.
+  // (When territory mode is on, filterOpp uses teamNames instead.)
+  const seIds = useMemo(() => {
+    if (teamNames.size > 0) return new Set<number>();
+    return teamSeIds;
+  }, [teamNames, teamSeIds]);
 
   /**
    * Effective territories for the current user:
@@ -91,11 +97,11 @@ export function useTeamScope() {
       // SE ownership: self or direct report
       if (item.se_owner_id != null) {
         if (item.se_owner_id === user?.id) return true;
-        if (seIds.size > 0 && seIds.has(item.se_owner_id)) return true;
+        if (teamSeIds.size > 0 && teamSeIds.has(item.se_owner_id)) return true;
       }
       return false;
     },
-    [isFiltered, teamNames, seIds, user?.id]
+    [isFiltered, teamNames, teamSeIds, user?.id]
   );
 
   /**
