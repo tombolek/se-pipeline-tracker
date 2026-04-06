@@ -36,7 +36,7 @@ get_output() {
     --stack-name "$STACK_NAME" \
     --region "$REGION" \
     --query "Stacks[0].Outputs[?OutputKey=='$1'].OutputValue" \
-    --output text
+    --output text | tr -d '\r'
 }
 
 INSTANCE_IP=$(get_output InstanceIp)
@@ -65,20 +65,22 @@ fi
 SSH_CMD="ssh -i $KEY_FILE -o StrictHostKeyChecking=no -o ConnectTimeout=10"
 SSH="$SSH_CMD ec2-user@$INSTANCE_IP"
 
-# ── Wait for EC2 to be reachable (helpful right after first CDK deploy) ────────
-echo "=== Verifying EC2 SSH connectivity ==="
-RETRIES=12
-until $SSH "docker --version" > /dev/null 2>&1; do
-  RETRIES=$((RETRIES - 1))
-  if [ $RETRIES -le 0 ]; then
-    echo "ERROR: Could not reach EC2. Is Docker installed? Check user-data logs:"
-    echo "  ssh -i $KEY_FILE ec2-user@$INSTANCE_IP 'sudo cat /var/log/cloud-init-output.log'"
-    exit 1
-  fi
-  echo "  Waiting for EC2... ($RETRIES retries left)"
-  sleep 15
-done
-echo "  EC2 is reachable"
+# ── Wait for EC2 to be reachable (only needed when deploying server) ──────────
+if [ "$DEPLOY_SERVER" = true ]; then
+  echo "=== Verifying EC2 SSH connectivity ==="
+  RETRIES=12
+  until $SSH "docker --version" > /dev/null 2>&1; do
+    RETRIES=$((RETRIES - 1))
+    if [ $RETRIES -le 0 ]; then
+      echo "ERROR: Could not reach EC2. Is Docker installed? Check user-data logs:"
+      echo "  ssh -i $KEY_FILE ec2-user@$INSTANCE_IP 'sudo cat /var/log/cloud-init-output.log'"
+      exit 1
+    fi
+    echo "  Waiting for EC2... ($RETRIES retries left)"
+    sleep 15
+  done
+  echo "  EC2 is reachable"
+fi
 
 # ── Production env file ───────────────────────────────────────────────────────
 if [ ! -f "$ENV_FILE" ]; then
