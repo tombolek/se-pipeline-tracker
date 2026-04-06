@@ -23,14 +23,14 @@ export default function Drawer({ open, onClose, children }: Props) {
       {/* Backdrop */}
       <div
         onClick={onClose}
-        className={`absolute inset-0 bg-brand-navy/20 backdrop-blur-[1px] z-20 transition-opacity duration-200 ${
+        className={`fixed inset-0 bg-brand-navy/20 backdrop-blur-[1px] z-20 transition-opacity duration-200 ${
           open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         }`}
       />
 
       {/* Drawer panel */}
       <div
-        className={`absolute top-0 right-0 h-full w-[68%] min-w-[600px] bg-white shadow-2xl z-30 flex flex-col transition-transform duration-250 ease-in-out ${
+        className={`fixed top-0 right-0 h-full w-[68%] min-w-[600px] bg-white shadow-2xl z-30 flex flex-col transition-transform duration-250 ease-in-out ${
           open ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
