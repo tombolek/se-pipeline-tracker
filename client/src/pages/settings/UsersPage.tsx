@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { User } from '../../types';
 import {
-  listUsers, createUser, updateUser, deleteUser,
+  listUsers, createUser, updateUser,
   resetUserPassword, listTeams, reassignWorkload,
 } from '../../api/users';
 import { useAuthStore } from '../../store/auth';
@@ -297,8 +297,8 @@ function OrgChartTab({ users, setUsers, availableTeams, currentUserId }: {
 }) {
   const [updatingId, setUpdatingId] = useState<number | null>(null);
 
-  const managers = users.filter(u => u.role === 'manager' && !u.is_deleted);
-  const seUsers = users.filter(u => u.role === 'se' && !u.is_deleted);
+  const managers = users.filter(u => u.role === 'manager');
+  const seUsers = users.filter(u => u.role === 'se');
   const unassigned = seUsers.filter(u => !u.manager_id || !managers.find(m => m.id === u.manager_id));
 
   async function handleReassign(se: User, managerId: number | null) {
@@ -427,11 +427,10 @@ function AccessManagementTab({ users, setUsers, currentUserId }: {
   const [reassignTarget, setReassignTarget] = useState<User | null>(null);
   const [deactivateTarget, setDeactivateTarget] = useState<User | null>(null);
 
-  const activeUsers = users.filter(u => u.is_active && !u.is_deleted);
+  const activeUsers = users.filter(u => u.is_active);
   const q = search.toLowerCase();
   const filtered = users
-    .filter(u => !u.is_deleted)
-    .filter(u => !q || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q));
+        .filter(u => !q || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q));
 
   async function handleToggleRole(u: User) {
     setUpdatingId(u.id);
@@ -582,8 +581,7 @@ function AccessManagementTab({ users, setUsers, currentUserId }: {
 
 function AccessAuditTab({ users }: { users: User[] }) {
   const sorted = [...users]
-    .filter(u => !u.is_deleted)
-    .sort((a, b) => {
+        .sort((a, b) => {
       if (!a.last_login_at && !b.last_login_at) return 0;
       if (!a.last_login_at) return 1;
       if (!b.last_login_at) return -1;
