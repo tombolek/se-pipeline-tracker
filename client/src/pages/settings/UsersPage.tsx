@@ -182,7 +182,7 @@ function ConfirmRoleModal({ user, onClose, onConfirm }: {
           </button>
           <button onClick={handleConfirm} disabled={saving}
             className={`px-4 py-2 rounded-lg text-white text-sm font-semibold disabled:opacity-50 transition-colors ${
-              isPromotion ? 'bg-brand-purple hover:bg-brand-purple-70' : 'bg-brand-navy-70 hover:bg-brand-navy'
+              isPromotion ? 'bg-brand-purple hover:bg-brand-purple-70' : 'bg-status-overdue/80 hover:bg-status-overdue'
             }`}>
             {saving ? 'Saving…' : `Make ${toRole}`}
           </button>
@@ -323,7 +323,7 @@ function DeactivateModal({ user, activeUsers, onClose, onDone }: {
             Cancel
           </button>
           <button onClick={handleConfirm} disabled={saving || (withReassign && !toUserId)}
-            className="px-4 py-2 rounded-lg bg-status-warning text-white text-sm font-semibold hover:opacity-90 disabled:opacity-50 transition-opacity">
+            className="px-4 py-2 rounded-lg bg-status-overdue text-white text-sm font-semibold hover:opacity-90 disabled:opacity-50 transition-opacity">
             {saving ? 'Deactivating…' : 'Deactivate'}
           </button>
         </div>
@@ -360,7 +360,7 @@ function ReassignManagerModal({ se, managers, onClose, onDone }: {
         <div className="space-y-2 mb-6">
           <button
             onClick={() => setSelectedId('')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-sm transition-colors ${
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border text-sm transition-colors ${
               selectedId === '' ? 'border-brand-purple bg-brand-purple/5 text-brand-navy' : 'border-brand-navy-30/60 text-brand-navy-70 hover:border-brand-navy-30'
             }`}
           >
@@ -372,7 +372,7 @@ function ReassignManagerModal({ se, managers, onClose, onDone }: {
             <button
               key={m.id}
               onClick={() => setSelectedId(m.id)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-sm transition-colors ${
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border text-sm transition-colors ${
                 selectedId === m.id ? 'border-brand-purple bg-brand-purple/5 text-brand-navy' : 'border-brand-navy-30/60 text-brand-navy-70 hover:border-brand-navy-30'
               }`}
             >
