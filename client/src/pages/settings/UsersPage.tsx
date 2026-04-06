@@ -147,6 +147,51 @@ function ResetPasswordModal({ user, onClose }: { user: User; onClose: () => void
   );
 }
 
+// ── Confirm Role Change Modal ─────────────────────────────────────────────────
+
+function ConfirmRoleModal({ user, onClose, onConfirm }: {
+  user: User;
+  onClose: () => void;
+  onConfirm: () => Promise<void>;
+}) {
+  const [saving, setSaving] = useState(false);
+  const toRole = user.role === 'se' ? 'Manager' : 'SE';
+  const isPromotion = user.role === 'se';
+
+  async function handleConfirm() {
+    setSaving(true);
+    try { await onConfirm(); }
+    finally { setSaving(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="bg-white rounded-2xl shadow-xl border border-brand-navy-30/40 w-full max-w-sm mx-4 p-6">
+        <h2 className="text-base font-semibold text-brand-navy mb-1">
+          Change role to {toRole}?
+        </h2>
+        <p className="text-sm text-brand-navy-70 mb-6">
+          {isPromotion
+            ? <><span className="font-medium text-brand-navy">{user.name}</span> will gain manager access — they'll be able to manage users, trigger imports, and see all manager views.</>
+            : <><span className="font-medium text-brand-navy">{user.name}</span> will lose manager access and be downgraded to SE.</>
+          }
+        </p>
+        <div className="flex justify-end gap-2">
+          <button onClick={onClose} className="px-4 py-2 rounded-lg border border-brand-navy-30 text-sm text-brand-navy-70 hover:text-brand-navy transition-colors">
+            Cancel
+          </button>
+          <button onClick={handleConfirm} disabled={saving}
+            className={`px-4 py-2 rounded-lg text-white text-sm font-semibold disabled:opacity-50 transition-colors ${
+              isPromotion ? 'bg-brand-purple hover:bg-brand-purple-70' : 'bg-brand-navy-70 hover:bg-brand-navy'
+            }`}>
+            {saving ? 'Saving…' : `Make ${toRole}`}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Reassign Workload Modal ────────────────────────────────────────────────────
 
 function ReassignWorkloadModal({ user, activeUsers, onClose, onDone }: {
@@ -499,6 +544,7 @@ function AccessManagementTab({ users, setUsers, currentUserId }: {
   const [resetTarget, setResetTarget] = useState<User | null>(null);
   const [reassignTarget, setReassignTarget] = useState<User | null>(null);
   const [deactivateTarget, setDeactivateTarget] = useState<User | null>(null);
+  const [roleConfirmTarget, setRoleConfirmTarget] = useState<User | null>(null);
 
   const activeUsers = users.filter(u => u.is_active);
   const q = search.toLowerCase();
@@ -528,6 +574,16 @@ function AccessManagementTab({ users, setUsers, currentUserId }: {
         <AddUserModal
           onClose={() => setShowAdd(false)}
           onCreated={u => { setUsers(prev => [...prev, u]); setShowAdd(false); }}
+        />
+      )}
+      {roleConfirmTarget && (
+        <ConfirmRoleModal
+          user={roleConfirmTarget}
+          onClose={() => setRoleConfirmTarget(null)}
+          onConfirm={async () => {
+            await handleToggleRole(roleConfirmTarget);
+            setRoleConfirmTarget(null);
+          }}
         />
       )}
       {resetTarget && (
@@ -610,7 +666,7 @@ function AccessManagementTab({ users, setUsers, currentUserId }: {
                   </td>
                   <td className="px-4 py-3">
                     <div className="grid grid-cols-2 gap-1 w-[196px]">
-                      <button onClick={() => handleToggleRole(u)} disabled={isUpdating}
+                      <button onClick={() => setRoleConfirmTarget(u)} disabled={isUpdating}
                         className="text-xs px-2 py-1.5 rounded-lg border border-brand-navy-30 text-brand-navy-70 hover:border-brand-purple hover:text-brand-purple transition-colors disabled:opacity-40 text-center whitespace-nowrap">
                         {u.role === 'manager' ? 'Make SE' : 'Make Manager'}
                       </button>
