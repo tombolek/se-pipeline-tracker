@@ -74,14 +74,14 @@ export default function Sidebar() {
             to={to}
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                isActive ? 'bg-brand-pink text-white' : 'text-white/70 hover:text-white hover:bg-white/10'
+                isActive ? 'bg-white/10 text-white border-l-2 border-brand-purple-70' : 'text-white/60 hover:text-white hover:bg-white/[0.07]'
               }`
             }
           >
             <MainNavIcon icon={icon} />
             <span className="flex-1">{label}</span>
             {to === '/my-tasks' && inboxCount > 0 && (
-              <span className="text-[10px] font-bold bg-brand-purple text-white rounded-full px-1.5 py-px min-w-[18px] text-center leading-tight">
+              <span className="text-[10px] font-semibold bg-white/10 text-white/60 rounded px-1.5 py-px min-w-[18px] text-center leading-tight">
                 {inboxCount}
               </span>
             )}
@@ -108,7 +108,7 @@ export default function Sidebar() {
                   to={to}
                   className={({ isActive }) =>
                     `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      isActive ? 'bg-brand-pink text-white' : 'text-white/70 hover:text-white hover:bg-white/10'
+                      isActive ? 'bg-white/10 text-white border-l-2 border-brand-purple-70' : 'text-white/60 hover:text-white hover:bg-white/[0.07]'
                     }`
                   }
                 >
@@ -123,7 +123,7 @@ export default function Sidebar() {
               to="/audit"
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  isActive ? 'bg-brand-pink text-white' : 'text-white/70 hover:text-white hover:bg-white/10'
+                  isActive ? 'bg-white/10 text-white border-l-2 border-brand-purple-70' : 'text-white/60 hover:text-white hover:bg-white/[0.07]'
                 }`
               }
             >
@@ -147,7 +147,7 @@ export default function Sidebar() {
                 to={to}
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    isActive ? 'bg-brand-pink text-white' : 'text-white/70 hover:text-white hover:bg-white/10'
+                    isActive ? 'bg-white/10 text-white border-l-2 border-brand-purple-70' : 'text-white/60 hover:text-white hover:bg-white/[0.07]'
                   }`
                 }
               >
