@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { Opportunity, User } from '../types';
 import { listOpportunities } from '../api/opportunities';
 import { updateMyPreferences, listUsers } from '../api/users';
+import { useUsers } from '../hooks/useUsers';
 import { useAuthStore } from '../store/auth';
 import { getColumnsForPage, DEFAULT_COLUMNS, COLUMN_BY_KEY } from '../constants/columnDefs';
 import OpportunityDetail from '../components/OpportunityDetail';
@@ -191,7 +192,6 @@ function OppRow({ opp, selected, onClick, onRefreshList, visibleColumns }: {
   );
 }
 
-const DEFAULT_TEAMS = ['EMEA', 'NA Enterprise', 'NA Strategic', 'ANZ'];
 
 // ── Filter bar ────────────────────────────────────────────────────────────────
 function FilterBar({
@@ -247,6 +247,7 @@ function FilterBar({
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function PipelinePage() {
   const { user, setUser } = useAuthStore();
+  const { users } = useUsers();
   const [searchParams, setSearchParams] = useSearchParams();
   const [allOpps, setAllOpps] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState(true);
@@ -255,7 +256,8 @@ export default function PipelinePage() {
   const [search, setSearch] = useState('');
   const [stages, setStages] = useState<string[]>([]);
   const [selectedFiscalPeriods, setFiscalPeriods] = useState<string[]>([]);
-  const [teams, setTeams] = useState<string[]>(DEFAULT_TEAMS);
+  const [teams, setTeams] = useState<string[]>([]);
+  const defaultTeamsSet = useRef(false);
   const [recordTypes, setRecordTypes] = useState<string[]>([]);
 
   const seIdParam = searchParams.get('se_id') ? Number(searchParams.get('se_id')) : null;
@@ -285,6 +287,25 @@ export default function PipelinePage() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // Compute effective territory filter: manager's own teams, or SE's manager's teams
+  const effectiveTeams = useMemo(() => {
+    if (!user) return [];
+    if (user.teams?.length) return user.teams;
+    if (user.manager_id && users.length > 0) {
+      const mgr = users.find(u => u.id === user.manager_id);
+      return mgr?.teams ?? [];
+    }
+    return [];
+  }, [user, users]);
+
+  // Set teams filter default once when effective teams become known
+  useEffect(() => {
+    if (!defaultTeamsSet.current && effectiveTeams.length > 0) {
+      setTeams(effectiveTeams);
+      defaultTeamsSet.current = true;
+    }
+  }, [effectiveTeams]);
 
   // Derive sorted fiscal periods from loaded data
   const fiscalPeriods = [...new Set(

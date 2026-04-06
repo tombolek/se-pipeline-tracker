@@ -18,6 +18,7 @@ interface PocOpp {
   poc_end_date: string | null;
   poc_type: string | null;
   ae_owner_name: string | null;
+  team: string | null;
   se_owner_id: number | null;
   se_owner_name: string | null;
   is_closed_lost: boolean;
@@ -195,7 +196,7 @@ export default function PocBoardPage() {
   const [opps, setOpps]       = useState<PocOpp[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState<string | null>(null);
-  const { filterOpp } = useTeamScope();
+  const { filterOppUnion } = useTeamScope();
   const [selectedId, setSelectedId]   = useState<number | null>(null);
   const [hideEmpty, setHideEmpty]     = useState(true);   // default ON
   const [compact, setCompact]         = useState(false);
@@ -216,8 +217,8 @@ export default function PocBoardPage() {
     });
   }
 
-  // Apply team scope
-  const scopedOpps = opps.filter(filterOpp);
+  // Apply team scope (territory OR SE-owned)
+  const scopedOpps = opps.filter(filterOppUnion);
 
   // Group into known columns only; unrecognised statuses are silently dropped
   const knownSet = new Set<string>(COLUMNS);

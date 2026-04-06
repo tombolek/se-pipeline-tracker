@@ -479,7 +479,7 @@ export default function CalendarPage() {
   const [popover, setPopover]       = useState<{ date: Date; events: CalEvent[] } | null>(null);
   const [selectedOppId, setSelectedOppId] = useState<number | null>(null);
 
-  const { filterOpp } = useTeamScope();
+  const { filterOppUnionUnion } = useTeamScope();
 
   useEffect(() => {
     setLoading(true);
@@ -514,12 +514,12 @@ export default function CalendarPage() {
   }, [data, types]);
 
   const scopedEvents = useMemo(() => {
-    let evts = allEvents.filter(e => filterOpp({ se_owner_id: e.seId, team: e.team }));
+    let evts = allEvents.filter(e => filterOppUnion({ se_owner_id: e.seId, team: e.team }));
     if (filterSe !== null) {
       evts = evts.filter(e => e.seId === filterSe);
     }
     return evts;
-  }, [allEvents, filterOpp, filterSe]);
+  }, [allEvents, filterOppUnion, filterSe]);
 
   // Week sections: 1 month or 3 months
   const weekSections = useMemo(() => {

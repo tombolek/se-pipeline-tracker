@@ -130,7 +130,7 @@ export default function RfxBoardPage() {
   const [opps, setOpps]       = useState<RfxOpp[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState<string | null>(null);
-  const { filterOpp } = useTeamScope();
+  const { filterOppUnion } = useTeamScope();
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [view, setView]       = useState<'kanban' | 'list'>('kanban');
 
@@ -158,8 +158,8 @@ export default function RfxBoardPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Apply team scope first, then page filters
-  const scopedOpps = opps.filter(filterOpp);
+  // Apply team scope (territory OR SE-owned), then page filters
+  const scopedOpps = opps.filter(filterOppUnion);
 
   // Kanban grouping (team + record type filters apply here too)
   const kanbanOpps = scopedOpps.filter(o => {

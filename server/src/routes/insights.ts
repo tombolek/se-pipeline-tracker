@@ -167,7 +167,7 @@ router.get('/poc', auth, mgr, async (_req: Request, res: Response): Promise<void
     `SELECT
        o.id, o.name, o.account_name, o.stage, o.arr, o.arr_currency,
        o.poc_status, o.poc_start_date, o.poc_end_date, o.poc_type,
-       o.ae_owner_name,
+       o.ae_owner_name, o.team,
        o.is_closed_lost,
        u.id   AS se_owner_id,
        u.name AS se_owner_name
