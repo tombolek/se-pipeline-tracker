@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { query, queryOne } from '../db/index.js';
 import { requireAuth } from '../middleware/auth.js';
 import { AuthenticatedRequest, ok, err } from '../types/index.js';
+import { logAudit } from '../services/auditLog.js';
 
 const router = Router({ mergeParams: true });
 const auth = requireAuth as unknown as (req: Request, res: Response, next: () => void) => void;
@@ -55,6 +56,16 @@ router.post('/', auth, async (req: Request, res: Response): Promise<void> => {
      WHERE n.id = $1`,
     [(note as Record<string, unknown>).id]
   );
+
+  const { userId, role } = (req as AuthenticatedRequest).user;
+  logAudit(req, {
+    userId, userRole: role,
+    action: 'CREATE_NOTE', resourceType: 'note',
+    resourceId: (note as Record<string, unknown>).id,
+    resourceName: `Opportunity #${oppId}`,
+    after: { content: content.trim() },
+    success: true,
+  });
 
   res.status(201).json(ok(full));
 });
