@@ -12,6 +12,7 @@ import type { ApiResponse } from '../types';
 import { formatDate, formatARR, daysSince } from '../utils/formatters';
 import { TaskRow, AddTaskForm } from './opportunity/TaskSection';
 import { NoteItem, AddNoteForm } from './opportunity/NoteSection';
+import OpportunityTimeline from './OpportunityTimeline';
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
@@ -181,6 +182,7 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
   const [loading, setLoading] = useState(true);
   const [showAddTask, setShowAddTask] = useState(false);
   const [assigningOwner, setAssigningOwner] = useState(false);
+  const [activeTab, setActiveTab] = useState<'work' | 'timeline'>('work');
 
   const [showAllFields, setShowAllFields] = useState(false);
   const [summary, setSummary] = useState<string | null>(null);
@@ -354,6 +356,29 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
           )}
         </div>
 
+        {/* Tab bar: Work / Timeline */}
+        <div className="flex gap-1 bg-white border border-brand-navy-30/40 rounded-xl p-1">
+          {(['work', 'timeline'] as const).map(tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                activeTab === tab
+                  ? 'bg-brand-purple text-white'
+                  : 'text-brand-navy-70 hover:text-brand-navy'
+              }`}
+            >
+              {tab === 'work' ? 'Work' : 'Timeline'}
+            </button>
+          ))}
+        </div>
+
+        {/* Timeline tab */}
+        {activeTab === 'timeline' && <OpportunityTimeline oppId={oppId} />}
+
+        {/* Work tab content */}
+        {activeTab === 'work' && <>
+
         {/* Next Steps */}
         {nextSteps.length > 0 && (
           <div>
@@ -425,6 +450,8 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
             </div>
           )}
         </div>
+
+        </>}
 
       </div>
 

@@ -12,6 +12,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## 2026-04-07
 
 ### Added
+- **Deal Activity Timeline** — new "Timeline" tab in Opportunity Detail showing a reverse-chronological unified history of all events: notes, tasks created/completed, stage changes, SF import field updates (SE Comments, Manager Comments, Close Date, PoC Status, etc.), and SE Owner assignments. Filterable by event type. Also fixes field history tracking so `technical_blockers`, `manager_comments`, `close_date`, `poc_status`, and `agentic_qual` changes are recorded on import. (Issue #70)
 - **Weekly Pipeline Digest** (`/insights/weekly-digest`) — manager-facing summary of what changed in the last 7/14/30 days: new opportunities, stage progressions, stale deals, PoCs started/ended, at-risk deals (Red health score), and Closed Lost. Includes summary stat cards (ARR moved forward, ARR closed lost, net pipeline change). (Issue #68)
 
 ---

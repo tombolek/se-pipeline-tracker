@@ -225,8 +225,14 @@ export async function reconcileImport(
   const fieldHistoryEntries: FieldHistoryEntry[] = [];
 
   // Get all currently active (non-closed) SF IDs
-  const activeOpps = await query<{ id: number; sf_opportunity_id: string; stage: string; se_comments: string | null; manager_comments: string | null; next_step_sf: string | null; technical_blockers: string | null }>(
-    `SELECT id, sf_opportunity_id, stage, se_comments, manager_comments, next_step_sf, technical_blockers
+  const activeOpps = await query<{
+    id: number; sf_opportunity_id: string; stage: string;
+    se_comments: string | null; manager_comments: string | null;
+    next_step_sf: string | null; technical_blockers: string | null;
+    agentic_qual: string | null; close_date: string | null; poc_status: string | null;
+  }>(
+    `SELECT id, sf_opportunity_id, stage, se_comments, manager_comments,
+            next_step_sf, technical_blockers, agentic_qual, close_date, poc_status
      FROM opportunities
      WHERE is_active = true AND is_closed_lost = false`
   );
@@ -279,10 +285,31 @@ export async function reconcileImport(
           fieldHistoryEntries.push({ opportunity_id: existing.id, field_name: 'technical_blockers', old_value: existing.technical_blockers, new_value: newTechBlockers });
         }
 
-        // Track manager_comments freshness
+        // Track manager_comments freshness + history
         const newMgrComments = row.dbFields['manager_comments'] as string | null;
         if (newMgrComments !== existing.manager_comments) {
           setClauses.push(`manager_comments_updated_at = now()`);
+          fieldHistoryEntries.push({ opportunity_id: existing.id, field_name: 'manager_comments', old_value: existing.manager_comments, new_value: newMgrComments });
+        }
+
+        // Track agentic_qual history
+        const newAgenticQual = row.dbFields['agentic_qual'] as string | null;
+        if (newAgenticQual !== existing.agentic_qual) {
+          fieldHistoryEntries.push({ opportunity_id: existing.id, field_name: 'agentic_qual', old_value: existing.agentic_qual, new_value: newAgenticQual });
+        }
+
+        // Track close_date history
+        const newCloseDate = row.dbFields['close_date'] as string | null;
+        const existingCloseDate = existing.close_date ? String(existing.close_date).split('T')[0] : null;
+        const incomingCloseDate = newCloseDate ? String(newCloseDate).split('T')[0] : null;
+        if (incomingCloseDate !== existingCloseDate) {
+          fieldHistoryEntries.push({ opportunity_id: existing.id, field_name: 'close_date', old_value: existingCloseDate, new_value: incomingCloseDate });
+        }
+
+        // Track poc_status history
+        const newPocStatus = row.dbFields['poc_status'] as string | null;
+        if (newPocStatus !== existing.poc_status) {
+          fieldHistoryEntries.push({ opportunity_id: existing.id, field_name: 'poc_status', old_value: existing.poc_status, new_value: newPocStatus });
         }
 
         // Add all SF-owned fields

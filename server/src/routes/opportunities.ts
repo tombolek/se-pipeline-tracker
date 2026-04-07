@@ -622,4 +622,108 @@ router.patch('/:id', auth, async (req: Request, res: Response): Promise<void> =>
   });
 });
 
+// GET /opportunities/:id/timeline
+// Returns a reverse-chronological flat list of all events on this opportunity.
+router.get('/:id/timeline', auth, async (req: Request, res: Response): Promise<void> => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) { res.status(400).json(err('Invalid opportunity id')); return; }
+
+  // Fetch the opp itself for stage-change event and first-seen event
+  const opp = await queryOne<{
+    stage: string; previous_stage: string | null; stage_changed_at: string | null;
+    first_seen_at: string | null;
+  }>(
+    `SELECT stage, previous_stage, stage_changed_at, first_seen_at FROM opportunities WHERE id = $1`,
+    [id]
+  );
+  if (!opp) { res.status(404).json(err('Opportunity not found')); return; }
+
+  const [notes, tasks, fieldHistory, ownerHistory] = await Promise.all([
+    query<{ id: number; content: string; author_name: string; created_at: string }>(
+      `SELECT id, content, author_name, created_at FROM notes WHERE opportunity_id = $1 ORDER BY created_at DESC`,
+      [id]
+    ),
+    query<{ id: number; title: string; status: string; is_next_step: boolean; assigned_to_name: string | null; created_at: string; updated_at: string }>(
+      `SELECT t.id, t.title, t.status, t.is_next_step, u.name AS assigned_to_name, t.created_at, t.updated_at
+       FROM tasks t LEFT JOIN users u ON u.id = t.assigned_to_id
+       WHERE t.opportunity_id = $1 AND t.is_deleted = false
+       ORDER BY t.created_at DESC`,
+      [id]
+    ),
+    query<{ id: number; field_name: string; old_value: string | null; new_value: string | null; changed_at: string; import_id: number | null }>(
+      `SELECT id, field_name, old_value, new_value, changed_at, import_id
+       FROM opportunity_field_history WHERE opportunity_id = $1 ORDER BY changed_at DESC`,
+      [id]
+    ),
+    query<{ timestamp: string; after_value: unknown }>(
+      `SELECT timestamp, after_value FROM audit_log
+       WHERE action = 'ASSIGN_SE' AND resource_type = 'opportunity' AND resource_id = $1
+       ORDER BY timestamp DESC`,
+      [String(id)]
+    ),
+  ]);
+
+  type TimelineEvent = {
+    id: string;
+    type: 'note' | 'task_created' | 'task_completed' | 'stage_change' | 'import_update' | 'owner_change' | 'first_seen';
+    timestamp: string;
+    payload: Record<string, unknown>;
+  };
+
+  const events: TimelineEvent[] = [];
+
+  // Notes
+  for (const n of notes) {
+    events.push({ id: `note-${n.id}`, type: 'note', timestamp: n.created_at,
+      payload: { content: n.content, author: n.author_name } });
+  }
+
+  // Tasks — created event + completed event (if done)
+  for (const t of tasks) {
+    events.push({ id: `task-${t.id}-created`, type: 'task_created', timestamp: t.created_at,
+      payload: { task_id: t.id, title: t.title, status: t.status, is_next_step: t.is_next_step, assigned_to: t.assigned_to_name } });
+    if (t.status === 'done' && t.updated_at !== t.created_at) {
+      events.push({ id: `task-${t.id}-completed`, type: 'task_completed', timestamp: t.updated_at,
+        payload: { task_id: t.id, title: t.title, assigned_to: t.assigned_to_name } });
+    }
+  }
+
+  // Stage change (single most-recent entry from opp record)
+  if (opp.stage_changed_at) {
+    events.push({ id: 'stage-change', type: 'stage_change', timestamp: opp.stage_changed_at,
+      payload: { from: opp.previous_stage, to: opp.stage } });
+  }
+
+  // Field history — group fields changed in the same import together
+  const importGroups = new Map<string, typeof fieldHistory>();
+  for (const h of fieldHistory) {
+    const key = h.import_id != null ? `import-${h.import_id}` : `field-${h.id}`;
+    if (!importGroups.has(key)) importGroups.set(key, []);
+    importGroups.get(key)!.push(h);
+  }
+  for (const [key, entries] of importGroups) {
+    const ts = entries[0].changed_at;
+    events.push({ id: key, type: 'import_update', timestamp: ts,
+      payload: { fields: entries.map(e => ({ field: e.field_name, old_value: e.old_value, new_value: e.new_value })) } });
+  }
+
+  // SE Owner changes from audit log
+  for (const a of ownerHistory) {
+    const after = a.after_value as { se_owner_name?: string | null } | null;
+    events.push({ id: `owner-${a.timestamp}`, type: 'owner_change', timestamp: a.timestamp,
+      payload: { se_owner_name: after?.se_owner_name ?? null } });
+  }
+
+  // First seen (opp creation)
+  if (opp.first_seen_at) {
+    events.push({ id: 'first-seen', type: 'first_seen', timestamp: opp.first_seen_at,
+      payload: { stage: opp.previous_stage ?? opp.stage } });
+  }
+
+  // Sort reverse-chronological
+  events.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+  res.json(ok(events, { opportunity_id: id, count: events.length }));
+});
+
 export default router;
