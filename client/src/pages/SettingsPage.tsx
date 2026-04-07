@@ -5,6 +5,7 @@ import ImportHistoryPage from './settings/ImportHistoryPage';
 import InsightsMenuPage from './settings/InsightsMenuPage';
 import HowToPage from './settings/HowToPage';
 import BackupPage from './settings/BackupPage';
+import DeployPage from './settings/DeployPage';
 
 export default function SettingsPage() {
   const { pathname } = useLocation();
@@ -15,6 +16,7 @@ export default function SettingsPage() {
   else if (pathname.includes('menu-settings') || pathname.includes('insights-menu')) content = <InsightsMenuPage />;
   else if (pathname.includes('how-to'))     content = <HowToPage />;
   else if (pathname.includes('backup'))     content = <BackupPage />;
+  else if (pathname.includes('deploy'))     content = <DeployPage />;
   else                                      content = <UsersPage />;
 
   return (
