@@ -175,7 +175,11 @@ export async function runDeploy(logId: number): Promise<void> {
 
     // ── 4. npm ci ────────────────────────────────────────────────────────────
     await appendLog(logId, 'Installing dependencies (npm ci)...');
-    execSync('npm ci --silent', { cwd: clientDir, stdio: 'pipe', timeout: 300_000 });
+    // NODE_ENV must not be 'production' here — npm ci skips devDeps (tsc, vite) in prod mode
+    execSync('npm ci --silent', {
+      cwd: clientDir, stdio: 'pipe', timeout: 300_000,
+      env: { ...process.env, NODE_ENV: 'development' },
+    });
     await appendLog(logId, 'Dependencies installed.');
 
     // ── 5. npm run build ─────────────────────────────────────────────────────
