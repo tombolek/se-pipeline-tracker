@@ -48,6 +48,17 @@ export class SePipelineStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.RETAIN, // never deleted by CDK
     });
 
+    // ── 3b. S3: App backups (user-triggered JSON exports) ─────────────────────
+    // Separate from the pg_dump bucket — these are curated JSON exports of
+    // users/tasks/notes/assignments for the Settings → Backup & Restore feature.
+    const appBackupBucket = new s3.Bucket(this, 'AppBackupBucket', {
+      bucketName: `se-pipeline-app-backups-${this.account}`,
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+      encryption: s3.BucketEncryption.S3_MANAGED,
+      lifecycleRules: [{ expiration: cdk.Duration.days(90) }],
+      removalPolicy: cdk.RemovalPolicy.RETAIN,
+    });
+
     // ── 4. S3: Frontend static files ──────────────────────────────────────────
     const frontendBucket = new s3.Bucket(this, 'FrontendBucket', {
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
@@ -65,6 +76,7 @@ export class SePipelineStack extends cdk.Stack {
       ],
     });
     backupBucket.grantWrite(role);
+    appBackupBucket.grantReadWrite(role); // read for download/restore, write for create
 
     // ── 6. SSH key pair ────────────────────────────────────────────────────────
     // CDK creates the key pair and stores the private key in SSM Parameter Store
@@ -217,6 +229,10 @@ export class SePipelineStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'BackupBucketName', {
       value: backupBucket.bucketName,
       description: 'S3 bucket for nightly pg_dump backups',
+    });
+    new cdk.CfnOutput(this, 'AppBackupBucketName', {
+      value: appBackupBucket.bucketName,
+      description: 'S3 bucket for user-triggered JSON app backups (Settings → Backup & Restore)',
     });
   }
 }

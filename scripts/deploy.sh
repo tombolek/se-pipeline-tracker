@@ -43,6 +43,7 @@ INSTANCE_IP=$(get_output InstanceIp)
 KEY_PAIR_ID=$(get_output KeyPairId)
 FRONTEND_BUCKET=$(get_output FrontendBucketName)
 BACKUP_BUCKET=$(get_output BackupBucketName)
+APP_BACKUP_BUCKET=$(get_output AppBackupBucketName)
 DISTRIBUTION_ID=$(get_output DistributionId)
 APP_URL=$(get_output AppUrl)
 
@@ -136,6 +137,9 @@ if [ "$DEPLOY_SERVER" = true ]; then
   $SSH "grep -q '^BACKUP_BUCKET=' /app/.env.prod && \
         sed -i 's|^BACKUP_BUCKET=.*|BACKUP_BUCKET=$BACKUP_BUCKET|' /app/.env.prod || \
         echo 'BACKUP_BUCKET=$BACKUP_BUCKET' >> /app/.env.prod"
+  $SSH "grep -q '^APP_BACKUP_BUCKET=' /app/.env.prod && \
+        sed -i 's|^APP_BACKUP_BUCKET=.*|APP_BACKUP_BUCKET=$APP_BACKUP_BUCKET|' /app/.env.prod || \
+        echo 'APP_BACKUP_BUCKET=$APP_BACKUP_BUCKET' >> /app/.env.prod"
   $SSH "chmod 600 /app/.env.prod"
 
   echo "=== Building server Docker image on EC2 ==="

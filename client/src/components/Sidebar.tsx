@@ -10,10 +10,11 @@ import { getMainNav, type MainNavItem } from '../utils/mainNav';
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
 
 const SETTINGS_NAV = [
-  { to: '/settings/users',        label: 'Users',          icon: UsersIcon   },
-  { to: '/settings/import',       label: 'Import',         icon: ImportIcon  },
+  { to: '/settings/users',        label: 'Users',            icon: UsersIcon   },
+  { to: '/settings/import',       label: 'Import',           icon: ImportIcon  },
   { to: '/settings/import-history', label: 'Import History', icon: HistoryIcon },
-  { to: '/settings/menu-settings', label: 'Menu Settings',  icon: InsightIcon },
+  { to: '/settings/menu-settings', label: 'Menu Settings',   icon: InsightIcon },
+  { to: '/settings/backup',       label: 'Backup & Restore', icon: BackupIcon  },
 ];
 
 function MainNavIcon({ icon }: { icon: MainNavItem['icon'] }) {
@@ -280,6 +281,14 @@ function HistoryIcon() {
   return (
     <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  );
+}
+
+function BackupIcon() {
+  return (
+    <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
     </svg>
   );
 }
