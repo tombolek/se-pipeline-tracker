@@ -501,22 +501,23 @@ router.get('/weekly-digest', auth, mgr, async (req: Request, res: Response): Pro
   const [newOpps, stageProgressions, staleDeals, pocsStarted, pocsEnded, closedLost, atRiskCandidates] =
     await Promise.all([
       // New qualified opportunities: opps that entered Build Value within the window.
-      // Covers two cases: (a) progressed TO Build Value (stage_changed_at in window),
-      // (b) first appeared in the import already at Build Value (first_seen_at in window,
-      // no stage_changed_at yet).
+      // Uses stage_date_build_value (SF-authoritative) when available; falls back to
+      // stage_changed_at (import-tracked) or first_seen_at for older records.
       query(
         `SELECT o.id, o.name, o.account_name, o.arr, o.arr_currency, o.stage,
                 o.close_date, o.ae_owner_name, o.team,
+                o.stage_date_build_value,
                 u.id AS se_owner_id, u.name AS se_owner_name
          FROM opportunities o
          LEFT JOIN users u ON u.id = o.se_owner_id
          WHERE o.is_active = true AND o.is_closed_lost = false
            AND o.stage = 'Build Value'
            AND (
-             o.stage_changed_at >= now() - ($1 || ' days')::interval
-             OR (o.first_seen_at >= now() - ($1 || ' days')::interval AND o.stage_changed_at IS NULL)
+             o.stage_date_build_value >= CURRENT_DATE - ($1 || ' days')::interval
+             OR (o.stage_date_build_value IS NULL AND o.stage_changed_at >= now() - ($1 || ' days')::interval)
+             OR (o.stage_date_build_value IS NULL AND o.stage_changed_at IS NULL AND o.first_seen_at >= now() - ($1 || ' days')::interval)
            )
-         ORDER BY COALESCE(o.stage_changed_at, o.first_seen_at) DESC`,
+         ORDER BY COALESCE(o.stage_date_build_value, o.stage_changed_at::date, o.first_seen_at::date) DESC`,
         [days]
       ),
 
