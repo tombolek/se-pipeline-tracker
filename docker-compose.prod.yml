@@ -32,6 +32,9 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      AWS_REGION: ${AWS_REGION:-eu-west-1}
+      APP_BACKUP_BUCKET: ${APP_BACKUP_BUCKET}
+      BACKUP_BUCKET: ${BACKUP_BUCKET}
     depends_on:
       db:
         condition: service_healthy
