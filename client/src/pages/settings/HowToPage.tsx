@@ -130,6 +130,54 @@ export default function HowToPage() {
         <span className="flex items-center gap-1.5 text-sm"><span className="w-2.5 h-2.5 rounded-full bg-gray-300 inline-block" /> Never</span>
       </div>
 
+      <SubTitle>Deal Health Score</SubTitle>
+      <P>Every opportunity has a <strong>Health Score from 0 to 100</strong>, visible as a coloured indicator in the pipeline list and as a progress bar at the top of the opportunity detail panel.</P>
+      <div className="flex items-center gap-4 mb-3 flex-wrap">
+        <span className="flex items-center gap-1.5 text-sm"><span className="w-2.5 h-2.5 rounded-full bg-status-success inline-block" /> <strong>Green</strong> — 70 – 100 (Healthy)</span>
+        <span className="flex items-center gap-1.5 text-sm"><span className="w-2.5 h-2.5 rounded-full bg-status-warning inline-block" /> <strong>Amber</strong> — 40 – 69 (Needs attention)</span>
+        <span className="flex items-center gap-1.5 text-sm"><span className="w-2.5 h-2.5 rounded-full bg-status-overdue inline-block" /> <strong>Red</strong> — 0 – 39 (At risk)</span>
+      </div>
+      <P>The score starts at 100 and deductions are applied across five factors:</P>
+      <div className="overflow-x-auto mb-4">
+        <table className="w-full text-sm border-collapse">
+          <thead>
+            <tr className="border-b border-brand-navy-30/40">
+              <th className="text-left py-2 pr-4 text-xs font-semibold text-brand-navy-70 uppercase tracking-wide">Factor</th>
+              <th className="text-left py-2 pr-4 text-xs font-semibold text-brand-navy-70 uppercase tracking-wide">Max deduction</th>
+              <th className="text-left py-2 text-xs font-semibold text-brand-navy-70 uppercase tracking-wide">Logic</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-brand-navy-30/20">
+            <tr>
+              <td className="py-2 pr-4 font-medium text-brand-navy">MEDDPICC completeness</td>
+              <td className="py-2 pr-4 text-brand-navy-70">−30</td>
+              <td className="py-2 text-brand-navy-70">−3.3 pts for each of the 9 MEDDPICC fields that is blank</td>
+            </tr>
+            <tr>
+              <td className="py-2 pr-4 font-medium text-brand-navy">SE Comments freshness</td>
+              <td className="py-2 pr-4 text-brand-navy-70">−25</td>
+              <td className="py-2 text-brand-navy-70">0 if ≤7d · −10 if 8–21d · −20 if &gt;21d · −25 if never updated</td>
+            </tr>
+            <tr>
+              <td className="py-2 pr-4 font-medium text-brand-navy">Note freshness</td>
+              <td className="py-2 pr-4 text-brand-navy-70">−20</td>
+              <td className="py-2 text-brand-navy-70">0 if ≤14d · −10 if 15–30d · −20 if &gt;30d or no notes ever</td>
+            </tr>
+            <tr>
+              <td className="py-2 pr-4 font-medium text-brand-navy">Overdue tasks</td>
+              <td className="py-2 pr-4 text-brand-navy-70">−20</td>
+              <td className="py-2 text-brand-navy-70">−5 per overdue task, capped at 4 tasks (−20 max)</td>
+            </tr>
+            <tr>
+              <td className="py-2 pr-4 font-medium text-brand-navy">Time in current stage</td>
+              <td className="py-2 pr-4 text-brand-navy-70">−15</td>
+              <td className="py-2 text-brand-navy-70">0 if &lt;30d · −10 if 30–60d · −15 if &gt;60d in the same stage</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <P>Hover over the score in the pipeline list to see a tooltip with the exact breakdown. In the opportunity detail, click the health bar to expand the full factor list with explanations. Use the <strong>At-risk only</strong> filter button in the pipeline to instantly surface all Red and Amber deals.</P>
+
       <SubTitle>Opportunity detail</SubTitle>
       <P>Click any row to open the detail side panel. It has two columns:</P>
       <Ul>

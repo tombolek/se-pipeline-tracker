@@ -128,6 +128,7 @@ export const DEFAULT_COLUMNS = {
     'se_owner',
     'open_task_count',
     'se_comments_freshness',
+    'health_score',
   ],
   closed_lost: [
     'name',
