@@ -11,6 +11,7 @@ const SECTIONS = [
   { id: 'rfx-board',   label: 'RFx Board' },
   { id: 'insights',    label: 'Insights (Manager)' },
   { id: 'settings',    label: 'Settings (Manager)' },
+  { id: 'audit',       label: 'Audit (Manager)' },
 ];
 
 // ── Layout components ────────────────────────────────────────────────────────
@@ -347,12 +348,51 @@ export default function HowToPage() {
       <SubTitle>Import History</SubTitle>
       <P>A log of every import: timestamp, filename, how many records were added, updated, or closed, and any errors. The most recent import can be rolled back if needed.</P>
 
+      <SubTitle>Backup & Restore</SubTitle>
+      <P>Manage full database backups stored in a private S3 bucket (90-day retention).</P>
+      <Ul>
+        <Li><strong>Back Up Now</strong> — creates a JSON snapshot of all users, tasks, notes, and SE assignments and uploads it to S3. Takes a few seconds.</Li>
+        <Li><strong>Backup list</strong> — browse all available backups with timestamps; download any of them as a local JSON file.</Li>
+        <Li><strong>Restore from file</strong> — upload a local backup file, review a preview of what will be restored, then confirm. The restore handles circular FK dependencies (manager assignments) and resets database sequences; SE assignments are matched by email so they survive a wipe-and-restore.</Li>
+      </Ul>
+      <InfoBox>Restoring overwrites existing users, tasks, and notes. Create a fresh backup first if you want to be able to undo.</InfoBox>
+
+      <SubTitle>Deploy</SubTitle>
+      <P>Trigger a frontend deploy from inside the app without needing to open a terminal.</P>
+      <Ul>
+        <Li><strong>Version status</strong> — shows the currently deployed commit SHA alongside the latest commit on GitHub. A banner appears when a newer version is available.</Li>
+        <Li><strong>Deploy button</strong> — tells the EC2 server to download the latest GitHub source, rebuild the React frontend (npm ci + Vite build), upload the new <code>dist/</code> to S3, and submit a CloudFront cache invalidation.</Li>
+        <Li><strong>Live log</strong> — the build output streams to a terminal panel in real time (polled every 2 seconds) and auto-scrolls as lines arrive.</Li>
+        <Li><strong>Commit history</strong> — the last 20 GitHub commits are listed with deploy-scope badges (<code>[fe]</code>, <code>[be]</code>, <code>[fe+be]</code>, <code>[infra]</code>) so you can see at a glance what is included in the latest build.</Li>
+      </Ul>
+      <InfoBox>Only frontend code (React) is deployed via this page. Backend or infrastructure changes still require a terminal deploy using <code>scripts/deploy.sh</code>.</InfoBox>
+
       <SubTitle>Menu Settings</SubTitle>
       <P>Configure which items appear in the sidebar. Two sections can be customised:</P>
       <Ul>
         <Li><strong>Main nav</strong> — toggle visibility of Calendar, SE Mapping, PoC Board, and RFx Board; reorder them by dragging.</Li>
         <Li><strong>Insights nav</strong> — toggle and reorder the manager Insights views that appear under the collapsible Insights section.</Li>
       </Ul>
+
+      {/* ── 11. Audit ── */}
+      <SectionTitle id="audit">11. Audit</SectionTitle>
+      <RoleTag role="manager" />
+      <P>Usage analytics and an activity log for the entire team. Accessible from the sidebar (above Settings).</P>
+
+      <SubTitle>Usage tab</SubTitle>
+      <Ul>
+        <Li><strong>Page views</strong> — how many times each route was visited, unique users who visited it, and when it was last accessed.</Li>
+        <Li><strong>Feature usage</strong> — non-navigation events (opportunity opens, task creates, imports, etc.) grouped by action and entity type, so you can see which features are actually being used.</Li>
+        <Li><strong>Per-user activity</strong> — total event count and last-seen for each team member over the last 180 days.</Li>
+      </Ul>
+
+      <SubTitle>Activity Log tab</SubTitle>
+      <P>A paginated, append-only log of every significant server-side action — logins, logouts, user management, Salesforce imports, SE assignments, task changes, backups, restores, and deploys.</P>
+      <Ul>
+        <Li>Filter by <strong>time window</strong> (7 / 30 / 60 / 90 / 180 days), <strong>user</strong>, and <strong>action type</strong>.</Li>
+        <Li>Expand any row to see a before/after JSON diff of what changed.</Li>
+      </Ul>
+      <InfoBox>Audit records older than 180 days are automatically purged on server startup.</InfoBox>
 
       <div className="h-8" />
     </div>

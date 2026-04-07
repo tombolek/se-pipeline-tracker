@@ -49,6 +49,7 @@ This tool pulls deal data from Salesforce via a CSV/XLS export and layers a nati
 | Quickly jot something down without leaving the current view | Quick Capture (Ctrl+K) |
 | Link a jot to a deal and convert it to a task or note | Inbox page |
 | See when my SE comments are going stale | Pipeline — freshness indicator on each row |
+| See the health score of my deals and drill into at-risk ones | Pipeline — Health Score column + At-risk filter |
 
 ### For the SE Manager
 
@@ -70,6 +71,9 @@ This tool pulls deal data from Salesforce via a CSV/XLS export and layers a nati
 | View Salesforce import history and roll back imports | Settings → Import History |
 | Customize which Insights and nav pages appear in the sidebar | Settings → Menu Settings |
 | Trigger a Salesforce data import | Settings → Import (file upload) |
+| Back up or restore all app data | Settings → Backup |
+| Deploy a new frontend build from the browser | Settings → Deploy |
+| Review team usage and track system actions | Audit |
 
 ---
 
@@ -81,7 +85,8 @@ This tool pulls deal data from Salesforce via a CSV/XLS export and layers a nati
 - Qualify toggle: per-user preference (stored in DB), shows count of hidden Qualify deals
 - Columns: configurable via **Column Picker** — reorderable, saveable per user
 - **SE Comments freshness indicator**: green dot (≤7 days), amber (8–21 days), red (>21 days), grey (never)
-- Filters: Stage (multi-select), Fiscal Period (multi-select), text search; deep-link filter `?se_id=<n>` pre-filters by SE owner (used from Team Workload drill-through)
+- **Deal Health Score**: 0–100 computed score per opportunity; green (70–100), amber (40–69), red (0–39). Hover for a factor breakdown tooltip. Five factors: MEDDPICC completeness (−30 max), overdue tasks (−20 max, primary signal), SE Comments freshness (−25 max), note freshness (−20 max), time in current stage (−15 max). **At-risk only** filter button surfaces all red and amber deals instantly
+- Filters: Stage (multi-select), Fiscal Period (multi-select), text search, At-risk health score; deep-link filter `?se_id=<n>` pre-filters by SE owner (used from Team Workload drill-through)
 - Sort: any column, click header to cycle asc/desc/off
 - Quick Capture button on each row (hover to reveal)
 
@@ -213,10 +218,35 @@ This tool pulls deal data from Salesforce via a CSV/XLS export and layers a nati
 #### Import History (`/settings/import-history`)
 - Log of all imports with rollback capability (most recent import can be undone)
 
+#### Backup & Restore (`/settings/backup`)
+- **Back Up Now** — creates a full JSON snapshot (users, tasks, notes, SE assignments) and uploads to a private S3 bucket (90-day retention)
+- **S3 backup list** — browse all available backups; download any backup as a JSON file
+- **Restore from file** — upload a local backup, preview what will be restored, confirm to apply
+- Restore handles circular FK dependencies (manager_id) and resets PostgreSQL sequences; SE assignments are matched by email so they survive a wipe-and-restore
+
+#### Deploy (`/settings/deploy`)
+- Shows **current deployed SHA** vs **latest GitHub commit** — highlights when an update is available
+- **Deploy button** triggers the server to download the latest GitHub tarball, rebuild the React frontend in-process (npm ci + Vite build) on EC2, upload the built `dist/` to S3, and submit a CloudFront cache invalidation
+- **Live log terminal** auto-polls every 2 seconds and auto-scrolls as build lines arrive
+- **Commit history panel** — lists the 20 most recent GitHub commits with deploy-scope badges (`[fe]`, `[be]`, `[fe+be]`, `[infra]`)
+
 #### Menu Settings (`/settings/menu-settings`)
 - **Main nav**: toggle visibility and reorder Calendar, SE Mapping, PoC Board, RFx Board
 - **Insights nav**: toggle and reorder manager Insights pages in the sidebar
 - Drag-and-drop reorder; reset to default
+
+### Audit (`/audit`)
+Manager-only usage analytics and activity log.
+
+#### Usage tab
+- **Page view counts** — how many times each route was visited, unique users, last seen
+- **Feature usage** — non-navigation events (opportunity opens, task creates, imports, etc.) grouped by action and entity type
+- **Per-user activity** — total event count and last-seen per team member (180-day window)
+
+#### Activity Log tab
+- Paginated, append-only log of every significant server-side action: logins, user management, imports, SE assignments, task changes, backups, deploys
+- Filterable by time window (7–180 days), user, and action type
+- Expandable rows show before/after JSON diff for mutations
 
 ### Sidebar Navigation
 - Collapsible **Insights** and **Settings** sections (manager only)
@@ -277,6 +307,8 @@ se-pipeline-tracker/
 │       │   ├── tasks.ts
 │       │   ├── notes.ts
 │       │   ├── inbox.ts
+│       │   ├── backup.ts
+│       │   ├── deploy.ts
 │       │   └── users.ts
 │       ├── components/
 │       │   ├── Sidebar.tsx          # Nav with collapsible sections, dynamic insights nav
@@ -322,8 +354,12 @@ se-pipeline-tracker/
 │       │       ├── UsersPage.tsx
 │       │       ├── ImportPage.tsx
 │       │       ├── ImportHistoryPage.tsx
+│       │       ├── BackupPage.tsx        # Backup & Restore
+│       │       ├── DeployPage.tsx        # In-app frontend deploy
 │       │       ├── InsightsMenuPage.tsx  # Menu Settings — main nav + insights nav config
 │       │       └── HowToPage.tsx
+│       ├── pages/
+│       │   └── AuditPage.tsx            # Usage stats + activity log (manager only)
 │       ├── store/
 │       │   ├── auth.ts
 │       │   └── pipeline.ts
@@ -348,7 +384,15 @@ se-pipeline-tracker/
 │   │   ├── 007_add_import_rollback.sql
 │   │   ├── 008_create_field_history.sql
 │   │   ├── 009_add_column_prefs.sql
-│   │   └── 010_create_ai_summary_cache.sql
+│   │   ├── 010_create_ai_summary_cache.sql
+│   │   ├── 011_add_user_deleted.sql
+│   │   ├── 012_add_force_password_change.sql
+│   │   ├── 013_add_manager_id.sql
+│   │   ├── 014_add_rfx_submission_date.sql
+│   │   ├── 015_add_user_team.sql
+│   │   ├── 016_users_team_to_teams_array.sql
+│   │   ├── 017_add_events_audit_log.sql
+│   │   └── 018_create_deploy_log.sql
 │   ├── scripts/
 │   │   ├── migrate.ts
 │   │   ├── seed.ts
@@ -371,7 +415,10 @@ se-pipeline-tracker/
 │           ├── notes.ts
 │           ├── inbox.ts
 │           ├── insights.ts          # All GET /insights/* endpoints
-│           └── users.ts
+│           ├── users.ts
+│           ├── backup.ts
+│           ├── deploy.ts
+│           └── audit.ts
 │
 ├── scripts/
 │   └── deploy.sh                    # Full deploy or --server-only to AWS EC2 + S3/CloudFront
@@ -457,6 +504,45 @@ Stores the last generated AI summary per key (currently `tech-blockers`).
 | `content` | Full summary text |
 | `generated_at` | When it was generated |
 
+#### `events`
+Frontend usage telemetry — page views and feature interactions. Append-only by convention; purged after 180 days.
+
+| Column | Notes |
+|--------|-------|
+| `user_id` | FK to users |
+| `session_id` | UUID generated on login, stored in sessionStorage |
+| `page` | Route path |
+| `action` | `view` for page visits; named action otherwise |
+| `entity_type`, `entity_id` | Optional context (e.g. `opportunity`, `42`) |
+| `metadata` | JSONB for extra context |
+| `timestamp` | Client-supplied or server now() |
+
+#### `audit_log`
+Server-side action log — significant mutations (logins, imports, user changes, etc.). Append-only; purged after 180 days.
+
+| Column | Notes |
+|--------|-------|
+| `user_id` | FK to users |
+| `action` | e.g. `LOGIN`, `CREATE_TASK`, `IMPORT`, `BACKUP_RESTORE` |
+| `resource_type`, `resource_id`, `resource_name` | What was affected |
+| `before_value`, `after_value` | JSON strings for diff |
+| `ip_address`, `session_id` | Request context |
+| `success`, `failure_reason` | Outcome |
+| `user_role` | Snapshotted at time of action |
+
+#### `deploy_log`
+Tracks in-app frontend deploy runs triggered from Settings → Deploy.
+
+| Column | Notes |
+|--------|-------|
+| `triggered_by` | FK to users |
+| `triggered_at` | When the deploy started |
+| `completed_at` | When it finished (null while running) |
+| `status` | `pending` → `running` → `success` \| `failed` |
+| `current_sha`, `target_sha` | SHAs at start and end |
+| `log` | TEXT[] of streamed build output lines |
+| `error` | Error message if failed |
+
 ---
 
 ## API Reference
@@ -534,6 +620,31 @@ Response envelope: `{ "data": ..., "error": null, "meta": {} }`
 | PATCH | `/users/me/preferences` | Update `show_qualify`, `column_prefs`, main nav config |
 | PATCH | `/users/:id` | Update name, email, role, is_active |
 | DELETE | `/users/:id` | Soft deactivate |
+
+### Backup (Manager only)
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/backup` | Generate and upload a full backup to S3 |
+| GET | `/backup` | List available S3 backups |
+| GET | `/backup/download` | Download a specific backup by S3 key (`?key=`) |
+| POST | `/backup/restore` | Restore from uploaded JSON backup file (multipart) |
+
+### Deploy (Manager only)
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/deploy/status` | Compare current SHA with latest GitHub commit |
+| POST | `/deploy/trigger` | Kick off an async frontend deploy |
+| GET | `/deploy/log/:id` | Poll deploy progress by log ID |
+| GET | `/deploy/commits` | Fetch 20 most recent GitHub commits |
+
+### Audit (Manager only)
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/audit/events` | Batch-ingest frontend usage events (fire-and-forget) |
+| GET | `/audit/log` | Paginated audit log; `?days=&user_id=&action=` |
+| GET | `/audit/usage` | Aggregated page views, feature usage, per-user stats |
+| GET | `/audit/actions` | Distinct action types (for filter dropdown) |
+| GET | `/audit/users` | Users appearing in the audit log |
 
 ---
 
@@ -631,6 +742,9 @@ cd client && npm run dev       # frontend (terminal 2)
 | Upload Salesforce import | — | ✓ |
 | Manage users | — | ✓ |
 | Configure Insights menu | — | ✓ |
+| Backup and restore data | — | ✓ |
+| Trigger in-app deploy | — | ✓ |
+| View Audit log and usage analytics | — | ✓ |
 
 All `/insights/*` and `/users` API routes enforce `requireManager` middleware — a 403 is returned if an SE attempts to call them directly.
 
