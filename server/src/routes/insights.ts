@@ -615,18 +615,22 @@ router.get('/weekly-digest', auth, mgr, async (req: Request, res: Response): Pro
                 o.metrics, o.economic_buyer, o.decision_criteria, o.decision_process,
                 o.paper_process, o.implicate_pain, o.champion, o.authority, o.need,
                 o.se_comments_updated_at, o.last_note_at, o.stage_changed_at,
-                o.overdue_task_count,
+                (SELECT COUNT(*)::integer FROM tasks t
+                 WHERE t.opportunity_id = o.id
+                   AND t.is_deleted = false
+                   AND t.status != 'done'
+                   AND t.due_date < CURRENT_DATE) AS overdue_task_count,
                 u.id AS se_owner_id, u.name AS se_owner_name
          FROM opportunities o
          LEFT JOIN users u ON u.id = o.se_owner_id
          WHERE o.is_active = true AND o.is_closed_lost = false
            AND o.stage NOT IN ('Qualify')
            AND (
-             o.overdue_task_count > 0
+             EXISTS (SELECT 1 FROM tasks t WHERE t.opportunity_id = o.id AND t.is_deleted = false AND t.status != 'done' AND t.due_date < CURRENT_DATE)
              OR o.se_comments_updated_at IS NULL
              OR o.se_comments_updated_at < now() - interval '14 days'
            )
-         ORDER BY o.overdue_task_count DESC NULLS LAST, o.se_comments_updated_at ASC NULLS FIRST`
+         ORDER BY o.se_comments_updated_at ASC NULLS FIRST`
       ),
     ]);
 
