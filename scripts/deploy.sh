@@ -95,17 +95,27 @@ fi
 
 # ── Frontend ──────────────────────────────────────────────────────────────────
 if [ "$DEPLOY_FRONTEND" = true ]; then
-  echo "=== Building frontend ==="
-  # client/.env.production sets VITE_API_URL=/api/v1 (relative, routes via CloudFront)
-  (cd client && npm run build)
+  echo "=== Syncing client source to EC2 ==="
+  $SSH "rm -rf /app/client && mkdir -p /app/client"
+  scp -i "$KEY_FILE" -o StrictHostKeyChecking=no -r \
+    client/src client/public client/index.html client/package.json client/package-lock.json \
+    client/tsconfig.json client/tsconfig.app.json client/tsconfig.node.json \
+    client/vite.config.ts client/tailwind.config.ts client/postcss.config.js \
+    ec2-user@$INSTANCE_IP:/app/client/
+  # Copy production env (sets VITE_API_URL=/api/v1)
+  if [ -f client/.env.production ]; then
+    scp -i "$KEY_FILE" -o StrictHostKeyChecking=no \
+      client/.env.production ec2-user@$INSTANCE_IP:/app/client/.env.production
+  fi
+
+  echo "=== Building frontend on EC2 (Docker) ==="
+  $SSH "docker run --rm -v /app/client:/app -w /app node:20-alpine \
+    sh -c 'npm ci --silent && npm run build'"
 
   echo "=== Uploading frontend to S3 ==="
-  aws s3 sync client/dist/ "s3://$FRONTEND_BUCKET/" \
-    --delete \
-    --region "$REGION"
+  $SSH "aws s3 sync /app/client/dist/ s3://$FRONTEND_BUCKET/ --delete --region $REGION"
 
   echo "=== Invalidating CloudFront cache ==="
-  # CloudFront API is always us-east-1 regardless of stack region
   aws cloudfront create-invalidation \
     --distribution-id "$DISTRIBUTION_ID" \
     --paths "/*" \
