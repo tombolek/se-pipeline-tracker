@@ -26,7 +26,7 @@ router.get('/', auth, async (req: Request, res: Response): Promise<void> => {
 
 // POST /opportunities/:id/notes  (append-only)
 router.post('/', auth, async (req: Request, res: Response): Promise<void> => {
-  const { userId } = (req as AuthenticatedRequest).user;
+  const { userId, role } = (req as AuthenticatedRequest).user;
   const oppId = parseInt(req.params.id);
   if (isNaN(oppId)) { res.status(400).json(err('Invalid opportunity id')); return; }
 
@@ -57,11 +57,10 @@ router.post('/', auth, async (req: Request, res: Response): Promise<void> => {
     [(note as Record<string, unknown>).id]
   );
 
-  const { userId, role } = (req as AuthenticatedRequest).user;
   logAudit(req, {
     userId, userRole: role,
     action: 'CREATE_NOTE', resourceType: 'note',
-    resourceId: (note as Record<string, unknown>).id,
+    resourceId: (note as Record<string, number>).id,
     resourceName: `Opportunity #${oppId}`,
     after: { content: content.trim() },
     success: true,
