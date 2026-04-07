@@ -62,13 +62,26 @@ const COLUMN_MAP: Record<string, string | null> = {
   'poc deployment type':                'poc_deploy_type',
   'rfx status':                         'rfx_status',
   'technical blockers/risk':            'technical_blockers',
+  'stage date: qualify':                'stage_date_qualify',
+  'stage date: build value':            'stage_date_build_value',
+  'stage date: develop solution':       'stage_date_develop_solution',
+  'stage date: proposal sent':          'stage_date_proposal_sent',
+  'stage date: negotiate':              'stage_date_negotiate',
+  'stage date: submitted for booking':  'stage_date_submitted_for_booking',
+  'stage date: closed - won':           'stage_date_closed_won',
+  'stage date: closed - lost':          'stage_date_closed_lost',
 };
 
 // DB fields that are booleans in the opportunities table
 const BOOLEAN_FIELDS = new Set(['key_deal']);
 
 // DB fields that are DATE type
-const DATE_FIELDS = new Set(['close_date', 'close_month', 'poc_start_date', 'poc_end_date']);
+const DATE_FIELDS = new Set([
+  'close_date', 'close_month', 'poc_start_date', 'poc_end_date',
+  'stage_date_qualify', 'stage_date_build_value', 'stage_date_develop_solution',
+  'stage_date_proposal_sent', 'stage_date_negotiate', 'stage_date_submitted_for_booking',
+  'stage_date_closed_won', 'stage_date_closed_lost',
+]);
 
 // DB fields that are NUMERIC type
 const NUMERIC_FIELDS = new Set(['arr', 'arr_converted']);
