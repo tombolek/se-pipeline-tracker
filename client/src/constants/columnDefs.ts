@@ -69,6 +69,7 @@ export const ALL_COLUMNS: ColumnDef[] = [
   { key: 'biz_dev',           label: 'BizDev',             group: 'Ownership' },
 
   // ── Activity ───────────────────────────────────────────────────────────────
+  { key: 'health_score',           label: 'Health Score',        group: 'Activity' },
   { key: 'open_task_count',        label: 'Open Tasks',          group: 'Activity' },
   { key: 'se_comments_freshness',  label: 'SE Comments',         group: 'Activity' },
   { key: 'next_step_sf',           label: 'Next Step',           group: 'Activity', truncate: true },

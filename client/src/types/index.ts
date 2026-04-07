@@ -27,6 +27,7 @@ export interface Opportunity {
   biz_dev: string | null;
   open_task_count: number;
   next_step_count: number;
+  overdue_task_count: number;
   se_comments: string | null;
   se_comments_updated_at: string | null;
   manager_comments: string | null;

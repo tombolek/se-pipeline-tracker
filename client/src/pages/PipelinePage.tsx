@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { Opportunity, User } from '../types';
+import { computeHealthScore } from '../utils/healthScore';
 import { listOpportunities } from '../api/opportunities';
 import { updateMyPreferences, listUsers } from '../api/users';
 import { useUsers } from '../hooks/useUsers';
@@ -201,6 +202,7 @@ function FilterBar({
   teams, teamOptions, setTeams,
   recordTypes, recordTypeOptions, setRecordTypes,
   myDeals, setMyDeals,
+  atRisk, setAtRisk,
   seFilterName, clearSeFilter,
   total,
   columnPicker,
@@ -211,6 +213,7 @@ function FilterBar({
   teams: string[]; teamOptions: string[]; setTeams: (v: string[]) => void;
   recordTypes: string[]; recordTypeOptions: string[]; setRecordTypes: (v: string[]) => void;
   myDeals: boolean; setMyDeals: (v: boolean) => void;
+  atRisk: boolean; setAtRisk: (v: boolean) => void;
   seFilterName: string | null; clearSeFilter: () => void;
   total: number;
   columnPicker: React.ReactNode;
@@ -237,6 +240,17 @@ function FilterBar({
         }`}
       >
         My deals
+      </button>
+      <button
+        onClick={() => setAtRisk(!atRisk)}
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
+          atRisk
+            ? 'bg-status-overdue/10 border-status-overdue text-status-overdue'
+            : 'border-brand-navy-30 text-brand-navy-70 hover:border-brand-navy hover:text-brand-navy'
+        }`}
+      >
+        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${atRisk ? 'bg-status-overdue' : 'bg-brand-navy-30'}`} />
+        At-risk only
       </button>
       {seFilterName && (
         <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-brand-purple/10 border border-brand-purple text-brand-purple">
@@ -278,6 +292,7 @@ export default function PipelinePage() {
     getColumnsForPage('pipeline', user?.column_prefs ?? null)
   );
   const [myDeals, setMyDeals] = useState(() => user?.role === 'se');
+  const [atRisk, setAtRisk] = useState(false);
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>('asc');
 
@@ -347,6 +362,7 @@ export default function PipelinePage() {
     if (stages.length > 0 && !stages.includes(o.stage)) return false;
     if (selectedFiscalPeriods.length > 0 && !selectedFiscalPeriods.includes(o.fiscal_period ?? '')) return false;
     if (teams.length > 0 && !teams.includes(o.team ?? '')) return false;
+    if (atRisk && computeHealthScore(o).rag === 'green') return false;
     if (recordTypes.length > 0 && !recordTypes.includes(o.record_type ?? '')) return false;
     if (search) {
       const q = search.toLowerCase();
@@ -377,6 +393,7 @@ export default function PipelinePage() {
         teams={teams} teamOptions={teamOptions} setTeams={setTeams}
         recordTypes={recordTypes} recordTypeOptions={recordTypeOptions} setRecordTypes={setRecordTypes}
         myDeals={myDeals} setMyDeals={setMyDeals}
+        atRisk={atRisk} setAtRisk={setAtRisk}
         seFilterName={seFilterName} clearSeFilter={clearSeFilter}
         total={displayed.length}
         columnPicker={

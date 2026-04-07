@@ -429,7 +429,8 @@ router.get('/', auth, async (req: Request, res: Response): Promise<void> => {
        u.name  AS se_owner_name,
        u.email AS se_owner_email,
        COUNT(t.id) FILTER (WHERE t.is_deleted = false AND t.status != 'done') AS open_task_count,
-       COUNT(t.id) FILTER (WHERE t.is_deleted = false AND t.is_next_step = true AND t.status != 'done') AS next_step_count
+       COUNT(t.id) FILTER (WHERE t.is_deleted = false AND t.is_next_step = true AND t.status != 'done') AS next_step_count,
+       COUNT(t.id) FILTER (WHERE t.is_deleted = false AND t.status != 'done' AND t.due_date < CURRENT_DATE) AS overdue_task_count
      FROM opportunities o
      LEFT JOIN users u ON u.id = o.se_owner_id
      LEFT JOIN tasks t ON t.opportunity_id = o.id
@@ -497,6 +498,7 @@ router.get('/', auth, async (req: Request, res: Response): Promise<void> => {
     partner_manager: r.partner_manager,
     open_task_count: Number(r.open_task_count),
     next_step_count: Number(r.next_step_count),
+    overdue_task_count: Number(r.overdue_task_count),
     stage_changed_at: r.stage_changed_at,
     last_note_at: r.last_note_at,
   }));

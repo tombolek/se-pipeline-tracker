@@ -114,9 +114,8 @@ if [ "$DEPLOY_FRONTEND" = true ]; then
 
   echo "=== Downloading built dist from EC2 ==="
   rm -rf client/dist
-  mkdir -p client/dist
   scp -i "$KEY_FILE" -o StrictHostKeyChecking=no -r \
-    ec2-user@$INSTANCE_IP:/app/client/dist/. client/dist/
+    ec2-user@$INSTANCE_IP:/app/client/dist client/dist
 
   echo "=== Uploading frontend to S3 ==="
   aws s3 sync client/dist/ "s3://$FRONTEND_BUCKET/" \
