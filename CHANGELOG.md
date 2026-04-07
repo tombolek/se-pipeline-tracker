@@ -12,6 +12,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## 2026-04-07
 
 ### Added
+- **Weekly Pipeline Digest** (`/insights/weekly-digest`) — manager-facing summary of what changed in the last 7/14/30 days: new opportunities, stage progressions, stale deals, PoCs started/ended, at-risk deals (Red health score), and Closed Lost. Includes summary stat cards (ARR moved forward, ARR closed lost, net pipeline change). (Issue #68)
+
+---
+
+## 2026-04-07
+
+### Added
 - **Deal Health Score** — 0–100 computed score per opportunity based on five factors: MEDDPICC completeness, SE Comments freshness, note freshness, overdue task count, and time in current stage. Visible as a RAG dot + score in the pipeline list; hover for a factor breakdown tooltip; expand the health bar in the opportunity detail for the full breakdown. (Issue #65)
 - **At-risk only filter** — one-click button in the Pipeline filter bar to surface all Red (0–39) and Amber (40–69) deals.
 - **Backup & Restore** (Settings → Backup) — generate a full JSON snapshot of users, tasks, notes, and SE assignments; upload to a private S3 bucket (90-day retention); restore from any S3 backup or a local file with a preview step. (Issue #63)

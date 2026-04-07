@@ -494,6 +494,163 @@ A numbered list of 2-3 accounts or situations where the Agentic qualification mi
   res.json(ok({ summary, generated_at: new Date().toISOString(), count: rows.length }));
 });
 
+// GET /insights/weekly-digest?days=7|14|30
+router.get('/weekly-digest', auth, mgr, async (req: Request, res: Response): Promise<void> => {
+  const days = parseInt((req.query.days as string) ?? '7') || 7;
+
+  const [newOpps, stageProgressions, staleDeals, pocsStarted, pocsEnded, closedLost, atRiskCandidates] =
+    await Promise.all([
+      // New opportunities first seen within the window
+      query(
+        `SELECT o.id, o.name, o.account_name, o.arr, o.arr_currency, o.stage,
+                o.close_date, o.ae_owner_name, o.team,
+                u.id AS se_owner_id, u.name AS se_owner_name
+         FROM opportunities o
+         LEFT JOIN users u ON u.id = o.se_owner_id
+         WHERE o.is_active = true AND o.is_closed_lost = false
+           AND o.first_seen_at >= now() - ($1 || ' days')::interval
+         ORDER BY o.first_seen_at DESC`,
+        [days]
+      ),
+
+      // Stage progressions within the window
+      query(
+        `SELECT o.id, o.name, o.account_name, o.arr, o.arr_currency,
+                o.stage AS current_stage, o.previous_stage, o.stage_changed_at,
+                o.ae_owner_name, o.team,
+                u.id AS se_owner_id, u.name AS se_owner_name
+         FROM opportunities o
+         LEFT JOIN users u ON u.id = o.se_owner_id
+         WHERE o.stage_changed_at >= now() - ($1 || ' days')::interval
+           AND o.stage_changed_at IS NOT NULL
+           AND o.is_active = true AND o.is_closed_lost = false
+         ORDER BY o.stage_changed_at DESC`,
+        [days]
+      ),
+
+      // Stale deals: no notes and no task activity within the window
+      query(
+        `SELECT o.id, o.name, o.account_name, o.arr, o.arr_currency, o.stage,
+                o.ae_owner_name, o.team,
+                o.last_note_at,
+                EXTRACT(DAY FROM now() - GREATEST(o.last_note_at,
+                  (SELECT MAX(t.updated_at) FROM tasks t
+                   WHERE t.opportunity_id = o.id AND t.is_deleted = false)
+                ))::integer AS days_stale,
+                u.id AS se_owner_id, u.name AS se_owner_name
+         FROM opportunities o
+         LEFT JOIN users u ON u.id = o.se_owner_id
+         WHERE o.is_active = true AND o.is_closed_lost = false
+           AND o.stage NOT IN ('Qualify', 'Closed Won')
+           AND (o.last_note_at IS NULL OR o.last_note_at < now() - ($1 || ' days')::interval)
+           AND NOT EXISTS (
+             SELECT 1 FROM tasks t
+             WHERE t.opportunity_id = o.id
+               AND t.is_deleted = false
+               AND t.updated_at >= now() - ($1 || ' days')::interval
+           )
+         ORDER BY days_stale DESC NULLS LAST`,
+        [days]
+      ),
+
+      // PoCs started within the window
+      query(
+        `SELECT o.id, o.name, o.account_name, o.arr, o.arr_currency, o.stage,
+                o.poc_status, o.poc_start_date, o.poc_end_date, o.poc_type, o.team,
+                o.ae_owner_name,
+                u.id AS se_owner_id, u.name AS se_owner_name
+         FROM opportunities o
+         LEFT JOIN users u ON u.id = o.se_owner_id
+         WHERE o.is_active = true
+           AND o.poc_start_date >= (CURRENT_DATE - ($1 || ' days')::interval)::date
+           AND o.poc_start_date <= CURRENT_DATE
+         ORDER BY o.poc_start_date DESC`,
+        [days]
+      ),
+
+      // PoCs ended within the window
+      query(
+        `SELECT o.id, o.name, o.account_name, o.arr, o.arr_currency, o.stage,
+                o.poc_status, o.poc_start_date, o.poc_end_date, o.poc_type, o.team,
+                o.ae_owner_name,
+                u.id AS se_owner_id, u.name AS se_owner_name
+         FROM opportunities o
+         LEFT JOIN users u ON u.id = o.se_owner_id
+         WHERE o.is_active = true
+           AND o.poc_end_date >= (CURRENT_DATE - ($1 || ' days')::interval)::date
+           AND o.poc_end_date <= CURRENT_DATE
+         ORDER BY o.poc_end_date DESC`,
+        [days]
+      ),
+
+      // Closed Lost within the window (disappeared from import)
+      query(
+        `SELECT o.id, o.name, o.account_name, o.arr, o.arr_currency,
+                o.stage, o.previous_stage,
+                o.closed_at, o.ae_owner_name, o.team,
+                u.id AS se_owner_id, u.name AS se_owner_name
+         FROM opportunities o
+         LEFT JOIN users u ON u.id = o.se_owner_id
+         WHERE o.is_closed_lost = true
+           AND o.closed_at >= now() - ($1 || ' days')::interval
+         ORDER BY o.closed_at DESC`,
+        [days]
+      ),
+
+      // At-risk candidates: active opps with risk signals — health score computed client-side
+      query(
+        `SELECT o.id, o.name, o.account_name, o.arr, o.arr_currency, o.stage,
+                o.ae_owner_name, o.team,
+                o.metrics, o.economic_buyer, o.decision_criteria, o.decision_process,
+                o.paper_process, o.implicate_pain, o.champion, o.authority, o.need,
+                o.se_comments_updated_at, o.last_note_at, o.stage_changed_at,
+                o.overdue_task_count,
+                u.id AS se_owner_id, u.name AS se_owner_name
+         FROM opportunities o
+         LEFT JOIN users u ON u.id = o.se_owner_id
+         WHERE o.is_active = true AND o.is_closed_lost = false
+           AND o.stage NOT IN ('Qualify')
+           AND (
+             o.overdue_task_count > 0
+             OR o.se_comments_updated_at IS NULL
+             OR o.se_comments_updated_at < now() - interval '14 days'
+           )
+         ORDER BY o.overdue_task_count DESC NULLS LAST, o.se_comments_updated_at ASC NULLS FIRST`
+      ),
+    ]);
+
+  // Summary stats
+  const arrSum = (rows: Record<string, unknown>[]) =>
+    rows.reduce((s, r) => s + (parseFloat(String(r.arr ?? '0')) || 0), 0);
+
+  const arrMovedForward = arrSum(stageProgressions as Record<string, unknown>[]);
+  const arrClosedLost   = arrSum(closedLost as Record<string, unknown>[]);
+  const arrNew          = arrSum(newOpps as Record<string, unknown>[]);
+
+  const summary = {
+    arr_moved_forward:  arrMovedForward,
+    arr_closed_lost:    arrClosedLost,
+    net_pipeline_change: arrNew - arrClosedLost,
+    new_opp_count:      (newOpps as unknown[]).length,
+    stale_count:        (staleDeals as unknown[]).length,
+  };
+
+  res.json({
+    data: {
+      summary,
+      new_opps:            newOpps,
+      stage_progressions:  stageProgressions,
+      stale_deals:         staleDeals,
+      pocs_started:        pocsStarted,
+      pocs_ended:          pocsEnded,
+      closed_lost:         closedLost,
+      at_risk_candidates:  atRiskCandidates,
+    },
+    error: null,
+    meta: { days },
+  });
+});
+
 // GET /insights/calendar — POCs, RFPs with submission date, and tasks with due dates
 // Accessible to all authenticated users; managers see all data, SEs see their own.
 router.get('/calendar', auth, async (req: Request, res: Response): Promise<void> => {

@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Weekly Pipeline Digest — Preview</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    /* Ataccama brand tokens */
+    :root {
+      --purple:      #6A2CF5;
+      --purple-70:   #9C72F8;
+      --purple-30:   #DED0FD;
+      --pink:        #F10090;
+      --pink-30:     #FCC6E6;
+      --navy:        #1A0C42;
+      --navy-70:     #665D81;
+      --navy-30:     #CCC9D5;
+      --red:         #D94040;
+      --amber:       #C98A00;
+      --green:       #1A9E80;
+      --blue:        #2585C7;
+      --bg:          #F5F5F7;
+      --white:       #FFFFFF;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Poppins', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--navy);
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 220px;
+      min-width: 220px;
+      background: var(--navy);
+      display: flex;
+      flex-direction: column;
+      padding: 24px 0;
+      gap: 2px;
+    }
+    .sidebar-logo {
+      padding: 0 20px 20px;
+      font-size: 15px;
+      font-weight: 600;
+      color: #fff;
+      letter-spacing: -0.3px;
+    }
+    .sidebar-logo span { color: var(--purple-70); }
+    .sidebar-section {
+      padding: 6px 20px 3px;
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--navy-70);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .sidebar-item {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 8px 20px;
+      font-size: 13px;
+      font-weight: 400;
+      color: rgba(255,255,255,0.6);
+      cursor: pointer;
+      border-left: 2px solid transparent;
+      transition: background 0.12s;
+    }
+    .sidebar-item:hover { background: rgba(255,255,255,0.05); }
+    .sidebar-item.active {
+      color: #fff;
+      border-left-color: var(--purple-70);
+      background: rgba(106,44,245,0.15);
+      font-weight: 500;
+    }
+    .sidebar-item .dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--pink); margin-left: auto;
+    }
+
+    /* ── Main content ── */
+    .main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 32px 40px 48px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* ── Page header ── */
+    .page-header {
+      display: flex;
+      align-items: flex-end;
+      gap: 16px;
+    }
+    .page-header h1 {
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--navy);
+    }
+    .page-header p {
+      font-size: 13px;
+      color: var(--navy-70);
+      font-weight: 300;
+      margin-top: 2px;
+    }
+    .ml-auto { margin-left: auto; }
+    .range-btns {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .range-btn {
+      padding: 5px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      border: 1px solid var(--navy-30);
+      color: var(--navy-70);
+      background: var(--white);
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .range-btn.active {
+      background: var(--purple);
+      color: #fff;
+      border-color: var(--purple);
+    }
+    .generated-label {
+      font-size: 11px;
+      color: var(--navy-70);
+      font-weight: 300;
+      align-self: center;
+    }
+
+    /* ── Summary stat cards ── */
+    .stat-row {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+    }
+    .stat-card {
+      background: var(--white);
+      border: 1px solid rgba(204,201,213,0.5);
+      border-radius: 16px;
+      padding: 16px 18px;
+    }
+    .stat-card .label {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--navy-70);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      margin-bottom: 6px;
+    }
+    .stat-card .value {
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--navy);
+      line-height: 1.1;
+    }
+    .stat-card .sub {
+      font-size: 11px;
+      color: var(--navy-70);
+      font-weight: 300;
+      margin-top: 3px;
+    }
+    .value.green { color: var(--green); }
+    .value.red   { color: var(--red); }
+    .value.amber { color: var(--amber); }
+    .value.purple { color: var(--purple); }
+
+    /* ── Section card ── */
+    .section {
+      background: var(--white);
+      border: 1px solid rgba(204,201,213,0.5);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 20px;
+      border-bottom: 1px solid rgba(204,201,213,0.4);
+    }
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--navy);
+    }
+    .section-subtitle {
+      font-size: 12px;
+      font-weight: 300;
+      color: var(--navy-70);
+      margin-left: 4px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 20px;
+      height: 20px;
+      padding: 0 6px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .badge-purple { background: var(--purple-30); color: var(--purple); }
+    .badge-red    { background: #FDEAEA; color: var(--red); }
+    .badge-amber  { background: #FDF6E3; color: var(--amber); }
+    .badge-green  { background: #E3F7F3; color: var(--green); }
+    .badge-blue   { background: #E3F1FA; color: var(--blue); }
+
+    /* ── Tables ── */
+    table { width: 100%; border-collapse: collapse; }
+    thead tr { border-bottom: 1px solid rgba(204,201,213,0.4); }
+    th {
+      padding: 9px 16px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--navy-70);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+    td {
+      padding: 11px 16px;
+      font-size: 13px;
+      border-bottom: 1px solid rgba(204,201,213,0.2);
+    }
+    tr:last-child td { border-bottom: 0; }
+    tr:hover td { background: rgba(106,44,245,0.025); }
+    .td-name { font-weight: 500; color: var(--navy); }
+    .td-sub  { font-size: 11px; color: var(--navy-70); font-weight: 300; margin-top: 2px; }
+    .td-muted { color: var(--navy-70); font-size: 12px; }
+
+    /* ── Stage badge ── */
+    .stage {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
+    .stage-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+    }
+    .stage-qualify    { background: #F3F0FE; color: #7B5CE5; }
+    .stage-qualify    .stage-dot { background: #7B5CE5; }
+    .stage-develop    { background: #EEF6FF; color: #3B82F6; }
+    .stage-develop    .stage-dot { background: #3B82F6; }
+    .stage-build      { background: #E3F7F3; color: var(--green); }
+    .stage-build      .stage-dot { background: var(--green); }
+    .stage-proposal   { background: #FDF6E3; color: var(--amber); }
+    .stage-proposal   .stage-dot { background: var(--amber); }
+    .stage-submitted  { background: #FFF0E3; color: #C96300; }
+    .stage-submitted  .stage-dot { background: #C96300; }
+    .stage-negotiate  { background: #FDEAEA; color: var(--red); }
+    .stage-negotiate  .stage-dot { background: var(--red); }
+
+    /* ── Health badge ── */
+    .health {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
+    .health-dot { width: 6px; height: 6px; border-radius: 50%; }
+    .health-green  { background: #E3F7F3; color: var(--green); }
+    .health-green  .health-dot { background: var(--green); }
+    .health-amber  { background: #FDF6E3; color: var(--amber); }
+    .health-amber  .health-dot { background: var(--amber); }
+    .health-red    { background: #FDEAEA; color: var(--red); }
+    .health-red    .health-dot { background: var(--red); }
+
+    /* ── Arrow icon ── */
+    .arrow {
+      color: var(--navy-30);
+      font-size: 13px;
+      margin: 0 4px;
+    }
+
+    /* ── Two-column grid ── */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    /* ── PoC item ── */
+    .poc-item {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      padding: 12px 20px;
+      border-bottom: 1px solid rgba(204,201,213,0.2);
+    }
+    .poc-item:last-child { border-bottom: 0; }
+    .poc-row { display: flex; align-items: center; gap: 8px; }
+    .poc-type {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--blue);
+      background: #E3F1FA;
+      padding: 1px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* ── Closed Lost row accent ── */
+    .cl-row td:first-child { border-left: 2px solid var(--red); }
+
+    /* ── Staleness bar ── */
+    .stale-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--amber);
+      font-weight: 500;
+    }
+    .stale-bar-fill {
+      height: 4px;
+      border-radius: 2px;
+      background: var(--amber);
+      opacity: 0.6;
+    }
+
+    /* ── New opp accent ── */
+    .new-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--purple);
+      flex-shrink: 0;
+      margin-top: 3px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Sidebar ── -->
+<aside class="sidebar">
+  <div class="sidebar-logo">SE Pipeline<span> Tracker</span></div>
+
+  <div class="sidebar-item">Pipeline</div>
+  <div class="sidebar-item">Closed Lost <span class="dot"></span></div>
+  <div class="sidebar-item">My Tasks</div>
+  <div class="sidebar-item">Inbox</div>
+
+  <div class="sidebar-section" style="margin-top:12px">Insights</div>
+  <div class="sidebar-item active">Weekly Digest</div>
+  <div class="sidebar-item">Stage Movement</div>
+  <div class="sidebar-item">Missing Notes</div>
+  <div class="sidebar-item">Team Workload</div>
+  <div class="sidebar-item">Overdue Tasks</div>
+  <div class="sidebar-item">PoC Board</div>
+
+  <div class="sidebar-section" style="margin-top:12px">Manager</div>
+  <div class="sidebar-item">Settings</div>
+</aside>
+
+<!-- ── Main content ── -->
+<main class="main">
+
+  <!-- Page header -->
+  <div class="page-header">
+    <div>
+      <h1>Weekly Pipeline Digest</h1>
+      <p>What changed in the pipeline over the last 7 days &nbsp;·&nbsp; Mon 31 Mar – Sun 6 Apr 2026</p>
+    </div>
+    <div class="ml-auto" style="display:flex; align-items:center; gap:12px;">
+      <span class="generated-label">Generated Apr 7, 2026</span>
+      <div class="range-btns">
+        <button class="range-btn active">7d</button>
+        <button class="range-btn">14d</button>
+        <button class="range-btn">30d</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Summary stats -->
+  <div class="stat-row">
+    <div class="stat-card">
+      <div class="label">ARR Moved Forward</div>
+      <div class="value green">$1.24M</div>
+      <div class="sub">across 4 stage progressions</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">ARR Closed Lost</div>
+      <div class="value red">$320K</div>
+      <div class="sub">2 deals this week</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Net Pipeline Change</div>
+      <div class="value purple">+$540K</div>
+      <div class="sub">new minus closed lost</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">New Opportunities</div>
+      <div class="value" style="color:var(--navy)">3</div>
+      <div class="sub">added since last import</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Stale Deals</div>
+      <div class="value amber">5</div>
+      <div class="sub">no activity in 7+ days</div>
+    </div>
+  </div>
+
+  <!-- New Opportunities -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-title">New Opportunities</span>
+      <span class="badge badge-purple">3</span>
+      <span class="section-subtitle">Added since last import</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Opportunity</th>
+          <th>Stage</th>
+          <th>ARR</th>
+          <th>Close Date</th>
+          <th>SE Owner</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <div style="display:flex; align-items:flex-start; gap:8px;">
+              <div class="new-dot"></div>
+              <div>
+                <div class="td-name">Meridian Health Systems — Data Governance</div>
+                <div class="td-sub">Meridian Health &nbsp;·&nbsp; Enterprise</div>
+              </div>
+            </div>
+          </td>
+          <td><span class="stage stage-develop"><span class="stage-dot"></span>Develop Solution</span></td>
+          <td class="td-name">$180K</td>
+          <td class="td-muted">Jun 30, 2026</td>
+          <td class="td-muted">Sarah Chen</td>
+        </tr>
+        <tr>
+          <td>
+            <div style="display:flex; align-items:flex-start; gap:8px;">
+              <div class="new-dot"></div>
+              <div>
+                <div class="td-name">Pinnacle Financial — MDM Platform</div>
+                <div class="td-sub">Pinnacle Financial Partners &nbsp;·&nbsp; Commercial</div>
+              </div>
+            </div>
+          </td>
+          <td><span class="stage stage-qualify"><span class="stage-dot"></span>Qualify</span></td>
+          <td class="td-name">$95K</td>
+          <td class="td-muted">Jul 15, 2026</td>
+          <td class="td-muted"><span style="color:var(--amber)">Unassigned</span></td>
+        </tr>
+        <tr>
+          <td>
+            <div style="display:flex; align-items:flex-start; gap:8px;">
+              <div class="new-dot"></div>
+              <div>
+                <div class="td-name">Vantage Logistics — Data Quality Suite</div>
+                <div class="td-sub">Vantage Logistics Inc &nbsp;·&nbsp; Enterprise</div>
+              </div>
+            </div>
+          </td>
+          <td><span class="stage stage-build"><span class="stage-dot"></span>Build Value</span></td>
+          <td class="td-name">$265K</td>
+          <td class="td-muted">May 31, 2026</td>
+          <td class="td-muted">James Okafor</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Stage Progressions -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-title">Stage Progressions</span>
+      <span class="badge badge-green">4</span>
+      <span class="section-subtitle">Deals that advanced this week</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Opportunity</th>
+          <th>Stage Change</th>
+          <th>ARR</th>
+          <th>Moved</th>
+          <th>SE Owner</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <div class="td-name">CoreBank — Reference Data Management</div>
+            <div class="td-sub">CoreBank AG &nbsp;·&nbsp; Enterprise</div>
+          </td>
+          <td>
+            <div style="display:flex; align-items:center; gap:4px; flex-wrap:wrap;">
+              <span style="font-size:12px; color:var(--navy-70);">Build Value</span>
+              <span class="arrow">›</span>
+              <span class="stage stage-proposal"><span class="stage-dot"></span>Proposal Sent</span>
+            </div>
+          </td>
+          <td class="td-name">$440K</td>
+          <td class="td-muted">Apr 3, 2026</td>
+          <td class="td-muted">Sarah Chen</td>
+        </tr>
+        <tr>
+          <td>
+            <div class="td-name">TechNova Industries — Data Fabric</div>
+            <div class="td-sub">TechNova Industries &nbsp;·&nbsp; Commercial</div>
+          </td>
+          <td>
+            <div style="display:flex; align-items:center; gap:4px; flex-wrap:wrap;">
+              <span style="font-size:12px; color:var(--navy-70);">Develop Solution</span>
+              <span class="arrow">›</span>
+              <span class="stage stage-build"><span class="stage-dot"></span>Build Value</span>
+            </div>
+          </td>
+          <td class="td-name">$220K</td>
+          <td class="td-muted">Apr 2, 2026</td>
+          <td class="td-muted">Marcus Webb</td>
+        </tr>
+        <tr>
+          <td>
+            <div class="td-name">Orion Pharma — Regulatory MDM</div>
+            <div class="td-sub">Orion Pharma Group &nbsp;·&nbsp; Enterprise</div>
+          </td>
+          <td>
+            <div style="display:flex; align-items:center; gap:4px; flex-wrap:wrap;">
+              <span style="font-size:12px; color:var(--navy-70);">Proposal Sent</span>
+              <span class="arrow">›</span>
+              <span class="stage stage-submitted"><span class="stage-dot"></span>Submitted for Booking</span>
+            </div>
+          </td>
+          <td class="td-name">$380K</td>
+          <td class="td-muted">Apr 4, 2026</td>
+          <td class="td-muted">James Okafor</td>
+        </tr>
+        <tr>
+          <td>
+            <div class="td-name">Apex Retail Group — Customer 360</div>
+            <div class="td-sub">Apex Retail Group &nbsp;·&nbsp; Commercial</div>
+          </td>
+          <td>
+            <div style="display:flex; align-items:center; gap:4px; flex-wrap:wrap;">
+              <span style="font-size:12px; color:var(--navy-70);">Qualify</span>
+              <span class="arrow">›</span>
+              <span class="stage stage-develop"><span class="stage-dot"></span>Develop Solution</span>
+            </div>
+          </td>
+          <td class="td-name">$200K</td>
+          <td class="td-muted">Apr 5, 2026</td>
+          <td class="td-muted">Sarah Chen</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Stale Deals -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-title">Stale Deals</span>
+      <span class="badge badge-amber">5</span>
+      <span class="section-subtitle">No notes or task activity in 7+ days</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Opportunity</th>
+          <th>Stage</th>
+          <th>ARR</th>
+          <th>Last Activity</th>
+          <th>SE Owner</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <div class="td-name">BlueSky Telecom — Network MDM</div>
+            <div class="td-sub">BlueSky Telecom &nbsp;·&nbsp; Enterprise</div>
+          </td>
+          <td><span class="stage stage-build"><span class="stage-dot"></span>Build Value</span></td>
+          <td class="td-name">$310K</td>
+          <td>
+            <div class="stale-bar">
+              <div class="stale-bar-fill" style="width:56px"></div>
+              14 days ago
+            </div>
+          </td>
+          <td class="td-muted">Marcus Webb</td>
+        </tr>
+        <tr>
+          <td>
+            <div class="td-name">ClearPath Insurance — Policy MDM</div>
+            <div class="td-sub">ClearPath Insurance &nbsp;·&nbsp; Commercial</div>
+          </td>
+          <td><span class="stage stage-proposal"><span class="stage-dot"></span>Proposal Sent</span></td>
+          <td class="td-name">$175K</td>
+          <td>
+            <div class="stale-bar">
+              <div class="stale-bar-fill" style="width:44px"></div>
+              11 days ago
+            </div>
+          </td>
+          <td class="td-muted">James Okafor</td>
+        </tr>
+        <tr>
+          <td>
+            <div class="td-name">Delta Energy — Asset Data Quality</div>
+            <div class="td-sub">Delta Energy Corp &nbsp;·&nbsp; Enterprise</div>
+          </td>
+          <td><span class="stage stage-develop"><span class="stage-dot"></span>Develop Solution</span></td>
+          <td class="td-name">$420K</td>
+          <td>
+            <div class="stale-bar">
+              <div class="stale-bar-fill" style="width:36px"></div>
+              9 days ago
+            </div>
+          </td>
+          <td class="td-muted">Sarah Chen</td>
+        </tr>
+        <tr>
+          <td>
+            <div class="td-name">Fusion Retail — Product Data Hub</div>
+            <div class="td-sub">Fusion Retail Ltd &nbsp;·&nbsp; Commercial</div>
+          </td>
+          <td><span class="stage stage-build"><span class="stage-dot"></span>Build Value</span></td>
+          <td class="td-name">$145K</td>
+          <td>
+            <div class="stale-bar">
+              <div class="stale-bar-fill" style="width:32px"></div>
+              8 days ago
+            </div>
+          </td>
+          <td class="td-muted">Marcus Webb</td>
+        </tr>
+        <tr>
+          <td>
+            <div class="td-name">Horizon Bank — KYC Data Platform</div>
+            <div class="td-sub">Horizon Bank &nbsp;·&nbsp; Enterprise</div>
+          </td>
+          <td><span class="stage stage-negotiate"><span class="stage-dot"></span>Negotiate</span></td>
+          <td class="td-name">$580K</td>
+          <td>
+            <div class="stale-bar">
+              <div class="stale-bar-fill" style="width:30px"></div>
+              7 days ago
+            </div>
+          </td>
+          <td class="td-muted">James Okafor</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- PoCs Started & Ended — two column -->
+  <div class="two-col">
+    <div class="section">
+      <div class="section-header">
+        <span class="section-title">PoCs Started</span>
+        <span class="badge badge-blue">2</span>
+        <span class="section-subtitle">This week</span>
+      </div>
+      <div class="poc-item">
+        <div class="poc-row">
+          <div class="td-name" style="font-size:13px">CoreBank — Reference Data</div>
+          <span class="poc-type">On-prem</span>
+        </div>
+        <div style="font-size:11px; color:var(--navy-70); margin-top:3px;">
+          Started Apr 1 &nbsp;·&nbsp; Ends May 30 &nbsp;·&nbsp; <strong>Sarah Chen</strong>
+        </div>
+      </div>
+      <div class="poc-item">
+        <div class="poc-row">
+          <div class="td-name" style="font-size:13px">Vantage Logistics — Data Quality</div>
+          <span class="poc-type">SaaS</span>
+        </div>
+        <div style="font-size:11px; color:var(--navy-70); margin-top:3px;">
+          Started Apr 4 &nbsp;·&nbsp; Ends May 16 &nbsp;·&nbsp; <strong>James Okafor</strong>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <span class="section-title">PoCs Ended</span>
+        <span class="badge badge-green">1</span>
+        <span class="section-subtitle">This week</span>
+      </div>
+      <div class="poc-item">
+        <div class="poc-row">
+          <div class="td-name" style="font-size:13px">Orion Pharma — Regulatory MDM</div>
+          <span class="poc-type" style="background:#E3F7F3; color:var(--green)">Completed</span>
+        </div>
+        <div style="font-size:11px; color:var(--navy-70); margin-top:3px;">
+          Ended Apr 3 &nbsp;·&nbsp; Duration: 6 weeks &nbsp;·&nbsp; <strong>James Okafor</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- At-Risk Deals (health dropped to Red) -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-title">Deals Flagged At-Risk</span>
+      <span class="badge badge-red">2</span>
+      <span class="section-subtitle">Health score dropped to Red this week</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Opportunity</th>
+          <th>Stage</th>
+          <th>ARR</th>
+          <th>Health</th>
+          <th>Primary Risk Factor</th>
+          <th>SE Owner</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <div class="td-name">Horizon Bank — KYC Data Platform</div>
+            <div class="td-sub">Horizon Bank &nbsp;·&nbsp; Enterprise</div>
+          </td>
+          <td><span class="stage stage-negotiate"><span class="stage-dot"></span>Negotiate</span></td>
+          <td class="td-name">$580K</td>
+          <td><span class="health health-red"><span class="health-dot"></span>Red · 28</span></td>
+          <td style="font-size:12px; color:var(--red);">No SE notes in 34d, 3 overdue tasks</td>
+          <td class="td-muted">James Okafor</td>
+        </tr>
+        <tr>
+          <td>
+            <div class="td-name">BlueSky Telecom — Network MDM</div>
+            <div class="td-sub">BlueSky Telecom &nbsp;·&nbsp; Enterprise</div>
+          </td>
+          <td><span class="stage stage-build"><span class="stage-dot"></span>Build Value</span></td>
+          <td class="td-name">$310K</td>
+          <td><span class="health health-red"><span class="health-dot"></span>Red · 35</span></td>
+          <td style="font-size:12px; color:var(--red);">MEDDPICC incomplete, stale 14d</td>
+          <td class="td-muted">Marcus Webb</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Closed Lost -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-title">Closed Lost This Week</span>
+      <span class="badge badge-red">2</span>
+      <span class="section-subtitle">Deals that dropped from the pipeline</span>
+      <span style="margin-left:auto; font-size:11px; color:var(--navy-70); font-weight:300; display:flex; align-items:center; gap:4px;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Based on opps that disappeared from the SF import (open → gone). Closed Lost history not yet loaded directly.
+      </span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Opportunity</th>
+          <th>Stage When Closed</th>
+          <th>ARR</th>
+          <th>Closed</th>
+          <th>SE Owner</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="cl-row">
+          <td>
+            <div class="td-name">Westfield Media — Content MDM</div>
+            <div class="td-sub">Westfield Media Group &nbsp;·&nbsp; Commercial</div>
+          </td>
+          <td><span class="stage stage-proposal"><span class="stage-dot"></span>Proposal Sent</span></td>
+          <td style="font-size:13px; color:var(--red); font-weight:500;">$200K</td>
+          <td class="td-muted">Apr 2, 2026</td>
+          <td class="td-muted">Marcus Webb</td>
+        </tr>
+        <tr class="cl-row">
+          <td>
+            <div class="td-name">Summit Healthcare — Patient Data</div>
+            <div class="td-sub">Summit Healthcare &nbsp;·&nbsp; Enterprise</div>
+          </td>
+          <td><span class="stage stage-develop"><span class="stage-dot"></span>Develop Solution</span></td>
+          <td style="font-size:13px; color:var(--red); font-weight:500;">$120K</td>
+          <td class="td-muted">Apr 5, 2026</td>
+          <td class="td-muted">Sarah Chen</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</main>
+
+</body>
+</html>

@@ -12,6 +12,7 @@ import SeDealMappingPage from './insights/SeDealMappingPage';
 import ClosedLostStatsPage from './insights/ClosedLostStatsPage';
 import TechBlockersPage from './insights/TechBlockersPage';
 import AgenticQualPage from './insights/AgenticQualPage';
+import WeeklyDigestPage from './insights/WeeklyDigestPage';
 
 function ScopeBar() {
   const { user } = useAuthStore();
@@ -87,7 +88,8 @@ export default function InsightsPage() {
   }
 
   let content;
-  if (pathname.includes('team-workload')) content = <TeamWorkloadPage />;
+  if (pathname.includes('weekly-digest')) content = <WeeklyDigestPage />;
+  else if (pathname.includes('team-workload')) content = <TeamWorkloadPage />;
   else if (pathname.includes('overdue-tasks')) content = <OverdueTasksPage />;
   else if (pathname.includes('tech-blockers')) content = <TechBlockersPage />;
   else if (pathname.includes('agentic-qual')) content = <AgenticQualPage />;

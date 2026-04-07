@@ -9,6 +9,7 @@ export interface InsightsNavItem {
 const STORAGE_KEY = 'insights_nav_config';
 
 export const DEFAULT_INSIGHTS_NAV: InsightsNavItem[] = [
+  { id: 'weekly-digest',  label: 'Weekly Digest',  to: '/insights/weekly-digest',  icon: 'insight', visible: true },
   { id: 'stage-movement', label: 'Stage Movement', to: '/insights/stage-movement', icon: 'insight', visible: true },
   { id: 'missing-notes',  label: 'Missing Notes',  to: '/insights/missing-notes',  icon: 'insight', visible: true },
   { id: 'team-workload',  label: 'Team Workload',  to: '/insights/team-workload',  icon: 'insight', visible: true },
