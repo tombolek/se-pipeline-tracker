@@ -46,6 +46,7 @@ BACKUP_BUCKET=$(get_output BackupBucketName)
 APP_BACKUP_BUCKET=$(get_output AppBackupBucketName)
 DISTRIBUTION_ID=$(get_output DistributionId)
 APP_URL=$(get_output AppUrl)
+DEPLOY_SHA=$(git rev-parse HEAD)
 
 echo "  EC2 IP:  $INSTANCE_IP"
 echo "  App URL: $APP_URL"
@@ -157,6 +158,16 @@ if [ "$DEPLOY_SERVER" = true ]; then
   $SSH "grep -q '^APP_BACKUP_BUCKET=' /app/.env.prod && \
         sed -i 's|^APP_BACKUP_BUCKET=.*|APP_BACKUP_BUCKET=$APP_BACKUP_BUCKET|' /app/.env.prod || \
         echo 'APP_BACKUP_BUCKET=$APP_BACKUP_BUCKET' >> /app/.env.prod"
+  # Inject CDK-derived vars needed by the in-app deploy feature
+  $SSH "grep -q '^FRONTEND_BUCKET=' /app/.env.prod && \
+        sed -i 's|^FRONTEND_BUCKET=.*|FRONTEND_BUCKET=$FRONTEND_BUCKET|' /app/.env.prod || \
+        echo 'FRONTEND_BUCKET=$FRONTEND_BUCKET' >> /app/.env.prod"
+  $SSH "grep -q '^CF_DISTRIBUTION_ID=' /app/.env.prod && \
+        sed -i 's|^CF_DISTRIBUTION_ID=.*|CF_DISTRIBUTION_ID=$DISTRIBUTION_ID|' /app/.env.prod || \
+        echo 'CF_DISTRIBUTION_ID=$DISTRIBUTION_ID' >> /app/.env.prod"
+  $SSH "grep -q '^DEPLOY_SHA=' /app/.env.prod && \
+        sed -i 's|^DEPLOY_SHA=.*|DEPLOY_SHA=$DEPLOY_SHA|' /app/.env.prod || \
+        echo 'DEPLOY_SHA=$DEPLOY_SHA' >> /app/.env.prod"
   $SSH "chmod 600 /app/.env.prod"
 
   echo "=== Building server Docker image on EC2 ==="

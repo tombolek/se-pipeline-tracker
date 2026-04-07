@@ -35,6 +35,10 @@ services:
       AWS_REGION: ${AWS_REGION:-eu-west-1}
       APP_BACKUP_BUCKET: ${APP_BACKUP_BUCKET}
       BACKUP_BUCKET: ${BACKUP_BUCKET}
+      GITHUB_TOKEN: ${GITHUB_TOKEN}
+      FRONTEND_BUCKET: ${FRONTEND_BUCKET}
+      CF_DISTRIBUTION_ID: ${CF_DISTRIBUTION_ID}
+      DEPLOY_SHA: ${DEPLOY_SHA:-}
     depends_on:
       db:
         condition: service_healthy

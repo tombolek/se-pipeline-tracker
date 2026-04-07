@@ -81,6 +81,11 @@ export class SePipelineStack extends cdk.Stack {
     });
     backupBucket.grantWrite(role);
     appBackupBucket.grantReadWrite(role); // read for download/restore, write for create
+    frontendBucket.grantReadWrite(role);  // in-app deploy: upload rebuilt frontend
+    role.addToPolicy(new iam.PolicyStatement({
+      actions: ['cloudfront:CreateInvalidation'],
+      resources: ['*'],
+    }));
 
     // ── 6. SSH key pair ────────────────────────────────────────────────────────
     // CDK creates the key pair and stores the private key in SSM Parameter Store

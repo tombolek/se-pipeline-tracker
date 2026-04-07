@@ -14,6 +14,7 @@ import inboxRoutes from './routes/inbox.js';
 import usersRoutes from './routes/users.js';
 import auditRoutes from './routes/audit.js';
 import backupRoutes from './routes/backup.js';
+import deployRoutes from './routes/deploy.js';
 import { query } from './db/index.js';
 
 const app = express();
@@ -35,6 +36,7 @@ app.use('/api/v1/inbox', inboxRoutes);
 app.use('/api/v1/users', usersRoutes);
 app.use('/api/v1/audit', auditRoutes);
 app.use('/api/v1/backup', backupRoutes);
+app.use('/api/v1/deploy', deployRoutes);
 
 // Retention cleanup — purge rows older than 180 days on startup
 query(`DELETE FROM events    WHERE timestamp < now() - interval '180 days'`).catch(() => {});
