@@ -165,10 +165,10 @@ function TaskCreatedCard({ event }: { event: TimelineEvent }) {
         <span className={`text-[10px] font-semibold px-2 py-0.5 rounded ${statusColors[status] ?? 'bg-gray-100 text-gray-600'}`}>
           {status.replace('_', ' ')}
         </span>
-        {event.payload.is_next_step && (
+        {Boolean(event.payload.is_next_step) && (
           <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-yellow-50 text-yellow-700">Next Step</span>
         )}
-        {event.payload.assigned_to && (
+        {(event.payload.assigned_to as string | null) && (
           <span className="text-xs text-brand-navy-70 font-light">{event.payload.assigned_to as string}</span>
         )}
       </div>
@@ -184,7 +184,7 @@ function TaskCompletedCard({ event }: { event: TimelineEvent }) {
         <span className="text-xs font-light text-brand-navy-70">{relativeTime(event.timestamp)}</span>
       </div>
       <p className="text-sm font-medium text-brand-navy line-through opacity-60">{event.payload.title as string}</p>
-      {event.payload.assigned_to && (
+      {(event.payload.assigned_to as string | null) && (
         <p className="text-xs text-brand-navy-70 font-light mt-0.5">{event.payload.assigned_to as string}</p>
       )}
     </div>
