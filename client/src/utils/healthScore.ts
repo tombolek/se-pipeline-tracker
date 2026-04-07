@@ -77,18 +77,17 @@ export function computeHealthScore(opp: Opportunity): HealthScore {
     deducted += seCommentsDeduction;
   }
 
-  // ── 3. Note freshness (max -20) ─────────────────────────────────────────────
+  // ── 3. Note freshness (max -5) ──────────────────────────────────────────────
+  // Low-weight signal — note absence alone is a minor concern; overdue tasks
+  // are the primary negative indicator (see dimension 4).
   const noteDays = daysSince(opp.last_note_at);
   let noteDeduction = 0;
   let noteDetail = '';
   if (noteDays === null) {
-    noteDeduction = 20;
+    noteDeduction = 5;
     noteDetail = 'No notes added';
-  } else if (noteDays > 30) {
-    noteDeduction = 20;
-    noteDetail = `Last note ${noteDays}d ago`;
-  } else if (noteDays > 14) {
-    noteDeduction = 10;
+  } else if (noteDays > 60) {
+    noteDeduction = 3;
     noteDetail = `Last note ${noteDays}d ago`;
   }
   if (noteDeduction > 0) {
@@ -100,9 +99,11 @@ export function computeHealthScore(opp: Opportunity): HealthScore {
     deducted += noteDeduction;
   }
 
-  // ── 4. Overdue tasks (max -20) ──────────────────────────────────────────────
+  // ── 4. Overdue tasks (max -35) ──────────────────────────────────────────────
+  // Primary negative signal — each unresolved overdue task is a strong indicator
+  // of deal risk or neglect.
   const overdue = opp.overdue_task_count ?? 0;
-  const overdueDeduction = Math.min(overdue * 5, 20);
+  const overdueDeduction = Math.min(overdue * 10, 35);
   if (overdueDeduction > 0) {
     factors.push({
       label: 'Overdue tasks',
