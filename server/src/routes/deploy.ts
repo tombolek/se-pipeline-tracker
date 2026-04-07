@@ -4,6 +4,7 @@ import { requireAuth, requireManager } from '../middleware/auth.js';
 import { AuthenticatedRequest, ok, err } from '../types/index.js';
 import {
   getVersionStatus,
+  getLatestSha,
   isDeployRunning,
   runDeploy,
 } from '../services/deployService.js';
@@ -68,6 +69,32 @@ router.get('/log/:id', auth, mgr, async (req: Request, res: Response): Promise<v
 
   if (rows.length === 0) { res.status(404).json(err('Log not found')); return; }
   res.json(ok(rows[0]));
+});
+
+// ── GET /commits — recent GitHub commit history ───────────────────────────────
+router.get('/commits', auth, mgr, async (_req: Request, res: Response): Promise<void> => {
+  const token = process.env.GITHUB_TOKEN;
+  if (!token) { res.status(503).json(err('GITHUB_TOKEN not configured')); return; }
+
+  const apiRes = await fetch(
+    'https://api.github.com/repos/tombolek/se-pipeline-tracker/commits?per_page=20',
+    { headers: { Authorization: `Bearer ${token}`, 'User-Agent': 'se-pipeline-tracker', Accept: 'application/vnd.github.v3+json' } },
+  );
+  if (!apiRes.ok) { res.status(502).json(err(`GitHub API ${apiRes.status}`)); return; }
+
+  const raw = await apiRes.json() as Array<{
+    sha: string;
+    commit: { message: string; author: { date: string; name: string } };
+  }>;
+
+  const commits = raw.map(c => ({
+    sha:     c.sha,
+    message: c.commit.message.split('\n')[0],   // first line only
+    author:  c.commit.author.name,
+    date:    c.commit.author.date,
+  }));
+
+  res.json(ok(commits));
 });
 
 export default router;

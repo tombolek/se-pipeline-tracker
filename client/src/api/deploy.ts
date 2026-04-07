@@ -36,3 +36,15 @@ export async function getDeployLog(id: number): Promise<DeployLogEntry> {
   const { data } = await api.get<ApiResponse<DeployLogEntry>>(`/deploy/log/${id}`);
   return data.data!;
 }
+
+export interface CommitEntry {
+  sha:     string;
+  message: string;
+  author:  string;
+  date:    string;
+}
+
+export async function getCommits(): Promise<CommitEntry[]> {
+  const { data } = await api.get<ApiResponse<CommitEntry[]>>('/deploy/commits');
+  return data.data!;
+}
