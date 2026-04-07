@@ -55,7 +55,11 @@ export class SePipelineStack extends cdk.Stack {
       bucketName: `se-pipeline-app-backups-${this.account}`,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       encryption: s3.BucketEncryption.S3_MANAGED,
-      lifecycleRules: [{ expiration: cdk.Duration.days(90) }],
+      versioned: true, // deletions are recoverable; prior versions survive overwrites
+      lifecycleRules: [
+        { expiration: cdk.Duration.days(90) },                        // current versions expire after 90d
+        { noncurrentVersionExpiration: cdk.Duration.days(30) },       // old versions cleaned up after 30d
+      ],
       removalPolicy: cdk.RemovalPolicy.RETAIN,
     });
 
