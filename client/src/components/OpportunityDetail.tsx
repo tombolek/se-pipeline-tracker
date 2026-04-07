@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { track } from '../hooks/useTracking';
 import type { Opportunity, Task, Note, User } from '../types';
 import { getOpportunity, assignSeOwner } from '../api/opportunities';
@@ -129,29 +129,7 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
   const [showAddTask, setShowAddTask] = useState(false);
   const [assigningOwner, setAssigningOwner] = useState(false);
 
-  // Resizable right panel
-  const [rightWidth, setRightWidth] = useState(224); // 224px = w-56
-  const dragRef = useRef<{ startX: number; startWidth: number } | null>(null);
-
-  function onDragStart(e: React.MouseEvent) {
-    e.preventDefault();
-    dragRef.current = { startX: e.clientX, startWidth: rightWidth };
-    document.addEventListener('mousemove', onDragMove);
-    document.addEventListener('mouseup', onDragEnd);
-  }
-
-  function onDragMove(e: MouseEvent) {
-    if (!dragRef.current) return;
-    const delta = dragRef.current.startX - e.clientX;
-    const next = Math.min(480, Math.max(160, dragRef.current.startWidth + delta));
-    setRightWidth(next);
-  }
-
-  function onDragEnd() {
-    dragRef.current = null;
-    document.removeEventListener('mousemove', onDragMove);
-    document.removeEventListener('mouseup', onDragEnd);
-  }
+  const [showAllFields, setShowAllFields] = useState(false);
   const [summary, setSummary] = useState<string | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
 
@@ -248,8 +226,8 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
   return (
     <div className="flex-1 flex min-h-0 overflow-hidden bg-[#F5F5F7]">
 
-      {/* ── Left: working area ── */}
-      <div className="flex-1 min-w-0 overflow-y-auto px-6 py-5 space-y-6">
+      {/* ── Left: working area (max 50%) ── */}
+      <div className="w-1/2 flex-shrink-0 min-w-0 overflow-y-auto px-6 py-5 space-y-6">
 
         {/* Header */}
         <div>
@@ -396,15 +374,8 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
 
       </div>
 
-      {/* ── Drag handle ── */}
-      <div
-        onMouseDown={onDragStart}
-        className="w-1 flex-shrink-0 bg-brand-navy-30/40 hover:bg-brand-purple cursor-col-resize transition-colors relative group"
-        title="Drag to resize"
-      />
-
-      {/* ── Right: SF info panel ── */}
-      <div className="flex-shrink-0 border-l-0 overflow-y-auto bg-white px-4 py-4" style={{ width: rightWidth }}>
+      {/* ── Right: SF info panel (flex-1, gets majority of space) ── */}
+      <div className="flex-1 min-w-0 overflow-y-auto bg-white border-l border-brand-navy-30/30 px-4 py-4">
         <a
           href={`https://ataccama.lightning.force.com/lightning/r/Opportunity/${opp.sf_opportunity_id}/view`}
           target="_blank"
@@ -427,7 +398,31 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
           <FieldRow label="Record Type" value={opp.record_type} />
           <FieldRow label="Deploy" value={opp.deploy_mode} />
           <FieldRow label="PoC Status" value={opp.poc_status} />
+          <FieldRow label="RFx Status" value={opp.rfx_status} />
           <FieldRow label="Competitors" value={opp.engaged_competitors} />
+        </div>
+
+        {/* See all fields */}
+        <div className="mb-3">
+          <button
+            onClick={() => setShowAllFields(v => !v)}
+            className="flex items-center gap-1.5 text-[11px] text-brand-navy-70 hover:text-brand-navy transition-colors"
+          >
+            <svg className={`w-3 h-3 transition-transform ${showAllFields ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+            {showAllFields ? 'Hide all fields' : 'See all fields'}
+          </button>
+          {showAllFields && opp.sf_raw_fields && (
+            <div className="mt-2 border border-brand-navy-30/40 rounded-lg overflow-hidden">
+              {Object.entries(opp.sf_raw_fields).map(([key, val]) => (
+                <div key={key} className="flex justify-between gap-2 px-3 py-1.5 text-xs border-b border-brand-navy-30/20 last:border-0 even:bg-gray-50/60">
+                  <span className="text-brand-navy-70 flex-shrink-0 max-w-[45%]">{key}</span>
+                  <span className="text-brand-navy font-medium text-right break-words">{val === null || val === undefined || val === '' ? '—' : String(val)}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="space-y-0 border-t border-brand-navy-30/50 pt-2">
