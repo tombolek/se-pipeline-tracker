@@ -733,6 +733,28 @@ After CDK deploy, always run a full or server-only deploy so EC2's `.env.prod` p
 - **Never skip the `export PATH="$HOME/bin:$PATH"` prefix** in WSL commands — non-interactive WSL shells don't load `~/.bashrc`, so `aws` won't be found otherwise
 - **No GitHub Actions, no webhooks** — there is intentionally no automated CI. Commit → push → deploy manually.
 
+### Changelog
+
+`CHANGELOG.md` in the repo root must be updated with every user-facing change — add the entry in the same commit as the feature. This keeps docs updates cheap: future README/HowTo updates only require reading the changelog rather than reconstructing history from commits.
+
+**What to include:** new features, behaviour changes, removals. Skip pure bug fixes, TS errors, deploy script tweaks, and refactors that don't change what the user sees.
+
+**Format:**
+```markdown
+## YYYY-MM-DD
+
+### Added
+- Short description of the feature — one line is enough. (Issue #N if applicable)
+
+### Changed
+- What changed and why, if the old behaviour was intentional.
+
+### Removed
+- What was removed.
+```
+
+Add new entries at the top, under `## [Unreleased]` if the date isn't known yet, or directly under a dated heading.
+
 ### After any validated feature
 
 Always commit, push, and deploy without being asked. The sequence is:
