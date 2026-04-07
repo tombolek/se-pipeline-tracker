@@ -73,7 +73,7 @@ router.post('/', auth, mgr, async (req: Request, res: Response): Promise<void> =
     ContentType: 'application/json',
   }));
 
-  await logAudit({
+  await logAudit(req, {
     userId: actor.userId, userRole: actor.role,
     action: 'BACKUP_CREATED', resourceType: 'backup',
     resourceId: s3Key, resourceName: s3Key,
@@ -290,7 +290,7 @@ router.post('/restore', auth, mgr, async (req: Request, res: Response): Promise<
     await client.end();
   }
 
-  await logAudit({
+  await logAudit(req, {
     userId: actor.userId, userRole: actor.role,
     action: 'BACKUP_RESTORED', resourceType: 'backup',
     resourceId: req.body.s3_key ?? 'file-upload', resourceName: 'restore',
