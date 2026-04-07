@@ -500,7 +500,10 @@ router.get('/weekly-digest', auth, mgr, async (req: Request, res: Response): Pro
 
   const [newOpps, stageProgressions, staleDeals, pocsStarted, pocsEnded, closedLost, atRiskCandidates] =
     await Promise.all([
-      // New opportunities first seen within the window
+      // New qualified opportunities: opps that entered Build Value within the window.
+      // Covers two cases: (a) progressed TO Build Value (stage_changed_at in window),
+      // (b) first appeared in the import already at Build Value (first_seen_at in window,
+      // no stage_changed_at yet).
       query(
         `SELECT o.id, o.name, o.account_name, o.arr, o.arr_currency, o.stage,
                 o.close_date, o.ae_owner_name, o.team,
@@ -508,8 +511,12 @@ router.get('/weekly-digest', auth, mgr, async (req: Request, res: Response): Pro
          FROM opportunities o
          LEFT JOIN users u ON u.id = o.se_owner_id
          WHERE o.is_active = true AND o.is_closed_lost = false
-           AND o.first_seen_at >= now() - ($1 || ' days')::interval
-         ORDER BY o.first_seen_at DESC`,
+           AND o.stage = 'Build Value'
+           AND (
+             o.stage_changed_at >= now() - ($1 || ' days')::interval
+             OR (o.first_seen_at >= now() - ($1 || ' days')::interval AND o.stage_changed_at IS NULL)
+           )
+         ORDER BY COALESCE(o.stage_changed_at, o.first_seen_at) DESC`,
         [days]
       ),
 
@@ -528,12 +535,15 @@ router.get('/weekly-digest', auth, mgr, async (req: Request, res: Response): Pro
         [days]
       ),
 
-      // Stale deals: no notes and no task activity within the window
+      // Stale deals: no in-app notes, no task activity, AND no SE comments update within the window.
+      // Any one of these signals being fresh makes the deal not stale.
       query(
         `SELECT o.id, o.name, o.account_name, o.arr, o.arr_currency, o.stage,
                 o.ae_owner_name, o.team,
-                o.last_note_at,
-                EXTRACT(DAY FROM now() - GREATEST(o.last_note_at,
+                o.last_note_at, o.se_comments_updated_at,
+                EXTRACT(DAY FROM now() - GREATEST(
+                  o.last_note_at,
+                  o.se_comments_updated_at,
                   (SELECT MAX(t.updated_at) FROM tasks t
                    WHERE t.opportunity_id = o.id AND t.is_deleted = false)
                 ))::integer AS days_stale,
@@ -543,6 +553,7 @@ router.get('/weekly-digest', auth, mgr, async (req: Request, res: Response): Pro
          WHERE o.is_active = true AND o.is_closed_lost = false
            AND o.stage NOT IN ('Qualify', 'Closed Won')
            AND (o.last_note_at IS NULL OR o.last_note_at < now() - ($1 || ' days')::interval)
+           AND (o.se_comments_updated_at IS NULL OR o.se_comments_updated_at < now() - ($1 || ' days')::interval)
            AND NOT EXISTS (
              SELECT 1 FROM tasks t
              WHERE t.opportunity_id = o.id

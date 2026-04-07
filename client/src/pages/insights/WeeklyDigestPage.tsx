@@ -227,8 +227,8 @@ export default function WeeklyDigestPage() {
           { label: 'ARR Moved Forward', value: formatARRNum(arrMovedForward), sub: `${stageProgressions.length} progressions`, color: 'text-status-success' },
           { label: 'ARR Closed Lost',   value: formatARRNum(-arrClosedLost),  sub: `${closedLost.length} deals`,             color: 'text-status-overdue' },
           { label: 'Net Pipeline',      value: formatARRNum(netChange),       sub: 'new minus closed lost',                  color: netChange >= 0 ? 'text-brand-purple' : 'text-status-overdue' },
-          { label: 'New Opportunities', value: String(newOpps.length),        sub: 'added this period',                      color: 'text-brand-navy' },
-          { label: 'Stale Deals',       value: String(staleDeals.length),     sub: `no activity in ${days}d+`,               color: 'text-status-warning' },
+          { label: 'New Qualified',      value: String(newOpps.length),        sub: 'entered Build Value',                    color: 'text-brand-navy' },
+          { label: 'Stale Deals',       value: String(staleDeals.length),     sub: `no notes, tasks or SE comments in ${days}d+`, color: 'text-status-warning' },
         ].map(s => (
           <div key={s.label} className="bg-white rounded-2xl border border-brand-navy-30/40 px-4 py-4">
             <p className="text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide mb-1.5">{s.label}</p>
@@ -238,12 +238,12 @@ export default function WeeklyDigestPage() {
         ))}
       </div>
 
-      {/* New Opportunities */}
+      {/* New Qualified Opportunities */}
       <SectionCard>
         <SectionHeader>
-          <span className="text-sm font-semibold text-brand-navy">New Opportunities</span>
+          <span className="text-sm font-semibold text-brand-navy">New Qualified Opportunities</span>
           <Badge count={newOpps.length} variant="purple" />
-          <span className="text-xs text-brand-navy-70 font-light">Added since last import</span>
+          <span className="text-xs text-brand-navy-70 font-light">Entered Build Value this period</span>
         </SectionHeader>
         {newOpps.length === 0 ? <Empty /> : (
           <table className="w-full">
@@ -278,7 +278,7 @@ export default function WeeklyDigestPage() {
         <SectionHeader>
           <span className="text-sm font-semibold text-brand-navy">Stage Progressions</span>
           <Badge count={stageProgressions.length} variant="green" />
-          <span className="text-xs text-brand-navy-70 font-light">Deals that advanced this period</span>
+          <span className="text-xs text-brand-navy-70 font-light">Any stage movement this period</span>
         </SectionHeader>
         {stageProgressions.length === 0 ? <Empty /> : (
           <table className="w-full">
@@ -313,7 +313,7 @@ export default function WeeklyDigestPage() {
         <SectionHeader>
           <span className="text-sm font-semibold text-brand-navy">Stale Deals</span>
           <Badge count={staleDeals.length} variant="amber" />
-          <span className="text-xs text-brand-navy-70 font-light">No notes or task activity in {days}+ days</span>
+          <span className="text-xs text-brand-navy-70 font-light">No notes, tasks, or SE comments update in {days}+ days</span>
         </SectionHeader>
         {staleDeals.length === 0 ? <Empty /> : (
           <table className="w-full">
