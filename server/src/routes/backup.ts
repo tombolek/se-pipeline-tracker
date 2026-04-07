@@ -77,7 +77,7 @@ router.post('/', auth, mgr, async (req: Request, res: Response): Promise<void> =
     userId: actor.userId, userRole: actor.role,
     action: 'BACKUP_CREATED', resourceType: 'backup',
     resourceId: s3Key, resourceName: s3Key,
-    afterValue: { users: users.length, tasks: tasks.length, notes: notes.length },
+    after: { users: users.length, tasks: tasks.length, notes: notes.length },
     success: true,
   });
 
@@ -294,7 +294,7 @@ router.post('/restore', auth, mgr, async (req: Request, res: Response): Promise<
     userId: actor.userId, userRole: actor.role,
     action: 'BACKUP_RESTORED', resourceType: 'backup',
     resourceId: req.body.s3_key ?? 'file-upload', resourceName: 'restore',
-    afterValue: { usersProcessed, tasksRestored, tasksSkipped, notesRestored, assignmentsProcessed },
+    after: { usersProcessed, tasksRestored, tasksSkipped, notesRestored, assignmentsProcessed },
     success: true,
   });
 
