@@ -663,7 +663,86 @@ Because everything runs in Docker Compose, cloud migration is a container lift-a
 
 ---
 
-## 13. Future Roadmap (Out of Scope for v1)
+## 13. Build & Deploy Process
+
+> **This is a manual deploy — there is no CI/CD pipeline.** Deploys are triggered by running a shell script from WSL.
+
+### Environment
+
+- Developer machine: **Windows + WSL2 (Ubuntu)**
+- AWS CLI is installed on **Windows** (`C:\Program Files\Amazon\AWSCLIV2\aws.exe`), symlinked into WSL at `~/bin/aws`
+- All deploy commands must be run **inside WSL** with the symlink on PATH
+
+### How to deploy
+
+Always run from WSL, not PowerShell or CMD:
+
+```bash
+# Full deploy (frontend + server) — use when server code changed
+wsl -e bash -ic 'export PATH="$HOME/bin:$PATH" && cd /mnt/c/claude/buddy/se-pipeline-tracker && bash scripts/deploy.sh'
+
+# Frontend only — use for UI/client-only changes (faster, ~60s)
+wsl -e bash -ic 'export PATH="$HOME/bin:$PATH" && cd /mnt/c/claude/buddy/se-pipeline-tracker && bash scripts/deploy.sh --frontend-only'
+
+# Server only — use when only server/src changed (skips Vite build + S3 upload)
+wsl -e bash -ic 'export PATH="$HOME/bin:$PATH" && cd /mnt/c/claude/buddy/se-pipeline-tracker && bash scripts/deploy.sh --server-only'
+```
+
+### What the script does
+
+**Frontend path** (`--frontend-only` or full):
+1. Reads CloudFormation outputs (bucket name, CloudFront distribution ID, EC2 IP) via `aws cloudformation describe-stacks`
+2. SCPs `client/src` + config files to EC2 (`/app/client/`)
+3. Runs `npm ci && npm run build` inside a `node:20-alpine` Docker container on EC2 (avoids WSL/Windows node_modules platform mismatch)
+4. Downloads the built `dist/` back to the local machine
+5. Syncs `dist/` to the S3 frontend bucket with `--delete`
+6. Submits a CloudFront `/*` cache invalidation
+
+**Server path** (`--server-only` or full):
+1. SCPs `server/src`, `server/migrations`, `package*.json`, `tsconfig.json`, `Dockerfile` to EC2 (`/app/server/`)
+2. SCPs `docker-compose.prod.yml` and `scripts/backup.sh` to EC2
+3. SCPs `.env.prod.local` to EC2 as `/app/.env.prod`, then appends `BACKUP_BUCKET` and `APP_BACKUP_BUCKET` from CDK outputs (these are never in `.env.prod.local`)
+4. Runs `docker compose build server` on EC2 (compiles TypeScript inside the container)
+5. Runs `docker compose up -d` — only the server container is recreated; DB container is left running
+
+### Infrastructure changes (CDK)
+
+When `infra/lib/stack.ts` is modified (new bucket, new IAM permission, new output, etc.):
+
+```bash
+wsl -e bash -ic 'export PATH="$HOME/bin:$PATH" && cd /mnt/c/claude/buddy/se-pipeline-tracker/infra && npx cdk deploy --require-approval never'
+```
+
+After CDK deploy, always run a full or server-only deploy so EC2's `.env.prod` picks up any new CloudFormation outputs.
+
+### Key files
+
+| File | Purpose |
+|------|---------|
+| `scripts/deploy.sh` | The only deploy script — all three modes |
+| `.env.prod.local` | Production secrets (never committed). Copy from `.env.example` |
+| `infra/lib/stack.ts` | CDK stack — EC2, S3 buckets, CloudFront, IAM role |
+| `docker-compose.prod.yml` | Production compose (server + postgres) |
+| `client/.env.production` | Vite env — sets `VITE_API_URL=/api/v1` for production build |
+
+### What NOT to do
+
+- **Never use `preview_*` tools or start a local dev server** — the app is deployed to AWS/CloudFront; local preview tools don't apply
+- **Never run `deploy.sh` from PowerShell or CMD** — use WSL only
+- **Never run `npm install` on Windows** for the client — the `rolldown` native binding is platform-specific; it must be installed in WSL (`wsl -e bash -ic 'cd /mnt/c/... && npm install'`)
+- **Never skip the `export PATH="$HOME/bin:$PATH"` prefix** in WSL commands — non-interactive WSL shells don't load `~/.bashrc`, so `aws` won't be found otherwise
+- **No GitHub Actions, no webhooks** — there is intentionally no automated CI. Commit → push → deploy manually.
+
+### After any validated feature
+
+Always commit, push, and deploy without being asked. The sequence is:
+1. `git add <files> && git commit -m "..."`
+2. `git push origin master`
+3. Run the appropriate deploy command above (frontend-only if only client changed, full if server changed)
+
+---
+
+## 14. Future Roadmap (Out of Scope for v1)
 
 Keep these in mind so v1 architecture doesn't accidentally block them:
 
