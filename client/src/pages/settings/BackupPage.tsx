@@ -105,7 +105,7 @@ export default function BackupPage() {
   const [restoreResult, setRestoreResult] = useState<RestoreResult | null>(null);
 
   // file upload
-  const [fileBackup, setFileBackup]     = useState<unknown | null>(null);
+  const [fileBackup, setFileBackup]     = useState<Record<string, unknown> | null>(null);
   const [fileError, setFileError]       = useState<string | null>(null);
   const fileRef                         = useRef<HTMLInputElement>(null);
 
