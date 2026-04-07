@@ -19,11 +19,13 @@ interface PocOpp {
   poc_start_date: string | null;
   poc_end_date: string | null;
   poc_type: string | null;
+  poc_deploy_type: string | null;
   ae_owner_name: string | null;
   team: string | null;
   se_owner_id: number | null;
   se_owner_name: string | null;
   is_closed_lost: boolean;
+  days_remaining: number | null;
 }
 
 const COLUMNS = ['Identified', 'In Deployment', 'In Progress', 'Wrapping Up'] as const;
@@ -50,6 +52,14 @@ function initials(name: string | null) {
 function isOverdueOpp(opp: PocOpp) {
   if (!opp.poc_end_date || opp.is_closed_lost) return false;
   return new Date(opp.poc_end_date) < new Date();
+}
+
+function DaysRemaining({ days, overdue }: { days: number | null; overdue: boolean }) {
+  if (overdue) return <span className="text-[10px] font-bold bg-status-overdue/10 text-status-overdue px-1.5 py-0.5 rounded">OVERDUE</span>;
+  if (days === null) return <span className="text-brand-navy-30">—</span>;
+  if (days === 0) return <span className="text-[10px] font-semibold text-status-overdue">Due today</span>;
+  if (days <= 7) return <span className="text-[10px] font-semibold text-status-warning">{days}d left</span>;
+  return <span className="text-[10px] text-brand-navy-70">{days}d left</span>;
 }
 
 // ── Full card ─────────────────────────────────────────────────────────────────
@@ -83,14 +93,20 @@ function PocCardFull({ opp, onClick }: { opp: PocOpp; onClick: () => void }) {
           <span className="text-brand-navy-30 font-medium w-9 flex-shrink-0">Start</span>
           <span className="text-brand-navy-70">{formatDate(opp.poc_start_date) ?? '—'}</span>
         </div>
-        <div className={`flex items-center gap-1.5 text-[11px] ${overdue ? 'text-status-overdue font-semibold' : ''}`}>
-          <span className={`font-medium w-9 flex-shrink-0 ${overdue ? 'text-status-overdue' : 'text-brand-navy-30'}`}>End</span>
-          <span className={overdue ? 'text-status-overdue' : 'text-brand-navy-70'}>{formatDate(opp.poc_end_date) ?? '—'}</span>
-          {overdue && <span className="ml-1 text-[9px] font-bold bg-status-overdue/10 text-status-overdue px-1 rounded">OVERDUE</span>}
+        <div className="flex items-center gap-1.5 text-[11px]">
+          <span className="text-brand-navy-30 font-medium w-9 flex-shrink-0">End</span>
+          <span className={overdue ? 'text-status-overdue font-semibold' : 'text-brand-navy-70'}>{formatDate(opp.poc_end_date) ?? '—'}</span>
+        </div>
+        <div className="flex items-center gap-1.5 text-[11px]">
+          <span className="text-brand-navy-30 font-medium w-9 flex-shrink-0">Left</span>
+          <DaysRemaining days={opp.days_remaining} overdue={overdue} />
         </div>
         <div className="flex items-center justify-between pt-0.5">
           <span className="text-[11px] text-brand-navy-70 font-medium">{formatARR(opp.arr)}</span>
-          {opp.poc_type && <span className="text-[10px] text-brand-navy-30 truncate max-w-[120px]">{opp.poc_type}</span>}
+          <div className="flex flex-col items-end gap-0.5 min-w-0">
+            {opp.poc_type && <span className="text-[10px] text-brand-navy-30 truncate max-w-[120px]">{opp.poc_type}</span>}
+            {opp.poc_deploy_type && <span className="text-[10px] text-brand-navy-30 truncate max-w-[120px]">{opp.poc_deploy_type}</span>}
+          </div>
         </div>
       </div>
     </div>
@@ -120,11 +136,11 @@ function PocCardCompact({ opp, expanded, onToggleExpand, onClick }: {
             </svg>
           </button>
         </div>
-        {/* Row 2: end date + SE initials */}
+        {/* Row 2: days remaining + SE initials */}
         <div className="flex items-center gap-2 mt-0.5">
-          <div className={`flex items-center gap-1 text-[10px] flex-1 ${overdue ? 'text-status-overdue font-semibold' : 'text-brand-navy-70'}`}>
+          <div className="flex items-center gap-1.5 text-[10px] flex-1 text-brand-navy-70">
             <span>{formatDate(opp.poc_end_date) ?? '—'}</span>
-            {overdue && <span className="text-[8px] font-bold bg-status-overdue/10 text-status-overdue px-1 rounded">OVR</span>}
+            <DaysRemaining days={opp.days_remaining} overdue={overdue} />
           </div>
           <div className="w-5 h-5 rounded-full bg-brand-purple flex-shrink-0 flex items-center justify-center text-[8px] font-bold text-white">
             {initials(opp.se_owner_name)}
@@ -149,7 +165,10 @@ function PocCardCompact({ opp, expanded, onToggleExpand, onClick }: {
           </div>
           <div className="flex items-center justify-between pt-0.5">
             <span className="text-[11px] text-brand-navy-70 font-medium">{formatARR(opp.arr)}</span>
-            {opp.poc_type && <span className="text-[10px] text-brand-navy-30 truncate max-w-[120px]">{opp.poc_type}</span>}
+            <div className="flex flex-col items-end gap-0.5 min-w-0">
+              {opp.poc_type && <span className="text-[10px] text-brand-navy-30 truncate max-w-[120px]">{opp.poc_type}</span>}
+              {opp.poc_deploy_type && <span className="text-[10px] text-brand-navy-30 truncate max-w-[120px]">{opp.poc_deploy_type}</span>}
+            </div>
           </div>
         </div>
       )}
@@ -203,6 +222,9 @@ export default function PocBoardPage() {
   const [hideEmpty, setHideEmpty]     = useState(true);   // default ON
   const [compact, setCompact]         = useState(false);
   const [expandedCards, setExpandedCards] = useState<Set<number>>(new Set());
+  const [filterSe, setFilterSe]             = useState('');
+  const [filterPocType, setFilterPocType]   = useState('');
+  const [filterDeployType, setFilterDeployType] = useState('');
 
   useEffect(() => {
     api.get<ApiResponse<PocOpp[]>>('/insights/poc')
@@ -227,18 +249,32 @@ export default function PocBoardPage() {
     : [];
   const outOfTerritoryTeams = [...new Set(outOfTerritoryItems.map(o => o.team))].sort();
 
+  // Derive filter options from scoped data
+  const seOptions = [...new Set(scopedOpps.map(o => o.se_owner_name).filter(Boolean))].sort() as string[];
+  const pocTypeOptions = [...new Set(scopedOpps.map(o => o.poc_type).filter(Boolean))].sort() as string[];
+  const deployTypeOptions = [...new Set(scopedOpps.map(o => o.poc_deploy_type).filter(Boolean))].sort() as string[];
+
+  // Apply filters
+  const filteredOpps = scopedOpps.filter(o =>
+    (!filterSe || o.se_owner_name === filterSe) &&
+    (!filterPocType || o.poc_type === filterPocType) &&
+    (!filterDeployType || o.poc_deploy_type === filterDeployType)
+  );
+
+  const filtersActive = !!(filterSe || filterPocType || filterDeployType);
+
   // Group into known columns only; unrecognised statuses are silently dropped
   const knownSet = new Set<string>(COLUMNS);
   const grouped: Record<string, PocOpp[]> = {};
   for (const col of COLUMNS) grouped[col] = [];
-  for (const opp of scopedOpps) {
+  for (const opp of filteredOpps) {
     if (knownSet.has(opp.poc_status)) grouped[opp.poc_status].push(opp);
   }
 
   const visibleCols = hideEmpty ? COLUMNS.filter(col => grouped[col].length > 0) : [...COLUMNS];
 
-  const activeCount = scopedOpps.filter(o => !o.is_closed_lost).length;
-  const closedCount = scopedOpps.filter(o => o.is_closed_lost).length;
+  const activeCount = filteredOpps.filter(o => !o.is_closed_lost).length;
+  const closedCount = filteredOpps.filter(o => o.is_closed_lost).length;
 
   if (loading) return <div className="flex items-center justify-center h-full text-sm text-brand-navy-70">Loading…</div>;
   if (error)   return <div className="px-8 py-6 text-sm text-status-overdue">{error}</div>;
@@ -313,7 +349,46 @@ export default function PocBoardPage() {
           </button>
         </div>
 
-        {/* Row 3: out-of-territory banner (only when applicable) */}
+        {/* Row 3: filters */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <select
+            value={filterSe}
+            onChange={e => setFilterSe(e.target.value)}
+            className="text-xs border border-brand-navy-30 rounded-lg px-2.5 py-1.5 text-brand-navy bg-white focus:outline-none focus:border-brand-purple"
+          >
+            <option value="">All SEs</option>
+            {seOptions.map(se => <option key={se} value={se}>{se}</option>)}
+          </select>
+
+          <select
+            value={filterPocType}
+            onChange={e => setFilterPocType(e.target.value)}
+            className="text-xs border border-brand-navy-30 rounded-lg px-2.5 py-1.5 text-brand-navy bg-white focus:outline-none focus:border-brand-purple"
+          >
+            <option value="">All PoC Types</option>
+            {pocTypeOptions.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+
+          <select
+            value={filterDeployType}
+            onChange={e => setFilterDeployType(e.target.value)}
+            className="text-xs border border-brand-navy-30 rounded-lg px-2.5 py-1.5 text-brand-navy bg-white focus:outline-none focus:border-brand-purple"
+          >
+            <option value="">All Deploy Types</option>
+            {deployTypeOptions.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+
+          {filtersActive && (
+            <button
+              onClick={() => { setFilterSe(''); setFilterPocType(''); setFilterDeployType(''); }}
+              className="text-xs text-brand-pink hover:text-brand-pink-70 font-medium transition-colors"
+            >
+              Clear filters
+            </button>
+          )}
+        </div>
+
+        {/* Row 4: out-of-territory banner (only when applicable) */}
         {outOfTerritoryTeams.length > 0 && <OutOfTerritoryBanner teams={outOfTerritoryTeams} items={outOfTerritoryItems} />}
       </div>
 

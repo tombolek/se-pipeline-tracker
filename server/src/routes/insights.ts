@@ -177,15 +177,22 @@ router.get('/poc', auth, mgr, async (_req: Request, res: Response): Promise<void
   const rows = await query(
     `SELECT
        o.id, o.name, o.account_name, o.stage, o.arr, o.arr_currency,
-       o.poc_status, o.poc_start_date, o.poc_end_date, o.poc_type,
+       o.poc_status, o.poc_start_date, o.poc_end_date, o.poc_type, o.poc_deploy_type,
        o.ae_owner_name, o.team,
        o.is_closed_lost,
        u.id   AS se_owner_id,
-       u.name AS se_owner_name
+       u.name AS se_owner_name,
+       CASE
+         WHEN o.poc_end_date IS NULL THEN NULL
+         ELSE (o.poc_end_date::date - CURRENT_DATE)
+       END AS days_remaining
      FROM opportunities o
      LEFT JOIN users u ON u.id = o.se_owner_id
      WHERE o.poc_status IS NOT NULL AND o.poc_status != '' AND o.is_active = true
-     ORDER BY o.poc_start_date ASC NULLS LAST, o.name ASC`
+     ORDER BY
+       CASE WHEN o.poc_end_date IS NULL THEN 2 ELSE 1 END ASC,
+       (o.poc_end_date::date - CURRENT_DATE) ASC,
+       o.name ASC`
   );
 
   res.json(ok(rows));
