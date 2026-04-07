@@ -17,6 +17,28 @@ function fmtDate(iso: string | null | undefined) {
   });
 }
 
+const SCOPE_STYLES: Record<string, string> = {
+  'fe':     'bg-blue-100 text-blue-700',
+  'be':     'bg-orange-100 text-orange-700',
+  'fe+be':  'bg-brand-pink-30 text-brand-pink',
+  'infra':  'bg-gray-100 text-gray-600',
+};
+
+function parseScope(message: string): string | null {
+  const m = message.match(/\[(\w[^\]]*)\]/);
+  return m ? m[1].toLowerCase() : null;
+}
+
+function ScopeBadge({ message }: { message: string }) {
+  const scope = parseScope(message);
+  if (!scope || !SCOPE_STYLES[scope]) return null;
+  return (
+    <span className={`text-[10px] font-semibold rounded px-1.5 py-px flex-shrink-0 mt-px ${SCOPE_STYLES[scope]}`}>
+      {scope}
+    </span>
+  );
+}
+
 function fmtCommitDate(iso: string) {
   const d = new Date(iso);
   const now = new Date();
@@ -259,10 +281,11 @@ export default function DeployPage() {
               const isDeployed = deployedSha && c.sha.startsWith(deployedSha);
               return (
                 <div key={c.sha} className={`px-4 py-3 ${isDeployed ? 'bg-brand-purple-30/40' : ''}`}>
-                  <div className="flex items-start gap-2">
+                  <div className="flex items-start gap-1.5 flex-wrap">
                     <code className="text-[11px] font-mono text-brand-navy-70 mt-0.5 flex-shrink-0">
                       {c.sha.slice(0, 7)}
                     </code>
+                    <ScopeBadge message={c.message} />
                     {isDeployed && (
                       <span className="text-[10px] font-semibold bg-brand-purple text-white rounded px-1.5 py-px flex-shrink-0 mt-px">
                         deployed
