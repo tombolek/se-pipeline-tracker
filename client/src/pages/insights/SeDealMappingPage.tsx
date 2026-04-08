@@ -44,23 +44,12 @@ function SeAssignSelect({
   onAssigned: (oppId: number, se: { id: number; name: string; email: string } | null) => void;
 }) {
   const [saving, setSaving] = useState(false);
+  const [pendingSeId, setPendingSeId] = useState<number | null>(null);
   const { effectiveTeamNames } = useTeamScope();
 
-  async function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    e.stopPropagation();
-    const val = e.target.value;
-    const newSeId = val === '' ? null : parseInt(val);
-
-    // Out-of-territory confirmation when self-assigning to a deal outside the user's teams
-    if (newSeId === currentUser.id && effectiveTeamNames.size > 0 && opp.team && !effectiveTeamNames.has(opp.team)) {
-      const territories = [...effectiveTeamNames].join(', ');
-      const confirmed = window.confirm(
-        `This deal belongs to "${opp.team}", which is outside your territory (${territories}).\n\nAssign it to yourself anyway?`
-      );
-      if (!confirmed) return;
-    }
-
+  async function doAssign(newSeId: number | null) {
     setSaving(true);
+    setPendingSeId(null);
     try {
       await api.patch(`/opportunities/${opp.id}`, { se_owner_id: newSeId });
       const newSe = newSeId ? (ses.find(s => s.id === newSeId) ?? null) : null;
@@ -72,28 +61,75 @@ function SeAssignSelect({
     }
   }
 
+  async function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    e.stopPropagation();
+    const val = e.target.value;
+    const newSeId = val === '' ? null : parseInt(val);
+
+    // Out-of-territory: show inline confirmation instead of browser dialog
+    if (newSeId === currentUser.id && effectiveTeamNames.size > 0 && opp.team && !effectiveTeamNames.has(opp.team)) {
+      setPendingSeId(newSeId);
+      return;
+    }
+
+    await doAssign(newSeId);
+  }
+
   const isManager = currentUser.role === 'manager';
   const currentlyOwns = opp.se_owner?.id === currentUser.id;
   const visibleSes = isManager || currentlyOwns ? ses : ses.filter(s => s.id === currentUser.id);
   const canUnassign = isManager || currentlyOwns;
+  const territories = [...effectiveTeamNames].join(', ');
 
   return (
-    <select
-      value={opp.se_owner?.id ?? ''}
-      onChange={handleChange}
-      onClick={e => e.stopPropagation()}
-      disabled={saving}
-      className={`text-xs rounded-lg border px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-purple transition-colors disabled:opacity-50 ${
-        opp.se_owner
-          ? 'border-brand-navy-30 text-brand-navy bg-white'
-          : 'border-status-warning text-status-warning bg-status-warning/10 font-medium'
-      }`}
-    >
-      {canUnassign && <option value="">Unassigned</option>}
-      {visibleSes.map(se => (
-        <option key={se.id} value={se.id}>{se.name}</option>
-      ))}
-    </select>
+    <div className="relative" onClick={e => e.stopPropagation()}>
+      <select
+        value={opp.se_owner?.id ?? ''}
+        onChange={handleChange}
+        onClick={e => e.stopPropagation()}
+        disabled={saving}
+        className={`text-xs rounded-lg border px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-purple transition-colors disabled:opacity-50 ${
+          opp.se_owner
+            ? 'border-brand-navy-30 text-brand-navy bg-white'
+            : 'border-status-warning text-status-warning bg-status-warning/10 font-medium'
+        }`}
+      >
+        {canUnassign && <option value="">Unassigned</option>}
+        {visibleSes.map(se => (
+          <option key={se.id} value={se.id}>{se.name}</option>
+        ))}
+      </select>
+
+      {/* Out-of-territory inline confirmation bubble */}
+      {pendingSeId !== null && (
+        <div className="absolute left-0 top-full mt-1.5 z-50 w-64 bg-white border border-status-warning/40 rounded-xl shadow-lg p-3">
+          <div className="flex items-start gap-2 mb-2.5">
+            <svg className="w-3.5 h-3.5 text-status-warning mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+            </svg>
+            <p className="text-[11.5px] text-brand-navy leading-relaxed">
+              <span className="font-medium">"{opp.team}"</span> is outside your territory
+              {territories && <span className="text-brand-navy-70"> ({territories})</span>}.
+              Assign to yourself anyway?
+            </p>
+          </div>
+          <div className="flex gap-1.5">
+            <button
+              onClick={() => doAssign(pendingSeId)}
+              className="flex-1 text-[11px] font-medium bg-status-warning/10 text-status-warning border border-status-warning/30 rounded-lg px-2 py-1 hover:bg-status-warning/20 transition-colors"
+            >
+              Assign anyway
+            </button>
+            <button
+              onClick={() => setPendingSeId(null)}
+              className="flex-1 text-[11px] font-medium bg-white text-brand-navy-70 border border-brand-navy-30 rounded-lg px-2 py-1 hover:bg-gray-50 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
