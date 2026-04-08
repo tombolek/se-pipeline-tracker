@@ -351,9 +351,9 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
                 )}
               </div>
               <p className="text-sm text-brand-navy-70 mt-0.5">{opp.account_name ?? '—'}</p>
-              <div className="flex items-start gap-2 mt-2">
-                <div className="flex-1 min-w-0"><HealthScoreBar opp={opp} /></div>
-                <div className="flex-1 min-w-0"><MeddpiccBar opp={opp} /></div>
+              <div className="flex flex-col gap-2 mt-2">
+                <HealthScoreBar opp={opp} />
+                <MeddpiccBar opp={opp} />
               </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
