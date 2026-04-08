@@ -241,10 +241,15 @@ export default function MeetingNotesModal({ opp, onClose, onRefresh }: Props) {
     if (!blockersConfirmed && editedBlockers.some(b => b.trim())) work.push(handleConfirmBlockers);
     if (!nextStepConfirmed && editedNextStep.trim()) work.push(handleConfirmNextStep);
     setBusySection('all');
-    try { await Promise.all(work.map(fn => fn())); } finally { setBusySection(null); }
+    try { await Promise.all(work.map(fn => fn())); } finally { setBusySection(null); onClose(); }
   }
 
-  const allConfirmed = tasksConfirmed && meddpiccConfirmed && commentCopied && blockersConfirmed && nextStepConfirmed;
+  const allConfirmed =
+    (tasksConfirmed    || editedTasks.length === 0) &&
+    (meddpiccConfirmed || !result?.meddpicc_updates.length) &&
+    (commentCopied     || !editedComment) &&
+    (blockersConfirmed || editedBlockers.length === 0) &&
+    (nextStepConfirmed || !editedNextStep);
 
   // ── Render ──────────────────────────────────────────────────────────────────
   // Rendered via portal so that `position:fixed` escapes the Drawer's CSS
