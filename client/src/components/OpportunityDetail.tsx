@@ -148,21 +148,24 @@ function MeddpiccBar({ opp }: { opp: Opportunity }) {
       </button>
 
       {expanded && (
-        <div className="mt-2 pt-2 border-t border-white/40 space-y-1">
-          {fields.map(f => (
-            <div key={f.key as string} className="flex items-center gap-2">
-              <span className="text-[11px] w-3.5 text-center flex-shrink-0">{QUALITY_ICON[f.quality]}</span>
-              <span className={`text-xs flex-shrink-0 w-32 ${f.quality === 'empty' ? 'text-brand-navy-30 italic' : 'text-brand-navy font-medium'}`}>{f.label}</span>
-              {f.quality !== 'empty' && (
-                <span className="text-[11px] text-brand-navy-70 truncate max-w-[160px]">
-                  {(opp[f.key] as string | null)?.slice(0, 60)}{((opp[f.key] as string)?.length ?? 0) > 60 ? '…' : ''}
-                </span>
-              )}
-              {f.quality === 'weak' && (
-                <span className="ml-auto text-[10px] text-status-warning flex-shrink-0">short</span>
-              )}
-            </div>
-          ))}
+        <div className="mt-2 pt-2 border-t border-white/40">
+          <div className="bg-white/70 rounded-lg px-2.5 py-2 space-y-1.5">
+            {fields.map(f => {
+              const val = opp[f.key] as string | null;
+              return (
+                <div key={f.key as string} className="flex items-center gap-2">
+                  <span className="text-[11px] w-3.5 text-center flex-shrink-0">{QUALITY_ICON[f.quality]}</span>
+                  <span className={`text-[11px] font-medium flex-shrink-0 w-28 ${f.quality === 'empty' ? 'text-brand-navy-70' : 'text-brand-navy'}`}>{f.label}</span>
+                  <span className="text-[11px] text-brand-navy-70 truncate flex-1">
+                    {f.quality === 'empty' ? '—' : val?.slice(0, 55) + ((val?.length ?? 0) > 55 ? '…' : '')}
+                  </span>
+                  {f.quality === 'weak' && (
+                    <span className="text-[10px] text-status-warning font-medium flex-shrink-0">short</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
@@ -350,9 +353,9 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
                 )}
               </div>
               <p className="text-sm text-brand-navy-70 mt-0.5">{opp.account_name ?? '—'}</p>
-              <div className="space-y-2 mt-2">
-                <HealthScoreBar opp={opp} />
-                <MeddpiccBar opp={opp} />
+              <div className="flex gap-2 mt-2">
+                <div className="flex-1 min-w-0"><HealthScoreBar opp={opp} /></div>
+                <div className="flex-1 min-w-0"><MeddpiccBar opp={opp} /></div>
               </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
