@@ -791,6 +791,7 @@ router.post('/:id/process-notes', auth, async (req: Request, res: Response): Pro
   if (!raw_notes?.trim()) { res.status(400).json(err('raw_notes is required')); return; }
 
   const userId = (req as AuthenticatedRequest).user!.userId;
+  console.log(`[process-notes] START opp=${id} user=${userId}`);
 
   try {
 
@@ -858,21 +859,24 @@ Rules:
 - tech_blockers: ONLY technical/integration blockers — unvalidated connector or API support, missing product capabilities, infrastructure or security constraints, required technical information not yet obtained. Exclude business risks, timeline pressure, NDA/legal/commercial items. Return empty array if none.
 - next_step: single sentence — the most important next SE action to move toward the technical win.`;
 
+  console.log(`[process-notes] calling Claude API, prompt length=${prompt.length} chars`);
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   const response = await client.messages.create({
     model: 'claude-sonnet-4-6',
-    max_tokens: 1400,
+    max_tokens: 2048,
     messages: [{ role: 'user', content: prompt }],
   });
 
   const textBlock = response.content.find(b => b.type === 'text');
   const rawJson = (textBlock && textBlock.type === 'text' ? textBlock.text : '{}').trim()
     .replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+  console.log(`[process-notes] Claude raw response (first 500 chars): ${rawJson.slice(0, 500)}`);
 
   let parsed: Record<string, unknown>;
   try {
     parsed = JSON.parse(rawJson);
-  } catch {
+  } catch (parseErr) {
+    console.error('[process-notes] JSON parse failed:', parseErr, '\nRaw:', rawJson);
     res.status(500).json(err('Failed to parse Claude response — try again'));
     return;
   }
