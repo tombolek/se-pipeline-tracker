@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import api from '../../api/client';
 import type { Opportunity } from '../../types';
 import StageBadge from '../../components/shared/StageBadge';
@@ -88,18 +88,36 @@ function Badge({ count, variant }: { count: number; variant: 'purple' | 'red' | 
   );
 }
 
-function SectionCard({ children }: { children: React.ReactNode }) {
+const COLLAPSE_THRESHOLD = 10;
+
+function CollapsibleSection({ count, header, children }: {
+  count: number;
+  header: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  const collapsible = count > COLLAPSE_THRESHOLD;
+  const [open, setOpen] = useState(!collapsible);
+  const bodyRef = useRef<HTMLDivElement>(null);
+
   return (
     <div className="bg-white rounded-2xl border border-brand-navy-30/40 overflow-hidden">
-      {children}
-    </div>
-  );
-}
-
-function SectionHeader({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex items-center gap-2 px-5 py-3 border-b border-brand-navy-30/40">
-      {children}
+      <div
+        className={`flex items-center gap-2 px-5 py-3 border-b border-brand-navy-30/40 ${collapsible ? 'cursor-pointer select-none hover:bg-gray-50' : ''}`}
+        onClick={collapsible ? () => setOpen(o => !o) : undefined}
+      >
+        {header}
+        {collapsible && (
+          <svg
+            className={`ml-auto w-4 h-4 text-brand-navy-70 flex-shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+            fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        )}
+      </div>
+      {(!collapsible || open) && (
+        <div ref={bodyRef}>{children}</div>
+      )}
     </div>
   );
 }
@@ -239,12 +257,11 @@ export default function WeeklyDigestPage() {
       </div>
 
       {/* New Qualified Opportunities */}
-      <SectionCard>
-        <SectionHeader>
-          <span className="text-sm font-semibold text-brand-navy">New Qualified Opportunities</span>
-          <Badge count={newOpps.length} variant="purple" />
-          <span className="text-xs text-brand-navy-70 font-light">Entered Build Value this period</span>
-        </SectionHeader>
+      <CollapsibleSection count={newOpps.length} header={<>
+        <span className="text-sm font-semibold text-brand-navy">New Qualified Opportunities</span>
+        <Badge count={newOpps.length} variant="purple" />
+        <span className="text-xs text-brand-navy-70 font-light">Entered Build Value this period</span>
+      </>}>
         {newOpps.length === 0 ? <Empty /> : (
           <table className="w-full">
             <thead className="border-b border-brand-navy-30/40">
@@ -271,15 +288,14 @@ export default function WeeklyDigestPage() {
             </tbody>
           </table>
         )}
-      </SectionCard>
+      </CollapsibleSection>
 
       {/* Stage Progressions */}
-      <SectionCard>
-        <SectionHeader>
-          <span className="text-sm font-semibold text-brand-navy">Stage Progressions</span>
-          <Badge count={stageProgressions.length} variant="green" />
-          <span className="text-xs text-brand-navy-70 font-light">Any stage movement this period</span>
-        </SectionHeader>
+      <CollapsibleSection count={stageProgressions.length} header={<>
+        <span className="text-sm font-semibold text-brand-navy">Stage Progressions</span>
+        <Badge count={stageProgressions.length} variant="green" />
+        <span className="text-xs text-brand-navy-70 font-light">Any stage movement this period</span>
+      </>}>
         {stageProgressions.length === 0 ? <Empty /> : (
           <table className="w-full">
             <thead className="border-b border-brand-navy-30/40">
@@ -306,15 +322,14 @@ export default function WeeklyDigestPage() {
             </tbody>
           </table>
         )}
-      </SectionCard>
+      </CollapsibleSection>
 
       {/* Stale Deals */}
-      <SectionCard>
-        <SectionHeader>
-          <span className="text-sm font-semibold text-brand-navy">Stale Deals</span>
-          <Badge count={staleDeals.length} variant="amber" />
-          <span className="text-xs text-brand-navy-70 font-light">No notes, tasks, or SE comments update in {days}+ days</span>
-        </SectionHeader>
+      <CollapsibleSection count={staleDeals.length} header={<>
+        <span className="text-sm font-semibold text-brand-navy">Stale Deals</span>
+        <Badge count={staleDeals.length} variant="amber" />
+        <span className="text-xs text-brand-navy-70 font-light">No notes, tasks, or SE comments update in {days}+ days</span>
+      </>}>
         {staleDeals.length === 0 ? <Empty /> : (
           <table className="w-full">
             <thead className="border-b border-brand-navy-30/40">
@@ -337,16 +352,15 @@ export default function WeeklyDigestPage() {
             </tbody>
           </table>
         )}
-      </SectionCard>
+      </CollapsibleSection>
 
       {/* PoCs Started + Ended — two columns */}
       <div className="grid grid-cols-2 gap-4">
-        <SectionCard>
-          <SectionHeader>
-            <span className="text-sm font-semibold text-brand-navy">PoCs Started</span>
-            <Badge count={pocsStarted.length} variant="blue" />
-            <span className="text-xs text-brand-navy-70 font-light">This period</span>
-          </SectionHeader>
+        <CollapsibleSection count={pocsStarted.length} header={<>
+          <span className="text-sm font-semibold text-brand-navy">PoCs Started</span>
+          <Badge count={pocsStarted.length} variant="blue" />
+          <span className="text-xs text-brand-navy-70 font-light">This period</span>
+        </>}>
           {pocsStarted.length === 0 ? <Empty /> : pocsStarted.map(r => (
             <div key={r.id} className="px-5 py-3 border-b border-brand-navy-30/20 last:border-0">
               <div className="flex items-center gap-2">
@@ -365,14 +379,13 @@ export default function WeeklyDigestPage() {
               </p>
             </div>
           ))}
-        </SectionCard>
+        </CollapsibleSection>
 
-        <SectionCard>
-          <SectionHeader>
-            <span className="text-sm font-semibold text-brand-navy">PoCs Ended</span>
-            <Badge count={pocsEnded.length} variant="green" />
-            <span className="text-xs text-brand-navy-70 font-light">This period</span>
-          </SectionHeader>
+        <CollapsibleSection count={pocsEnded.length} header={<>
+          <span className="text-sm font-semibold text-brand-navy">PoCs Ended</span>
+          <Badge count={pocsEnded.length} variant="green" />
+          <span className="text-xs text-brand-navy-70 font-light">This period</span>
+        </>}>
           {pocsEnded.length === 0 ? <Empty /> : pocsEnded.map(r => (
             <div key={r.id} className="px-5 py-3 border-b border-brand-navy-30/20 last:border-0">
               <div className="flex items-center gap-2">
@@ -389,16 +402,15 @@ export default function WeeklyDigestPage() {
               </p>
             </div>
           ))}
-        </SectionCard>
+        </CollapsibleSection>
       </div>
 
       {/* At-Risk Deals */}
-      <SectionCard>
-        <SectionHeader>
-          <span className="text-sm font-semibold text-brand-navy">Deals Flagged At-Risk</span>
-          <Badge count={atRiskDeals.length} variant="red" />
-          <span className="text-xs text-brand-navy-70 font-light">Currently Red health score</span>
-        </SectionHeader>
+      <CollapsibleSection count={atRiskDeals.length} header={<>
+        <span className="text-sm font-semibold text-brand-navy">Deals Flagged At-Risk</span>
+        <Badge count={atRiskDeals.length} variant="red" />
+        <span className="text-xs text-brand-navy-70 font-light">Currently Red health score</span>
+      </>}>
         {atRiskDeals.length === 0 ? <Empty /> : (
           <table className="w-full">
             <thead className="border-b border-brand-navy-30/40">
@@ -426,18 +438,17 @@ export default function WeeklyDigestPage() {
             </tbody>
           </table>
         )}
-      </SectionCard>
+      </CollapsibleSection>
 
       {/* Closed Lost */}
-      <SectionCard>
-        <SectionHeader>
-          <span className="text-sm font-semibold text-brand-navy">Closed Lost This Period</span>
-          <Badge count={closedLost.length} variant="red" />
-          <span className="text-xs text-brand-navy-70 font-light">Deals that dropped from the pipeline</span>
-          <InfoNote>
-            Based on opps that disappeared from the SF import (open → gone). Closed Lost history not loaded directly.
-          </InfoNote>
-        </SectionHeader>
+      <CollapsibleSection count={closedLost.length} header={<>
+        <span className="text-sm font-semibold text-brand-navy">Closed Lost This Period</span>
+        <Badge count={closedLost.length} variant="red" />
+        <span className="text-xs text-brand-navy-70 font-light">Deals that dropped from the pipeline</span>
+        <InfoNote>
+          Based on opps that disappeared from the SF import (open → gone). Closed Lost history not loaded directly.
+        </InfoNote>
+      </>}>
         {closedLost.length === 0 ? <Empty /> : (
           <table className="w-full">
             <thead className="border-b border-brand-navy-30/40">
