@@ -13,6 +13,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Added
 - **Meeting Notes Processor** (`Process Call Notes` button in Opportunity Detail) — paste raw call notes (plus an optional source URL to a Notion page, Slack canvas, or any link) and Claude extracts: tasks ready to add to the opportunity, MEDDPICC field updates, a draft SE comment (1–2 sentences focused on SE progress and evaluation risks), technical blockers, and a suggested next step. Each section is independently reviewable and confirmable. Raw notes are auto-saved as a note immediately. Source URL is stored on the note for future reference. (Issue #80)
+- **Nightly scheduled backup** — server automatically creates a full JSON backup at 02:00 UTC (9 PM EST) every night and uploads it to S3. Appears in Administration → Backup with "scheduled" as the creator, restorable like any manual backup.
+
+### Changed
+- **Administration menu** — Audit log moved inside the Administration section (previously a standalone sidebar item).
+- **Backup restore error handling** — restore failures now return a clear error message instead of crashing silently.
 
 ---
 

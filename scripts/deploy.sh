@@ -64,6 +64,9 @@ if [ ! -f "$KEY_FILE" ]; then
   echo "  Saved to $KEY_FILE"
 fi
 
+# Clear any stale host key (happens when CDK replaces the EC2 instance)
+ssh-keygen -f "$HOME/.ssh/known_hosts" -R "$INSTANCE_IP" 2>/dev/null || true
+
 SSH_CMD="ssh -i $KEY_FILE -o StrictHostKeyChecking=no -o ConnectTimeout=10"
 SSH="$SSH_CMD ec2-user@$INSTANCE_IP"
 
@@ -178,7 +181,7 @@ if [ "$DEPLOY_SERVER" = true ]; then
 
   echo "=== Waiting for containers to be healthy ==="
   sleep 8
-  $SSH "cd /app && docker compose -f docker-compose.prod.yml ps"
+  $SSH "cd /app && docker compose -f docker-compose.prod.yml --env-file .env.prod ps"
 fi
 
 # ── Done ──────────────────────────────────────────────────────────────────────
