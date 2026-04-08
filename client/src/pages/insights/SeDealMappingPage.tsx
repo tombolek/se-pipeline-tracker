@@ -44,11 +44,22 @@ function SeAssignSelect({
   onAssigned: (oppId: number, se: { id: number; name: string; email: string } | null) => void;
 }) {
   const [saving, setSaving] = useState(false);
+  const { effectiveTeamNames } = useTeamScope();
 
   async function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
     e.stopPropagation();
     const val = e.target.value;
     const newSeId = val === '' ? null : parseInt(val);
+
+    // Out-of-territory confirmation when self-assigning to a deal outside the user's teams
+    if (newSeId === currentUser.id && effectiveTeamNames.size > 0 && opp.team && !effectiveTeamNames.has(opp.team)) {
+      const territories = [...effectiveTeamNames].join(', ');
+      const confirmed = window.confirm(
+        `This deal belongs to "${opp.team}", which is outside your territory (${territories}).\n\nAssign it to yourself anyway?`
+      );
+      if (!confirmed) return;
+    }
+
     setSaving(true);
     try {
       await api.patch(`/opportunities/${opp.id}`, { se_owner_id: newSeId });
@@ -234,9 +245,16 @@ export default function SeDealMappingPage() {
       listUsers(),
     ]);
     setOpps(oppsRes.data.data);
-    setSes(usersRes.filter(u => u.role === 'se' && u.is_active));
+    const activeUsers = usersRes.filter(u => u.is_active);
+    const seList = activeUsers.filter(u => u.role === 'se');
+    // Always include the current user so they can self-assign regardless of role
+    if (currentUser && !seList.some(u => u.id === currentUser.id)) {
+      const me = activeUsers.find(u => u.id === currentUser.id);
+      if (me) seList.push(me);
+    }
+    setSes(seList);
     setLoading(false);
-  }, []);
+  }, [currentUser]);
 
   useEffect(() => { load(); }, [load]);
 
