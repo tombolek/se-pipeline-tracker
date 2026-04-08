@@ -9,6 +9,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ---
 
+## [Unreleased]
+
+### Added
+- **Favorited opportunities** — star any deal from the pipeline list row or the opportunity detail header. Stars are personal (per-user). A "Starred" filter chip in the pipeline toolbar shows only starred deals. Favorites persist across sessions via a new `user_favorites` table. (Issue #88)
+
+---
+
 ## 2026-04-08
 
 ### Added
