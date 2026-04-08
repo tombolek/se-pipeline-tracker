@@ -3,14 +3,13 @@ import bcrypt from 'bcrypt';
 import { Client } from 'pg';
 import {
   S3Client,
-  PutObjectCommand,
   GetObjectCommand,
   ListObjectsV2Command,
 } from '@aws-sdk/client-s3';
-import { query } from '../db/index.js';
 import { requireAuth, requireManager } from '../middleware/auth.js';
 import { AuthenticatedRequest, ok, err } from '../types/index.js';
 import { logAudit } from '../services/auditLog.js';
+import { createAppBackup } from '../services/backupScheduler.js';
 
 const router = Router();
 const auth = requireAuth as unknown as (req: Request, res: Response, next: () => void) => void;
@@ -30,58 +29,22 @@ router.post('/', auth, mgr, async (req: Request, res: Response): Promise<void> =
 
   const actor = (req as AuthenticatedRequest).user;
 
-  const [users, tasks, notes, assignments] = await Promise.all([
-    query(`
-      SELECT id, email, name, role, is_active, show_qualify, force_password_change,
-             manager_id, teams, created_at
-      FROM users WHERE is_deleted = false ORDER BY role DESC, id ASC
-    `),
-    query(`
-      SELECT id, opportunity_id, title, description, status, is_next_step,
-             due_date, assigned_to_id, created_by_id, is_deleted, created_at, updated_at
-      FROM tasks
-    `),
-    query(`
-      SELECT id, opportunity_id, author_id, content, created_at FROM notes
-    `),
-    query(`
-      SELECT o.sf_opportunity_id, u.email AS se_email
-      FROM opportunities o
-      JOIN users u ON u.id = o.se_owner_id
-      WHERE o.se_owner_id IS NOT NULL AND o.is_active = true
-    `),
-  ]);
+  try {
+    const { s3Key, counts } = await createAppBackup(actor.email);
 
-  const backup = {
-    version: 1,
-    created_at: new Date().toISOString(),
-    created_by: actor.email,
-    users,
-    tasks,
-    notes,
-    se_assignments: assignments,
-  };
+    await logAudit(req, {
+      userId: actor.userId, userRole: actor.role,
+      action: 'BACKUP_CREATED', resourceType: 'backup',
+      resourceId: s3Key, resourceName: s3Key,
+      after: counts,
+      success: true,
+    });
 
-  const ts = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
-  const s3Key = `app-backups/${ts}_${actor.email}.json`;
-  const body = JSON.stringify(backup, null, 2);
-
-  await s3.send(new PutObjectCommand({
-    Bucket: bucket,
-    Key: s3Key,
-    Body: body,
-    ContentType: 'application/json',
-  }));
-
-  await logAudit(req, {
-    userId: actor.userId, userRole: actor.role,
-    action: 'BACKUP_CREATED', resourceType: 'backup',
-    resourceId: s3Key, resourceName: s3Key,
-    after: { users: users.length, tasks: tasks.length, notes: notes.length },
-    success: true,
-  });
-
-  res.json(ok({ s3_key: s3Key, backup }));
+    res.json(ok({ s3_key: s3Key }));
+  } catch (e) {
+    console.error('[backup] create error:', e);
+    res.status(500).json(err(e instanceof Error ? e.message : 'Backup failed'));
+  }
 });
 
 // ── GET / — list S3 backups ───────────────────────────────────────────────────

@@ -16,6 +16,7 @@ import auditRoutes from './routes/audit.js';
 import backupRoutes from './routes/backup.js';
 import deployRoutes from './routes/deploy.js';
 import { query } from './db/index.js';
+import { startBackupScheduler } from './services/backupScheduler.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -41,6 +42,9 @@ app.use('/api/v1/deploy', deployRoutes);
 // Retention cleanup — purge rows older than 180 days on startup
 query(`DELETE FROM events    WHERE timestamp < now() - interval '180 days'`).catch(() => {});
 query(`DELETE FROM audit_log WHERE timestamp < now() - interval '180 days'`).catch(() => {});
+
+// Nightly backup — 02:00 UTC (9 PM EST / 10 PM EDT)
+startBackupScheduler();
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
