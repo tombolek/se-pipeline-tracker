@@ -278,6 +278,30 @@ router.get('/by-account', auth, async (req: Request, res: Response): Promise<voi
   res.json(ok(rows));
 });
 
+// POST /opportunities/:id/favorite — add to current user's favorites
+router.post('/:id/favorite', auth, async (req: Request, res: Response): Promise<void> => {
+  const { userId } = (req as AuthenticatedRequest).user;
+  const oppId = parseInt(req.params.id);
+  if (isNaN(oppId)) { res.status(400).json(err('Invalid opportunity id')); return; }
+  await query(
+    `INSERT INTO user_favorites (user_id, opportunity_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+    [userId, oppId]
+  );
+  res.json(ok({ favorited: true }));
+});
+
+// DELETE /opportunities/:id/favorite — remove from current user's favorites
+router.delete('/:id/favorite', auth, async (req: Request, res: Response): Promise<void> => {
+  const { userId } = (req as AuthenticatedRequest).user;
+  const oppId = parseInt(req.params.id);
+  if (isNaN(oppId)) { res.status(400).json(err('Invalid opportunity id')); return; }
+  await query(
+    `DELETE FROM user_favorites WHERE user_id = $1 AND opportunity_id = $2`,
+    [userId, oppId]
+  );
+  res.json(ok({ favorited: false }));
+});
+
 // POST /opportunities/:id/tasks
 router.post('/:id/tasks', auth, async (req: Request, res: Response): Promise<void> => {
   const { userId } = (req as AuthenticatedRequest).user;
@@ -454,14 +478,15 @@ router.get('/', auth, async (req: Request, res: Response): Promise<void> => {
        u.email AS se_owner_email,
        COUNT(t.id) FILTER (WHERE t.is_deleted = false AND t.status != 'done') AS open_task_count,
        COUNT(t.id) FILTER (WHERE t.is_deleted = false AND t.is_next_step = true AND t.status != 'done') AS next_step_count,
-       COUNT(t.id) FILTER (WHERE t.is_deleted = false AND t.status != 'done' AND t.due_date < CURRENT_DATE) AS overdue_task_count
+       COUNT(t.id) FILTER (WHERE t.is_deleted = false AND t.status != 'done' AND t.due_date < CURRENT_DATE) AS overdue_task_count,
+       EXISTS(SELECT 1 FROM user_favorites uf WHERE uf.opportunity_id = o.id AND uf.user_id = $${params.length + 1}) AS is_favorited
      FROM opportunities o
      LEFT JOIN users u ON u.id = o.se_owner_id
      LEFT JOIN tasks t ON t.opportunity_id = o.id
      WHERE ${whereClause}
      GROUP BY o.id, u.id
      ORDER BY ${orderBy}`,
-    params
+    [...params, user.userId]
   );
 
   const data = rows.map((r: Record<string, unknown>) => ({
@@ -525,6 +550,7 @@ router.get('/', auth, async (req: Request, res: Response): Promise<void> => {
     overdue_task_count: Number(r.overdue_task_count),
     stage_changed_at: r.stage_changed_at,
     last_note_at: r.last_note_at,
+    is_favorited: Boolean(r.is_favorited),
   }));
 
   res.json(ok(data, { total: data.length }));
