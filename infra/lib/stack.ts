@@ -204,6 +204,7 @@ export class SePipelineStack extends cdk.Stack {
           origin: new origins.HttpOrigin(ec2OriginDomain, {
             protocolPolicy: cloudfront.OriginProtocolPolicy.HTTP_ONLY,
             httpPort: 3001,
+            readTimeout: cdk.Duration.seconds(60),  // Claude API can take 20-40s on long prompts
           }),
           viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
           cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
