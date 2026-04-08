@@ -63,7 +63,6 @@ export interface Opportunity {
   last_note_at: string | null;
   stage_changed_at: string | null;
   previous_stage: string | null;
-  is_favorited: boolean;
   // Detail only
   tasks?: Task[];
   notes?: Note[];
@@ -93,6 +92,7 @@ export interface Note {
   author_id: number;
   author_name: string;
   content: string;
+  source_url: string | null;
   created_at: string;
 }
 

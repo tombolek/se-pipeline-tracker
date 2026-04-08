@@ -278,30 +278,6 @@ router.get('/by-account', auth, async (req: Request, res: Response): Promise<voi
   res.json(ok(rows));
 });
 
-// POST /opportunities/:id/favorite — add to current user's favorites
-router.post('/:id/favorite', auth, async (req: Request, res: Response): Promise<void> => {
-  const { userId } = (req as AuthenticatedRequest).user;
-  const oppId = parseInt(req.params.id);
-  if (isNaN(oppId)) { res.status(400).json(err('Invalid opportunity id')); return; }
-  await query(
-    `INSERT INTO user_favorites (user_id, opportunity_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-    [userId, oppId]
-  );
-  res.json(ok({ favorited: true }));
-});
-
-// DELETE /opportunities/:id/favorite — remove from current user's favorites
-router.delete('/:id/favorite', auth, async (req: Request, res: Response): Promise<void> => {
-  const { userId } = (req as AuthenticatedRequest).user;
-  const oppId = parseInt(req.params.id);
-  if (isNaN(oppId)) { res.status(400).json(err('Invalid opportunity id')); return; }
-  await query(
-    `DELETE FROM user_favorites WHERE user_id = $1 AND opportunity_id = $2`,
-    [userId, oppId]
-  );
-  res.json(ok({ favorited: false }));
-});
-
 // POST /opportunities/:id/tasks
 router.post('/:id/tasks', auth, async (req: Request, res: Response): Promise<void> => {
   const { userId } = (req as AuthenticatedRequest).user;
@@ -478,15 +454,14 @@ router.get('/', auth, async (req: Request, res: Response): Promise<void> => {
        u.email AS se_owner_email,
        COUNT(t.id) FILTER (WHERE t.is_deleted = false AND t.status != 'done') AS open_task_count,
        COUNT(t.id) FILTER (WHERE t.is_deleted = false AND t.is_next_step = true AND t.status != 'done') AS next_step_count,
-       COUNT(t.id) FILTER (WHERE t.is_deleted = false AND t.status != 'done' AND t.due_date < CURRENT_DATE) AS overdue_task_count,
-       EXISTS(SELECT 1 FROM user_favorites uf WHERE uf.opportunity_id = o.id AND uf.user_id = $${params.length + 1}) AS is_favorited
+       COUNT(t.id) FILTER (WHERE t.is_deleted = false AND t.status != 'done' AND t.due_date < CURRENT_DATE) AS overdue_task_count
      FROM opportunities o
      LEFT JOIN users u ON u.id = o.se_owner_id
      LEFT JOIN tasks t ON t.opportunity_id = o.id
      WHERE ${whereClause}
      GROUP BY o.id, u.id
      ORDER BY ${orderBy}`,
-    [...params, user.userId]
+    params
   );
 
   const data = rows.map((r: Record<string, unknown>) => ({
@@ -550,7 +525,6 @@ router.get('/', auth, async (req: Request, res: Response): Promise<void> => {
     overdue_task_count: Number(r.overdue_task_count),
     stage_changed_at: r.stage_changed_at,
     last_note_at: r.last_note_at,
-    is_favorited: Boolean(r.is_favorited),
   }));
 
   res.json(ok(data, { total: data.length }));
@@ -774,6 +748,141 @@ router.get('/:id/timeline', auth, async (req: Request, res: Response): Promise<v
   events.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
   res.json(ok(events, { opportunity_id: id, count: events.length }));
+});
+
+// PATCH /opportunities/:id/fields
+// Update app-editable text fields (not SF-owned). Allows updating technical_blockers
+// and MEDDPICC/qualification fields between SF imports.
+const PATCHABLE_FIELDS = new Set([
+  'technical_blockers',
+  'metrics', 'economic_buyer', 'decision_criteria', 'decision_process',
+  'paper_process', 'implicate_pain', 'champion', 'engaged_competitors',
+  'budget', 'authority', 'need', 'timeline', 'agentic_qual',
+]);
+
+router.patch('/:id/fields', auth, async (req: Request, res: Response): Promise<void> => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) { res.status(400).json(err('Invalid opportunity id')); return; }
+
+  const body = req.body as Record<string, unknown>;
+  const updates = Object.entries(body).filter(([k]) => PATCHABLE_FIELDS.has(k));
+  if (updates.length === 0) { res.status(400).json(err('No patchable fields provided')); return; }
+
+  const setClauses = updates.map(([k], i) => `${k} = $${i + 2}`).join(', ');
+  const values = [id, ...updates.map(([, v]) => v ?? null)];
+
+  const updated = await queryOne<{ id: number }>(
+    `UPDATE opportunities SET ${setClauses}, updated_at = now() WHERE id = $1 RETURNING id`,
+    values,
+  );
+  if (!updated) { res.status(404).json(err('Opportunity not found')); return; }
+
+  res.json(ok({ id, updated_fields: updates.map(([k]) => k) }));
+});
+
+// POST /opportunities/:id/process-notes
+// Accepts raw call notes, auto-saves them as a note, then calls Claude to extract
+// tasks, MEDDPICC updates, a draft SE comment, tech blockers, and a next step.
+router.post('/:id/process-notes', auth, async (req: Request, res: Response): Promise<void> => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) { res.status(400).json(err('Invalid opportunity id')); return; }
+
+  const { raw_notes, source_url } = req.body as { raw_notes?: string; source_url?: string };
+  if (!raw_notes?.trim()) { res.status(400).json(err('raw_notes is required')); return; }
+
+  const userId = (req as AuthenticatedRequest).user!.userId;
+
+  // 1. Fetch opportunity context for the prompt
+  const opp = await queryOne<Record<string, unknown>>(
+    `SELECT name, account_name, stage, se_comments, technical_blockers,
+            metrics, economic_buyer, decision_criteria, decision_process,
+            paper_process, implicate_pain, champion, engaged_competitors,
+            budget, authority, need, timeline, agentic_qual
+     FROM opportunities WHERE id = $1 AND is_active = true`,
+    [id],
+  );
+  if (!opp) { res.status(404).json(err('Opportunity not found')); return; }
+
+  // 2. Auto-save raw notes immediately (with source URL)
+  const savedNote = await queryOne<{ id: number }>(
+    `INSERT INTO notes (opportunity_id, author_id, content, source_url)
+     VALUES ($1, $2, $3, $4) RETURNING id`,
+    [id, userId, raw_notes.trim(), source_url?.trim() || null],
+  );
+  await query(`UPDATE opportunities SET last_note_at = now() WHERE id = $1`, [id]);
+
+  // 3. Build prompt
+  const today = new Date();
+  const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  const datePrefix = `BM_${today.getDate()}${months[today.getMonth()]}${String(today.getFullYear()).slice(2)}`;
+
+  const meddpiccCtx = [
+    ['metrics', 'Metrics'], ['economic_buyer', 'Economic Buyer'],
+    ['decision_criteria', 'Decision Criteria'], ['decision_process', 'Decision Process'],
+    ['paper_process', 'Paper Process'], ['implicate_pain', 'Implicate the Pain'],
+    ['champion', 'Champion'], ['engaged_competitors', 'Competitors'],
+    ['budget', 'Budget'], ['authority', 'Authority'],
+    ['need', 'Need'], ['timeline', 'Timeline'], ['agentic_qual', 'Agentic Qual'],
+  ].map(([k, label]) => `  ${label}: ${(opp[k] as string) || '(not set)'}`).join('\n');
+
+  const prompt = `You are an SE (Sales Engineer) assistant. Analyse the call notes below and return a JSON object. Return ONLY valid JSON — no explanation, no markdown, no code fences.
+
+OPPORTUNITY CONTEXT
+Name: ${opp.name}
+Account: ${opp.account_name ?? 'N/A'}
+Stage: ${opp.stage}
+Current SE Comments: ${(opp.se_comments as string) || '(none)'}
+Current Technical Blockers: ${(opp.technical_blockers as string) || '(none)'}
+Current MEDDPICC / qualification fields:
+${meddpiccCtx}
+
+RAW CALL NOTES
+${raw_notes.trim()}
+
+INSTRUCTIONS — return a JSON object with exactly these five keys:
+
+{
+  "tasks": [ { "title": "...", "due_days": <integer> } ],
+  "meddpicc_updates": [ { "field": "<one of: metrics|economic_buyer|decision_criteria|decision_process|paper_process|implicate_pain|champion|engaged_competitors|budget|authority|need|timeline|agentic_qual>", "current": "<current value or empty string>", "suggested": "..." } ],
+  "se_comment_draft": "...",
+  "tech_blockers": [ "..." ],
+  "next_step": "..."
+}
+
+Rules:
+- tasks: all clearly actionable action items from the notes. due_days = days from today (e.g. 3, 5, 7).
+- meddpicc_updates: only fields where the notes add NEW information not already in the current values. Omit fields that are already well-captured.
+- se_comment_draft: EXACTLY 1-2 sentences. Start with "${datePrefix} — ". Focus on: (a) the SE's immediate next action toward the technical win; (b) any notable risks from the technical evaluation, competitive situation, or evaluation process that could block progress (e.g. unresolved tech gap, competitor actively evaluating, blocked process). Do NOT mention buyer names, budget figures, or summarise MEDDPICC fields.
+- tech_blockers: ONLY technical/integration blockers — unvalidated connector or API support, missing product capabilities, infrastructure or security constraints, required technical information not yet obtained. Exclude business risks, timeline pressure, NDA/legal/commercial items. Return empty array if none.
+- next_step: single sentence — the most important next SE action to move toward the technical win.`;
+
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const response = await client.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 1400,
+    messages: [{ role: 'user', content: prompt }],
+  });
+
+  const textBlock = response.content.find(b => b.type === 'text');
+  const rawJson = (textBlock && textBlock.type === 'text' ? textBlock.text : '{}').trim()
+    .replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(rawJson);
+  } catch {
+    res.status(500).json(err('Failed to parse Claude response — try again'));
+    return;
+  }
+
+  res.json(ok({
+    saved_note_id: savedNote?.id ?? null,
+    tasks:            Array.isArray(parsed.tasks)            ? parsed.tasks            : [],
+    meddpicc_updates: Array.isArray(parsed.meddpicc_updates) ? parsed.meddpicc_updates : [],
+    se_comment_draft: typeof parsed.se_comment_draft === 'string' ? parsed.se_comment_draft : '',
+    tech_blockers:    Array.isArray(parsed.tech_blockers)    ? parsed.tech_blockers    : [],
+    next_step:        typeof parsed.next_step === 'string'   ? parsed.next_step        : '',
+  }));
 });
 
 export default router;
