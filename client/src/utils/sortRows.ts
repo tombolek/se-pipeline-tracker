@@ -4,6 +4,7 @@
  */
 import type { Opportunity } from '../types';
 import { computeHealthScore } from './healthScore';
+import { computeMeddpicc } from './meddpicc';
 
 export type SortDir = 'asc' | 'desc';
 export type ColType = 'date' | 'number' | 'string';
@@ -43,7 +44,7 @@ const OPP_DATE_COLS = new Set([
   'close_date', 'close_month', 'poc_start_date', 'poc_end_date',
   'closed_at', 'se_comments_updated_at', 'manager_comments_updated_at',
 ]);
-const OPP_NUMERIC_COLS = new Set(['arr', 'arr_converted', 'open_task_count', 'health_score']);
+const OPP_NUMERIC_COLS = new Set(['arr', 'arr_converted', 'open_task_count', 'health_score', 'meddpicc_score']);
 
 export function oppColType(key: string): ColType {
   if (OPP_DATE_COLS.has(key)) return 'date';
@@ -57,5 +58,6 @@ export function getOppValue(opp: Opportunity, key: string): unknown {
   if (key === 'key_deal') return opp.key_deal ? 1 : 0;
   if (key === 'se_comments_freshness') return opp.se_comments_updated_at;
   if (key === 'health_score') return computeHealthScore(opp).score;
+  if (key === 'meddpicc_score') return computeMeddpicc(opp).strong;
   return (opp as unknown as Record<string, unknown>)[key];
 }

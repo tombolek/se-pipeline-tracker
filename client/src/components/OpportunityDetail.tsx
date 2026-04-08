@@ -13,6 +13,7 @@ import { formatDate, formatARR, daysSince } from '../utils/formatters';
 import { TaskRow, AddTaskForm } from './opportunity/TaskSection';
 import { NoteItem, AddNoteForm } from './opportunity/NoteSection';
 import OpportunityTimeline from './OpportunityTimeline';
+import MeddpiccBadge from './shared/MeddpiccBadge';
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
@@ -298,7 +299,10 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
                 )}
               </div>
               <p className="text-sm text-brand-navy-70 mt-0.5">{opp.account_name ?? '—'}</p>
-              <HealthScoreBar opp={opp} />
+              <div className="flex items-center gap-2 mt-1.5">
+                <HealthScoreBar opp={opp} />
+                <MeddpiccBadge opp={opp} />
+              </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
               {!isReadOnly && !opp.se_owner && (

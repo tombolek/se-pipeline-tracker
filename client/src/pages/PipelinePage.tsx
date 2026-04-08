@@ -17,6 +17,7 @@ import { createNote } from '../api/notes';
 import { createTask } from '../api/tasks';
 import { renderOpportunityCell } from '../utils/renderOpportunityCell';
 import { sortRows, oppColType, getOppValue, type SortDir } from '../utils/sortRows';
+import { computeMeddpicc } from '../utils/meddpicc';
 
 // Stage order per issue #16
 const STAGES = [
@@ -203,6 +204,7 @@ function FilterBar({
   recordTypes, recordTypeOptions, setRecordTypes,
   myDeals, setMyDeals,
   atRisk, setAtRisk,
+  meddpiccMax, setMeddpiccMax,
   seFilterName, clearSeFilter,
   total,
   columnPicker,
@@ -214,6 +216,7 @@ function FilterBar({
   recordTypes: string[]; recordTypeOptions: string[]; setRecordTypes: (v: string[]) => void;
   myDeals: boolean; setMyDeals: (v: boolean) => void;
   atRisk: boolean; setAtRisk: (v: boolean) => void;
+  meddpiccMax: number | null; setMeddpiccMax: (v: number | null) => void;
   seFilterName: string | null; clearSeFilter: () => void;
   total: number;
   columnPicker: React.ReactNode;
@@ -252,6 +255,24 @@ function FilterBar({
         <span className={`w-2 h-2 rounded-full flex-shrink-0 ${atRisk ? 'bg-status-overdue' : 'bg-brand-navy-30'}`} />
         At-risk only
       </button>
+      <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
+        meddpiccMax !== null
+          ? 'bg-amber-50 border-status-warning text-status-warning'
+          : 'border-brand-navy-30 text-brand-navy-70'
+      }`}>
+        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${meddpiccMax !== null ? 'bg-status-warning' : 'bg-brand-navy-30'}`} />
+        MEDDPICC below
+        <select
+          value={meddpiccMax ?? ''}
+          onChange={e => setMeddpiccMax(e.target.value === '' ? null : Number(e.target.value))}
+          className="bg-transparent border-none outline-none font-semibold cursor-pointer text-xs"
+        >
+          <option value="">—</option>
+          {[4, 5, 6, 7].map(n => (
+            <option key={n} value={n}>{n}/9</option>
+          ))}
+        </select>
+      </div>
       {seFilterName && (
         <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-brand-purple/10 border border-brand-purple text-brand-purple">
           SE: {seFilterName}
@@ -293,6 +314,7 @@ export default function PipelinePage() {
   );
   const [myDeals, setMyDeals] = useState(() => user?.role === 'se');
   const [atRisk, setAtRisk] = useState(false);
+  const [meddpiccMax, setMeddpiccMax] = useState<number | null>(null);
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>('asc');
 
@@ -363,6 +385,7 @@ export default function PipelinePage() {
     if (selectedFiscalPeriods.length > 0 && !selectedFiscalPeriods.includes(o.fiscal_period ?? '')) return false;
     if (teams.length > 0 && !teams.includes(o.team ?? '')) return false;
     if (atRisk && computeHealthScore(o).rag === 'green') return false;
+    if (meddpiccMax !== null && computeMeddpicc(o).strong > meddpiccMax) return false;
     if (recordTypes.length > 0 && !recordTypes.includes(o.record_type ?? '')) return false;
     if (search) {
       const q = search.toLowerCase();
@@ -394,6 +417,7 @@ export default function PipelinePage() {
         recordTypes={recordTypes} recordTypeOptions={recordTypeOptions} setRecordTypes={setRecordTypes}
         myDeals={myDeals} setMyDeals={setMyDeals}
         atRisk={atRisk} setAtRisk={setAtRisk}
+        meddpiccMax={meddpiccMax} setMeddpiccMax={setMeddpiccMax}
         seFilterName={seFilterName} clearSeFilter={clearSeFilter}
         total={displayed.length}
         columnPicker={

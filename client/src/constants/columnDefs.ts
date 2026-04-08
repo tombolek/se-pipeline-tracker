@@ -70,6 +70,7 @@ export const ALL_COLUMNS: ColumnDef[] = [
 
   // ── Activity ───────────────────────────────────────────────────────────────
   { key: 'health_score',           label: 'Health Score',        group: 'Activity' },
+  { key: 'meddpicc_score',         label: 'MEDDPICC',            group: 'Activity' },
   { key: 'open_task_count',        label: 'Open Tasks',          group: 'Activity' },
   { key: 'se_comments_freshness',  label: 'SE Comments',         group: 'Activity' },
   { key: 'next_step_sf',           label: 'Next Step',           group: 'Activity', truncate: true },
@@ -129,6 +130,7 @@ export const DEFAULT_COLUMNS = {
     'open_task_count',
     'se_comments_freshness',
     'health_score',
+    'meddpicc_score',
   ],
   closed_lost: [
     'name',

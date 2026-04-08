@@ -7,6 +7,7 @@ import StageBadge from '../components/shared/StageBadge';
 import FreshnessDot from '../components/shared/FreshnessDot';
 import TruncatedCell from '../components/shared/TruncatedCell';
 import HealthScoreBadge from '../components/shared/HealthScoreBadge';
+import MeddpiccBadge from '../components/shared/MeddpiccBadge';
 import { formatARR, formatDate } from './formatters';
 
 const dash = <span className="text-brand-navy-30">—</span>;
@@ -64,6 +65,8 @@ export function renderOpportunityCell(opp: Opportunity, colKey: string): React.R
     case 'biz_dev':             return txt(opp.biz_dev);
     case 'health_score':
       return <HealthScoreBadge opp={opp} />;
+    case 'meddpicc_score':
+      return <MeddpiccBadge opp={opp} />;
     case 'open_task_count':
       return opp.open_task_count > 0 ? (
         <span className="inline-flex items-center gap-1 text-xs text-brand-navy-70">
