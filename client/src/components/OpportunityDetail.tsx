@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { track } from '../hooks/useTracking';
 import type { Opportunity, Task, Note, User } from '../types';
 import { computeHealthScore } from '../utils/healthScore';
@@ -244,9 +244,13 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [showAccountPanel, setShowAccountPanel] = useState(false);
   const [showNotesModal, setShowNotesModal] = useState(false);
+  const initialLoadDone = useRef(false);
 
   const reload = useCallback(async () => {
-    setLoading(true);
+    // Only show loading spinner on initial load. Background refreshes
+    // (e.g. from MeetingNotesModal) must NOT set loading=true, because
+    // the early-return guard unmounts portalled modals and destroys state.
+    if (!initialLoadDone.current) setLoading(true);
     try {
       const [detail, noteList] = await Promise.all([
         getOpportunity(oppId),
@@ -254,6 +258,7 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
       ]);
       setOpp(detail);
       setNotes(noteList);
+      initialLoadDone.current = true;
     } finally {
       setLoading(false);
     }
@@ -263,7 +268,7 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
     listUsers().then(users => setActiveUsers(users.filter(u => u.is_active)));
   }, []);
 
-  useEffect(() => { reload(); }, [reload]);
+  useEffect(() => { initialLoadDone.current = false; reload(); }, [reload]);
   useEffect(() => { track('open', 'opportunity', oppId); }, [oppId]);
 
   async function handleTaskStatusChange(id: number, status: Task['status']) {
