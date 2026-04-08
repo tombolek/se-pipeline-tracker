@@ -2,15 +2,16 @@ export interface MainNavItem {
   id: string;
   label: string;
   to: string;
-  icon: 'pipeline' | 'tasks' | 'calendar' | 'se-mapping' | 'poc' | 'rfx';
+  icon: 'pipeline' | 'my-pipeline' | 'tasks' | 'calendar' | 'se-mapping' | 'poc' | 'rfx';
   visible: boolean;
 }
 
 const STORAGE_KEY = 'main_nav_config';
 
 export const DEFAULT_MAIN_NAV: MainNavItem[] = [
-  { id: 'pipeline',   label: 'Pipeline',   to: '/pipeline',            icon: 'pipeline',   visible: true },
-  { id: 'my-tasks',   label: 'My Tasks',   to: '/my-tasks',            icon: 'tasks',      visible: true },
+  { id: 'pipeline',    label: 'Pipeline',    to: '/pipeline',            icon: 'pipeline',    visible: true },
+  { id: 'my-pipeline', label: 'My Pipeline', to: '/my-pipeline',         icon: 'my-pipeline', visible: true },
+  { id: 'my-tasks',    label: 'My Tasks',    to: '/my-tasks',            icon: 'tasks',       visible: true },
   { id: 'calendar',   label: 'Calendar',   to: '/calendar',            icon: 'calendar',   visible: true },
   { id: 'se-mapping', label: 'SE Mapping', to: '/insights/se-mapping', icon: 'se-mapping', visible: true },
   { id: 'poc-board',  label: 'PoC Board',  to: '/insights/poc-board',  icon: 'poc',        visible: true },

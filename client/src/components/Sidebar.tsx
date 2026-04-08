@@ -19,7 +19,12 @@ const SETTINGS_NAV = [
 ];
 
 function MainNavIcon({ icon }: { icon: MainNavItem['icon'] }) {
-  if (icon === 'pipeline')   return <PipelineIcon />;
+  if (icon === 'pipeline')    return <PipelineIcon />;
+  if (icon === 'my-pipeline') return (
+    <svg className="w-[15px] h-[15px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+    </svg>
+  );
   if (icon === 'tasks')      return <TasksIcon />;
   if (icon === 'calendar')   return <CalendarIcon />;
   if (icon === 'se-mapping') return <SeMappingIcon />;

@@ -9,6 +9,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ---
 
+## 2026-04-08
+
+### Added
+- **My Pipeline** — personal pipeline view at `/my-pipeline`, scoped to the logged-in user's deals. New sidebar nav item (visible to all roles) between Pipeline and My Tasks. Shows the same columns, filters, and sort options as the global pipeline, with the owner locked to the current user and the "My deals" / SE owner filter controls hidden. (Issue #67)
+- **Account History panel** — click any account name in Opportunity Detail to open a side panel showing all deals (open and closed) for that account, with deal cards grouped by year, expandable notes per deal, and account-level summary stats. Includes a data caveat noting that renewals and PS deals are not yet synced. (Issue #81)
+
+---
+
 ## 2026-04-07
 
 ### Added

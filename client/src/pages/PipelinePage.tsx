@@ -208,6 +208,7 @@ function FilterBar({
   seFilterName, clearSeFilter,
   total,
   columnPicker,
+  hideMyDeals,
 }: {
   search: string; setSearch: (v: string) => void;
   stages: string[]; setStages: (v: string[]) => void;
@@ -220,6 +221,7 @@ function FilterBar({
   seFilterName: string | null; clearSeFilter: () => void;
   total: number;
   columnPicker: React.ReactNode;
+  hideMyDeals?: boolean;
 }) {
   return (
     <div className="flex items-center gap-3 px-5 py-3 border-b border-brand-navy-30/40 bg-white flex-wrap flex-shrink-0">
@@ -234,16 +236,18 @@ function FilterBar({
       <MultiSelectFilter options={fiscalPeriods} selected={selectedFiscalPeriods} onChange={setFiscalPeriods} placeholder="All periods" />
       <MultiSelectFilter options={teamOptions} selected={teams} onChange={setTeams} placeholder="All teams" />
       <MultiSelectFilter options={recordTypeOptions} selected={recordTypes} onChange={setRecordTypes} placeholder="All types" />
-      <button
-        onClick={() => setMyDeals(!myDeals)}
-        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
-          myDeals
-            ? 'bg-brand-purple/10 border-brand-purple text-brand-purple'
-            : 'border-brand-navy-30 text-brand-navy-70 hover:border-brand-navy hover:text-brand-navy'
-        }`}
-      >
-        My deals
-      </button>
+      {!hideMyDeals && (
+        <button
+          onClick={() => setMyDeals(!myDeals)}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
+            myDeals
+              ? 'bg-brand-purple/10 border-brand-purple text-brand-purple'
+              : 'border-brand-navy-30 text-brand-navy-70 hover:border-brand-navy hover:text-brand-navy'
+          }`}
+        >
+          My deals
+        </button>
+      )}
       <button
         onClick={() => setAtRisk(!atRisk)}
         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
@@ -273,7 +277,7 @@ function FilterBar({
           ))}
         </select>
       </div>
-      {seFilterName && (
+      {seFilterName && !hideMyDeals && (
         <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-brand-purple/10 border border-brand-purple text-brand-purple">
           SE: {seFilterName}
           <button onClick={clearSeFilter} className="hover:text-brand-navy transition-colors" aria-label="Clear SE filter">
@@ -292,7 +296,7 @@ function FilterBar({
 }
 
 // ── Page ──────────────────────────────────────────────────────────────────────
-export default function PipelinePage() {
+export default function PipelinePage({ myPipelineMode = false }: { myPipelineMode?: boolean }) {
   const { user, setUser } = useAuthStore();
   const { users } = useUsers();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -312,7 +316,7 @@ export default function PipelinePage() {
   const [visibleColumns, setVisibleColumns] = useState<string[]>(() =>
     getColumnsForPage('pipeline', user?.column_prefs ?? null)
   );
-  const [myDeals, setMyDeals] = useState(() => user?.role === 'se');
+  const [myDeals, setMyDeals] = useState(() => myPipelineMode || user?.role === 'se');
   const [atRisk, setAtRisk] = useState(false);
   const [meddpiccMax, setMeddpiccMax] = useState<number | null>(null);
   const [sortKey, setSortKey] = useState<string | null>(null);
@@ -409,6 +413,17 @@ export default function PipelinePage() {
 
   return (
     <div className="flex flex-col h-full relative overflow-hidden">
+      {myPipelineMode && (
+        <div className="flex items-center gap-2 px-5 py-2.5 border-b border-brand-navy-30/40 bg-white flex-shrink-0">
+          <span className="text-[13px] font-semibold text-brand-navy">My Pipeline</span>
+          <span className="inline-flex items-center gap-1.5 bg-brand-purple-30 text-brand-purple text-[11px] font-medium px-2.5 py-0.5 rounded-full">
+            <span className="w-4 h-4 rounded-full bg-brand-purple flex items-center justify-center text-white text-[8px] font-bold flex-shrink-0">
+              {user?.name?.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase() ?? '?'}
+            </span>
+            {user?.name ?? 'You'}
+          </span>
+        </div>
+      )}
       <FilterBar
         search={search} setSearch={setSearch}
         stages={stages} setStages={setStages}
@@ -420,6 +435,7 @@ export default function PipelinePage() {
         meddpiccMax={meddpiccMax} setMeddpiccMax={setMeddpiccMax}
         seFilterName={seFilterName} clearSeFilter={clearSeFilter}
         total={displayed.length}
+        hideMyDeals={myPipelineMode}
         columnPicker={
           <ColumnPicker
             visibleColumns={visibleColumns}
