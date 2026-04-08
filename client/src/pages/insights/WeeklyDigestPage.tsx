@@ -467,7 +467,7 @@ export default function WeeklyDigestPage() {
             </tbody>
           </table>
         )}
-      </SectionCard>
+      </CollapsibleSection>
     </div>
   );
 }
