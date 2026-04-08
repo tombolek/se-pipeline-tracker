@@ -3,7 +3,6 @@ import { useSearchParams } from 'react-router-dom';
 import type { Opportunity, User } from '../types';
 import { computeHealthScore } from '../utils/healthScore';
 import { listOpportunities } from '../api/opportunities';
-import api from '../api/client';
 import { updateMyPreferences, listUsers } from '../api/users';
 import { useUsers } from '../hooks/useUsers';
 import { useAuthStore } from '../store/auth';
@@ -163,35 +162,13 @@ function NameCellWithCapture({ opp, onSaved }: { opp: Opportunity; onSaved?: () 
 }
 
 // ── Opportunity row ───────────────────────────────────────────────────────────
-function OppRow({ opp, selected, onClick, onRefreshList, visibleColumns, onToggleFavorite }: {
+function OppRow({ opp, selected, onClick, onRefreshList, visibleColumns }: {
   opp: Opportunity;
   selected: boolean;
   onClick: () => void;
   onRefreshList?: () => void;
   visibleColumns: string[];
-  onToggleFavorite: (oppId: number, favorited: boolean) => void;
 }) {
-  const [favPending, setFavPending] = useState(false);
-
-  async function handleFavorite(e: React.MouseEvent) {
-    e.stopPropagation();
-    if (favPending) return;
-    setFavPending(true);
-    const next = !opp.is_favorited;
-    onToggleFavorite(opp.id, next); // optimistic
-    try {
-      if (next) {
-        await api.post(`/opportunities/${opp.id}/favorite`);
-      } else {
-        await api.delete(`/opportunities/${opp.id}/favorite`);
-      }
-    } catch {
-      onToggleFavorite(opp.id, !next); // revert on error
-    } finally {
-      setFavPending(false);
-    }
-  }
-
   return (
     <tr
       onClick={onClick}
@@ -201,17 +178,6 @@ function OppRow({ opp, selected, onClick, onRefreshList, visibleColumns, onToggl
           : 'hover:bg-brand-navy/[0.025]'
       }`}
     >
-      <td className="pl-2 pr-0 py-3 w-6">
-        <button
-          onClick={handleFavorite}
-          className={`transition-opacity ${opp.is_favorited ? 'opacity-100' : 'opacity-0 group-hover:opacity-60 hover:!opacity-100'}`}
-          title={opp.is_favorited ? 'Remove from starred' : 'Star this deal'}
-        >
-          <svg className={`w-4 h-4 transition-colors ${opp.is_favorited ? 'fill-status-warning text-status-warning' : 'fill-none text-brand-navy-30'}`} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
-          </svg>
-        </button>
-      </td>
       {visibleColumns.map(col => (
         <td key={col} className="px-3 py-3 whitespace-nowrap">
           {col === 'name'
@@ -239,7 +205,6 @@ function FilterBar({
   myDeals, setMyDeals,
   atRisk, setAtRisk,
   meddpiccMax, setMeddpiccMax,
-  starred, setStarred,
   seFilterName, clearSeFilter,
   total,
   columnPicker,
@@ -253,7 +218,6 @@ function FilterBar({
   myDeals: boolean; setMyDeals: (v: boolean) => void;
   atRisk: boolean; setAtRisk: (v: boolean) => void;
   meddpiccMax: number | null; setMeddpiccMax: (v: number | null) => void;
-  starred: boolean; setStarred: (v: boolean) => void;
   seFilterName: string | null; clearSeFilter: () => void;
   total: number;
   columnPicker: React.ReactNode;
@@ -284,19 +248,6 @@ function FilterBar({
           My deals
         </button>
       )}
-      <button
-        onClick={() => setStarred(!starred)}
-        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
-          starred
-            ? 'bg-status-warning/10 border-status-warning text-status-warning'
-            : 'border-brand-navy-30 text-brand-navy-70 hover:border-brand-navy hover:text-brand-navy'
-        }`}
-      >
-        <svg className={`w-3.5 h-3.5 ${starred ? 'fill-status-warning' : 'fill-none'}`} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
-        </svg>
-        Starred
-      </button>
       <button
         onClick={() => setAtRisk(!atRisk)}
         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
@@ -367,7 +318,6 @@ export default function PipelinePage({ myPipelineMode = false }: { myPipelineMod
   );
   const [myDeals, setMyDeals] = useState(() => myPipelineMode || user?.role === 'se');
   const [atRisk, setAtRisk] = useState(false);
-  const [starred, setStarred] = useState(false);
   const [meddpiccMax, setMeddpiccMax] = useState<number | null>(null);
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>('asc');
@@ -434,13 +384,12 @@ export default function PipelinePage({ myPipelineMode = false }: { myPipelineMod
 
   // Apply all filters client-side
   const filtered = allOpps.filter(o => {
-    if (myDeals && o.se_owner?.id !== user?.id) return false;
+    if ((myPipelineMode || myDeals) && o.se_owner?.id !== user?.id) return false;
     if (seIdParam && o.se_owner?.id !== seIdParam) return false;
     if (stages.length > 0 && !stages.includes(o.stage)) return false;
     if (selectedFiscalPeriods.length > 0 && !selectedFiscalPeriods.includes(o.fiscal_period ?? '')) return false;
     if (teams.length > 0 && !teams.includes(o.team ?? '')) return false;
     if (atRisk && computeHealthScore(o).rag === 'green') return false;
-    if (starred && !o.is_favorited) return false;
     if (meddpiccMax !== null && computeMeddpicc(o).strong > meddpiccMax) return false;
     if (recordTypes.length > 0 && !recordTypes.includes(o.record_type ?? '')) return false;
     if (search) {
@@ -452,10 +401,6 @@ export default function PipelinePage({ myPipelineMode = false }: { myPipelineMod
   const displayed = sortKey
     ? sortRows(filtered, sortKey, sortDir, oppColType, getOppValue)
     : filtered;
-
-  function handleToggleFavorite(oppId: number, favorited: boolean) {
-    setAllOpps(prev => prev.map(o => o.id === oppId ? { ...o, is_favorited: favorited } : o));
-  }
 
   async function handleColumnsChange(cols: string[]) {
     setVisibleColumns(cols);
@@ -488,7 +433,6 @@ export default function PipelinePage({ myPipelineMode = false }: { myPipelineMod
         recordTypes={recordTypes} recordTypeOptions={recordTypeOptions} setRecordTypes={setRecordTypes}
         myDeals={myDeals} setMyDeals={setMyDeals}
         atRisk={atRisk} setAtRisk={setAtRisk}
-        starred={starred} setStarred={setStarred}
         meddpiccMax={meddpiccMax} setMeddpiccMax={setMeddpiccMax}
         seFilterName={seFilterName} clearSeFilter={clearSeFilter}
         total={displayed.length}
@@ -543,7 +487,6 @@ export default function PipelinePage({ myPipelineMode = false }: { myPipelineMod
                   onClick={() => setSelectedId(opp.id)}
                   onRefreshList={load}
                   visibleColumns={visibleColumns}
-                  onToggleFavorite={handleToggleFavorite}
                 />
               ))}
             </tbody>
