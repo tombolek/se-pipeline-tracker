@@ -285,10 +285,12 @@ router.post('/restore', auth, mgr, async (req: Request, res: Response): Promise<
     await client.query('COMMIT');
   } catch (e) {
     await client.query('ROLLBACK');
-    throw e;
-  } finally {
     await client.end();
+    console.error('[restore] error:', e);
+    res.status(500).json(err(e instanceof Error ? e.message : 'Restore failed'));
+    return;
   }
+  await client.end();
 
   await logAudit(req, {
     userId: actor.userId, userRole: actor.role,

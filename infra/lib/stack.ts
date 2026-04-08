@@ -131,8 +131,11 @@ export class SePipelineStack extends cdk.Stack {
       vpc,
       vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
       instanceType: ec2.InstanceType.of(ec2.InstanceClass.T4G, ec2.InstanceSize.MICRO),
+      // Pinned AMI — avoids instance replacement on cdk deploy when Amazon releases a new AL2023.
+      // To update: run `aws ec2 describe-images --owners amazon --filters "Name=name,Values=al2023-ami-2023*" --query 'sort_by(Images,&CreationDate)[-1].ImageId'`
       machineImage: ec2.MachineImage.latestAmazonLinux2023({
         cpuType: ec2.AmazonLinuxCpuType.ARM_64,
+        cachedInContext: true,
       }),
       securityGroup: sg,
       role,
@@ -143,7 +146,7 @@ export class SePipelineStack extends cdk.Stack {
           deviceName: '/dev/xvda',
           volume: ec2.BlockDeviceVolume.ebs(20, {
             volumeType: ec2.EbsDeviceVolumeType.GP3,
-            deleteOnTermination: true,
+            deleteOnTermination: false,  // Preserve volume on instance replacement — PostgreSQL data lives here
           }),
         },
       ],
