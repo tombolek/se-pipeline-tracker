@@ -792,6 +792,8 @@ router.post('/:id/process-notes', auth, async (req: Request, res: Response): Pro
 
   const userId = (req as AuthenticatedRequest).user!.userId;
 
+  try {
+
   // 1. Fetch opportunity context for the prompt
   const opp = await queryOne<Record<string, unknown>>(
     `SELECT name, account_name, stage, se_comments, technical_blockers,
@@ -883,6 +885,11 @@ Rules:
     tech_blockers:    Array.isArray(parsed.tech_blockers)    ? parsed.tech_blockers    : [],
     next_step:        typeof parsed.next_step === 'string'   ? parsed.next_step        : '',
   }));
+
+  } catch (e) {
+    console.error('[process-notes] error:', e);
+    res.status(500).json(err(e instanceof Error ? e.message : 'Unexpected error processing notes'));
+  }
 });
 
 export default router;
