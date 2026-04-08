@@ -356,8 +356,9 @@ export default function PipelinePage({ myPipelineMode = false }: { myPipelineMod
 
   // Set teams filter default once when effective teams become known
   // Skip default when all_teams=1 param is present (e.g. cross-territory drill-through)
+  // Skip entirely in myPipelineMode — show all the user's deals regardless of territory
   useEffect(() => {
-    if (allTeamsParam) { defaultTeamsSet.current = true; return; }
+    if (myPipelineMode || allTeamsParam) { defaultTeamsSet.current = true; return; }
     if (!defaultTeamsSet.current && effectiveTeams.length > 0) {
       setTeams(effectiveTeams);
       defaultTeamsSet.current = true;
