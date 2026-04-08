@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import type { Opportunity } from '../types';
 import api from '../api/client';
 import { createTask } from '../api/tasks';
@@ -246,8 +247,11 @@ export default function MeetingNotesModal({ opp, onClose, onRefresh }: Props) {
   const allConfirmed = tasksConfirmed && meddpiccConfirmed && commentCopied && blockersConfirmed && nextStepConfirmed;
 
   // ── Render ──────────────────────────────────────────────────────────────────
+  // Rendered via portal so that `position:fixed` escapes the Drawer's CSS
+  // transform stacking context (translate-x-* on the Drawer panel would
+  // otherwise constrain fixed descendants to the drawer's bounds).
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 bg-brand-navy/40 backdrop-blur-[3px] flex items-start justify-center p-8 z-50 overflow-y-auto"
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
@@ -540,6 +544,7 @@ export default function MeetingNotesModal({ opp, onClose, onRefresh }: Props) {
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
