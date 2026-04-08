@@ -125,43 +125,45 @@ export default function Sidebar() {
               );
             })}
 
-            {/* Audit — single top-level link */}
-            <NavLink
-              to="/audit"
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  isActive ? 'bg-white/10 text-white border-l-2 border-brand-purple-70' : 'text-white/60 hover:text-white hover:bg-white/[0.07]'
-                }`
-              }
-            >
-              <AuditIcon />
-              Audit
-            </NavLink>
-
-            {/* Settings — collapsible */}
+            {/* Administration — collapsible (Settings + Audit) */}
             <button
               onClick={() => setSettingsOpen(o => !o)}
               className="flex items-center gap-1 pt-4 pb-1 px-3 w-full text-left group"
             >
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-white/40 flex-1 group-hover:text-white/60 transition-colors">Settings</p>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-white/40 flex-1 group-hover:text-white/60 transition-colors">Administration</p>
               <svg className={`w-3 h-3 text-white/30 transition-transform group-hover:text-white/50 ${settingsOpen ? '' : '-rotate-90'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
               </svg>
             </button>
-            {settingsOpen && SETTINGS_NAV.map(({ to, label, icon: Icon }) => (
-              <NavLink
-                key={to}
-                to={to}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    isActive ? 'bg-white/10 text-white border-l-2 border-brand-purple-70' : 'text-white/60 hover:text-white hover:bg-white/[0.07]'
-                  }`
-                }
-              >
-                <Icon />
-                {label}
-              </NavLink>
-            ))}
+            {settingsOpen && (
+              <>
+                <NavLink
+                  to="/audit"
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      isActive ? 'bg-white/10 text-white border-l-2 border-brand-purple-70' : 'text-white/60 hover:text-white hover:bg-white/[0.07]'
+                    }`
+                  }
+                >
+                  <AuditIcon />
+                  Audit
+                </NavLink>
+                {SETTINGS_NAV.map(({ to, label, icon: Icon }) => (
+                  <NavLink
+                    key={to}
+                    to={to}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        isActive ? 'bg-white/10 text-white border-l-2 border-brand-purple-70' : 'text-white/60 hover:text-white hover:bg-white/[0.07]'
+                      }`
+                    }
+                  >
+                    <Icon />
+                    {label}
+                  </NavLink>
+                ))}
+              </>
+            )}
           </>
         )}
       </nav>
