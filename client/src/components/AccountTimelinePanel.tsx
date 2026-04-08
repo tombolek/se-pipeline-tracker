@@ -150,7 +150,7 @@ function DealCard({ opp, currentOppId }: { opp: AccountOpp; currentOppId: number
         </div>
         <div className="flex flex-col items-end gap-1 flex-shrink-0">
           <span className="text-[13px] font-semibold text-brand-navy">
-            {opp.arr ? formatARR(opp.arr, opp.arr_currency ?? 'USD') : '—'}
+            {opp.arr ? formatARR(opp.arr) : '—'}
           </span>
           <span className="text-[11px] text-brand-navy-70 font-light">{closeLabel}</span>
         </div>
@@ -205,7 +205,6 @@ export default function AccountTimelinePanel({ accountName, currentOppId, onClos
   const wonCount    = opps.filter(o => dealStatus(o) === 'won').length;
   const closedCount = opps.filter(o => dealStatus(o) === 'closed').length;
   const lifetimeArr = opps.reduce((sum, o) => sum + (o.arr ?? 0), 0);
-  const arrCurrency = opps.find(o => o.arr_currency)?.arr_currency ?? 'USD';
 
   // Group by year
   const byYear = opps.reduce<Record<number, AccountOpp[]>>((acc, o) => {
@@ -250,7 +249,7 @@ export default function AccountTimelinePanel({ accountName, currentOppId, onClos
             </div>
           ))}
           <div className="flex-1 flex flex-col items-center py-3">
-            <span className="text-[16px] font-semibold text-brand-navy">{formatARR(lifetimeArr, arrCurrency)}</span>
+            <span className="text-[16px] font-semibold text-brand-navy">{formatARR(lifetimeArr)}</span>
             <span className="text-[10px] text-brand-navy-70 uppercase tracking-wide">Lifetime ARR</span>
           </div>
         </div>
