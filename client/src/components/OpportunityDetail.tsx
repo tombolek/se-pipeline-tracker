@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { track } from '../hooks/useTracking';
 import type { Opportunity, Task, Note, User } from '../types';
 import { computeHealthScore } from '../utils/healthScore';
+import { computeMeddpicc } from '../utils/meddpicc';
 import { getOpportunity, assignSeOwner } from '../api/opportunities';
 import { createTask, updateTask, deleteTask } from '../api/tasks';
 import { getNotes, createNote } from '../api/notes';
@@ -13,7 +14,6 @@ import { formatDate, formatARR, daysSince } from '../utils/formatters';
 import { TaskRow, AddTaskForm } from './opportunity/TaskSection';
 import { NoteItem, AddNoteForm } from './opportunity/NoteSection';
 import OpportunityTimeline from './OpportunityTimeline';
-import MeddpiccBadge from './shared/MeddpiccBadge';
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
@@ -112,6 +112,57 @@ function HealthScoreBar({ opp }: { opp: Opportunity }) {
               </div>
             ))
           )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const QUALITY_ICON = {
+  strong: <span className="text-status-success font-bold">✓</span>,
+  weak:   <span className="text-status-warning">◐</span>,
+  empty:  <span className="text-brand-navy-30">○</span>,
+};
+
+function MeddpiccBar({ opp }: { opp: Opportunity }) {
+  const { fields, strong, rag } = computeMeddpicc(opp);
+  const [expanded, setExpanded] = useState(false);
+  const s = RAG_STYLES[rag];
+  const label = rag === 'green' ? 'Well qualified' : rag === 'amber' ? 'Partially qualified' : 'Under-qualified';
+
+  return (
+    <div className={`rounded-xl border px-3 py-2 ${s.bg} ${s.border}`}>
+      <button
+        type="button"
+        onClick={() => setExpanded(v => !v)}
+        className="w-full flex items-center gap-3 text-left"
+      >
+        <div className="flex-1 h-1.5 bg-white/60 rounded-full overflow-hidden">
+          <div className={`h-full rounded-full transition-all ${s.bar}`} style={{ width: `${(strong / 9) * 100}%` }} />
+        </div>
+        <span className={`text-sm font-bold tabular-nums flex-shrink-0 ${s.text}`}>{strong}/9</span>
+        <span className={`text-xs font-medium flex-shrink-0 ${s.text}`}>{label}</span>
+        <svg className={`w-3.5 h-3.5 flex-shrink-0 ${s.text} transition-transform ${expanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {expanded && (
+        <div className="mt-2 pt-2 border-t border-white/40 space-y-1">
+          {fields.map(f => (
+            <div key={f.key as string} className="flex items-center gap-2">
+              <span className="text-[11px] w-3.5 text-center flex-shrink-0">{QUALITY_ICON[f.quality]}</span>
+              <span className={`text-xs flex-shrink-0 w-32 ${f.quality === 'empty' ? 'text-brand-navy-30 italic' : 'text-brand-navy font-medium'}`}>{f.label}</span>
+              {f.quality !== 'empty' && (
+                <span className="text-[11px] text-brand-navy-70 truncate max-w-[160px]">
+                  {(opp[f.key] as string | null)?.slice(0, 60)}{((opp[f.key] as string)?.length ?? 0) > 60 ? '…' : ''}
+                </span>
+              )}
+              {f.quality === 'weak' && (
+                <span className="ml-auto text-[10px] text-status-warning flex-shrink-0">short</span>
+              )}
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -299,9 +350,9 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
                 )}
               </div>
               <p className="text-sm text-brand-navy-70 mt-0.5">{opp.account_name ?? '—'}</p>
-              <div className="flex items-center gap-2 mt-1.5">
+              <div className="space-y-2 mt-2">
                 <HealthScoreBar opp={opp} />
-                <MeddpiccBadge opp={opp} />
+                <MeddpiccBar opp={opp} />
               </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
@@ -536,6 +587,33 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
               <FieldRow label="Changed" value={formatDate(opp.stage_changed_at)} />
             </Collapsible>
           )}
+
+          <Collapsible title="MEDDPICC" defaultOpen={false}>
+            {(() => {
+              const { fields } = computeMeddpicc(opp);
+              return (
+                <div className="space-y-2.5">
+                  {fields.map(f => {
+                    const val = opp[f.key] as string | null;
+                    return (
+                      <div key={f.key as string}>
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                          <span className="text-[10px]">{QUALITY_ICON[f.quality]}</span>
+                          <span className="text-[10px] font-semibold uppercase tracking-wide text-brand-navy-70">{f.label}</span>
+                          {f.quality === 'weak' && (
+                            <span className="text-[9px] text-status-warning font-medium ml-auto">short</span>
+                          )}
+                        </div>
+                        <p className={`text-xs leading-relaxed ${val ? 'text-brand-navy' : 'text-brand-navy-30 italic'}`}>
+                          {val ?? 'Not filled'}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+          </Collapsible>
         </div>
       </div>
 
