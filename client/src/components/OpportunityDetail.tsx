@@ -14,6 +14,7 @@ import { formatDate, formatARR, daysSince } from '../utils/formatters';
 import { TaskRow, AddTaskForm } from './opportunity/TaskSection';
 import { NoteItem, AddNoteForm } from './opportunity/NoteSection';
 import OpportunityTimeline from './OpportunityTimeline';
+import AccountTimelinePanel from './AccountTimelinePanel';
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
@@ -240,6 +241,7 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
   const [showAllFields, setShowAllFields] = useState(false);
   const [summary, setSummary] = useState<string | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
+  const [showAccountPanel, setShowAccountPanel] = useState(false);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -332,7 +334,7 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
   const notesFreshnessDays = daysSince(opp.last_note_at);
 
   return (
-    <div className="flex-1 flex min-h-0 overflow-hidden bg-[#F5F5F7]">
+    <div className="flex-1 flex min-h-0 overflow-hidden bg-[#F5F5F7] relative">
 
       {/* ── Left: working area (max 50%) ── */}
       <div className="w-1/2 flex-shrink-0 min-w-0 overflow-y-auto px-6 py-5 space-y-6">
@@ -350,7 +352,20 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
                   <span className="text-[10px] font-semibold bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full uppercase tracking-wide">Key Deal</span>
                 )}
               </div>
-              <p className="text-sm text-brand-navy-70 mt-0.5">{opp.account_name ?? '—'}</p>
+              {opp.account_name ? (
+                <button
+                  onClick={() => setShowAccountPanel(v => !v)}
+                  className="flex items-center gap-1 mt-0.5 text-sm text-brand-purple font-medium hover:text-brand-purple-70 transition-colors"
+                  title="View account history"
+                >
+                  <svg className="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                  </svg>
+                  {opp.account_name}
+                </button>
+              ) : (
+                <p className="text-sm text-brand-navy-70 mt-0.5">—</p>
+              )}
               <div className="flex flex-col gap-2 mt-2">
                 <HealthScoreBar opp={opp} />
                 <MeddpiccBar opp={opp} />
@@ -617,6 +632,15 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
           </Collapsible>
         </div>
       </div>
+
+      {/* ── Account Timeline Panel ── */}
+      {showAccountPanel && opp.account_name && (
+        <AccountTimelinePanel
+          accountName={opp.account_name}
+          currentOppId={opp.id}
+          onClose={() => setShowAccountPanel(false)}
+        />
+      )}
 
     </div>
   );

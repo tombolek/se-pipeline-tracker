@@ -254,6 +254,30 @@ router.get('/teams', auth, async (_req: Request, res: Response): Promise<void> =
   res.json(ok(rows.map(r => r.team)));
 });
 
+// GET /opportunities/by-account?name=X — all opps for a given account (open + closed)
+router.get('/by-account', auth, async (req: Request, res: Response): Promise<void> => {
+  const name = (req.query.name as string | undefined)?.trim();
+  if (!name) { res.status(400).json(err('name query parameter is required')); return; }
+
+  const rows = await query<{
+    id: number; name: string; stage: string; is_active: boolean; is_closed_lost: boolean;
+    closed_at: string | null; close_date: string | null; first_seen_at: string | null;
+    arr: number | null; arr_currency: string | null;
+    record_type: string | null; ae_owner_name: string | null; se_owner_name: string | null;
+  }>(
+    `SELECT o.id, o.name, o.stage, o.is_active, o.is_closed_lost,
+            o.closed_at, o.close_date, o.first_seen_at,
+            o.arr, o.arr_currency, o.record_type, o.ae_owner_name,
+            u.name AS se_owner_name
+     FROM opportunities o
+     LEFT JOIN users u ON u.id = o.se_owner_id
+     WHERE o.account_name = $1
+     ORDER BY COALESCE(o.closed_at::date, o.close_date, o.first_seen_at::date) DESC NULLS LAST`,
+    [name]
+  );
+  res.json(ok(rows));
+});
+
 // POST /opportunities/:id/tasks
 router.post('/:id/tasks', auth, async (req: Request, res: Response): Promise<void> => {
   const { userId } = (req as AuthenticatedRequest).user;
