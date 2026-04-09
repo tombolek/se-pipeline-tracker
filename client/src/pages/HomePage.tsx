@@ -139,11 +139,15 @@ export default function HomePage() {
   useEffect(() => {
     api.get<ApiResponse<DigestData>>('/home/digest')
       .then(r => setData(r.data.data))
+      .catch(err => console.error('Digest load failed:', err))
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading || !data) {
+  if (loading) {
     return <div className="flex items-center justify-center flex-1 text-sm text-brand-navy-70">Loading your daily digest...</div>;
+  }
+  if (!data) {
+    return <div className="flex items-center justify-center flex-1 text-sm text-status-overdue">Failed to load digest. Please refresh.</div>;
   }
 
   const firstName = user?.name?.split(' ')[0] ?? 'there';

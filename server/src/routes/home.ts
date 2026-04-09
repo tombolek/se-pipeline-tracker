@@ -8,6 +8,7 @@ const auth = requireAuth as unknown as (req: Request, res: Response, next: () =>
 
 // GET /home/digest — SE daily digest: tasks, PoC alerts, recent activity, closed lost, stale deals, upcoming
 router.get('/digest', auth, async (req: Request, res: Response): Promise<void> => {
+  try {
   const user = (req as AuthenticatedRequest).user;
   const uid = user.userId;
 
@@ -195,8 +196,16 @@ router.get('/digest', auth, async (req: Request, res: Response): Promise<void> =
 
   // Compute summary counts
   const today = new Date().toISOString().slice(0, 10);
-  const overdueCount = (myTasks as { due_date: string | null }[]).filter(t => t.due_date && t.due_date < today).length;
-  const dueTodayCount = (myTasks as { due_date: string | null }[]).filter(t => t.due_date && t.due_date.slice(0, 10) === today).length;
+  const overdueCount = (myTasks as { due_date: Date | string | null }[]).filter(t => {
+    if (!t.due_date) return false;
+    const d = typeof t.due_date === 'string' ? t.due_date.slice(0, 10) : t.due_date.toISOString().slice(0, 10);
+    return d < today;
+  }).length;
+  const dueTodayCount = (myTasks as { due_date: Date | string | null }[]).filter(t => {
+    if (!t.due_date) return false;
+    const d = typeof t.due_date === 'string' ? t.due_date.slice(0, 10) : t.due_date.toISOString().slice(0, 10);
+    return d === today;
+  }).length;
 
   res.json(ok({
     summary: {
@@ -213,6 +222,10 @@ router.get('/digest', auth, async (req: Request, res: Response): Promise<void> =
     stale_deals: staleDeals,
     upcoming: upcoming,
   }));
+  } catch (err) {
+    console.error('Home digest error:', err);
+    res.status(500).json({ data: null, error: 'Failed to load digest', meta: {} });
+  }
 });
 
 export default router;
