@@ -149,9 +149,11 @@ function PocCardCompact({ opp, expanded, onToggleExpand, onClick }: {
             <span>{formatDate(opp.poc_end_date) ?? '—'}</span>
             <DaysRemaining days={opp.days_remaining} overdue={overdue} />
           </div>
-          <div className="w-5 h-5 rounded-full bg-brand-purple flex-shrink-0 flex items-center justify-center text-[8px] font-bold text-white">
-            {initials(opp.se_owner_name)}
-          </div>
+          {opp.se_owner_name && (
+            <div className="w-5 h-5 rounded-full bg-brand-purple flex-shrink-0 flex items-center justify-center text-[8px] font-bold text-white" title={opp.se_owner_name}>
+              {initials(opp.se_owner_name)}
+            </div>
+          )}
         </div>
       </div>
 
