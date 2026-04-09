@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Meeting Notes Processor — Issue #80</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --purple:    #6A2CF5; --purple-70: #9C72F8; --purple-30: #DED0FD;
+      --navy:      #1A0C42; --navy-70:   #665D81; --navy-30:   #CCC9D5;
+      --success:   #00E5B6; --warning:   #FFAB00; --overdue:   #FF464C; --info: #00DDFF;
+      --bg:        #F5F5F7;
+    }
+    body { font-family: 'Poppins', system-ui, sans-serif; background: var(--bg); color: var(--navy); min-height: 100vh; }
+
+    /* ── chrome ── */
+    .scenario-bar { background: var(--navy); padding: 10px 20px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .scenario-bar span { font-size: 11px; color: rgba(255,255,255,.45); font-weight: 500; white-space: nowrap; }
+    .scenario-btn { padding: 5px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,.15); background: transparent; color: rgba(255,255,255,.65); font-size: 11px; font-weight: 500; cursor: pointer; font-family: inherit; transition: all .15s; }
+    .scenario-btn:hover { background: rgba(255,255,255,.08); color: white; }
+    .scenario-btn.active { background: var(--purple); border-color: var(--purple); color: white; }
+    .page-header { background: var(--navy); border-top: 1px solid rgba(255,255,255,.08); color: white; padding: 9px 20px; font-size: 11px; font-weight: 500; letter-spacing: .04em; display: flex; align-items: center; gap: 8px; }
+    .page-header span { opacity: .45; }
+
+    /* ── opp stub ── */
+    .opp-detail { max-width: 980px; margin: 24px auto; background: white; border-radius: 16px; box-shadow: 0 4px 24px rgba(26,12,66,.08); overflow: hidden; }
+    .opp-header { padding: 20px 24px 16px; border-bottom: 1px solid rgba(204,201,213,.5); display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+    .opp-header-left h1 { font-size: 16px; font-weight: 600; }
+    .opp-header-left .meta { display: flex; align-items: center; gap: 8px; margin-top: 4px; font-size: 12px; color: var(--navy-70); flex-wrap: wrap; }
+    .stage-chip { background: var(--purple-30); color: var(--purple); padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+    .opp-header-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .opp-body { padding: 20px 24px; min-height: 80px; }
+    .opp-body p { font-size: 13px; color: var(--navy-30); }
+
+    /* ── buttons ── */
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 8px; font-size: 12px; font-weight: 500; cursor: pointer; border: none; font-family: inherit; transition: all .15s; white-space: nowrap; }
+    .btn-primary { background: var(--purple); color: white; }
+    .btn-primary:hover { background: var(--purple-70); }
+    .btn-outline { background: white; color: var(--navy-70); border: 1px solid var(--navy-30); }
+    .btn-outline:hover { border-color: var(--navy); color: var(--navy); }
+    .btn-ghost { background: transparent; color: var(--navy-70); border: 1px solid transparent; }
+    .btn-ghost:hover { background: rgba(204,201,213,.25); }
+    .btn-sm { padding: 5px 10px; font-size: 11px; }
+    .btn svg { width: 14px; height: 14px; flex-shrink: 0; }
+    .btn-notes { background: linear-gradient(135deg, var(--purple) 0%, #a855f7 100%); color: white; box-shadow: 0 2px 8px rgba(106,44,245,.3); }
+    .btn-notes:hover { box-shadow: 0 4px 14px rgba(106,44,245,.4); transform: translateY(-1px); }
+
+    /* ── modal ── */
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(26,12,66,.45); backdrop-filter: blur(3px); display: flex; align-items: flex-start; justify-content: center; padding: 32px 20px 20px; z-index: 100; overflow-y: auto; }
+    .modal-backdrop.hidden { display: none; }
+    .modal { background: white; border-radius: 20px; box-shadow: 0 20px 60px rgba(26,12,66,.22); width: 100%; max-width: 700px; overflow: hidden; }
+    .modal-header { padding: 18px 24px 14px; border-bottom: 1px solid rgba(204,201,213,.5); display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .modal-header-left h2 { font-size: 15px; font-weight: 600; }
+    .modal-header-left .modal-sub { font-size: 12px; color: var(--navy-70); margin-top: 2px; }
+    .modal-close { width: 28px; height: 28px; border-radius: 8px; border: none; background: rgba(204,201,213,.3); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--navy-70); font-family: inherit; transition: background .15s; flex-shrink: 0; }
+    .modal-close:hover { background: rgba(204,201,213,.6); }
+
+    /* step dots */
+    .step-dots { display: flex; align-items: center; gap: 6px; padding: 10px 24px 0; }
+    .step-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--navy-30); transition: all .2s; }
+    .step-dot.active { background: var(--purple); width: 18px; border-radius: 3px; }
+    .step-dot.done { background: var(--success); }
+
+    /* ── input form ── */
+    .modal-body { padding: 18px 24px; display: flex; flex-direction: column; gap: 14px; }
+    label { display: block; font-size: 11px; font-weight: 600; color: var(--navy-70); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 5px; }
+    .label-opt { font-size: 10px; font-weight: 400; color: var(--navy-30); text-transform: none; letter-spacing: 0; margin-left: 4px; }
+    .input-wrap { position: relative; }
+    .input-url { width: 100%; padding: 8px 12px 8px 34px; border: 1px solid var(--navy-30); border-radius: 10px; font-size: 13px; font-family: inherit; color: var(--navy); outline: none; transition: border-color .15s, box-shadow .15s; }
+    .input-url:focus { border-color: var(--purple); box-shadow: 0 0 0 3px rgba(106,44,245,.1); }
+    .input-url::placeholder { color: var(--navy-30); }
+    .url-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--navy-30); pointer-events: none; }
+    .url-hints { margin-top: 5px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .url-hint-text { font-size: 11px; color: var(--navy-30); }
+    .hint-chip { display: inline-flex; align-items: center; gap: 3px; padding: 2px 7px; border-radius: 20px; background: rgba(204,201,213,.2); font-size: 10px; color: var(--navy-70); border: 1px solid rgba(204,201,213,.5); }
+    .divider { height: 1px; background: rgba(204,201,213,.35); }
+    textarea.notes-input { width: 100%; height: 155px; padding: 10px 12px; border: 1px solid var(--navy-30); border-radius: 10px; font-size: 13px; font-family: inherit; color: var(--navy); resize: vertical; outline: none; line-height: 1.65; transition: border-color .15s, box-shadow .15s; }
+    textarea.notes-input:focus { border-color: var(--purple); box-shadow: 0 0 0 3px rgba(106,44,245,.1); }
+    textarea.notes-input::placeholder { color: var(--navy-30); }
+    .modal-footer { padding: 12px 24px 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid rgba(204,201,213,.4); }
+    .footer-hint { font-size: 11px; color: var(--navy-30); }
+
+    /* ── processing ── */
+    #stateProcessing { padding: 52px 24px; text-align: center; display: none; flex-direction: column; align-items: center; gap: 12px; }
+    #stateProcessing.show { display: flex; }
+    .spinner { width: 34px; height: 34px; border-radius: 50%; border: 3px solid var(--purple-30); border-top-color: var(--purple); animation: spin .75s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #stateProcessing p { font-size: 13px; color: var(--navy-70); font-weight: 500; }
+    #stateProcessing small { font-size: 11px; color: var(--navy-30); }
+
+    /* ── results ── */
+    #stateResults { display: none; flex-direction: column; }
+    #stateResults.show { display: flex; }
+
+    .autosave-banner { margin: 14px 24px 0; padding: 10px 14px; background: rgba(0,229,182,.07); border: 1px solid rgba(0,229,182,.28); border-radius: 10px; display: flex; align-items: center; gap: 10px; }
+    .autosave-banner-text { flex: 1; min-width: 0; }
+    .autosave-banner-text .label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: #00a880; }
+    .autosave-banner-text .source-link { font-size: 12px; color: var(--navy-70); margin-top: 2px; }
+    .autosave-banner-text .source-link a { color: var(--purple); text-decoration: none; }
+    .autosave-banner-text .source-link a:hover { text-decoration: underline; }
+
+    .result-section { border-bottom: 1px solid rgba(204,201,213,.4); }
+    .result-section:last-child { border-bottom: none; }
+    .rs-header { padding: 13px 24px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .rs-title { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; }
+    .rs-icon { width: 26px; height: 26px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .icon-tasks    { background: rgba(0,229,182,.14); color: #009e75; }
+    .icon-meddpicc { background: rgba(106,44,245,.11); color: var(--purple); }
+    .icon-comment  { background: rgba(255,171,0,.13);  color: #b87800; }
+    .icon-blockers { background: rgba(255,70,76,.12);  color: #cc2d32; }
+    .icon-nextstep { background: rgba(0,221,255,.12);  color: #0088a8; }
+    .rs-count { font-size: 10px; font-weight: 500; padding: 2px 7px; border-radius: 20px; background: rgba(204,201,213,.35); color: var(--navy-70); }
+    .rs-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+    .rs-body { padding: 0 24px 14px; }
+
+    /* tasks */
+    .task-list { display: flex; flex-direction: column; gap: 7px; }
+    .task-item { display: flex; align-items: flex-start; gap: 10px; padding: 9px 12px; border: 1px solid var(--navy-30); border-radius: 10px; background: #fafafa; transition: border-color .15s; }
+    .task-item:hover { border-color: var(--purple-70); }
+    .task-item input[type=checkbox] { margin-top: 2px; accent-color: var(--purple); cursor: pointer; flex-shrink: 0; width: 14px; height: 14px; }
+    .task-content { flex: 1; min-width: 0; }
+    .task-title-edit { width: 100%; border: none; background: transparent; font-size: 13px; font-weight: 500; color: var(--navy); font-family: inherit; outline: none; padding: 0; }
+    .task-meta { display: flex; align-items: center; gap: 10px; margin-top: 3px; }
+    .task-meta-chip { font-size: 10px; color: var(--navy-70); display: flex; align-items: center; gap: 3px; }
+
+    /* meddpicc */
+    .meddpicc-list { display: flex; flex-direction: column; gap: 8px; }
+    .meddpicc-item { padding: 10px 12px; border: 1px solid var(--navy-30); border-radius: 10px; background: #fafafa; }
+    .meddpicc-field { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--purple); margin-bottom: 5px; }
+    .diff-old { font-size: 12px; color: var(--navy-30); text-decoration: line-through; line-height: 1.5; font-style: italic; }
+    .diff-new { font-size: 12px; color: var(--navy); line-height: 1.5; background: rgba(0,229,182,.1); border-left: 2px solid var(--success); padding: 4px 8px; border-radius: 0 6px 6px 0; margin-top: 3px; }
+
+    /* se comment */
+    .comment-wrap { position: relative; }
+    .comment-textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--navy-30); border-radius: 10px; font-size: 13px; font-family: inherit; color: var(--navy); resize: none; outline: none; background: #fafafa; line-height: 1.65; }
+    .comment-hint { margin-top: 6px; font-size: 11px; color: var(--navy-30); }
+
+    /* blockers */
+    .blocker-list { display: flex; flex-direction: column; gap: 7px; }
+    .blocker-item { display: flex; align-items: flex-start; gap: 10px; padding: 9px 12px; border: 1px solid rgba(255,70,76,.2); border-radius: 10px; background: rgba(255,70,76,.03); }
+    .blocker-badge { flex-shrink: 0; margin-top: 1px; width: 18px; height: 18px; border-radius: 5px; background: rgba(255,70,76,.12); color: #cc2d32; display: flex; align-items: center; justify-content: center; }
+    .blocker-text { font-size: 13px; color: var(--navy); line-height: 1.45; }
+    .blocker-edit { width: 100%; border: none; background: transparent; font-size: 13px; color: var(--navy); font-family: inherit; outline: none; padding: 0; line-height: 1.45; }
+
+    /* next step */
+    .nextstep-input { width: 100%; padding: 9px 12px; border: 1px solid var(--navy-30); border-radius: 10px; font-size: 13px; font-family: inherit; color: var(--navy); outline: none; background: #fafafa; transition: border-color .15s; }
+    .nextstep-input:focus { border-color: var(--purple); box-shadow: 0 0 0 3px rgba(106,44,245,.1); }
+    .nextstep-hint { margin-top: 6px; font-size: 11px; color: var(--navy-30); }
+
+    /* results footer */
+    .results-footer { padding: 12px 24px 18px; border-top: 1px solid rgba(204,201,213,.4); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .results-footer-note { font-size: 11px; color: var(--navy-30); }
+    .results-footer-note a { color: var(--purple); text-decoration: none; }
+    .results-footer-note a:hover { text-decoration: underline; }
+
+    /* confirmed badge */
+    .confirmed-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: #009e75; font-weight: 500; }
+
+    .hidden { display: none !important; }
+    .text-muted { color: var(--navy-30); font-size: 12px; }
+  </style>
+</head>
+<body>
+
+<!-- scenario switcher -->
+<div class="scenario-bar">
+  <span>Preview state:</span>
+  <button class="scenario-btn active" onclick="go('input',this)">1 · Input form</button>
+  <button class="scenario-btn" onclick="go('processing',this)">2 · Processing…</button>
+  <button class="scenario-btn" onclick="go('results',this)">3 · Results ready</button>
+  <button class="scenario-btn" onclick="go('confirmed',this)">4 · All confirmed</button>
+</div>
+
+<div class="page-header">
+  Pipeline <span>›</span> Ataccama ONE Platform — Enterprise Expansion <span>·</span> <span>Opportunity Detail</span>
+</div>
+
+<!-- opp stub -->
+<div class="opp-detail">
+  <div class="opp-header">
+    <div class="opp-header-left">
+      <h1>Ataccama ONE Platform — Enterprise Expansion</h1>
+      <div class="meta">
+        <span>Merkle DACH</span><span>·</span>
+        <span class="stage-chip">Develop Solution</span><span>·</span>
+        <span>Close: Jun 2026</span><span>·</span><span>€240k ARR</span>
+      </div>
+    </div>
+    <div class="opp-header-actions">
+      <button class="btn btn-ghost btn-sm">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8"><path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+        AI Summary
+      </button>
+      <button class="btn btn-notes btn-sm" onclick="openModal()">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        Process Call Notes
+      </button>
+    </div>
+  </div>
+  <div class="opp-body"><p class="text-muted">Tasks · Notes · Timeline — truncated for preview</p></div>
+</div>
+
+
+<!-- ═══ MODAL ═══ -->
+<div class="modal-backdrop hidden" id="backdrop" onclick="backdropClick(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+
+    <div class="modal-header">
+      <div class="modal-header-left">
+        <h2>Process Call Notes</h2>
+        <div class="modal-sub">Ataccama ONE Platform — Enterprise Expansion · Merkle DACH</div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">
+        <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <div class="step-dots"><div class="step-dot" id="d1"></div><div class="step-dot" id="d2"></div><div class="step-dot" id="d3"></div></div>
+
+    <!-- STATE 1: input -->
+    <div id="stateInput">
+      <div class="modal-body">
+        <div>
+          <label>Meeting notes source <span class="label-opt">optional</span></label>
+          <div class="input-wrap">
+            <span class="url-icon"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg></span>
+            <input class="input-url" type="url" placeholder="Notion page, Slack canvas, recording transcript URL…" value="https://notion.so/ataccama/Merkle-DACH-Discovery-Apr-8" />
+          </div>
+          <div class="url-hints">
+            <span class="url-hint-text">Saved with the note for future reference ·</span>
+            <span class="hint-chip">Notion</span>
+            <span class="hint-chip">Slack canvas</span>
+            <span class="hint-chip">Any URL</span>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div>
+          <label>Raw call notes</label>
+          <textarea class="notes-input" placeholder="Paste rough notes, bullet points, or transcript snippets…">Discovery call with Thomas Bayer (CTO) and Anna Fischer (Data Architect) — 45 mins
+
+Key points:
+- Current state: using Collibra for governance but no data quality layer
+- Pain: 3 failed DQ projects in 2 years, execs losing trust in data. ~€2M wasted
+- ONE DQ resonated strongly — showed automated profiling demo, they want a deeper dive
+- Champion: Anna Fischer — owns data architecture, pushing for Collibra replacement
+- Budget: €200-250k confirmed by Thomas, has CDO Markus Klein backing
+- Timeline: Must be live before Q3 board review in September. Hard deadline
+- Competitors: Informatica (bad experience, low risk), Talend is in the mix
+- Tech concern: their data lake is on Azure ADLS Gen2, need to confirm connector support
+- NDA not yet signed — blocks sharing our roadmap
+- Action items:
+  - Send ONE DQ technical architecture doc this week
+  - Schedule deep-dive with their data engineering team (3 people)
+  - Get NDA signed ASAP
+  - Follow up with Anna on PoC criteria by end of week</textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <span class="footer-hint">Claude extracts tasks, MEDDPICC, SE comment, tech blockers, and next step.</span>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+          <button class="btn btn-primary" onclick="go('processing',null)">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8"><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            Process with Claude
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STATE 2: processing -->
+    <div id="stateProcessing">
+      <div class="spinner" style="margin:52px auto 14px"></div>
+      <p style="text-align:center;font-size:13px;color:var(--navy-70);font-weight:500;padding-bottom:4px">Claude is reading your notes…</p>
+      <p style="text-align:center;font-size:11px;color:var(--navy-30);padding-bottom:52px">Extracting tasks · MEDDPICC · SE comment · Tech blockers · Next step</p>
+    </div>
+
+    <!-- STATE 3+4: results -->
+    <div id="stateResults">
+
+      <!-- auto-saved banner -->
+      <div class="autosave-banner" style="margin-top:14px">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#00a880" strokeWidth="2.2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <div class="autosave-banner-text">
+          <div class="label">Raw notes auto-saved as a note on this opportunity</div>
+          <div class="source-link">
+            <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" style="display:inline;vertical-align:middle;margin-right:3px"><path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+            Source: <a href="#">notion.so / Merkle DACH Discovery Apr 8</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- 1. Tasks -->
+      <div class="result-section" style="margin-top:12px">
+        <div class="rs-header">
+          <div class="rs-title">
+            <div class="rs-icon icon-tasks"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+            Extracted Tasks <span class="rs-count">4</span>
+          </div>
+          <div class="rs-actions" id="tasksActions">
+            <button class="btn btn-outline btn-sm" onclick="confirm1()">Add selected to opportunity</button>
+          </div>
+        </div>
+        <div class="rs-body">
+          <div class="task-list">
+            <div class="task-item"><input type="checkbox" checked /><div class="task-content"><input class="task-title-edit" value="Send ONE DQ technical architecture document" /><div class="task-meta"><span class="task-meta-chip"><svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Due in 3 days</span></div></div></div>
+            <div class="task-item"><input type="checkbox" checked /><div class="task-content"><input class="task-title-edit" value="Schedule technical deep-dive with Merkle data engineering team (3 people)" /><div class="task-meta"><span class="task-meta-chip"><svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Due in 5 days</span></div></div></div>
+            <div class="task-item"><input type="checkbox" checked /><div class="task-content"><input class="task-title-edit" value="Get NDA signed — required before sharing roadmap" /><div class="task-meta"><span class="task-meta-chip"><svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Due in 7 days</span></div></div></div>
+            <div class="task-item"><input type="checkbox" checked /><div class="task-content"><input class="task-title-edit" value="Follow up with Anna Fischer on PoC scope and success criteria" /><div class="task-meta"><span class="task-meta-chip"><svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Due in 4 days</span></div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. MEDDPICC -->
+      <div class="result-section">
+        <div class="rs-header">
+          <div class="rs-title">
+            <div class="rs-icon icon-meddpicc"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg></div>
+            MEDDPICC Updates <span class="rs-count">5 fields</span>
+          </div>
+          <div class="rs-actions" id="meddpiccActions">
+            <button class="btn btn-outline btn-sm" onclick="confirm2()">Save all as note</button>
+          </div>
+        </div>
+        <div class="rs-body">
+          <div class="meddpicc-list">
+            <div class="meddpicc-item"><div class="meddpicc-field">Metrics</div><div class="diff-old">— not set</div><div class="diff-new">3 failed DQ projects in 2 yrs; ~€2M wasted; exec trust in data eroding.</div></div>
+            <div class="meddpicc-item"><div class="meddpicc-field">Economic Buyer</div><div class="diff-old">— not set</div><div class="diff-new">Markus Klein, CDO — confirmed executive backing, budget €200–250k.</div></div>
+            <div class="meddpicc-item"><div class="meddpicc-field">Champion</div><div class="diff-old">— not set</div><div class="diff-new">Anna Fischer, Data Architect — owns architecture decisions, driving replacement.</div></div>
+            <div class="meddpicc-item"><div class="meddpicc-field">Timeline</div><div class="diff-old">— not set</div><div class="diff-new">Hard deadline: live before Q3 board review in September 2026.</div></div>
+            <div class="meddpicc-item"><div class="meddpicc-field">Engaged Competitors</div><div class="diff-old">— not set</div><div class="diff-new">Talend (active eval). Informatica — prior bad experience, low risk. Collibra is incumbent being replaced.</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. SE Comment -->
+      <div class="result-section">
+        <div class="rs-header">
+          <div class="rs-title">
+            <div class="rs-icon icon-comment"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2"><path strokeLinecap="round" strokeLinejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/></svg></div>
+            Draft SE Comment
+          </div>
+          <div class="rs-actions" id="commentActions">
+            <button class="btn btn-outline btn-sm" onclick="confirm3()">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path strokeLinecap="round" strokeLinejoin="round" d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+              Copy to clipboard
+            </button>
+          </div>
+        </div>
+        <div class="rs-body">
+          <textarea class="comment-textarea" rows="3" id="commentText">BM_8APR26 — Good discovery, demo resonated well; scheduling technical deep-dive with data eng team to confirm ADLS Gen2 connector support and scope PoC. NDA needed before next steps.</textarea>
+          <div class="comment-hint">One sentence focused on SE progress and what's needed for the technical win. Paste directly into Salesforce SE Comments.</div>
+        </div>
+      </div>
+
+      <!-- 4. Tech Blockers -->
+      <div class="result-section">
+        <div class="rs-header">
+          <div class="rs-title">
+            <div class="rs-icon icon-blockers"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg></div>
+            Technical Blockers / Risks <span class="rs-count">2</span>
+          </div>
+          <div class="rs-actions" id="blockersActions">
+            <button class="btn btn-outline btn-sm" onclick="confirm4()">Save to opportunity</button>
+          </div>
+        </div>
+        <div class="rs-body">
+          <div class="blocker-list">
+            <div class="blocker-item">
+              <div class="blocker-badge"><svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01"/></svg></div>
+              <input class="blocker-edit" value="Azure ADLS Gen2 connector support unconfirmed — must validate before PoC scoping" />
+            </div>
+            <div class="blocker-item">
+              <div class="blocker-badge"><svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01"/></svg></div>
+              <input class="blocker-edit" value="NDA not yet signed — roadmap sharing blocked until complete" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. Next step -->
+      <div class="result-section">
+        <div class="rs-header">
+          <div class="rs-title">
+            <div class="rs-icon icon-nextstep"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2"><path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7"/></svg></div>
+            Suggested Next Step
+          </div>
+          <div class="rs-actions" id="nextStepActions">
+            <button class="btn btn-outline btn-sm" onclick="confirm5()">Create as next step task</button>
+          </div>
+        </div>
+        <div class="rs-body">
+          <input class="nextstep-input" value="Technical deep-dive with Merkle data engineering team — validate ADLS Gen2 connector and define PoC success criteria" />
+          <div class="nextstep-hint">Will be flagged as a next step task on this opportunity.</div>
+        </div>
+      </div>
+
+      <!-- footer -->
+      <div class="results-footer">
+        <div class="results-footer-note">Notes + source link saved · <a href="#">View note ↗</a></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-outline" onclick="closeModal()">Done</button>
+          <button class="btn btn-primary" id="confirmAllBtn" onclick="confirmAll()">Confirm all &amp; close</button>
+        </div>
+      </div>
+
+    </div><!-- /stateResults -->
+  </div><!-- /modal -->
+</div><!-- /backdrop -->
+
+<script>
+  let current = 'input';
+
+  function setDots(state) {
+    const d = [document.getElementById('d1'), document.getElementById('d2'), document.getElementById('d3')];
+    d.forEach(x => x.className = 'step-dot');
+    if (state === 'input')                      { d[0].classList.add('active'); }
+    else if (state === 'processing')            { d[0].classList.add('done'); d[1].classList.add('active'); }
+    else                                        { d[0].classList.add('done'); d[1].classList.add('done'); d[2].classList.add('active'); }
+  }
+
+  function go(state, btn) {
+    current = state;
+    // scenario buttons
+    if (btn) { document.querySelectorAll('.scenario-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); }
+
+    document.getElementById('backdrop').classList.remove('hidden');
+    document.getElementById('stateInput').style.display     = state === 'input'      ? 'block' : 'none';
+    document.getElementById('stateProcessing').style.display = state === 'processing' ? 'block' : 'none';
+    document.getElementById('stateResults').style.display   = (state === 'results' || state === 'confirmed') ? 'flex' : 'none';
+    setDots(state);
+
+    if (state === 'processing') {
+      setTimeout(() => { if (current === 'processing') go('results', document.querySelectorAll('.scenario-btn')[2]); }, 2200);
+    }
+
+    if (state === 'confirmed') {
+      setConfirmed('tasksActions',    '<span class="confirmed-badge"><svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg> 4 tasks added</span>');
+      setConfirmed('meddpiccActions', '<span class="confirmed-badge"><svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg> Saved as note</span>');
+      setConfirmed('commentActions',  '<span class="confirmed-badge"><svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg> Copied</span>');
+      setConfirmed('blockersActions', '<span class="confirmed-badge"><svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg> Saved</span>');
+      setConfirmed('nextStepActions', '<span class="confirmed-badge"><svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg> Task created</span>');
+      document.getElementById('confirmAllBtn').style.display = 'none';
+    } else if (state === 'results') {
+      document.getElementById('tasksActions').innerHTML    = '<button class="btn btn-outline btn-sm" onclick="confirm1()">Add selected to opportunity</button>';
+      document.getElementById('meddpiccActions').innerHTML = '<button class="btn btn-outline btn-sm" onclick="confirm2()">Save all as note</button>';
+      document.getElementById('commentActions').innerHTML  = '<button class="btn btn-outline btn-sm" onclick="confirm3()"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" style="width:13px;height:13px"><rect x="9" y="9" width="13" height="13" rx="2"/><path strokeLinecap="round" strokeLinejoin="round" d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy to clipboard</button>';
+      document.getElementById('blockersActions').innerHTML = '<button class="btn btn-outline btn-sm" onclick="confirm4()">Save to opportunity</button>';
+      document.getElementById('nextStepActions').innerHTML = '<button class="btn btn-outline btn-sm" onclick="confirm5()">Create as next step task</button>';
+      document.getElementById('confirmAllBtn').style.display = '';
+    }
+  }
+
+  function setConfirmed(id, html) { document.getElementById(id).innerHTML = html; }
+
+  function openModal() { go('input', document.querySelectorAll('.scenario-btn')[0]); }
+  function closeModal() { document.getElementById('backdrop').classList.add('hidden'); }
+  function backdropClick(e) { if (e.target === document.getElementById('backdrop')) closeModal(); }
+
+  const TICK = '<svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>';
+  function confirm1() { setConfirmed('tasksActions',    `<span class="confirmed-badge">${TICK} 4 tasks added</span>`); }
+  function confirm2() { setConfirmed('meddpiccActions', `<span class="confirmed-badge">${TICK} Saved as note</span>`); }
+  function confirm3() { navigator.clipboard?.writeText(document.getElementById('commentText').value).catch(()=>{}); setConfirmed('commentActions', `<span class="confirmed-badge">${TICK} Copied</span>`); }
+  function confirm4() { setConfirmed('blockersActions', `<span class="confirmed-badge">${TICK} Saved</span>`); }
+  function confirm5() { setConfirmed('nextStepActions', `<span class="confirmed-badge">${TICK} Task created</span>`); }
+  function confirmAll() { confirm1(); confirm2(); confirm3(); confirm4(); confirm5(); document.getElementById('confirmAllBtn').style.display = 'none'; document.querySelectorAll('.scenario-btn').forEach((b,i)=>b.classList.toggle('active',i===3)); current='confirmed'; }
+
+  go('input', document.querySelectorAll('.scenario-btn')[0]);
+</script>
+</body>
+</html>

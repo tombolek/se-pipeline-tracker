@@ -5,12 +5,6 @@
       "data": true
     }
   ],
-  "/SePipelineStack/SsmParameterValue:--aws--service--ami-amazon-linux-latest--al2023-ami-kernel-6.1-arm64:C96584B6-F00A-464E-AD19-53AFF4B05118.Parameter": [
-    {
-      "type": "aws:cdk:logicalId",
-      "data": "SsmParameterValueawsserviceamiamazonlinuxlatestal2023amikernel61arm64C96584B6F00A464EAD1953AFF4B05118Parameter"
-    }
-  ],
   "/SePipelineStack/Eip": [
     {
       "type": "aws:cdk:logicalId",
@@ -53,6 +47,12 @@
       "data": "BackupBucketName"
     }
   ],
+  "/SePipelineStack/AppBackupBucketName": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "AppBackupBucketName"
+    }
+  ],
   "/SePipelineStack/BootstrapVersion": [
     {
       "type": "aws:cdk:logicalId",
@@ -93,6 +93,12 @@
     {
       "type": "aws:cdk:logicalId",
       "data": "BackupBucket26B8E51C"
+    }
+  ],
+  "/SePipelineStack/AppBackupBucket/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "AppBackupBucket6AF69880"
     }
   ],
   "/SePipelineStack/FrontendBucket/Resource": [

@@ -193,6 +193,49 @@
     "aws:cdk:path": "SePipelineStack/BackupBucket/Resource"
    }
   },
+  "AppBackupBucket6AF69880": {
+   "Type": "AWS::S3::Bucket",
+   "Properties": {
+    "BucketEncryption": {
+     "ServerSideEncryptionConfiguration": [
+      {
+       "ServerSideEncryptionByDefault": {
+        "SSEAlgorithm": "AES256"
+       }
+      }
+     ]
+    },
+    "BucketName": "se-pipeline-app-backups-032644166077",
+    "LifecycleConfiguration": {
+     "Rules": [
+      {
+       "ExpirationInDays": 90,
+       "Status": "Enabled"
+      },
+      {
+       "NoncurrentVersionExpiration": {
+        "NoncurrentDays": 30
+       },
+       "Status": "Enabled"
+      }
+     ]
+    },
+    "PublicAccessBlockConfiguration": {
+     "BlockPublicAcls": true,
+     "BlockPublicPolicy": true,
+     "IgnorePublicAcls": true,
+     "RestrictPublicBuckets": true
+    },
+    "VersioningConfiguration": {
+     "Status": "Enabled"
+    }
+   },
+   "UpdateReplacePolicy": "Retain",
+   "DeletionPolicy": "Retain",
+   "Metadata": {
+    "aws:cdk:path": "SePipelineStack/AppBackupBucket/Resource"
+   }
+  },
   "FrontendBucketEFE2E19C": {
    "Type": "AWS::S3::Bucket",
    "Properties": {
@@ -481,6 +524,85 @@
          ]
         }
        ]
+      },
+      {
+       "Action": [
+        "s3:GetObject*",
+        "s3:GetBucket*",
+        "s3:List*",
+        "s3:DeleteObject*",
+        "s3:PutObject",
+        "s3:PutObjectLegalHold",
+        "s3:PutObjectRetention",
+        "s3:PutObjectTagging",
+        "s3:PutObjectVersionTagging",
+        "s3:Abort*"
+       ],
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "AppBackupBucket6AF69880",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::GetAtt": [
+             "AppBackupBucket6AF69880",
+             "Arn"
+            ]
+           },
+           "/*"
+          ]
+         ]
+        }
+       ]
+      },
+      {
+       "Action": [
+        "s3:GetObject*",
+        "s3:GetBucket*",
+        "s3:List*",
+        "s3:DeleteObject*",
+        "s3:PutObject",
+        "s3:PutObjectLegalHold",
+        "s3:PutObjectRetention",
+        "s3:PutObjectTagging",
+        "s3:PutObjectVersionTagging",
+        "s3:Abort*"
+       ],
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "FrontendBucketEFE2E19C",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::GetAtt": [
+             "FrontendBucketEFE2E19C",
+             "Arn"
+            ]
+           },
+           "/*"
+          ]
+         ]
+        }
+       ]
+      },
+      {
+       "Action": "cloudfront:CreateInvalidation",
+       "Effect": "Allow",
+       "Resource": "*"
       }
      ],
      "Version": "2012-10-17"
@@ -528,7 +650,7 @@
      {
       "DeviceName": "/dev/xvda",
       "Ebs": {
-       "DeleteOnTermination": true,
+       "DeleteOnTermination": false,
        "VolumeSize": 20,
        "VolumeType": "gp3"
       }
@@ -537,9 +659,7 @@
     "IamInstanceProfile": {
      "Ref": "AppInstanceInstanceProfileC6B6EFAA"
     },
-    "ImageId": {
-     "Ref": "SsmParameterValueawsserviceamiamazonlinuxlatestal2023amikernel61arm64C96584B6F00A464EAD1953AFF4B05118Parameter"
-    },
+    "ImageId": "ami-09fcfca38c345ed14",
     "InstanceType": "t4g.micro",
     "KeyName": {
      "Ref": "KeyPair1622897B"
@@ -669,6 +789,7 @@
        "CustomOriginConfig": {
         "HTTPPort": 3001,
         "OriginProtocolPolicy": "http-only",
+        "OriginReadTimeout": 60,
         "OriginSSLProtocols": [
          "TLSv1.2"
         ]
@@ -707,22 +828,11 @@
   "CDKMetadata": {
    "Type": "AWS::CDK::Metadata",
    "Properties": {
-    "Analytics": "v2:deflate64:H4sIAAAAAAAA/3VRy07DMBD8FnJ2DUpBIG5pQVXFoVGCekEIOc6mbJvYlXfdUkX5d5RHSTn0tLOzXs94HMrw/lHe3agjTXS+m5SYyTplpXdCHemrBh3Ker3XYl6YdTwXsc9K1KnPDHDLjSixnuFdZSWM/MhFRFajYrTm73ALlobBGeCFYjiq0yAzdBGz0t8VGBYpaO+QTwtn/b4T+Ee8wSlW6NrBGS4NsTJ6UBnx6zJuBE1lPfN611sfUF9iW6I+jXTff9RBhT9ogufgMqo2I5rKbkTyciFlxdBap6D5bASqStaJ7cPp6qgzorPP2NkCS2iELq3PC2cNy/oFiR1mvsswna4cbtBEWgPR3Bp2tmyvuEJfLjeNSICsd20gnthWY1uYK6PY2QPm4GaKQEREwCmrDZpN9wLlVAUM3QesPO89N8LYHOSWbg/hg3yS4c2WECfOG8YKZNLXX3+gjdh/AgAA"
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/3VQTU/CQBD9LfS8rKZoNN4KGkI82LSGizFmu53iQLtLdmZB0vS/m35g8cDpfczOvskLZXj3IG8n6khTne+mJWayTlnpnVBH+qpBh7Je77VYFGYdL0TssxJ16jMD3HojS6xneFdZCaM/ehGR1agYrfl73JKVYXAGeKkYjuo0xAwqYlb6uwLDIgXtHfJp6azfdwH/jFc4xQpdOzjTlSFWRg8pI39ZxY2gmaznXu/60wfWQ2xL1KfR7vVHHVT4gyZ4Ci6rajuimexGJC8XUlYM7ekUNJ+NQFXJOrF9OR2OOSM73xk7W2AJjdCl9XnhrGFZPyOxw8x3HaazN4cbNJHWQLSwhp0t2y+u2JfLTSMSIOtdW4gnttUoC3NlFDt7wBzcXBGIiAg4ZbVBs+lCPe89N8LYHOSWbg7hvXyU4WRLiFPnDWMFMunxF3HcXdxyAgAA"
    },
    "Metadata": {
     "aws:cdk:path": "SePipelineStack/CDKMetadata/Default"
    }
-  }
- },
- "Parameters": {
-  "SsmParameterValueawsserviceamiamazonlinuxlatestal2023amikernel61arm64C96584B6F00A464EAD1953AFF4B05118Parameter": {
-   "Type": "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>",
-   "Default": "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-arm64"
-  },
-  "BootstrapVersion": {
-   "Type": "AWS::SSM::Parameter::Value<String>",
-   "Default": "/cdk-bootstrap/hnb659fds/version",
-   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
   }
  },
  "Outputs": {
@@ -775,6 +885,19 @@
    "Value": {
     "Ref": "BackupBucket26B8E51C"
    }
+  },
+  "AppBackupBucketName": {
+   "Description": "S3 bucket for user-triggered JSON app backups (Settings → Backup & Restore)",
+   "Value": {
+    "Ref": "AppBackupBucket6AF69880"
+   }
+  }
+ },
+ "Parameters": {
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
   }
  },
  "Rules": {

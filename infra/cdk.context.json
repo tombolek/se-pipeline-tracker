@@ -3,5 +3,6 @@
     "eu-west-1a",
     "eu-west-1b",
     "eu-west-1c"
-  ]
+  ],
+  "ssm:account=032644166077:parameterName=/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-arm64:region=eu-west-1": "ami-09fcfca38c345ed14"
 }

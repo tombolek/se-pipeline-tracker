@@ -727,7 +727,7 @@ After CDK deploy, always run a full or server-only deploy so EC2's `.env.prod` p
 
 ### What NOT to do
 
-- **Never use `preview_*` tools or start a local dev server** — the app is deployed to AWS/CloudFront; local preview tools don't apply
+- **Never use `preview_*` tools or start a local dev server unless explicitly asked to do so** — the app is deployed to AWS/CloudFront; local preview tools don't apply
 - **Never run `deploy.sh` from PowerShell or CMD** — use WSL only
 - **Never run `npm install` on Windows** for the client — the `rolldown` native binding is platform-specific; it must be installed in WSL (`wsl -e bash -ic 'cd /mnt/c/... && npm install'`)
 - **Never skip the `export PATH="$HOME/bin:$PATH"` prefix** in WSL commands — non-interactive WSL shells don't load `~/.bashrc`, so `aws` won't be found otherwise
