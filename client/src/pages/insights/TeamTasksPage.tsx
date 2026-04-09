@@ -6,7 +6,7 @@ import { useTeamScope } from '../../hooks/useTeamScope';
 import TeamScopeSelector from '../../components/shared/TeamScopeSelector';
 import SortableHeader from '../../components/shared/SortableHeader';
 import MultiSelectFilter from '../../components/shared/MultiSelectFilter';
-import { sortRows, type SortDir, type ColType } from '../../utils/sortRows';
+import { sortRows, type SortDir } from '../../utils/sortRows';
 import Drawer from '../../components/Drawer';
 import OpportunityDetail from '../../components/OpportunityDetail';
 
@@ -36,13 +36,17 @@ const STATUS_META: Record<string, { label: string; dot: string; col: string; cou
   done:        { label: 'Done',        dot: 'bg-status-success',    col: 'border-t-status-success',    count_bg: 'bg-emerald-50 text-emerald-700' },
 };
 
-const LIST_COLS: { key: string; label: string; type?: ColType }[] = [
+const LIST_COLS = [
   { key: 'title',              label: 'Task' },
   { key: 'opportunity_name',   label: 'Opportunity' },
   { key: 'assigned_to_name',   label: 'Assignee' },
   { key: 'status',             label: 'Status' },
-  { key: 'due_date',           label: 'Due Date', type: 'date' },
-];
+  { key: 'due_date',           label: 'Due Date' },
+] as const;
+
+const COL_TYPE_MAP: Record<string, 'date' | 'number' | 'string'> = {
+  due_date: 'date',
+};
 
 function dueLabel(d: string | null): { text: string; cls: string } {
   if (!d) return { text: '—', cls: 'text-brand-navy-30' };
@@ -62,10 +66,8 @@ export default function TeamTasksPage() {
   const [view, setView] = useState<View>('kanban');
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<string[]>([]);
-  const [filterAssignee, setFilterAssignee] = useState<string[]>(() => {
-    const a = searchParams.get('assignee');
-    return a ? [a] : [];
-  });
+  const [initialAssigneeId] = useState(() => searchParams.get('assignee'));
+  const [filterAssignee, setFilterAssignee] = useState<string[]>([]);
   const [filterDue, setFilterDue] = useState<string>('all'); // all | overdue | today | week
   const [sortKey, setSortKey] = useState('due_date');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
@@ -73,9 +75,16 @@ export default function TeamTasksPage() {
 
   useEffect(() => {
     api.get<ApiResponse<TeamTask[]>>('/insights/team-tasks')
-      .then(r => setTasks(r.data.data))
+      .then(r => {
+        setTasks(r.data.data);
+        // Resolve initial assignee ID from URL param to name
+        if (initialAssigneeId) {
+          const match = r.data.data.find(t => String(t.assigned_to_id) === initialAssigneeId);
+          if (match?.assigned_to_name) setFilterAssignee([match.assigned_to_name]);
+        }
+      })
       .finally(() => setLoading(false));
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Clear assignee query param after initial load
   useEffect(() => {
@@ -92,26 +101,36 @@ export default function TeamTasksPage() {
     return tasks.filter(t => t.assigned_to_id && seIds.has(t.assigned_to_id));
   }, [tasks, seIds]);
 
-  const assigneeOptions = useMemo(() => {
-    const m = new Map<string, string>();
+  const assigneeNames = useMemo(() => {
+    const s = new Set<string>();
     for (const t of scoped) {
-      if (t.assigned_to_id && t.assigned_to_name) m.set(String(t.assigned_to_id), t.assigned_to_name);
+      if (t.assigned_to_name) s.add(t.assigned_to_name);
     }
-    return [...m.entries()].sort((a, b) => a[1].localeCompare(b[1])).map(([v, l]) => ({ value: v, label: l }));
+    return [...s].sort();
   }, [scoped]);
 
-  const statusOptions = useMemo(() =>
-    STATUS_ORDER.map(s => ({ value: s, label: STATUS_META[s].label })),
+  const statusOptions = useMemo<string[]>(() =>
+    STATUS_ORDER.map(s => STATUS_META[s].label),
   []);
 
   const overdueCount = useMemo(() =>
     scoped.filter(t => t.due_date && new Date(t.due_date) < new Date(new Date().toDateString()) && t.status !== 'done').length,
   [scoped]);
 
+  // Map status labels back to status keys for filtering
+  const statusLabelToKey = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const s of STATUS_ORDER) m[STATUS_META[s].label] = s;
+    return m;
+  }, []);
+
   const filtered = useMemo(() => {
     let list = scoped;
-    if (filterStatus.length) list = list.filter(t => filterStatus.includes(t.status));
-    if (filterAssignee.length) list = list.filter(t => filterAssignee.includes(String(t.assigned_to_id)));
+    if (filterStatus.length) {
+      const keys = filterStatus.map(l => statusLabelToKey[l]).filter(Boolean);
+      list = list.filter(t => keys.includes(t.status));
+    }
+    if (filterAssignee.length) list = list.filter(t => t.assigned_to_name && filterAssignee.includes(t.assigned_to_name));
     if (search) {
       const q = search.toLowerCase();
       list = list.filter(t => t.title.toLowerCase().includes(q) || t.opportunity_name.toLowerCase().includes(q) || (t.assigned_to_name ?? '').toLowerCase().includes(q));
@@ -127,7 +146,7 @@ export default function TeamTasksPage() {
   }, [scoped, filterStatus, filterAssignee, search, filterDue]);
 
   const sorted = useMemo(() =>
-    sortRows(filtered, sortKey, sortDir, LIST_COLS.find(c => c.key === sortKey)?.type),
+    sortRows(filtered, sortKey, sortDir, (k: string) => COL_TYPE_MAP[k] ?? 'string'),
   [filtered, sortKey, sortDir]);
 
   const kanbanCols = useMemo(() => {
@@ -184,17 +203,17 @@ export default function TeamTasksPage() {
 
         {/* Filters */}
         <div className="flex items-center gap-2 flex-wrap">
-          <MultiSelectFilter options={statusOptions}   selected={filterStatus}   onChange={setFilterStatus}   placeholder="All statuses" />
-          <MultiSelectFilter options={assigneeOptions} selected={filterAssignee} onChange={setFilterAssignee} placeholder="All assignees" />
+          <MultiSelectFilter options={statusOptions}  selected={filterStatus}   onChange={setFilterStatus}   placeholder="All statuses" />
+          <MultiSelectFilter options={assigneeNames} selected={filterAssignee} onChange={setFilterAssignee} placeholder="All assignees" />
 
           {/* Due date quick filters */}
           <div className="flex items-center gap-1 ml-1">
             {([
-              { key: 'all', label: 'All dates' },
+              { key: 'all', label: 'All dates', badge: undefined as number | undefined },
               { key: 'overdue', label: 'Overdue', badge: overdueCount > 0 ? overdueCount : undefined },
-              { key: 'today', label: 'Due Today' },
-              { key: 'week', label: 'This Week' },
-            ] as const).map(f => (
+              { key: 'today', label: 'Due Today', badge: undefined as number | undefined },
+              { key: 'week', label: 'This Week', badge: undefined as number | undefined },
+            ]).map(f => (
               <button
                 key={f.key}
                 onClick={() => setFilterDue(f.key)}
