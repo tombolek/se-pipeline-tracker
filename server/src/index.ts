@@ -15,6 +15,7 @@ import usersRoutes from './routes/users.js';
 import auditRoutes from './routes/audit.js';
 import backupRoutes from './routes/backup.js';
 import deployRoutes from './routes/deploy.js';
+import homeRoutes from './routes/home.js';
 import { query } from './db/index.js';
 import { startBackupScheduler } from './services/backupScheduler.js';
 
@@ -38,6 +39,7 @@ app.use('/api/v1/users', usersRoutes);
 app.use('/api/v1/audit', auditRoutes);
 app.use('/api/v1/backup', backupRoutes);
 app.use('/api/v1/deploy', deployRoutes);
+app.use('/api/v1/home', homeRoutes);
 
 // Retention cleanup — purge rows older than 180 days on startup
 query(`DELETE FROM events    WHERE timestamp < now() - interval '180 days'`).catch(() => {});

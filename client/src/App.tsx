@@ -10,6 +10,7 @@ import CalendarPage from './pages/CalendarPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import Sidebar from './components/Sidebar';
 import QuickCapture from './components/QuickCapture';
+import HomePage from './pages/HomePage';
 import SettingsPage from './pages/SettingsPage';
 import AuditPage from './pages/AuditPage';
 import { useAuthStore } from './store/auth';
@@ -57,7 +58,8 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/change-password" element={<ChangePasswordPage />} />
           <Route element={<ProtectedRoute />}>
-            <Route element={<AppShell><Navigate to="/pipeline" /></AppShell>} path="/" />
+            <Route path="/home" element={<AppShell><HomePage /></AppShell>} />
+            <Route element={<AppShell><Navigate to="/home" /></AppShell>} path="/" />
             <Route path="/pipeline" element={<AppShell><PipelinePage /></AppShell>} />
             <Route path="/my-pipeline" element={<AppShell><PipelinePage myPipelineMode /></AppShell>} />
             <Route path="/closed-lost" element={<AppShell><ClosedLostPage /></AppShell>} />
@@ -67,7 +69,7 @@ export default function App() {
             <Route path="/insights/*" element={<AppShell><InsightsPage /></AppShell>} />
             <Route path="/settings/*" element={<AppShell><SettingsPage /></AppShell>} />
             <Route path="/audit"      element={<AppShell><AuditPage /></AppShell>} />
-            <Route path="/" element={<Navigate to="/pipeline" replace />} />
+            <Route path="/" element={<Navigate to="/home" replace />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

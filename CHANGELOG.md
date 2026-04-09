@@ -8,6 +8,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## [Unreleased]
 
 ### Added
+- **Home / Daily Digest** — new landing page (`/home`) with a personalized SE dashboard: Today's Tasks (overdue + due today + this week), PoC Alerts (ending within 7 days), Recent Activity (notes by others, stage changes, manager comments from last 7 days), Closed Lost (unread), Stale Deals (no activity in 21+ days), and Upcoming This Week (tasks, PoC end dates, RFx deadlines). Every item is clickable to open the Opportunity Detail drawer. (Issue #84)
 - **AI MEDDPICC Gap Coach** — lightbulb button next to the MEDDPICC score pill in Opportunity Detail. Reads all notes, tasks, MEDDPICC fields, and comments, then returns a per-element Green/Amber/Red assessment with specific discovery questions for gaps. Results are cached and auto-cleared on SF import. (Issue #82)
 - **Team Tasks page** — new Insights view (`/insights/team-tasks`) with Kanban (grouped by status) and List (sortable table) views. Filters: status, assignee, due date quick filters (Overdue/Today/This Week), and search. Clicking "Open Tasks" in Team Workload now navigates here filtered to that SE.
 
