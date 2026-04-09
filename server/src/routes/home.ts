@@ -9,7 +9,7 @@ const auth = requireAuth as unknown as (req: Request, res: Response, next: () =>
 // GET /home/digest — SE daily digest: tasks, PoC alerts, recent activity, closed lost, stale deals, upcoming
 router.get('/digest', auth, async (req: Request, res: Response): Promise<void> => {
   const user = (req as AuthenticatedRequest).user;
-  const uid = user.id;
+  const uid = user.userId;
 
   const [myTasks, pocAlerts, recentActivity, closedLost, staleDeals, upcoming] = await Promise.all([
     // 1. My tasks: overdue + due today + due this week (open/in_progress/blocked)
