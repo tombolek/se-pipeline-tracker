@@ -37,6 +37,20 @@ const COLUMN_COLORS: Record<string, string> = {
   'Wrapping Up':   'bg-status-success/10 text-status-success border-status-success/20',
 };
 
+const COLUMN_BORDER_TOP: Record<string, string> = {
+  'Identified':    'border-t-brand-purple',
+  'In Deployment': 'border-t-status-info',
+  'In Progress':   'border-t-status-warning',
+  'Wrapping Up':   'border-t-status-success',
+};
+
+const COLUMN_COUNT_BG: Record<string, string> = {
+  'Identified':    'bg-brand-purple-30/50 text-brand-purple',
+  'In Deployment': 'bg-sky-50 text-sky-700',
+  'In Progress':   'bg-amber-50 text-amber-700',
+  'Wrapping Up':   'bg-emerald-50 text-emerald-700',
+};
+
 const COLUMN_DOT: Record<string, string> = {
   'Identified':    'bg-brand-purple',
   'In Deployment': 'bg-status-info',
@@ -182,17 +196,18 @@ function KanbanColumn({ title, cards, compact, wide, expandedCards, onToggleExpa
   expandedCards: Set<number>; onToggleExpand: (id: number) => void;
   onCardClick: (id: number) => void;
 }) {
-  const colorClass = COLUMN_COLORS[title] ?? 'bg-brand-navy-30/20 text-brand-navy-70 border-brand-navy-30';
-  const dotClass   = COLUMN_DOT[title]   ?? 'bg-brand-navy-30';
+  const dotClass   = COLUMN_DOT[title]        ?? 'bg-brand-navy-30';
+  const borderTop  = COLUMN_BORDER_TOP[title]  ?? 'border-t-brand-navy-30';
+  const countBg    = COLUMN_COUNT_BG[title]    ?? 'bg-brand-navy-30/20 text-brand-navy-70';
 
   return (
-    <div className={`flex-shrink-0 flex flex-col h-full ${wide ? 'w-96' : 'w-72'}`}>
-      <div className="flex items-center gap-2 mb-3 flex-shrink-0">
+    <div className={`flex-shrink-0 flex flex-col h-full bg-white/60 rounded-2xl border border-brand-navy-30/30 border-t-[3px] ${borderTop} ${wide ? 'w-96' : 'w-72'}`}>
+      <div className="px-4 py-3 flex items-center gap-2 flex-shrink-0">
         <span className={`w-2 h-2 rounded-full flex-shrink-0 ${dotClass}`} />
         <h3 className="text-xs font-semibold text-brand-navy">{title}</h3>
-        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${colorClass}`}>{cards.length}</span>
+        <span className={`ml-auto text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${countBg}`}>{cards.length}</span>
       </div>
-      <div className="flex-1 overflow-y-auto space-y-2 pr-1 pb-4">
+      <div className="flex-1 overflow-y-auto space-y-2 px-3 pb-3">
         {cards.length === 0 ? (
           <div className="text-xs text-brand-navy-30 text-center py-12 border-2 border-dashed border-brand-navy-30/30 rounded-xl">None</div>
         ) : compact ? (

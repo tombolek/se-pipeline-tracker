@@ -36,6 +36,18 @@ const COLUMN_COLORS: Record<string, string> = {
   'Completed':   'bg-status-success/10 text-status-success border-status-success/20',
 };
 
+const COLUMN_BORDER_TOP: Record<string, string> = {
+  'In Review':   'border-t-status-warning',
+  'In Progress': 'border-t-brand-purple',
+  'Completed':   'border-t-status-success',
+};
+
+const COLUMN_COUNT_BG: Record<string, string> = {
+  'In Review':   'bg-amber-50 text-amber-700',
+  'In Progress': 'bg-brand-purple-30/50 text-brand-purple',
+  'Completed':   'bg-emerald-50 text-emerald-700',
+};
+
 const COLUMN_DOT: Record<string, string> = {
   'In Review':   'bg-status-warning',
   'In Progress': 'bg-brand-purple',
@@ -82,34 +94,49 @@ function RfxCard({ opp, onClick }: { opp: RfxOpp; onClick: () => void }) {
 }
 
 // ── Kanban column (1-wide or 2-wide) ─────────────────────────────────────────
-function RfxColumn({ title, cards, wide, onCardClick }: {
+const COMPLETED_KANBAN_LIMIT = 5;
+
+function RfxColumn({ title, cards, wide, onCardClick, onShowAll }: {
   title: string; cards: RfxOpp[]; wide: boolean; onCardClick: (id: number) => void;
+  onShowAll?: () => void;
 }) {
-  const colorClass = COLUMN_COLORS[title] ?? 'bg-brand-navy-30/20 text-brand-navy-70 border-brand-navy-30';
-  const dotClass   = COLUMN_DOT[title]   ?? 'bg-brand-navy-30';
+  const dotClass     = COLUMN_DOT[title]        ?? 'bg-brand-navy-30';
+  const borderTop    = COLUMN_BORDER_TOP[title]  ?? 'border-t-brand-navy-30';
+  const countBg      = COLUMN_COUNT_BG[title]    ?? 'bg-brand-navy-30/20 text-brand-navy-70';
+  const isCompleted  = title === 'Completed';
+  const visibleCards = isCompleted && cards.length > COMPLETED_KANBAN_LIMIT ? cards.slice(0, COMPLETED_KANBAN_LIMIT) : cards;
+  const hiddenCount  = cards.length - visibleCards.length;
 
   return (
-    <div className={`flex-shrink-0 flex flex-col h-full ${wide ? 'w-[600px]' : 'w-72'}`}>
-      <div className="flex items-center gap-2 mb-3 flex-shrink-0">
+    <div className={`flex-shrink-0 flex flex-col h-full bg-white/60 rounded-2xl border border-brand-navy-30/30 border-t-[3px] ${borderTop} ${wide ? 'w-[600px]' : 'w-72'}`}>
+      <div className="px-4 py-3 flex items-center gap-2 flex-shrink-0">
         <span className={`w-2 h-2 rounded-full flex-shrink-0 ${dotClass}`} />
         <h3 className="text-xs font-semibold text-brand-navy">{title}</h3>
-        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${colorClass}`}>
+        <span className={`ml-auto text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${countBg}`}>
           {cards.length}
         </span>
       </div>
-      <div className="flex-1 overflow-y-auto pb-4">
+      <div className="flex-1 overflow-y-auto px-3 pb-3">
         {cards.length === 0 ? (
           <div className="text-xs text-brand-navy-30 text-center py-12 border-2 border-dashed border-brand-navy-30/30 rounded-xl">
             None
           </div>
         ) : wide ? (
           <div className="grid grid-cols-2 gap-3">
-            {cards.map(c => <RfxCard key={c.id} opp={c} onClick={() => onCardClick(c.id)} />)}
+            {visibleCards.map(c => <RfxCard key={c.id} opp={c} onClick={() => onCardClick(c.id)} />)}
           </div>
         ) : (
-          <div className="space-y-3 pr-1">
-            {cards.map(c => <RfxCard key={c.id} opp={c} onClick={() => onCardClick(c.id)} />)}
+          <div className="space-y-3">
+            {visibleCards.map(c => <RfxCard key={c.id} opp={c} onClick={() => onCardClick(c.id)} />)}
           </div>
+        )}
+        {hiddenCount > 0 && onShowAll && (
+          <button
+            onClick={onShowAll}
+            className="w-full mt-3 py-2 text-[11px] font-medium text-brand-purple hover:text-brand-purple-70 bg-brand-purple-30/30 hover:bg-brand-purple-30/50 rounded-lg transition-colors"
+          >
+            Show all {cards.length} completed →
+          </button>
         )}
       </div>
     </div>
@@ -347,6 +374,7 @@ export default function RfxBoardPage() {
                     cards={grouped[col]}
                     wide={WIDE_COLUMNS.has(col)}
                     onCardClick={setSelectedId}
+                    onShowAll={col === 'Completed' ? () => { setFilterStatus(['Completed']); setView('list'); } : undefined}
                   />
                 ))}
                 {other.length > 0 && (
