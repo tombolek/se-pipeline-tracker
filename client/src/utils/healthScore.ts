@@ -42,14 +42,16 @@ export function computeHealthScore(opp: Opportunity): HealthScore {
   const factors: HealthFactor[] = [];
   let deducted = 0;
 
-  // ── 1. MEDDPICC completeness (max -30) ──────────────────────────────────────
+  // ── 1. MEDDPICC completeness (max -30, reduced to -10 for Upsell) ────────
+  const isUpsell = opp.record_type?.toLowerCase() === 'upsell';
+  const meddpiccMax = isUpsell ? 10 : 30;
   const missing = MEDDPICC_FIELDS.filter(f => !opp[f.key]);
-  const meddpiccDeduction = Math.round(missing.length * (30 / MEDDPICC_FIELDS.length));
+  const meddpiccDeduction = Math.round(missing.length * (meddpiccMax / MEDDPICC_FIELDS.length));
   if (meddpiccDeduction > 0) {
     factors.push({
       label: 'MEDDPICC completeness',
       deduction: meddpiccDeduction,
-      detail: `${missing.length}/9 fields missing: ${missing.map(f => f.label).join(', ')}`,
+      detail: `${missing.length}/9 fields missing${isUpsell ? ' (reduced weight — Upsell)' : ''}: ${missing.map(f => f.label).join(', ')}`,
     });
     deducted += meddpiccDeduction;
   }
