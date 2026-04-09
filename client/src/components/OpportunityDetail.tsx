@@ -68,57 +68,53 @@ function FreshnessTag({ updatedAt }: { updatedAt: string | null }) {
   return <span className={`text-[10px] font-medium ${color}`}>{days}d ago</span>;
 }
 
-const RAG_STYLES = {
-  green: { bar: 'bg-status-success', text: 'text-status-success', bg: 'bg-status-success/10', border: 'border-status-success/30' },
-  amber: { bar: 'bg-status-warning',  text: 'text-status-warning',  bg: 'bg-status-warning/10',  border: 'border-status-warning/30' },
-  red:   { bar: 'bg-status-overdue',  text: 'text-status-overdue',  bg: 'bg-status-overdue/10',  border: 'border-status-overdue/30' },
+const HEALTH_PILL_STYLES = {
+  green: { pill: 'bg-emerald-50 border-emerald-200/60 hover:border-emerald-300', dot: 'bg-status-success', text: 'text-emerald-700', chevron: 'text-emerald-400' },
+  amber: { pill: 'bg-amber-50 border-amber-200/60 hover:border-amber-400', dot: 'bg-status-warning', text: 'text-amber-700', chevron: 'text-amber-400' },
+  red:   { pill: 'bg-red-50 border-red-200/60 hover:border-red-400', dot: 'bg-status-overdue', text: 'text-red-700', chevron: 'text-red-300' },
 };
 
-function HealthScoreBar({ opp }: { opp: Opportunity }) {
+function HealthScorePill({ opp }: { opp: Opportunity }) {
   const { score, rag, factors } = computeHealthScore(opp);
-  const [expanded, setExpanded] = useState(false);
-  const s = RAG_STYLES[rag];
-  const label = rag === 'green' ? 'Healthy' : rag === 'amber' ? 'Needs attention' : 'At risk';
+  const s = HEALTH_PILL_STYLES[rag];
 
   return (
-    <div className={`rounded-xl border px-3 py-2 ${s.bg} ${s.border}`}>
-      <button
-        type="button"
-        onClick={() => setExpanded(v => !v)}
-        className="w-full flex items-center gap-3 text-left"
-      >
-        {/* Progress bar */}
-        <div className="flex-1 h-1.5 bg-white/60 rounded-full overflow-hidden">
-          <div className={`h-full rounded-full transition-all ${s.bar}`} style={{ width: `${score}%` }} />
-        </div>
-        {/* Score + label */}
-        <span className={`text-sm font-bold tabular-nums flex-shrink-0 ${s.text}`}>{score}/100</span>
-        <span className={`text-xs font-medium flex-shrink-0 ${s.text}`}>{label}</span>
-        <svg className={`w-3.5 h-3.5 flex-shrink-0 ${s.text} transition-transform ${expanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-        </svg>
+    <div className="relative group/health">
+      <button className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border transition-colors ${s.pill}`}>
+        <div className={`w-2 h-2 rounded-full ${s.dot}`} />
+        <span className={`text-[11px] font-semibold tabular-nums ${s.text}`}>{score}</span>
+        <svg className={`w-2.5 h-2.5 ${s.chevron}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
       </button>
-
-      {expanded && (
-        <div className="mt-2 pt-2 border-t border-white/40 space-y-1.5">
-          {factors.length === 0 ? (
-            <p className="text-xs text-status-success">No issues detected — deal is fully qualified and active.</p>
-          ) : (
-            factors.map(f => (
-              <div key={f.label} className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-xs font-medium text-brand-navy">{f.label}</p>
-                  <p className="text-[11px] text-brand-navy-70">{f.detail}</p>
+      {/* Hover popover */}
+      <div className="absolute top-full right-0 mt-1.5 z-50 hidden group-hover/health:block">
+        <div className="bg-white border border-brand-navy-30 rounded-xl shadow-lg p-3 w-[240px]">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-navy-70 mb-2">Health Score Breakdown</p>
+          <div className="space-y-1.5">
+            {factors.length === 0 ? (
+              <p className="text-[11px] text-status-success">No issues detected</p>
+            ) : (
+              factors.map(f => (
+                <div key={f.label} className="flex items-center justify-between text-[12px]">
+                  <span className="text-brand-navy-70">{f.label}</span>
+                  <span className="font-semibold text-status-overdue">-{f.deduction}</span>
                 </div>
-                <span className="text-xs font-semibold text-status-overdue flex-shrink-0">−{f.deduction}</span>
-              </div>
-            ))
-          )}
+              ))
+            )}
+          </div>
+          <div className="mt-2 pt-2 border-t border-brand-navy-30/30">
+            <p className={`text-[10px] ${s.text} font-medium`}>{rag === 'green' ? 'Healthy' : rag === 'amber' ? 'Needs attention' : 'At risk'} · {score}/100</p>
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
+
+const MEDDPICC_PILL_STYLES = {
+  green: { pill: 'bg-emerald-50 border-emerald-200/60 hover:border-emerald-300', text: 'text-emerald-700', chevron: 'text-emerald-400' },
+  amber: { pill: 'bg-amber-50 border-amber-200/60 hover:border-amber-400', text: 'text-amber-700', chevron: 'text-amber-400' },
+  red:   { pill: 'bg-red-50 border-red-200/60 hover:border-red-400', text: 'text-red-600', chevron: 'text-red-300' },
+};
 
 const QUALITY_ICON = {
   strong: <span className="text-status-success font-bold">✓</span>,
@@ -126,48 +122,36 @@ const QUALITY_ICON = {
   empty:  <span className="text-brand-navy-30">○</span>,
 };
 
-function MeddpiccBar({ opp }: { opp: Opportunity }) {
+function MeddpiccPill({ opp }: { opp: Opportunity }) {
   const { fields, strong, rag } = computeMeddpicc(opp);
-  const [expanded, setExpanded] = useState(false);
-  const s = RAG_STYLES[rag];
-  const label = rag === 'green' ? 'Well qualified' : rag === 'amber' ? 'Partially qualified' : 'Under-qualified';
+  const s = MEDDPICC_PILL_STYLES[rag];
 
   return (
-    <div className={`rounded-xl border px-3 py-2 ${s.bg} ${s.border}`}>
-      <button
-        type="button"
-        onClick={() => setExpanded(v => !v)}
-        className="w-full flex items-center gap-3 text-left"
-      >
-        <div className="flex-1 h-1.5 bg-white/60 rounded-full overflow-hidden">
-          <div className={`h-full rounded-full transition-all ${s.bar}`} style={{ width: `${(strong / 9) * 100}%` }} />
-        </div>
-        <span className={`text-sm font-bold tabular-nums flex-shrink-0 ${s.text}`}>{strong}/9</span>
-        <span className={`text-xs font-medium flex-shrink-0 ${s.text}`}>{label}</span>
-        <svg className={`w-3.5 h-3.5 flex-shrink-0 ${s.text} transition-transform ${expanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-        </svg>
+    <div className="relative group/medd">
+      <button className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border transition-colors ${s.pill}`}>
+        <span className={`text-[11px] font-semibold tabular-nums ${s.text}`}>{strong}/9</span>
+        <svg className={`w-2.5 h-2.5 ${s.chevron}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
       </button>
-
-      {expanded && (
-        <div className="mt-2 pt-2 border-t border-white/40 space-y-1.5">
-          {fields.map(f => {
-            const val = opp[f.key] as string | null;
-            return (
-              <div key={f.key as string} className="flex items-center gap-2">
+      {/* Hover popover */}
+      <div className="absolute top-full right-0 mt-1.5 z-50 hidden group-hover/medd:block">
+        <div className="bg-white border border-brand-navy-30 rounded-xl shadow-lg p-3 w-[240px]">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-navy-70 mb-2">MEDDPICC Fields</p>
+          <div className="space-y-1">
+            {fields.map(f => (
+              <div key={f.key as string} className="flex items-center gap-1.5">
                 <span className="text-[11px] w-3.5 text-center flex-shrink-0">{QUALITY_ICON[f.quality]}</span>
-                <span className="text-xs font-medium text-brand-navy flex-shrink-0 w-28">{f.label}</span>
-                <span className="text-[11px] text-brand-navy-70 truncate flex-1">
-                  {f.quality === 'empty' ? '—' : val?.slice(0, 55) + ((val?.length ?? 0) > 55 ? '…' : '')}
-                </span>
+                <span className={`text-[11px] ${f.quality === 'empty' ? 'text-brand-navy-30' : 'text-brand-navy'}`}>{f.label}</span>
                 {f.quality === 'weak' && (
-                  <span className="text-[10px] text-status-warning font-medium flex-shrink-0">short</span>
+                  <span className="ml-auto text-[9px] text-status-warning">short</span>
                 )}
               </div>
-            );
-          })}
+            ))}
+          </div>
+          <div className="mt-2 pt-2 border-t border-brand-navy-30/30">
+            <p className={`text-[10px] ${s.text} font-medium`}>{rag === 'green' ? 'Well qualified' : rag === 'amber' ? 'Partially qualified' : 'Under-qualified'} · {strong}/9 fields filled</p>
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -343,39 +327,22 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
   return (
     <div className="flex-1 flex min-h-0 overflow-hidden bg-[#F5F5F7] relative">
 
-      {/* ── Left: working area (max 50%) ── */}
-      <div className="w-1/2 flex-shrink-0 min-w-0 overflow-y-auto px-6 py-5 space-y-6">
+      {/* ── Left: working area (55%) ── */}
+      <div className="w-[55%] flex-shrink-0 min-w-0 flex flex-col overflow-hidden">
 
-        {/* Header */}
-        <div>
-          <div className="flex items-start gap-3 mb-1">
+        {/* Compact header */}
+        <div className="px-5 pt-4 pb-3 bg-white border-b border-brand-navy-30/30 flex-shrink-0">
+          {/* Row 1: Title + badges + Summarize */}
+          <div className="flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-xl font-semibold text-brand-navy leading-tight">{opp.name}</h2>
+                <h2 className="text-lg font-semibold text-brand-navy leading-snug truncate">{opp.name}</h2>
                 {isReadOnly && (
-                  <span className="text-[10px] font-semibold bg-brand-pink/10 text-brand-pink px-2 py-0.5 rounded-full uppercase tracking-wide">Closed Lost</span>
+                  <span className="text-[9px] font-semibold bg-brand-pink/10 text-brand-pink px-1.5 py-px rounded-full uppercase tracking-wide">Closed Lost</span>
                 )}
                 {opp.key_deal && (
-                  <span className="text-[10px] font-semibold bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full uppercase tracking-wide">Key Deal</span>
+                  <span className="text-[9px] font-semibold bg-yellow-100 text-yellow-700 px-1.5 py-px rounded-full uppercase tracking-wide">Key Deal</span>
                 )}
-              </div>
-              {opp.account_name ? (
-                <button
-                  onClick={() => setShowAccountPanel(v => !v)}
-                  className="flex items-center gap-1 mt-0.5 text-sm text-brand-purple font-medium hover:text-brand-purple-70 transition-colors"
-                  title="View account history"
-                >
-                  <svg className="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                  </svg>
-                  {opp.account_name}
-                </button>
-              ) : (
-                <p className="text-sm text-brand-navy-70 mt-0.5">—</p>
-              )}
-              <div className="flex flex-col gap-2 mt-2">
-                <HealthScoreBar opp={opp} />
-                <MeddpiccBar opp={opp} />
               </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
@@ -383,46 +350,71 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
                 <button
                   onClick={handleAssignSelf}
                   disabled={assigningOwner}
-                  className="px-3 py-1.5 text-xs font-medium bg-brand-purple text-white rounded-lg hover:bg-brand-purple-70 disabled:opacity-50 transition-colors"
+                  className="px-2.5 py-1.5 text-[11px] font-medium bg-brand-purple text-white rounded-lg hover:bg-brand-purple-70 disabled:opacity-50 transition-colors"
                 >
                   Assign to me
                 </button>
               )}
+              {/* Summarize button — sparkle icon + label */}
               <button
-                onClick={() => setShowNotesModal(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-brand-purple text-white rounded-lg hover:bg-brand-purple-70 transition-colors"
-                title="Process call notes with Claude"
+                onClick={handleGetSummary}
+                disabled={summaryLoading}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-brand-navy-30 hover:border-brand-purple hover:bg-brand-purple-30/30 transition-colors group/ai disabled:opacity-50"
+                title="AI Summary"
               >
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="url(#ai-sparkle-grad)" className="group-hover/ai:opacity-80"/>
+                  <defs><linearGradient id="ai-sparkle-grad" x1="2" y1="2" x2="22" y2="22"><stop stopColor="#F10090"/><stop offset="1" stopColor="#6A2CF5"/></linearGradient></defs>
                 </svg>
-                Process Call Notes
+                <span className="text-[11px] font-medium text-brand-navy-70 group-hover/ai:text-brand-navy">
+                  {summaryLoading ? 'Thinking…' : 'Summarize'}
+                </span>
               </button>
-              <div className="relative group/ai">
-                <button
-                  onClick={handleGetSummary}
-                  disabled={summaryLoading}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-brand-navy-30 text-brand-navy-70 rounded-lg opacity-50 cursor-not-allowed transition-colors"
-                  title="Requires ANTHROPIC_API_KEY — not configured yet"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                  </svg>
-                  {summaryLoading ? 'Thinking…' : 'AI Summary'}
-                </button>
-                <div className="absolute bottom-full right-0 mb-1.5 hidden group-hover/ai:block z-10 pointer-events-none">
-                  <div className="bg-brand-navy text-white text-[10px] rounded-lg px-2.5 py-1.5 whitespace-nowrap">
-                    Needs <code className="font-mono">ANTHROPIC_API_KEY</code> in .env
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
+
+          {/* Row 2: Account + meta + score pills */}
+          <div className="flex items-center gap-3 mt-1.5">
+            {opp.account_name ? (
+              <button
+                onClick={() => setShowAccountPanel(v => !v)}
+                className="flex items-center gap-1 text-[12px] text-brand-purple font-medium hover:text-brand-purple-70 transition-colors"
+                title="View account history"
+              >
+                <svg className="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                </svg>
+                {opp.account_name}
+              </button>
+            ) : (
+              <span className="text-[11px] text-brand-navy-70">—</span>
+            )}
+            <span className="text-brand-navy-30">|</span>
+            <span className="text-[11px] text-brand-navy-70">{opp.stage}</span>
+            {opp.arr != null && <>
+              <span className="text-brand-navy-30">|</span>
+              <span className="text-[11px] text-brand-navy-70">{formatARR(opp.arr)}</span>
+            </>}
+            {opp.close_date && <>
+              <span className="text-brand-navy-30">|</span>
+              <span className="text-[11px] text-brand-navy-70">Close {formatDate(opp.close_date)}</span>
+            </>}
+
+            {/* Score pills — compact, hover for details */}
+            <div className="ml-auto flex items-center gap-2">
+              <HealthScorePill opp={opp} />
+              <MeddpiccPill opp={opp} />
+            </div>
+          </div>
+        </div>
+
+        {/* Summary callout (below header, above tabs) */}
+        <div className="px-5">
           {summary && (
             <div className="mt-3 bg-brand-purple-30 border border-brand-purple/20 rounded-xl px-4 py-3">
               <div className="flex items-center gap-1.5 mb-1.5">
-                <svg className="w-3.5 h-3.5 text-brand-purple flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                <svg className="w-3.5 h-3.5 text-brand-purple flex-shrink-0" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="#6A2CF5"/>
                 </svg>
                 <span className="text-[10px] font-semibold uppercase tracking-widest text-brand-purple">AI Summary</span>
                 <button onClick={() => setSummary(null)} className="ml-auto text-brand-navy-70 hover:text-brand-navy">
@@ -444,8 +436,8 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
           )}
         </div>
 
-        {/* Tab bar: Work / Timeline */}
-        <div className="flex gap-1 bg-white border border-brand-navy-30/40 rounded-xl p-1">
+        {/* Tab bar */}
+        <div className="flex gap-1 bg-white mx-5 mt-3 border border-brand-navy-30/40 rounded-xl p-1 flex-shrink-0">
           {(['work', 'timeline'] as const).map(tab => (
             <button
               key={tab}
@@ -460,6 +452,9 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
             </button>
           ))}
         </div>
+
+        {/* Scrollable work area */}
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-6">
 
         {/* Timeline tab */}
         {activeTab === 'timeline' && <OpportunityTimeline oppId={oppId} />}
@@ -522,15 +517,31 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
 
         {/* Notes */}
         <div>
-          <SectionHeader
-            title="Notes"
-            count={notes.length}
-            action={
-              notesFreshnessDays !== null
-                ? <FreshnessTag updatedAt={opp.last_note_at} />
-                : undefined
-            }
-          />
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <h3 className="text-xs font-semibold uppercase tracking-widest text-brand-navy-70">Notes</h3>
+              {notes.length > 0 && (
+                <span className="text-[10px] bg-brand-navy-30 text-brand-navy-70 rounded-full px-1.5 py-px font-medium">{notes.length}</span>
+              )}
+              {notesFreshnessDays !== null && (
+                <div className="flex items-center gap-1 ml-1">
+                  <FreshnessTag updatedAt={opp.last_note_at} />
+                </div>
+              )}
+            </div>
+            {!isReadOnly && (
+              <button
+                onClick={() => setShowNotesModal(true)}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-medium bg-brand-purple text-white rounded-lg hover:bg-brand-purple-70 transition-colors"
+                title="Import call notes with Claude"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                Import with Claude
+              </button>
+            )}
+          </div>
           {!isReadOnly && <AddNoteForm onAdd={handleAddNote} />}
           {notes.length > 0 && (
             <div className="bg-white rounded-xl border border-brand-navy-30 px-4 mt-3">
@@ -541,22 +552,27 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
 
         </>}
 
+        </div>{/* end scrollable work area */}
       </div>
 
-      {/* ── Right: SF info panel (flex-1, gets majority of space) ── */}
-      <div className="flex-1 min-w-0 overflow-y-auto bg-white border-l border-brand-navy-30/30 px-4 py-4">
-        <a
-          href={`https://ataccama.lightning.force.com/lightning/r/Opportunity/${opp.sf_opportunity_id}/view`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center justify-center gap-1.5 w-full mb-4 px-3 py-1.5 rounded-lg border border-brand-navy-30 text-xs font-medium text-brand-navy-70 hover:text-brand-navy hover:border-brand-navy transition-colors"
-        >
-          <svg className="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-          </svg>
-          Open in Salesforce
-        </a>
-        <div className="mb-3">
+      {/* ── Right: SF info panel (45%) ── */}
+      <div className="flex-1 min-w-0 overflow-y-auto bg-white border-l border-brand-navy-30/30">
+        {/* Open in SF — compact */}
+        <div className="px-4 pt-3 pb-2 border-b border-brand-navy-30/20">
+          <a
+            href={`https://ataccama.lightning.force.com/lightning/r/Opportunity/${opp.sf_opportunity_id}/view`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-brand-navy-30 text-[11px] font-medium text-brand-navy-70 hover:text-brand-navy hover:border-brand-navy transition-colors"
+          >
+            <svg className="w-3.5 h-3.5 text-[#00A1E0]" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M15.8 5.4c-.7-.7-1.6-1.1-2.6-1.1-1.3 0-2.5.7-3.2 1.7C9.4 5.4 8.6 5 7.7 5 5.7 5 4 6.7 4 8.8c0 .4.1.8.2 1.2C3 10.7 2 12 2 13.5 2 15.4 3.6 17 5.5 17c.3 0 .5 0 .8-.1.5 1.4 1.8 2.4 3.4 2.4 1.3 0 2.4-.7 3-1.8.6.4 1.2.6 2 .6 1.3 0 2.4-.7 3-1.8.3.1.7.1 1.1.1C21 16.4 23 14.5 23 12c0-2-1.3-3.7-3.1-4.3-.7-1.3-2.1-2.3-3.6-2.3h-.5z"/>
+            </svg>
+            Open
+            <svg className="w-2.5 h-2.5 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+          </a>
+        </div>
+        <div className="px-4 py-3 border-b border-brand-navy-30/20">
           <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-navy-70 mb-2">Deal Info</p>
           <FieldRow label="Stage" value={opp.stage} />
           <FieldRow label="ARR" value={formatARR(opp.arr)} />
@@ -594,7 +610,7 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
           )}
         </div>
 
-        <div className="space-y-0 border-t border-brand-navy-30/50 pt-2">
+        <div className="px-4 space-y-0 border-t border-brand-navy-30/50 pt-2">
           <Collapsible title="SF Next Step" defaultOpen={true}>
             <p className="text-xs text-brand-navy leading-relaxed">{opp.next_step_sf ?? '—'}</p>
             <FieldHistory oppId={oppId} field="next_step_sf" />
