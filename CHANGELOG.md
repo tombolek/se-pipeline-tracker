@@ -7,6 +7,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased]
 
+### Added
+- **Team Tasks page** — new Insights view (`/insights/team-tasks`) with Kanban (grouped by status) and List (sortable table) views. Filters: status, assignee, due date quick filters (Overdue/Today/This Week), and search. Clicking "Open Tasks" in Team Workload now navigates here filtered to that SE.
+
 ---
 
 ## 2026-04-09

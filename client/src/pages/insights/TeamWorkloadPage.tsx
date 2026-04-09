@@ -92,7 +92,7 @@ export default function TeamWorkloadPage() {
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   <Stat label="Opps"           value={r.opp_count}       to={`/pipeline?se_id=${r.id}`} />
-                  <Stat label="Open Tasks"     value={r.open_tasks}      to={`/pipeline?se_id=${r.id}`} />
+                  <Stat label="Open Tasks"     value={r.open_tasks}      to={`/insights/team-tasks?assignee=${r.id}`} />
                   <Stat label="Next Steps"     value={r.next_steps}      to={`/pipeline?se_id=${r.id}`} />
                   <Stat label="Overdue"        value={r.overdue_tasks}   to={`/insights/overdue-tasks?se_id=${r.id}`} highlight={parseInt(r.overdue_tasks) > 0} />
                   <Stat label="Stale Notes"    value={r.stale_comments}  to={`/insights/missing-notes?se_id=${r.id}`} highlight={parseInt(r.stale_comments) > 0} />

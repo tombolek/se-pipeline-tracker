@@ -723,5 +723,35 @@ router.get('/calendar', auth, async (req: Request, res: Response): Promise<void>
   res.json(ok({ pocs, rfps, tasks }));
 });
 
+// GET /insights/team-tasks — all tasks from active opps with full metadata
+router.get('/team-tasks', auth, mgr, async (_req: Request, res: Response): Promise<void> => {
+  const rows = await query(
+    `SELECT
+       t.id, t.title, t.status, t.due_date, t.is_next_step,
+       t.description, t.created_at,
+       t.opportunity_id,
+       o.name  AS opportunity_name,
+       o.stage AS opportunity_stage,
+       t.assigned_to_id,
+       u.name  AS assigned_to_name
+     FROM tasks t
+     JOIN opportunities o ON o.id = t.opportunity_id
+     LEFT JOIN users u ON u.id = t.assigned_to_id
+     WHERE t.is_deleted = false
+       AND o.is_active = true AND o.is_closed_lost = false
+     ORDER BY
+       CASE t.status
+         WHEN 'blocked' THEN 1
+         WHEN 'open' THEN 2
+         WHEN 'in_progress' THEN 3
+         WHEN 'done' THEN 4
+       END,
+       t.due_date ASC NULLS LAST,
+       t.created_at DESC`
+  );
+
+  res.json(ok(rows));
+});
+
 export default router;
 

@@ -13,6 +13,7 @@ import ClosedLostStatsPage from './insights/ClosedLostStatsPage';
 import TechBlockersPage from './insights/TechBlockersPage';
 import AgenticQualPage from './insights/AgenticQualPage';
 import WeeklyDigestPage from './insights/WeeklyDigestPage';
+import TeamTasksPage from './insights/TeamTasksPage';
 
 function ScopeBar() {
   const { user } = useAuthStore();
@@ -82,6 +83,16 @@ export default function InsightsPage() {
         <ScopeBar />
         <div className="flex-1 overflow-hidden flex flex-col">
           <SeDealMappingPage />
+        </div>
+      </div>
+    );
+  }
+
+  if (pathname.includes('team-tasks')) {
+    return (
+      <div className="flex-1 overflow-hidden bg-[#F5F5F7] flex flex-col relative">
+        <div className="flex-1 overflow-hidden flex flex-col">
+          <TeamTasksPage />
         </div>
       </div>
     );
