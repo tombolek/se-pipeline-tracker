@@ -21,7 +21,7 @@ export function NoteItem({ note }: { note: Note }) {
 
 // ── AddNoteForm ────────────────────────────────────────────────────────────────
 
-export function AddNoteForm({ onAdd }: { onAdd: (content: string) => Promise<void> }) {
+export function AddNoteForm({ onAdd, onCancel }: { onAdd: (content: string) => Promise<void>; onCancel: () => void }) {
   const [content, setContent] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -38,22 +38,28 @@ export function AddNoteForm({ onAdd }: { onAdd: (content: string) => Promise<voi
   }
 
   return (
-    <form onSubmit={submit} className="mt-3 space-y-2">
+    <form onSubmit={submit} className="mt-2 p-3 bg-gray-50 rounded-lg border border-brand-navy-30 space-y-2">
       <textarea
+        autoFocus
         value={content}
         onChange={e => setContent(e.target.value)}
         placeholder="Add a note… (shift+enter for newline)"
         rows={3}
         onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(e as unknown as React.FormEvent); } }}
-        className="w-full px-3 py-2 rounded-lg border border-brand-navy-30 text-sm text-brand-navy placeholder:text-brand-navy-70 resize-none focus:outline-none focus:ring-2 focus:ring-brand-purple"
+        className="w-full px-3 py-2 rounded border border-brand-navy-30 text-sm text-brand-navy placeholder:text-brand-navy-70 resize-none focus:outline-none focus:ring-2 focus:ring-brand-purple"
       />
-      <button
-        type="submit"
-        disabled={saving || !content.trim()}
-        className="px-3 py-1.5 bg-brand-purple text-white text-xs font-medium rounded-lg hover:bg-brand-purple-70 disabled:opacity-50 transition-colors"
-      >
-        {saving ? 'Saving…' : 'Add note'}
-      </button>
+      <div className="flex gap-2">
+        <button
+          type="submit"
+          disabled={saving || !content.trim()}
+          className="px-3 py-1 bg-brand-purple text-white text-xs font-medium rounded hover:bg-brand-purple-70 disabled:opacity-50 transition-colors"
+        >
+          {saving ? 'Saving…' : 'Add note'}
+        </button>
+        <button type="button" onClick={onCancel} className="px-3 py-1 text-xs text-brand-navy-70 hover:text-brand-navy transition-colors">
+          Cancel
+        </button>
+      </div>
     </form>
   );
 }

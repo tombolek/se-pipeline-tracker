@@ -235,6 +235,7 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
   const [activeUsers, setActiveUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddTask, setShowAddTask] = useState(false);
+  const [showAddNote, setShowAddNote] = useState(false);
   const [assigningOwner, setAssigningOwner] = useState(false);
   const [activeTab, setActiveTab] = useState<'work' | 'timeline'>('work');
 
@@ -299,6 +300,7 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
 
   async function handleAddNote(content: string) {
     await createNote(oppId, content);
+    setShowAddNote(false);
     reload();
   }
 
@@ -694,19 +696,27 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
               )}
             </div>
             {!isReadOnly && (
-              <button
-                onClick={() => setShowNotesModal(true)}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-medium bg-brand-purple text-white rounded-lg hover:bg-brand-purple-70 transition-colors"
-                title="Import call notes with Claude"
-              >
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-                Import with Claude
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowAddNote(!showAddNote)}
+                  className="text-xs text-brand-purple hover:text-brand-navy font-medium transition-colors"
+                >
+                  + Add note
+                </button>
+                <button
+                  onClick={() => setShowNotesModal(true)}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-medium bg-brand-purple text-white rounded-lg hover:bg-brand-purple-70 transition-colors"
+                  title="Import call notes with Claude"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  Import with Claude
+                </button>
+              </div>
             )}
           </div>
-          {!isReadOnly && <AddNoteForm onAdd={handleAddNote} />}
+          {!isReadOnly && showAddNote && <AddNoteForm onAdd={handleAddNote} onCancel={() => setShowAddNote(false)} />}
           {notes.length > 0 && (
             <div className="bg-white rounded-xl border border-brand-navy-30 px-4 mt-3">
               {[...notes].reverse().map(n => <NoteItem key={n.id} note={n} />)}
