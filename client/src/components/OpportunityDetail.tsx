@@ -17,6 +17,21 @@ import OpportunityTimeline from './OpportunityTimeline';
 import AccountTimelinePanel from './AccountTimelinePanel';
 import MeetingNotesModal from './MeetingNotesModal';
 
+// ── MEDDPICC Coach types ──────────────────────────────────────────────────────
+interface CoachElement {
+  key: string;
+  label: string;
+  status: 'green' | 'amber' | 'red';
+  evidence: string | null;
+  gap: string | null;
+  suggested_question: string | null;
+}
+interface CoachResult {
+  elements: CoachElement[];
+  overall_assessment: string;
+  counts: { green: number; amber: number; red: number };
+}
+
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
 function SectionHeader({ title, count, action }: { title: string; count?: number; action?: React.ReactNode }) {
@@ -226,6 +241,9 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
   const [showAllFields, setShowAllFields] = useState(false);
   const [summary, setSummary] = useState<string | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
+  const [coachResult, setCoachResult] = useState<CoachResult | null>(null);
+  const [coachLoading, setCoachLoading] = useState(false);
+  const [coachGeneratedAt, setCoachGeneratedAt] = useState<string | null>(null);
   const [showAccountPanel, setShowAccountPanel] = useState(false);
   const [showNotesModal, setShowNotesModal] = useState(false);
   const initialLoadDone = useRef(false);
@@ -304,6 +322,29 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
       setSummary(data.data.summary);
     } finally {
       setSummaryLoading(false);
+    }
+  }
+
+  // Load cached coach result on mount
+  useEffect(() => {
+    api.get<ApiResponse<{ coach: CoachResult; generated_at: string } | null>>(`/opportunities/${oppId}/meddpicc-coach/cached`)
+      .then(r => {
+        if (r.data.data) {
+          setCoachResult(r.data.data.coach);
+          setCoachGeneratedAt(r.data.data.generated_at);
+        }
+      })
+      .catch(() => {}); // silently ignore
+  }, [oppId]);
+
+  async function handleGetCoach() {
+    setCoachLoading(true);
+    try {
+      const { data } = await api.post<ApiResponse<{ coach: CoachResult; generated_at: string }>>(`/opportunities/${oppId}/meddpicc-coach`);
+      setCoachResult(data.data.coach);
+      setCoachGeneratedAt(data.data.generated_at);
+    } finally {
+      setCoachLoading(false);
     }
   }
 
@@ -404,6 +445,25 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
             <div className="ml-auto flex items-center gap-2">
               <HealthScorePill opp={opp} />
               <MeddpiccPill opp={opp} />
+              {/* MEDDPICC Coach trigger */}
+              <button
+                onClick={handleGetCoach}
+                disabled={coachLoading}
+                className="w-6 h-6 rounded-full flex items-center justify-center border border-brand-purple/30 bg-brand-purple-30/40 hover:bg-brand-purple-30 hover:border-brand-purple transition-colors disabled:opacity-50"
+                title="MEDDPICC Gap Coach"
+              >
+                {coachLoading ? (
+                  <svg className="w-3 h-3 animate-spin text-brand-purple" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                ) : (
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none">
+                    <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" stroke="url(#coach-grad)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    <defs><linearGradient id="coach-grad" x1="3" y1="3" x2="21" y2="21"><stop stopColor="#F10090"/><stop offset="1" stopColor="#6A2CF5"/></linearGradient></defs>
+                  </svg>
+                )}
+              </button>
             </div>
           </div>
         </div>
@@ -424,6 +484,110 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
                 </button>
               </div>
               <p className="text-sm text-brand-navy leading-relaxed">{summary}</p>
+            </div>
+          )}
+          {/* MEDDPICC Gap Coach panel */}
+          {coachResult && (
+            <div className="mt-3 bg-gradient-to-br from-brand-purple-30/80 to-brand-purple-30/40 border border-brand-purple/20 rounded-xl overflow-hidden">
+              {/* Panel header */}
+              <div className="flex items-center gap-2 px-4 py-2.5 border-b border-brand-purple/10">
+                <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none">
+                  <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" stroke="#6A2CF5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-brand-purple">MEDDPICC Gap Coach</span>
+                {coachGeneratedAt && (
+                  <span className="text-[10px] text-brand-navy-70 ml-1">
+                    {(() => {
+                      const mins = Math.round((Date.now() - new Date(coachGeneratedAt).getTime()) / 60000);
+                      if (mins < 1) return 'just now';
+                      if (mins < 60) return `${mins}m ago`;
+                      const hrs = Math.round(mins / 60);
+                      if (hrs < 24) return `${hrs}h ago`;
+                      return `${Math.round(hrs / 24)}d ago`;
+                    })()}
+                  </span>
+                )}
+                <button
+                  onClick={handleGetCoach}
+                  disabled={coachLoading}
+                  className="ml-1 text-[10px] font-medium text-brand-purple hover:text-brand-purple-70 disabled:opacity-50"
+                  title="Refresh analysis"
+                >
+                  {coachLoading ? 'Analyzing…' : '↻ Refresh'}
+                </button>
+                <button onClick={() => { setCoachResult(null); setCoachGeneratedAt(null); }} className="ml-auto text-brand-navy-70 hover:text-brand-navy">
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Element rows */}
+              <div className="divide-y divide-brand-purple/10">
+                {coachResult.elements.map(el => {
+                  const dotColor = el.status === 'green' ? 'bg-status-success ring-status-success/20'
+                    : el.status === 'amber' ? 'bg-status-warning ring-status-warning/20'
+                    : 'bg-status-overdue ring-status-overdue/20';
+                  const badgeColor = el.status === 'green' ? 'text-status-success bg-emerald-50'
+                    : el.status === 'amber' ? 'text-status-warning bg-amber-50'
+                    : 'text-status-overdue bg-red-50';
+                  const badgeLabel = el.status === 'green' ? 'Strong'
+                    : el.status === 'amber' ? 'Gap'
+                    : 'No evidence';
+                  return (
+                    <div key={el.key} className="px-4 py-3">
+                      <div className="flex items-start gap-2.5">
+                        <span className={`mt-0.5 w-2.5 h-2.5 rounded-full flex-shrink-0 ring-2 ${dotColor}`} />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-semibold text-brand-navy">{el.label}</span>
+                            <span className={`text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded ${badgeColor}`}>{badgeLabel}</span>
+                          </div>
+                          {el.evidence && (
+                            <p className="text-[11px] text-brand-navy-70 mt-1 leading-relaxed">{el.evidence}</p>
+                          )}
+                          {el.gap && (
+                            <p className="text-[11px] text-brand-navy-70 mt-1 leading-relaxed">{el.gap}</p>
+                          )}
+                          {el.suggested_question && (
+                            <div className="mt-2 bg-white/60 rounded-lg px-3 py-2 border border-brand-purple/10">
+                              <p className="text-[10px] font-semibold text-brand-purple uppercase tracking-wide mb-0.5">Suggested question</p>
+                              <p className="text-[11px] text-brand-navy italic leading-relaxed">{el.suggested_question}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Overall assessment */}
+              <div className="px-4 py-3 bg-white/40 border-t border-brand-purple/10">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <svg className="w-3.5 h-3.5 text-brand-purple flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  <span className="text-[10px] font-semibold uppercase tracking-widest text-brand-purple">Overall Assessment</span>
+                </div>
+                <p className="text-[11px] text-brand-navy leading-relaxed">{coachResult.overall_assessment}</p>
+                {coachResult.counts && (
+                  <div className="flex items-center gap-3 mt-3">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-status-success" />
+                      <span className="text-[10px] font-semibold text-brand-navy-70">{coachResult.counts.green} Strong</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-status-warning" />
+                      <span className="text-[10px] font-semibold text-brand-navy-70">{coachResult.counts.amber} Gap{coachResult.counts.amber !== 1 ? 's' : ''}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-status-overdue" />
+                      <span className="text-[10px] font-semibold text-brand-navy-70">{coachResult.counts.red} No Evidence</span>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
           {notesFreshnessDays !== null && notesFreshnessDays > 21 && (

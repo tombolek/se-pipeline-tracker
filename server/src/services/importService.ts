@@ -393,6 +393,9 @@ export async function reconcileImport(
     }
   }
 
+  // ── Clear stale MEDDPICC coach caches (fields may have changed) ─────────
+  await query(`DELETE FROM ai_summary_cache WHERE key LIKE 'meddpicc-coach-%'`);
+
   // ── Log to imports table ────────────────────────────────────────────────
   const status = stats.errors.length === 0 ? 'success'
     : stats.errors.length < stats.rowCount ? 'partial'
