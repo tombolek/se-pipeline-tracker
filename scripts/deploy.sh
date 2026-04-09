@@ -143,6 +143,11 @@ if [ "$DEPLOY_SERVER" = true ]; then
     server/src server/migrations server/package.json server/package-lock.json server/tsconfig.json server/Dockerfile \
     ec2-user@$INSTANCE_IP:/app/server/
 
+  echo "=== Syncing KB files to EC2 ==="
+  $SSH "mkdir -p /app/kb"
+  scp -i "$KEY_FILE" -o StrictHostKeyChecking=no -r \
+    kb/*.md ec2-user@$INSTANCE_IP:/app/kb/
+
   echo "=== Syncing compose file and scripts to EC2 ==="
   scp -i "$KEY_FILE" -o StrictHostKeyChecking=no \
     docker-compose.prod.yml ec2-user@$INSTANCE_IP:/app/
