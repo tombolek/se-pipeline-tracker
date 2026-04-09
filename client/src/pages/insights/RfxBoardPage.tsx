@@ -30,12 +30,6 @@ interface RfxOpp {
 
 const COLUMNS = ['In Review', 'In Progress', 'Completed'] as const;
 
-const COLUMN_COLORS: Record<string, string> = {
-  'In Review':   'bg-status-warning/10 text-status-warning border-status-warning/20',
-  'In Progress': 'bg-brand-purple/10 text-brand-purple border-brand-purple/20',
-  'Completed':   'bg-status-success/10 text-status-success border-status-success/20',
-};
-
 const COLUMN_BORDER_TOP: Record<string, string> = {
   'In Review':   'border-t-status-warning',
   'In Progress': 'border-t-brand-purple',

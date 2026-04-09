@@ -30,13 +30,6 @@ interface PocOpp {
 
 const COLUMNS = ['Identified', 'In Deployment', 'In Progress', 'Wrapping Up'] as const;
 
-const COLUMN_COLORS: Record<string, string> = {
-  'Identified':    'bg-brand-purple/10 text-brand-purple border-brand-purple/20',
-  'In Deployment': 'bg-status-info/10 text-status-info border-status-info/20',
-  'In Progress':   'bg-status-warning/10 text-status-warning border-status-warning/20',
-  'Wrapping Up':   'bg-status-success/10 text-status-success border-status-success/20',
-};
-
 const COLUMN_BORDER_TOP: Record<string, string> = {
   'Identified':    'border-t-brand-purple',
   'In Deployment': 'border-t-status-info',
