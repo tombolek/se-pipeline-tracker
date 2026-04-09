@@ -847,7 +847,9 @@ router.get('/:id/timeline', auth, async (req: Request, res: Response): Promise<v
 
   const [notes, tasks, fieldHistory, ownerHistory] = await Promise.all([
     query<{ id: number; content: string; author_name: string; created_at: string }>(
-      `SELECT id, content, author_name, created_at FROM notes WHERE opportunity_id = $1 ORDER BY created_at DESC`,
+      `SELECT n.id, n.content, u.name AS author_name, n.created_at
+       FROM notes n JOIN users u ON u.id = n.author_id
+       WHERE n.opportunity_id = $1 ORDER BY n.created_at DESC`,
       [id]
     ),
     query<{ id: number; title: string; status: string; is_next_step: boolean; assigned_to_name: string | null; created_at: string; updated_at: string }>(
