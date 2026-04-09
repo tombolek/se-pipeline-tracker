@@ -2,6 +2,7 @@ import * as cheerio from 'cheerio';
 import * as XLSX from 'xlsx';
 import { query, queryOne } from '../db/index.js';
 import { parseSeCommentDate } from '../utils/parseSeCommentDate.js';
+import { deriveProducts, needsProductTaggingTask } from '../utils/deriveProducts.js';
 
 // ── Column mapping: SF export header → DB field ────────────────────────────
 // Keys are normalized (trimmed + lowercased). null = store in sf_raw_fields only.
@@ -221,6 +222,41 @@ export function parseImportFile(buffer: Buffer): ParsedRow[] {
   return parseCsv(buffer);
 }
 
+// ── Product derivation for all opportunities ─────────────────────────────────
+async function deriveProductsForAllOpps(): Promise<void> {
+  // Get all active opps where products haven't been manually set (empty array)
+  const opps = await query<{ id: number; name: string; stage: string; se_owner_id: number | null; products: string[] }>(
+    `SELECT id, name, stage, se_owner_id, products FROM opportunities WHERE is_active = true`,
+    []
+  );
+
+  for (const opp of opps) {
+    const derived = deriveProducts(opp.name);
+
+    // Only update if products is currently empty (don't overwrite manual edits)
+    if (opp.products.length === 0 && derived.length > 0) {
+      await query('UPDATE opportunities SET products = $1 WHERE id = $2', [derived, opp.id]);
+    }
+
+    // Auto-create task if products still empty and deal is Build Value+
+    const currentProducts = opp.products.length > 0 ? opp.products : derived;
+    if (needsProductTaggingTask(currentProducts, opp.stage) && opp.se_owner_id) {
+      // Check if a tagging task already exists
+      const existing = await queryOne(
+        `SELECT id FROM tasks WHERE opportunity_id = $1 AND title LIKE '%Add product tags%' AND is_deleted = false AND status != 'done'`,
+        [opp.id]
+      );
+      if (!existing) {
+        await query(
+          `INSERT INTO tasks (opportunity_id, title, status, is_next_step, assigned_to_id, created_by_id)
+           VALUES ($1, $2, 'open', false, $3, $3)`,
+          [opp.id, `Add product tags to "${opp.name}"`, opp.se_owner_id]
+        );
+      }
+    }
+  }
+}
+
 // ── Run reconciliation ─────────────────────────────────────────────────────
 export async function reconcileImport(
   rows: ParsedRow[],
@@ -392,6 +428,9 @@ export async function reconcileImport(
       stats.closedLost++;
     }
   }
+
+  // ── Derive products from opportunity names ─────────────────────────────
+  await deriveProductsForAllOpps();
 
   // ── Clear stale MEDDPICC coach caches (fields may have changed) ─────────
   await query(`DELETE FROM ai_summary_cache WHERE key LIKE 'meddpicc-coach-%'`);

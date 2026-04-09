@@ -76,6 +76,66 @@ function FieldRow({ label, value }: { label: string; value: string | null | unde
   );
 }
 
+const ALL_PRODUCTS = ['DQ', 'MDM', 'RDM', 'Catalog', 'Lineage', 'Observability', 'DG'];
+
+function ProductsField({ products, oppId, readOnly, onUpdate }: { products: string[]; oppId: number; readOnly: boolean; onUpdate: () => void }) {
+  const [editing, setEditing] = useState(false);
+  const [selected, setSelected] = useState<string[]>(products);
+  const [saving, setSaving] = useState(false);
+
+  function toggle(p: string) {
+    setSelected(prev => prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p]);
+  }
+
+  async function save() {
+    setSaving(true);
+    try {
+      await api.patch(`/opportunities/${oppId}/fields`, { products: selected });
+      setEditing(false);
+      onUpdate();
+    } finally { setSaving(false); }
+  }
+
+  if (!editing) {
+    return (
+      <div className="flex justify-between gap-2 py-1 text-xs">
+        <span className="text-brand-navy-70 flex-shrink-0">Products</span>
+        <span className="text-brand-navy text-right font-medium flex items-center gap-1">
+          {products.length > 0 ? products.join(', ') : '—'}
+          {!readOnly && (
+            <button onClick={() => { setSelected(products); setEditing(true); }} className="text-brand-purple hover:text-brand-navy ml-1">
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+            </button>
+          )}
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="py-1.5">
+      <span className="text-[10px] text-brand-navy-70 block mb-1">Products</span>
+      <div className="flex flex-wrap gap-1 mb-1.5">
+        {ALL_PRODUCTS.map(p => (
+          <button key={p} onClick={() => toggle(p)}
+            className={`px-2 py-0.5 text-[10px] rounded-full border transition-colors ${
+              selected.includes(p)
+                ? 'bg-brand-purple text-white border-brand-purple'
+                : 'bg-white text-brand-navy-70 border-brand-navy-30 hover:border-brand-purple'
+            }`}
+          >{p}</button>
+        ))}
+      </div>
+      <div className="flex gap-1.5">
+        <button onClick={save} disabled={saving} className="px-2 py-0.5 text-[10px] font-medium bg-brand-purple text-white rounded hover:bg-brand-purple-70 disabled:opacity-50">
+          {saving ? 'Saving…' : 'Save'}
+        </button>
+        <button onClick={() => setEditing(false)} className="px-2 py-0.5 text-[10px] text-brand-navy-70 hover:text-brand-navy">Cancel</button>
+      </div>
+    </div>
+  );
+}
+
 function FreshnessTag({ updatedAt }: { updatedAt: string | null }) {
   const days = daysSince(updatedAt);
   if (days === null) return <span className="text-[10px] text-brand-navy-30">never</span>;
@@ -759,6 +819,7 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
           <FieldRow label="PoC Status" value={opp.poc_status} />
           <FieldRow label="RFx Status" value={opp.rfx_status} />
           <FieldRow label="Competitors" value={opp.engaged_competitors} />
+          <ProductsField products={opp.products ?? []} oppId={opp.id} readOnly={isReadOnly} onUpdate={reload} />
         </div>
 
         {/* See all fields */}

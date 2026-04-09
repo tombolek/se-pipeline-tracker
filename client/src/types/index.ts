@@ -57,6 +57,7 @@ export interface Opportunity {
   sourcing_partner_tier: string | null;
   influencing_partner: string | null;
   partner_manager: string | null;
+  products: string[];
   is_closed_lost: boolean;
   closed_at: string | null;
   closed_lost_seen: boolean;

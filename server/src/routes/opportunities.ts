@@ -829,6 +829,80 @@ router.patch('/:id', auth, async (req: Request, res: Response): Promise<void> =>
   });
 });
 
+// GET /opportunities/:id/kb-matches
+// Returns relevant KB proof points and differentiators for this opportunity.
+// Matches on: products overlap, vertical/industry keywords, competitor signals.
+router.get('/:id/kb-matches', auth, async (req: Request, res: Response): Promise<void> => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) { res.status(400).json(err('Invalid opportunity id')); return; }
+
+  const opp = await queryOne<{
+    products: string[]; account_industry: string | null; engaged_competitors: string | null;
+    name: string; account_name: string | null;
+  }>(
+    'SELECT products, account_industry, engaged_competitors, name, account_name FROM opportunities WHERE id = $1',
+    [id]
+  );
+  if (!opp) { res.status(404).json(err('Opportunity not found')); return; }
+
+  // 1. Match proof points: product overlap, then score by match quality
+  const proofPoints = await query<{
+    id: number; customer_name: string; about: string | null; vertical: string;
+    products: string[]; initiatives: string[]; proof_point_text: string;
+  }>(
+    `SELECT id, customer_name, about, vertical, products, initiatives, proof_point_text
+     FROM kb_proof_points
+     WHERE products && $1
+     ORDER BY array_length(
+       ARRAY(SELECT unnest(products) INTERSECT SELECT unnest($1::text[])), 1
+     ) DESC NULLS LAST
+     LIMIT 15`,
+    [opp.products.length > 0 ? opp.products : ['DQ']]  // fallback to DQ if no products tagged
+  );
+
+  // 2. Match differentiators: check need_signals against competitor and industry keywords
+  const searchTerms: string[] = [];
+  if (opp.engaged_competitors) {
+    // Extract competitor names for signal matching
+    searchTerms.push(...opp.engaged_competitors.split(/[,;]/).map(s => s.trim().toLowerCase()).filter(Boolean));
+  }
+  if (opp.account_industry) searchTerms.push(opp.account_industry.toLowerCase());
+
+  const differentiators = await query<{
+    id: number; name: string; tagline: string | null; core_message: string | null;
+    need_signals: string[]; proof_points_json: unknown; competitive_positioning: string | null;
+  }>(
+    'SELECT id, name, tagline, core_message, need_signals, proof_points_json, competitive_positioning FROM kb_differentiators',
+    []
+  );
+
+  // Score differentiators by signal relevance
+  const scoredDiffs = differentiators.map(d => {
+    let score = 0;
+    const signals = d.need_signals.map(s => s.toLowerCase());
+    for (const term of searchTerms) {
+      for (const signal of signals) {
+        if (signal.includes(term)) score += 2;
+      }
+    }
+    // Boost if any product matches a differentiator's domain
+    if (opp.products.some(p => ['DQ'].includes(p)) && d.name.includes('Quality')) score += 3;
+    if (opp.products.some(p => ['MDM', 'RDM', 'Catalog', 'Lineage', 'Observability'].includes(p)) && d.name.includes('Unified')) score += 3;
+    if (d.name.includes('Automated')) score += 1; // always somewhat relevant
+    return { ...d, relevance_score: score };
+  }).sort((a, b) => b.relevance_score - a.relevance_score);
+
+  res.json(ok({
+    proof_points: proofPoints,
+    differentiators: scoredDiffs,
+    match_context: {
+      products: opp.products,
+      industry: opp.account_industry,
+      competitors: opp.engaged_competitors,
+    },
+  }));
+});
+
 // GET /opportunities/:id/timeline
 // Returns a reverse-chronological flat list of all events on this opportunity.
 router.get('/:id/timeline', auth, async (req: Request, res: Response): Promise<void> => {
@@ -936,13 +1010,14 @@ router.get('/:id/timeline', auth, async (req: Request, res: Response): Promise<v
 });
 
 // PATCH /opportunities/:id/fields
-// Update app-editable text fields (not SF-owned). Allows updating technical_blockers
-// and MEDDPICC/qualification fields between SF imports.
+// Update app-editable text fields (not SF-owned). Allows updating technical_blockers,
+// MEDDPICC/qualification fields between SF imports, and products array.
 const PATCHABLE_FIELDS = new Set([
   'technical_blockers',
   'metrics', 'economic_buyer', 'decision_criteria', 'decision_process',
   'paper_process', 'implicate_pain', 'champion', 'engaged_competitors',
   'budget', 'authority', 'need', 'timeline', 'agentic_qual',
+  'products',
 ]);
 
 router.patch('/:id/fields', auth, async (req: Request, res: Response): Promise<void> => {
