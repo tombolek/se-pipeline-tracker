@@ -100,9 +100,9 @@ function CollapsibleSection({ count, header, children }: {
   const bodyRef = useRef<HTMLDivElement>(null);
 
   return (
-    <div className="bg-white rounded-2xl border border-brand-navy-30/40 overflow-hidden">
+    <div className="bg-white rounded-2xl border border-brand-navy-30/40 overflow-visible">
       <div
-        className={`flex items-center gap-2 px-5 py-3 border-b border-brand-navy-30/40 ${collapsible ? 'cursor-pointer select-none hover:bg-gray-50' : ''}`}
+        className={`flex items-center gap-2 px-5 py-3 border-b border-brand-navy-30/40 rounded-t-2xl ${collapsible ? 'cursor-pointer select-none hover:bg-gray-50' : ''}`}
         onClick={collapsible ? () => setOpen(o => !o) : undefined}
       >
         {header}
@@ -132,7 +132,7 @@ function TH({ children }: { children: React.ReactNode }) {
 
 function TR({ children }: { children: React.ReactNode }) {
   return (
-    <tr className="border-b border-brand-navy-30/20 last:border-0 hover:bg-gray-50">
+    <tr className="border-b border-brand-navy-30/20 last:border-0 hover:bg-gray-50 last:rounded-b-2xl">
       {children}
     </tr>
   );

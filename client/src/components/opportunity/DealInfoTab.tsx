@@ -4,6 +4,7 @@ import { getDealInfoConfig } from '../../api/settings';
 import { formatDate, formatARR } from '../../utils/formatters';
 import { computeHealthScore } from '../../utils/healthScore';
 import { computeMeddpicc } from '../../utils/meddpicc';
+import type { CoachResult } from '../OpportunityDetail';
 import { useAuthStore } from '../../store/auth';
 import api from '../../api/client';
 import type { ApiResponse } from '../../types';
@@ -322,19 +323,48 @@ function HealthBreakdownSection({ opp }: { opp: Opportunity }) {
   );
 }
 
-function MeddpiccSection({ opp }: { opp: Opportunity }) {
+function MeddpiccSection({ opp, coachResult }: { opp: Opportunity; coachResult?: CoachResult | null }) {
   const { fields } = computeMeddpicc(opp);
+  const [showCoachNotes, setShowCoachNotes] = useState(false);
+
+  // Build a lookup map from coach elements by key
+  const coachByKey = coachResult?.elements?.reduce<Record<string, typeof coachResult.elements[0]>>((acc, el) => {
+    acc[el.key] = el;
+    return acc;
+  }, {}) ?? {};
+  const hasCoach = Object.keys(coachByKey).length > 0;
+
   return (
     <div id="meddpicc" className="bg-white rounded-xl border border-brand-navy-30 px-5 py-4">
-      <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-navy-70 mb-3">MEDDPICC</p>
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-navy-70">MEDDPICC</p>
+        {hasCoach && (
+          <button
+            onClick={() => setShowCoachNotes(v => !v)}
+            className="flex items-center gap-1 text-[10px] font-medium text-brand-purple hover:text-brand-purple-70 transition-colors"
+          >
+            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none">
+              <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            {showCoachNotes ? 'Hide AI notes' : 'Show AI notes'}
+          </button>
+        )}
+      </div>
       <div className="space-y-2.5">
         {fields.map(f => {
           const val = (opp as unknown as Record<string, unknown>)[f.key] as string | null;
+          const coach = coachByKey[f.key as string];
+          const coachDotColor = coach?.status === 'green' ? 'bg-status-success'
+            : coach?.status === 'amber' ? 'bg-status-warning'
+            : coach?.status === 'red' ? 'bg-status-overdue' : '';
           return (
             <div key={f.key as string}>
               <div className="flex items-center gap-1.5 mb-0.5">
                 <span className="text-[10px]">{QUALITY_ICON[f.quality]}</span>
                 <span className="text-[10px] font-semibold uppercase tracking-wide text-brand-navy-70">{f.label}</span>
+                {showCoachNotes && coach && (
+                  <span className={`w-1.5 h-1.5 rounded-full ${coachDotColor}`} />
+                )}
                 {f.quality === 'weak' && (
                   <span className="text-[9px] text-status-warning font-medium ml-auto">short</span>
                 )}
@@ -342,6 +372,26 @@ function MeddpiccSection({ opp }: { opp: Opportunity }) {
               <p className={`text-xs leading-relaxed ${val ? 'text-brand-navy' : 'text-brand-navy-30 italic'}`}>
                 {val ?? 'Not filled'}
               </p>
+              {/* Inline coach insight */}
+              {showCoachNotes && coach && (coach.gap || coach.evidence || coach.suggested_question) && (
+                <div className="mt-1.5 ml-5 pl-3 border-l-2 border-brand-purple/20 space-y-1">
+                  {coach.evidence && (
+                    <p className="text-[11px] text-brand-navy-70 leading-relaxed">
+                      <span className="font-medium text-brand-navy">Evidence:</span> {coach.evidence}
+                    </p>
+                  )}
+                  {coach.gap && (
+                    <p className="text-[11px] text-brand-navy-70 leading-relaxed">
+                      <span className="font-medium text-status-warning">Gap:</span> {coach.gap}
+                    </p>
+                  )}
+                  {coach.suggested_question && (
+                    <p className="text-[11px] text-brand-purple italic leading-relaxed">
+                      💡 {coach.suggested_question}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           );
         })}
@@ -404,9 +454,10 @@ interface DealInfoTabProps {
   scrollToSection: string | null;
   onScrollDone: () => void;
   configOverride?: DealInfoConfig;
+  coachResult?: CoachResult | null;
 }
 
-export default function DealInfoTab({ opp, oppId, readOnly, onUpdate, scrollToSection, onScrollDone, configOverride }: DealInfoTabProps) {
+export default function DealInfoTab({ opp, oppId, readOnly, onUpdate, scrollToSection, onScrollDone, configOverride, coachResult }: DealInfoTabProps) {
   const { user } = useAuthStore();
   const [config, setConfig] = useState<DealInfoConfig>(configOverride ?? cachedConfig ?? DEFAULT_CONFIG);
   const didFetch = useRef(false);
@@ -471,7 +522,7 @@ export default function DealInfoTab({ opp, oppId, readOnly, onUpdate, scrollToSe
           case 'computed':
             switch (section.id) {
               case 'health-breakdown': return <HealthBreakdownSection key={section.id} opp={opp} />;
-              case 'meddpicc': return <MeddpiccSection key={section.id} opp={opp} />;
+              case 'meddpicc': return <MeddpiccSection key={section.id} opp={opp} coachResult={coachResult} />;
               case 'see-all-fields': return <SeeAllFieldsSection key={section.id} opp={opp} />;
               default: return null;
             }

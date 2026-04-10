@@ -20,7 +20,7 @@ import MeetingNotesModal from './MeetingNotesModal';
 import DealInfoTab from './opportunity/DealInfoTab';
 
 // ── MEDDPICC Coach types ──────────────────────────────────────────────────────
-interface CoachElement {
+export interface CoachElement {
   key: string;
   label: string;
   status: 'green' | 'amber' | 'red';
@@ -28,7 +28,7 @@ interface CoachElement {
   gap: string | null;
   suggested_question: string | null;
 }
-interface CoachResult {
+export interface CoachResult {
   elements: CoachElement[];
   overall_assessment: string;
   counts: { green: number; amber: number; red: number };
@@ -69,8 +69,9 @@ function HealthScorePill({ opp, onClick }: { opp: Opportunity; onClick?: () => v
 
   return (
     <div className="relative group/health">
-      <button onClick={onClick} className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border transition-colors ${s.pill}`}>
+      <button onClick={onClick} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border transition-colors ${s.pill}`}>
         <div className={`w-2 h-2 rounded-full ${s.dot}`} />
+        <span className={`text-[10px] font-medium text-brand-navy-70`}>Health</span>
         <span className={`text-[11px] font-semibold tabular-nums ${s.text}`}>{score}</span>
         <svg className={`w-2.5 h-2.5 ${s.chevron}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
       </button>
@@ -117,7 +118,8 @@ function MeddpiccPill({ opp, onClick }: { opp: Opportunity; onClick?: () => void
 
   return (
     <div className="relative group/medd">
-      <button onClick={onClick} className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border transition-colors ${s.pill}`}>
+      <button onClick={onClick} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border transition-colors ${s.pill}`}>
+        <span className={`text-[10px] font-medium text-brand-navy-70`}>MEDDPICC</span>
         <span className={`text-[11px] font-semibold tabular-nums ${s.text}`}>{strong}/9</span>
         <svg className={`w-2.5 h-2.5 ${s.chevron}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
       </button>
@@ -173,6 +175,8 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
   const [coachResult, setCoachResult] = useState<CoachResult | null>(null);
   const [coachLoading, setCoachLoading] = useState(false);
   const [coachGeneratedAt, setCoachGeneratedAt] = useState<string | null>(null);
+  const [coachCollapsed, setCoachCollapsed] = useState(false);
+  const coachPanelRef = useRef<HTMLDivElement>(null);
   const [showAccountPanel, setShowAccountPanel] = useState(false);
   const [showNotesModal, setShowNotesModal] = useState(false);
   const initialLoadDone = useRef(false);
@@ -293,6 +297,10 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
       const { data } = await api.post<ApiResponse<{ coach: CoachResult; generated_at: string }>>(`/opportunities/${oppId}/meddpicc-coach`);
       setCoachResult(data.data.coach);
       setCoachGeneratedAt(data.data.generated_at);
+      // Scroll into view after render
+      setTimeout(() => coachPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
+    } catch (e) {
+      console.error('MEDDPICC Coach error:', e);
     } finally {
       setCoachLoading(false);
     }
@@ -416,7 +424,7 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
         </div>
 
         {/* Summary callout (below header, above tabs) */}
-        <div className="px-5">
+        <div className="px-5 flex-shrink-0">
           {summary && (
             <div className="mt-3 bg-brand-purple-30 border border-brand-purple/20 rounded-xl overflow-hidden">
               {/* Header — always visible, clickable to collapse */}
@@ -474,44 +482,89 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
               )}
             </div>
           )}
-          {/* MEDDPICC Gap Coach panel */}
-          {coachResult && (
-            <div className="mt-3 bg-gradient-to-br from-brand-purple-30/80 to-brand-purple-30/40 border border-brand-purple/20 rounded-xl overflow-hidden">
-              {/* Panel header */}
-              <div className="flex items-center gap-2 px-4 py-2.5 border-b border-brand-purple/10">
-                <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none">
-                  <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" stroke="#6A2CF5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                <span className="text-[10px] font-semibold uppercase tracking-widest text-brand-purple">MEDDPICC Gap Coach</span>
-                {coachGeneratedAt && (
-                  <span className="text-[10px] text-brand-navy-70 ml-1">
-                    {(() => {
-                      const mins = Math.round((Date.now() - new Date(coachGeneratedAt).getTime()) / 60000);
-                      if (mins < 1) return 'just now';
-                      if (mins < 60) return `${mins}m ago`;
-                      const hrs = Math.round(mins / 60);
-                      if (hrs < 24) return `${hrs}h ago`;
-                      return `${Math.round(hrs / 24)}d ago`;
-                    })()}
-                  </span>
-                )}
-                <button
-                  onClick={handleGetCoach}
-                  disabled={coachLoading}
-                  className="ml-1 text-[10px] font-medium text-brand-purple hover:text-brand-purple-70 disabled:opacity-50"
-                  title="Refresh analysis"
-                >
-                  {coachLoading ? 'Analyzing…' : '↻ Refresh'}
-                </button>
-                <button onClick={() => { setCoachResult(null); setCoachGeneratedAt(null); }} className="ml-auto text-brand-navy-70 hover:text-brand-navy">
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
+          {notesFreshnessDays !== null && notesFreshnessDays > 21 && (
+            <div className="mt-2 flex items-center gap-1.5 text-xs text-status-overdue bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+              <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              No notes in {notesFreshnessDays} days
+            </div>
+          )}
+        </div>
 
+        {/* Tab bar — real tab style with active tab connected to content */}
+        <div className="flex px-5 bg-[#F5F5F7] pt-1 flex-shrink-0">
+          {([
+            { key: 'work' as const, label: 'Work' },
+            { key: 'timeline' as const, label: 'Timeline' },
+            { key: 'call-prep' as const, label: 'Call Prep', icon: true },
+            { key: 'deal-info' as const, label: 'Deal Info' },
+          ]).map(tab => {
+            const isActive = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`relative px-5 py-2 text-xs font-semibold transition-colors flex items-center gap-1.5 rounded-t-lg border border-b-0 ${
+                  isActive
+                    ? 'bg-white text-brand-purple border-brand-navy-30/40 z-10'
+                    : 'bg-transparent text-brand-navy-70 border-transparent hover:text-brand-navy hover:bg-white/50'
+                }`}
+                style={isActive ? { marginBottom: '-1px' } : undefined}
+              >
+                {tab.icon && (
+                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z"/>
+                  </svg>
+                )}
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+        {/* Divider line under tabs — active tab overlaps it */}
+        <div className="border-t border-brand-navy-30/40 flex-shrink-0" />
+
+        {/* Scrollable work area */}
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-6 bg-white">
+
+        {/* MEDDPICC Gap Coach panel — collapsible, persisted */}
+        {coachResult && (
+          <div ref={coachPanelRef} className="bg-gradient-to-br from-brand-purple-30/80 to-brand-purple-30/40 border border-brand-purple/20 rounded-xl overflow-hidden">
+            {/* Header — always visible, clickable to collapse */}
+            <button
+              onClick={() => setCoachCollapsed(c => !c)}
+              className="w-full flex items-center gap-2 px-4 py-2.5 text-left"
+            >
+              <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none">
+                <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" stroke="#6A2CF5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-brand-purple">MEDDPICC Gap Coach</span>
+              {coachGeneratedAt && (() => {
+                const days = Math.floor((Date.now() - new Date(coachGeneratedAt).getTime()) / 86400000);
+                const color = days <= 3 ? 'text-status-success' : days <= 14 ? 'text-status-warning' : 'text-status-overdue';
+                return (
+                  <span className={`text-[10px] font-medium ${color} ml-1`}>
+                    {days === 0 ? 'today' : `${days}d ago`}
+                  </span>
+                );
+              })()}
+              {coachResult.counts && (
+                <span className="text-[10px] text-brand-navy-70 ml-1">
+                  {coachResult.counts.green}✓ {coachResult.counts.amber}◐ {coachResult.counts.red}✗
+                </span>
+              )}
+              <div className="ml-auto flex items-center gap-1">
+                <svg className={`w-3 h-3 text-brand-navy-70 transition-transform ${coachCollapsed ? '' : 'rotate-180'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </button>
+
+            {/* Body — collapsible */}
+            {!coachCollapsed && (<>
               {/* Element rows */}
-              <div className="divide-y divide-brand-purple/10">
+              <div className="divide-y divide-brand-purple/10 border-t border-brand-purple/10">
                 {coachResult.elements.map(el => {
                   const dotColor = el.status === 'green' ? 'bg-status-success ring-status-success/20'
                     : el.status === 'amber' ? 'bg-status-warning ring-status-warning/20'
@@ -559,70 +612,19 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
                   <span className="text-[10px] font-semibold uppercase tracking-widest text-brand-purple">Overall Assessment</span>
                 </div>
                 <p className="text-[11px] text-brand-navy leading-relaxed">{coachResult.overall_assessment}</p>
-                {coachResult.counts && (
-                  <div className="flex items-center gap-3 mt-3">
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-status-success" />
-                      <span className="text-[10px] font-semibold text-brand-navy-70">{coachResult.counts.green} Strong</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-status-warning" />
-                      <span className="text-[10px] font-semibold text-brand-navy-70">{coachResult.counts.amber} Gap{coachResult.counts.amber !== 1 ? 's' : ''}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-status-overdue" />
-                      <span className="text-[10px] font-semibold text-brand-navy-70">{coachResult.counts.red} No Evidence</span>
-                    </div>
-                  </div>
-                )}
+                <div className="flex items-center gap-3 mt-2 pt-2 border-t border-brand-purple/10">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleGetCoach(); }}
+                    disabled={coachLoading}
+                    className="text-[10px] font-medium text-brand-purple hover:text-brand-purple-70 transition-colors disabled:opacity-50"
+                  >
+                    {coachLoading ? 'Analyzing…' : 'Regenerate'}
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
-          {notesFreshnessDays !== null && notesFreshnessDays > 21 && (
-            <div className="mt-2 flex items-center gap-1.5 text-xs text-status-overdue bg-red-50 border border-red-100 rounded-lg px-3 py-2">
-              <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-              No notes in {notesFreshnessDays} days
-            </div>
-          )}
-        </div>
-
-        {/* Tab bar — real tab style with active tab connected to content */}
-        <div className="flex px-5 bg-[#F5F5F7] pt-1 flex-shrink-0">
-          {([
-            { key: 'work' as const, label: 'Work' },
-            { key: 'timeline' as const, label: 'Timeline' },
-            { key: 'call-prep' as const, label: 'Call Prep', icon: true },
-            { key: 'deal-info' as const, label: 'Deal Info' },
-          ]).map(tab => {
-            const isActive = activeTab === tab.key;
-            return (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className={`relative px-5 py-2 text-xs font-semibold transition-colors flex items-center gap-1.5 rounded-t-lg border border-b-0 ${
-                  isActive
-                    ? 'bg-white text-brand-purple border-brand-navy-30/40 z-10'
-                    : 'bg-transparent text-brand-navy-70 border-transparent hover:text-brand-navy hover:bg-white/50'
-                }`}
-                style={isActive ? { marginBottom: '-1px' } : undefined}
-              >
-                {tab.icon && (
-                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z"/>
-                  </svg>
-                )}
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
-        {/* Divider line under tabs — active tab overlaps it */}
-        <div className="border-t border-brand-navy-30/40 flex-shrink-0" />
-
-        {/* Scrollable work area */}
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-6 bg-white">
+            </>)}
+          </div>
+        )}
 
         {/* Timeline tab */}
         {activeTab === 'timeline' && <OpportunityTimeline oppId={oppId} />}
@@ -740,6 +742,7 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
             onUpdate={reload}
             scrollToSection={scrollToSection}
             onScrollDone={() => setScrollToSection(null)}
+            coachResult={coachResult}
           />
         )}
 
