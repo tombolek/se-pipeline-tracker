@@ -1156,4 +1156,276 @@ Rules:
   }
 });
 
+// ── CALL PREP ──────────────────────────────────────────────────────
+
+// GET /opportunities/:id/call-prep
+// Returns cached brief (if fresh) + KB matches. If brief is missing or stale (>30 days), returns brief: null.
+router.get('/:id/call-prep', auth, async (req: Request, res: Response): Promise<void> => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) { res.status(400).json(err('Invalid opportunity id')); return; }
+
+  try {
+    // 1. Check for cached brief
+    const cached = await queryOne<{ content: string; generated_at: string }>(
+      `SELECT content, generated_at FROM ai_summary_cache WHERE key = $1`,
+      [`call-prep-${id}`]
+    );
+
+    let brief: unknown = null;
+    let generatedAt: string | null = null;
+    let isStale = true;
+
+    if (cached) {
+      const age = Date.now() - new Date(cached.generated_at).getTime();
+      isStale = age > 30 * 24 * 60 * 60 * 1000; // 30 days
+      if (!isStale) {
+        try { brief = JSON.parse(cached.content); } catch { brief = null; }
+        generatedAt = cached.generated_at;
+      }
+    }
+
+    // 2. Get KB matches (always fresh — cheap DB query)
+    const opp = await queryOne<{
+      products: string[]; account_industry: string | null; engaged_competitors: string | null;
+      name: string; account_name: string | null;
+    }>(
+      'SELECT products, account_industry, engaged_competitors, name, account_name FROM opportunities WHERE id = $1',
+      [id]
+    );
+    if (!opp) { res.status(404).json(err('Opportunity not found')); return; }
+
+    const proofPoints = opp.products.length > 0 ? await query<{
+      id: number; customer_name: string; about: string | null; vertical: string;
+      products: string[]; initiatives: string[]; proof_point_text: string;
+    }>(
+      `SELECT id, customer_name, about, vertical, products, initiatives, proof_point_text
+       FROM kb_proof_points
+       WHERE products && $1
+       ORDER BY array_length(
+         ARRAY(SELECT unnest(products) INTERSECT SELECT unnest($1::text[])), 1
+       ) DESC NULLS LAST
+       LIMIT 10`,
+      [opp.products]
+    ) : [];
+
+    // Differentiator scoring
+    const searchTerms: string[] = [];
+    if (opp.engaged_competitors) {
+      searchTerms.push(...opp.engaged_competitors.split(/[,;]/).map(s => s.trim().toLowerCase()).filter(Boolean));
+    }
+    if (opp.account_industry) searchTerms.push(opp.account_industry.toLowerCase());
+
+    const allDiffs = await query<{
+      id: number; name: string; tagline: string | null; core_message: string | null;
+      need_signals: string[]; proof_points_json: unknown; competitive_positioning: string | null;
+    }>(
+      'SELECT id, name, tagline, core_message, need_signals, proof_points_json, competitive_positioning FROM kb_differentiators',
+      []
+    );
+
+    const scoredDiffs = allDiffs.map(d => {
+      let score = 0;
+      const signals = d.need_signals.map(s => s.toLowerCase());
+      for (const term of searchTerms) {
+        for (const signal of signals) {
+          if (signal.includes(term)) score += 2;
+        }
+      }
+      if (opp.products.some(p => ['DQ'].includes(p)) && d.name.includes('Quality')) score += 3;
+      if (opp.products.some(p => ['MDM', 'RDM', 'Catalog', 'Lineage', 'Observability'].includes(p)) && d.name.includes('Unified')) score += 3;
+      if (d.name.includes('Automated')) score += 1;
+      return { ...d, relevance_score: score };
+    }).sort((a, b) => b.relevance_score - a.relevance_score);
+
+    res.json(ok({
+      brief,
+      generated_at: generatedAt,
+      is_stale: isStale,
+      proof_points: proofPoints,
+      differentiators: scoredDiffs,
+      match_context: { products: opp.products, industry: opp.account_industry, competitors: opp.engaged_competitors },
+    }));
+  } catch (e) {
+    console.error('[call-prep] error:', e);
+    res.status(500).json(err('Failed to load call prep data'));
+  }
+});
+
+// POST /opportunities/:id/call-prep/generate
+// Generates (or regenerates) the AI pre-call brief using deal context + KB matches.
+router.post('/:id/call-prep/generate', auth, async (req: Request, res: Response): Promise<void> => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) { res.status(400).json(err('Invalid opportunity id')); return; }
+
+  try {
+    // Gather all deal context
+    const opp = await queryOne<Record<string, unknown>>(
+      `SELECT o.*, u.name as se_owner_name
+       FROM opportunities o
+       LEFT JOIN users u ON u.id = o.se_owner_id
+       WHERE o.id = $1`,
+      [id]
+    );
+    if (!opp) { res.status(404).json(err('Opportunity not found')); return; }
+
+    const tasks = await query<{ title: string; status: string; due_date: string | null; is_next_step: boolean }>(
+      `SELECT title, status, due_date, is_next_step FROM tasks
+       WHERE opportunity_id = $1 AND is_deleted = false
+       ORDER BY is_next_step DESC, due_date ASC NULLS LAST`,
+      [id]
+    );
+
+    const notes = await query<{ content: string; created_at: string; author_name: string }>(
+      `SELECT n.content, n.created_at, u.name as author_name
+       FROM notes n JOIN users u ON u.id = n.author_id
+       WHERE n.opportunity_id = $1
+       ORDER BY n.created_at DESC LIMIT 10`,
+      [id]
+    );
+
+    // KB matches for context
+    const products = (opp.products as string[]) || [];
+    const proofPoints = products.length > 0 ? await query<{
+      customer_name: string; vertical: string; products: string[]; proof_point_text: string;
+    }>(
+      `SELECT customer_name, vertical, products, proof_point_text
+       FROM kb_proof_points WHERE products && $1
+       ORDER BY array_length(ARRAY(SELECT unnest(products) INTERSECT SELECT unnest($1::text[])), 1) DESC NULLS LAST
+       LIMIT 5`,
+      [products]
+    ) : [];
+
+    const searchTerms: string[] = [];
+    const competitors = opp.engaged_competitors as string | null;
+    const industry = opp.account_industry as string | null;
+    if (competitors) searchTerms.push(...competitors.split(/[,;]/).map(s => s.trim().toLowerCase()).filter(Boolean));
+    if (industry) searchTerms.push(industry.toLowerCase());
+
+    const allDiffs = await query<{ name: string; tagline: string | null; core_message: string | null; need_signals: string[] }>(
+      'SELECT name, tagline, core_message, need_signals FROM kb_differentiators', []
+    );
+    const topDiffs = allDiffs.map(d => {
+      let score = 0;
+      const signals = d.need_signals.map(s => s.toLowerCase());
+      for (const term of searchTerms) { for (const signal of signals) { if (signal.includes(term)) score += 2; } }
+      return { ...d, score };
+    }).sort((a, b) => b.score - a.score).slice(0, 3);
+
+    // Build prompt
+    const today = new Date().toISOString().slice(0, 10);
+    const openTasks = tasks.filter(t => t.status !== 'done');
+    const overdueTasks = openTasks.filter(t => t.due_date && t.due_date < today);
+    const nextSteps = tasks.filter(t => t.is_next_step && t.status !== 'done');
+
+    const prompt = `You are an expert Sales Engineering assistant. Generate a Pre-Call Brief for the following opportunity.
+
+DEAL CONTEXT:
+- Opportunity: ${opp.name}
+- Account: ${opp.account_name || 'Unknown'}
+- Industry: ${industry || 'Unknown'}
+- Stage: ${opp.stage}
+- ARR: ${opp.arr ? `$${Number(opp.arr).toLocaleString()}` : 'Unknown'}
+- Close Date: ${opp.close_date || 'Unknown'}
+- AE Owner: ${opp.ae_owner_name || 'Unknown'}
+- SE Owner: ${opp.se_owner_name || 'Unassigned'}
+- Products: ${products.length > 0 ? products.join(', ') : 'None tagged'}
+- Competitors: ${competitors || 'None listed'}
+- Deploy Mode: ${opp.deploy_mode || 'Unknown'}
+- PoC Status: ${opp.poc_status || 'None'}
+- Record Type: ${opp.record_type || 'Unknown'}
+
+MEDDPICC STATUS:
+- Metrics: ${opp.metrics || '—'}
+- Economic Buyer: ${opp.economic_buyer || '—'}
+- Decision Criteria: ${opp.decision_criteria || '—'}
+- Decision Process: ${opp.decision_process || '—'}
+- Paper Process: ${opp.paper_process || '—'}
+- Implicate Pain: ${opp.implicate_pain || '—'}
+- Champion: ${opp.champion || '—'}
+- Authority: ${opp.authority || '—'}
+- Need: ${opp.need || '—'}
+
+SF NEXT STEP: ${opp.next_step_sf || '—'}
+SE COMMENTS: ${opp.se_comments || '—'}
+SE COMMENTS LAST UPDATED: ${opp.se_comments_updated_at || 'Never'}
+
+OPEN TASKS (${openTasks.length}):
+${openTasks.map(t => `- [${t.status}] ${t.title}${t.due_date ? ` (due: ${t.due_date})` : ''}${t.is_next_step ? ' [NEXT STEP]' : ''}`).join('\n') || 'None'}
+
+OVERDUE TASKS: ${overdueTasks.length > 0 ? overdueTasks.map(t => t.title).join(', ') : 'None'}
+
+RECENT NOTES (last 10):
+${notes.map(n => `[${n.created_at}] ${n.author_name}: ${n.content.slice(0, 300)}`).join('\n') || 'None'}
+
+MATCHING CUSTOMER PROOF POINTS:
+${proofPoints.map(p => `- ${p.customer_name} (${p.vertical}, ${p.products.join('/')}): ${p.proof_point_text.slice(0, 200)}`).join('\n') || 'None available'}
+
+MATCHING DIFFERENTIATORS:
+${topDiffs.map(d => `- ${d.name}: ${d.tagline || ''} — ${d.core_message || ''}`).join('\n') || 'None matched'}
+
+Today's date: ${today}
+
+Generate a JSON response with this exact structure:
+{
+  "deal_context": "2-3 sentence summary of the deal situation, stage, and what's happening.",
+  "talking_points": [
+    "Specific actionable talking point with reasoning. Reference proof points or differentiators where relevant.",
+    "Another talking point.",
+    "A third talking point."
+  ],
+  "risks": [
+    { "severity": "high|medium", "text": "Description of the risk or gap." }
+  ],
+  "discovery_questions": [
+    "A natural discovery question the SE should ask on the call.",
+    "Another question.",
+    "A third question."
+  ]
+}
+
+Rules:
+- talking_points: 3-5 items. Be specific — reference customer names from proof points, name the differentiator, cite MEDDPICC gaps.
+- risks: 2-4 items. Include overdue tasks, stale SE comments, MEDDPICC gaps, timeline concerns. severity is "high" or "medium".
+- discovery_questions: 2-4 questions. Make them conversational and tied to identified gaps.
+- deal_context: Focus on what's most important for this specific call.
+- Be concise. No filler. Every sentence should be actionable.
+- Return ONLY valid JSON, no markdown fences.`;
+
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const response = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 2000,
+      messages: [{ role: 'user', content: prompt }],
+    });
+
+    const textBlock = response.content.find(b => b.type === 'text');
+    const raw = (textBlock && textBlock.type === 'text' ? textBlock.text : '{}').trim()
+      .replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      res.status(500).json(err('Failed to parse AI response — try again'));
+      return;
+    }
+
+    // Cache the brief
+    await query(
+      `INSERT INTO ai_summary_cache (key, content, generated_at)
+       VALUES ($1, $2, now())
+       ON CONFLICT (key) DO UPDATE SET content = $2, generated_at = now()`,
+      [`call-prep-${id}`, JSON.stringify(parsed)]
+    );
+
+    res.json(ok({
+      brief: parsed,
+      generated_at: new Date().toISOString(),
+    }));
+  } catch (e) {
+    console.error('[call-prep/generate] error:', e);
+    res.status(500).json(err(e instanceof Error ? e.message : 'Failed to generate brief'));
+  }
+});
+
 export default router;

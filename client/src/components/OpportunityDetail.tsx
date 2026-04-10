@@ -14,6 +14,7 @@ import { formatDate, formatARR, daysSince } from '../utils/formatters';
 import { TaskRow, AddTaskForm } from './opportunity/TaskSection';
 import { NoteItem, AddNoteForm } from './opportunity/NoteSection';
 import OpportunityTimeline from './OpportunityTimeline';
+import CallPrepTab from './CallPrepTab';
 import AccountTimelinePanel from './AccountTimelinePanel';
 import MeetingNotesModal from './MeetingNotesModal';
 
@@ -297,7 +298,7 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
   const [showAddTask, setShowAddTask] = useState(false);
   const [showAddNote, setShowAddNote] = useState(false);
   const [assigningOwner, setAssigningOwner] = useState(false);
-  const [activeTab, setActiveTab] = useState<'work' | 'timeline'>('work');
+  const [activeTab, setActiveTab] = useState<'work' | 'timeline' | 'call-prep'>('work');
 
   const [showAllFields, setShowAllFields] = useState(false);
   const [summary, setSummary] = useState<string | null>(null);
@@ -664,17 +665,22 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
 
         {/* Tab bar */}
         <div className="flex gap-1 bg-white mx-5 mt-3 border border-brand-navy-30/40 rounded-xl p-1 flex-shrink-0">
-          {(['work', 'timeline'] as const).map(tab => (
+          {(['work', 'timeline', 'call-prep'] as const).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1 ${
                 activeTab === tab
                   ? 'bg-brand-purple text-white'
                   : 'text-brand-navy-70 hover:text-brand-navy'
               }`}
             >
-              {tab === 'work' ? 'Work' : 'Timeline'}
+              {tab === 'call-prep' && (
+                <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z"/>
+                </svg>
+              )}
+              {tab === 'work' ? 'Work' : tab === 'timeline' ? 'Timeline' : 'Call Prep'}
             </button>
           ))}
         </div>
@@ -684,6 +690,9 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
 
         {/* Timeline tab */}
         {activeTab === 'timeline' && <OpportunityTimeline oppId={oppId} />}
+
+        {/* Call Prep tab */}
+        {activeTab === 'call-prep' && <CallPrepTab oppId={oppId} />}
 
         {/* Work tab content */}
         {activeTab === 'work' && <>
