@@ -418,7 +418,24 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
                   </svg>
                 </button>
               </div>
-              <p className="text-sm text-brand-navy leading-relaxed">{summary}</p>
+              <div className="text-sm text-brand-navy leading-relaxed space-y-2">
+                {summary.split('\n').filter(line => line.trim()).map((line, i) => {
+                  // Strip markdown headers (##, ###)
+                  const stripped = line.replace(/^#{1,4}\s+/, '');
+                  const isHeader = line !== stripped;
+                  // Render bold markers
+                  const parts = stripped.split(/\*\*(.+?)\*\*/g);
+                  const rendered = parts.map((part, j) =>
+                    j % 2 === 1
+                      ? <strong key={j} className="font-semibold text-brand-navy">{part}</strong>
+                      : <span key={j}>{part}</span>
+                  );
+                  if (isHeader) {
+                    return <p key={i} className="font-semibold text-brand-navy text-xs uppercase tracking-wide mt-2 first:mt-0">{rendered}</p>;
+                  }
+                  return <p key={i}>{rendered}</p>;
+                })}
+              </div>
             </div>
           )}
           {/* MEDDPICC Gap Coach panel */}

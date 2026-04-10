@@ -353,7 +353,11 @@ router.post('/:id/summary', auth, async (req: Request, res: Response): Promise<v
       ).join('\n')
     : 'No notes yet.';
 
-  const prompt = `You are an SE deal intelligence assistant. Provide a concise 3-5 sentence deal summary covering: current status and momentum, key risks or blockers, and the recommended next action.
+  const prompt = `You are an SE deal intelligence assistant. Write a concise deal summary in 3 short paragraphs using plain text with **bold** for emphasis on key names, numbers, and actions. Do NOT use markdown headers (#), bullet points, or lists. Keep it conversational and direct.
+
+Paragraph 1: Current deal status and momentum (1-2 sentences).
+Paragraph 2: Key risks or blockers (1-2 sentences).
+Paragraph 3: Recommended next action starting with "**Recommended next action:**" (1-2 sentences).
 
 Opportunity: ${opp.name}
 Account: ${opp.account_name ?? 'N/A'}
@@ -373,9 +377,7 @@ Open Tasks:
 ${taskLines}
 
 Recent Notes (oldest to newest):
-${noteLines}
-
-Write a concise 3-5 sentence deal summary.`;
+${noteLines}`;
 
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   const response = await client.messages.create({
