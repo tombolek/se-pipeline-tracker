@@ -55,16 +55,16 @@ const DEFAULT_CONFIG: DealInfoConfig = {
 /* ── Helpers ── */
 function resolveFieldValue(opp: Opportunity, field: DealInfoFieldDef): string | null | undefined {
   if (field.source === 'sf_raw') {
-    const raw = (opp as Record<string, unknown>).sf_raw_fields as Record<string, unknown> | undefined;
+    const raw = (opp as unknown as Record<string, unknown>).sf_raw_fields as Record<string, unknown> | undefined;
     const val = raw?.[field.key];
     return val === null || val === undefined ? null : String(val);
   }
   // Handle special cases
   if (field.key === 'se_owner') {
-    const owner = (opp as Record<string, unknown>).se_owner as { name: string } | null;
+    const owner = (opp as unknown as Record<string, unknown>).se_owner as { name: string } | null;
     return owner?.name ?? 'Unassigned';
   }
-  return (opp as Record<string, unknown>)[field.key] as string | null | undefined;
+  return (opp as unknown as Record<string, unknown>)[field.key] as string | null | undefined;
 }
 
 function formatFieldValue(value: string | null | undefined, format?: string): string {
@@ -278,7 +278,7 @@ function CollapsibleSection({ section, opp, oppId }: {
       <Collapsible title={section.label} defaultOpen={section.defaultOpen}>
         {hasFreshness && freshnessField && (
           <div className="flex items-center gap-1.5 mb-1.5">
-            <FreshnessTag updatedAt={(opp as Record<string, unknown>)[freshnessField] as string | null} />
+            <FreshnessTag updatedAt={(opp as unknown as Record<string, unknown>)[freshnessField] as string | null} />
           </div>
         )}
         {singleField && (
@@ -329,7 +329,7 @@ function MeddpiccSection({ opp }: { opp: Opportunity }) {
       <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-navy-70 mb-3">MEDDPICC</p>
       <div className="space-y-2.5">
         {fields.map(f => {
-          const val = (opp as Record<string, unknown>)[f.key] as string | null;
+          const val = (opp as unknown as Record<string, unknown>)[f.key] as string | null;
           return (
             <div key={f.key as string}>
               <div className="flex items-center gap-1.5 mb-0.5">
@@ -352,7 +352,7 @@ function MeddpiccSection({ opp }: { opp: Opportunity }) {
 
 function SeeAllFieldsSection({ opp }: { opp: Opportunity }) {
   const [open, setOpen] = useState(false);
-  const sfRaw = (opp as Record<string, unknown>).sf_raw_fields as Record<string, unknown> | undefined;
+  const sfRaw = (opp as unknown as Record<string, unknown>).sf_raw_fields as Record<string, unknown> | undefined;
   return (
     <div className="bg-white rounded-xl border border-brand-navy-30 px-5 py-4">
       <button onClick={() => setOpen(v => !v)} className="flex items-center gap-1.5 text-[11px] text-brand-navy-70 hover:text-brand-navy transition-colors">
@@ -388,7 +388,7 @@ function shouldShowSection(section: DealInfoSection, opp: Opportunity, userRole:
   }
   if (section.visibility.startsWith('has_value:')) {
     const key = section.visibility.split(':')[1];
-    const val = (opp as Record<string, unknown>)[key];
+    const val = (opp as unknown as Record<string, unknown>)[key];
     return val !== null && val !== undefined && val !== '';
   }
   return true;
@@ -439,7 +439,7 @@ export default function DealInfoTab({ opp, oppId, readOnly, onUpdate, scrollToSe
       {/* Open in SF */}
       <div className="flex items-center justify-between">
         <a
-          href={`https://ataccama.lightning.force.com/lightning/r/Opportunity/${(opp as Record<string, unknown>).sf_opportunity_id}/view`}
+          href={`https://ataccama.lightning.force.com/lightning/r/Opportunity/${(opp as unknown as Record<string, unknown>).sf_opportunity_id}/view`}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-brand-navy-30 text-[11px] font-medium text-brand-navy-70 hover:text-brand-navy hover:border-brand-navy transition-colors"

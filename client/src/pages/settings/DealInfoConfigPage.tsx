@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { DealInfoConfig, DealInfoSection, DealInfoFieldDef, AvailableField } from '../../types';
+import type { DealInfoConfig, DealInfoFieldDef, AvailableField } from '../../types';
 import { getDealInfoConfig, saveDealInfoConfig, resetDealInfoConfig } from '../../api/settings';
 import { invalidateDealInfoCache } from '../../components/opportunity/DealInfoTab';
 
