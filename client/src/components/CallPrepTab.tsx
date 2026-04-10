@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import api from '../api/client';
 import type { ApiResponse } from '../types';
 
@@ -57,6 +57,17 @@ interface CallPrepResponse {
 }
 
 /* ── Helpers ── */
+/** Parses **bold** markers from AI text into <strong> elements */
+function highlightBold(text: string): React.ReactNode {
+  const parts = text.split(/\*\*(.+?)\*\*/g);
+  if (parts.length === 1) return text; // no markers
+  return parts.map((part, i) =>
+    i % 2 === 1
+      ? <strong key={i} className="text-brand-navy font-semibold">{part}</strong>
+      : part
+  );
+}
+
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
@@ -219,47 +230,59 @@ export default function CallPrepTab({ oppId }: { oppId: number }) {
 
           {/* Brief content */}
           <div className="space-y-4 text-[13px] text-brand-navy leading-relaxed">
-            {/* Deal Context */}
+            {/* Deal Context — always visible */}
             <div>
               <h4 className="text-[11px] uppercase tracking-wider text-brand-navy-70 font-semibold mb-1.5">Deal Context</h4>
-              <p>{data.brief.deal_context}</p>
+              <p>{highlightBold(data.brief.deal_context)}</p>
             </div>
 
-            {/* Talking Points */}
-            <div>
-              <h4 className="text-[11px] uppercase tracking-wider text-brand-navy-70 font-semibold mb-1.5">Key Talking Points</h4>
-              <ul className="space-y-1.5">
+            {/* Talking Points — collapsible */}
+            <details open className="group">
+              <summary className="flex items-center gap-1.5 cursor-pointer list-none [&::-webkit-details-marker]:hidden select-none">
+                <svg className="w-3 h-3 text-brand-navy-70 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path d="M9 5l7 7-7 7"/></svg>
+                <h4 className="text-[11px] uppercase tracking-wider text-brand-navy-70 font-semibold">Key Talking Points</h4>
+                <span className="text-[10px] text-brand-navy-30 ml-0.5">{data.brief.talking_points.length}</span>
+              </summary>
+              <ul className="mt-1.5 space-y-1.5">
                 {data.brief.talking_points.map((tp, i) => (
                   <li key={i} className="flex items-start gap-2">
                     <span className="text-brand-purple mt-0.5 text-xs">&#9679;</span>
-                    <span>{tp}</span>
+                    <span>{highlightBold(tp)}</span>
                   </li>
                 ))}
               </ul>
-            </div>
+            </details>
 
-            {/* Risks */}
-            <div>
-              <h4 className="text-[11px] uppercase tracking-wider text-brand-navy-70 font-semibold mb-1.5">Risks & Open Items</h4>
-              <ul className="space-y-1.5">
+            {/* Risks — collapsible */}
+            <details open className="group">
+              <summary className="flex items-center gap-1.5 cursor-pointer list-none [&::-webkit-details-marker]:hidden select-none">
+                <svg className="w-3 h-3 text-brand-navy-70 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path d="M9 5l7 7-7 7"/></svg>
+                <h4 className="text-[11px] uppercase tracking-wider text-brand-navy-70 font-semibold">Risks & Open Items</h4>
+                <span className="text-[10px] text-brand-navy-30 ml-0.5">{data.brief.risks.length}</span>
+              </summary>
+              <ul className="mt-1.5 space-y-1.5">
                 {data.brief.risks.map((r, i) => (
                   <li key={i} className="flex items-start gap-2">
                     <span className={`mt-0.5 text-xs ${r.severity === 'high' ? 'text-status-overdue' : 'text-status-warning'}`}>&#9679;</span>
-                    <span>{r.text}</span>
+                    <span>{highlightBold(r.text)}</span>
                   </li>
                 ))}
               </ul>
-            </div>
+            </details>
 
-            {/* Discovery Questions */}
-            <div>
-              <h4 className="text-[11px] uppercase tracking-wider text-brand-navy-70 font-semibold mb-1.5">Suggested Discovery Questions</h4>
-              <ol className="space-y-1.5 list-decimal list-inside text-brand-navy-70">
+            {/* Discovery Questions — collapsible */}
+            <details open className="group">
+              <summary className="flex items-center gap-1.5 cursor-pointer list-none [&::-webkit-details-marker]:hidden select-none">
+                <svg className="w-3 h-3 text-brand-navy-70 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path d="M9 5l7 7-7 7"/></svg>
+                <h4 className="text-[11px] uppercase tracking-wider text-brand-navy-70 font-semibold">Suggested Discovery Questions</h4>
+                <span className="text-[10px] text-brand-navy-30 ml-0.5">{data.brief.discovery_questions.length}</span>
+              </summary>
+              <ol className="mt-1.5 space-y-1.5 list-decimal list-inside text-brand-navy-70">
                 {data.brief.discovery_questions.map((q, i) => (
-                  <li key={i}>{q}</li>
+                  <li key={i}>{highlightBold(q)}</li>
                 ))}
               </ol>
-            </div>
+            </details>
           </div>
         </div>
       ) : noProducts ? (

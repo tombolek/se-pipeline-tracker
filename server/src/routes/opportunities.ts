@@ -1429,6 +1429,7 @@ CRITICAL RULES:
 - differentiator_plays: 1-3 items. Each MUST link back to a proof point customer in "backed_by". If a differentiator has no relevant proof point, omit it.
 - risks: 2-4 items. Include overdue tasks, stale SE comments, MEDDPICC gaps, timeline concerns.
 - discovery_questions: 2-4 natural questions tied to gaps.
+- FORMATTING: In all text fields (deal_context, talking_points, risks.text, discovery_questions), wrap customer names, concrete metrics/stats, differentiator names, and MEDDPICC field names in **double asterisks** for emphasis. Example: "Lead with **Scout Motors** — **40% fewer DQ incidents** in **4 months** with **Capgemini**."
 - Be concise. No filler. Every sentence actionable.
 - Return ONLY valid JSON, no markdown fences.`;
 
