@@ -175,7 +175,7 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
   const [coachResult, setCoachResult] = useState<CoachResult | null>(null);
   const [coachLoading, setCoachLoading] = useState(false);
   const [coachGeneratedAt, setCoachGeneratedAt] = useState<string | null>(null);
-  const [coachCollapsed, setCoachCollapsed] = useState(false);
+  const [coachCollapsed, setCoachCollapsed] = useState(true);
   const coachPanelRef = useRef<HTMLDivElement>(null);
   const [showAccountPanel, setShowAccountPanel] = useState(false);
   const [showNotesModal, setShowNotesModal] = useState(false);
@@ -490,6 +490,105 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
               No notes in {notesFreshnessDays} days
             </div>
           )}
+          {/* MEDDPICC Gap Coach panel — collapsed by default, above tabs */}
+          {coachResult && (
+            <div ref={coachPanelRef} className="mt-3 bg-gradient-to-br from-brand-purple-30/80 to-brand-purple-30/40 border border-brand-purple/20 rounded-xl overflow-hidden">
+              {/* Header — always visible, clickable to collapse */}
+              <button
+                onClick={() => setCoachCollapsed(c => !c)}
+                className="w-full flex items-center gap-2 px-4 py-2.5 text-left"
+              >
+                <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none">
+                  <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" stroke="#6A2CF5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-brand-purple">MEDDPICC Gap Coach</span>
+                {coachGeneratedAt && (() => {
+                  const days = Math.floor((Date.now() - new Date(coachGeneratedAt).getTime()) / 86400000);
+                  const color = days <= 3 ? 'text-status-success' : days <= 14 ? 'text-status-warning' : 'text-status-overdue';
+                  return (
+                    <span className={`text-[10px] font-medium ${color} ml-1`}>
+                      {days === 0 ? 'today' : `${days}d ago`}
+                    </span>
+                  );
+                })()}
+                {coachResult.counts && (
+                  <span className="text-[10px] text-brand-navy-70 ml-1">
+                    {coachResult.counts.green}✓ {coachResult.counts.amber}◐ {coachResult.counts.red}✗
+                  </span>
+                )}
+                <div className="ml-auto flex items-center gap-1">
+                  <svg className={`w-3 h-3 text-brand-navy-70 transition-transform ${coachCollapsed ? '' : 'rotate-180'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </button>
+
+              {/* Body — collapsible, with internal scroll for long content */}
+              {!coachCollapsed && (
+                <div className="max-h-[50vh] overflow-y-auto">
+                  {/* Element rows */}
+                  <div className="divide-y divide-brand-purple/10 border-t border-brand-purple/10">
+                    {coachResult.elements.map(el => {
+                      const dotColor = el.status === 'green' ? 'bg-status-success ring-status-success/20'
+                        : el.status === 'amber' ? 'bg-status-warning ring-status-warning/20'
+                        : 'bg-status-overdue ring-status-overdue/20';
+                      const badgeColor = el.status === 'green' ? 'text-status-success bg-emerald-50'
+                        : el.status === 'amber' ? 'text-status-warning bg-amber-50'
+                        : 'text-status-overdue bg-red-50';
+                      const badgeLabel = el.status === 'green' ? 'Strong'
+                        : el.status === 'amber' ? 'Gap'
+                        : 'No evidence';
+                      return (
+                        <div key={el.key} className="px-4 py-3">
+                          <div className="flex items-start gap-2.5">
+                            <span className={`mt-0.5 w-2.5 h-2.5 rounded-full flex-shrink-0 ring-2 ${dotColor}`} />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-semibold text-brand-navy">{el.label}</span>
+                                <span className={`text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded ${badgeColor}`}>{badgeLabel}</span>
+                              </div>
+                              {el.evidence && (
+                                <p className="text-[11px] text-brand-navy-70 mt-1 leading-relaxed">{el.evidence}</p>
+                              )}
+                              {el.gap && (
+                                <p className="text-[11px] text-brand-navy-70 mt-1 leading-relaxed">{el.gap}</p>
+                              )}
+                              {el.suggested_question && (
+                                <div className="mt-2 bg-white/60 rounded-lg px-3 py-2 border border-brand-purple/10">
+                                  <p className="text-[10px] font-semibold text-brand-purple uppercase tracking-wide mb-0.5">Suggested question</p>
+                                  <p className="text-[11px] text-brand-navy italic leading-relaxed">{el.suggested_question}</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Overall assessment */}
+                  <div className="px-4 py-3 bg-white/40 border-t border-brand-purple/10">
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <svg className="w-3.5 h-3.5 text-brand-purple flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                      </svg>
+                      <span className="text-[10px] font-semibold uppercase tracking-widest text-brand-purple">Overall Assessment</span>
+                    </div>
+                    <p className="text-[11px] text-brand-navy leading-relaxed">{coachResult.overall_assessment}</p>
+                    <div className="flex items-center gap-3 mt-2 pt-2 border-t border-brand-purple/10">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleGetCoach(); }}
+                        disabled={coachLoading}
+                        className="text-[10px] font-medium text-brand-purple hover:text-brand-purple-70 transition-colors disabled:opacity-50"
+                      >
+                        {coachLoading ? 'Analyzing…' : 'Regenerate'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Tab bar — real tab style with active tab connected to content */}
@@ -527,104 +626,6 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
 
         {/* Scrollable work area */}
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-6 bg-white">
-
-        {/* MEDDPICC Gap Coach panel — collapsible, persisted */}
-        {coachResult && (
-          <div ref={coachPanelRef} className="bg-gradient-to-br from-brand-purple-30/80 to-brand-purple-30/40 border border-brand-purple/20 rounded-xl overflow-hidden">
-            {/* Header — always visible, clickable to collapse */}
-            <button
-              onClick={() => setCoachCollapsed(c => !c)}
-              className="w-full flex items-center gap-2 px-4 py-2.5 text-left"
-            >
-              <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none">
-                <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" stroke="#6A2CF5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              <span className="text-[10px] font-semibold uppercase tracking-widest text-brand-purple">MEDDPICC Gap Coach</span>
-              {coachGeneratedAt && (() => {
-                const days = Math.floor((Date.now() - new Date(coachGeneratedAt).getTime()) / 86400000);
-                const color = days <= 3 ? 'text-status-success' : days <= 14 ? 'text-status-warning' : 'text-status-overdue';
-                return (
-                  <span className={`text-[10px] font-medium ${color} ml-1`}>
-                    {days === 0 ? 'today' : `${days}d ago`}
-                  </span>
-                );
-              })()}
-              {coachResult.counts && (
-                <span className="text-[10px] text-brand-navy-70 ml-1">
-                  {coachResult.counts.green}✓ {coachResult.counts.amber}◐ {coachResult.counts.red}✗
-                </span>
-              )}
-              <div className="ml-auto flex items-center gap-1">
-                <svg className={`w-3 h-3 text-brand-navy-70 transition-transform ${coachCollapsed ? '' : 'rotate-180'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </button>
-
-            {/* Body — collapsible */}
-            {!coachCollapsed && (<>
-              {/* Element rows */}
-              <div className="divide-y divide-brand-purple/10 border-t border-brand-purple/10">
-                {coachResult.elements.map(el => {
-                  const dotColor = el.status === 'green' ? 'bg-status-success ring-status-success/20'
-                    : el.status === 'amber' ? 'bg-status-warning ring-status-warning/20'
-                    : 'bg-status-overdue ring-status-overdue/20';
-                  const badgeColor = el.status === 'green' ? 'text-status-success bg-emerald-50'
-                    : el.status === 'amber' ? 'text-status-warning bg-amber-50'
-                    : 'text-status-overdue bg-red-50';
-                  const badgeLabel = el.status === 'green' ? 'Strong'
-                    : el.status === 'amber' ? 'Gap'
-                    : 'No evidence';
-                  return (
-                    <div key={el.key} className="px-4 py-3">
-                      <div className="flex items-start gap-2.5">
-                        <span className={`mt-0.5 w-2.5 h-2.5 rounded-full flex-shrink-0 ring-2 ${dotColor}`} />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-semibold text-brand-navy">{el.label}</span>
-                            <span className={`text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded ${badgeColor}`}>{badgeLabel}</span>
-                          </div>
-                          {el.evidence && (
-                            <p className="text-[11px] text-brand-navy-70 mt-1 leading-relaxed">{el.evidence}</p>
-                          )}
-                          {el.gap && (
-                            <p className="text-[11px] text-brand-navy-70 mt-1 leading-relaxed">{el.gap}</p>
-                          )}
-                          {el.suggested_question && (
-                            <div className="mt-2 bg-white/60 rounded-lg px-3 py-2 border border-brand-purple/10">
-                              <p className="text-[10px] font-semibold text-brand-purple uppercase tracking-wide mb-0.5">Suggested question</p>
-                              <p className="text-[11px] text-brand-navy italic leading-relaxed">{el.suggested_question}</p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Overall assessment */}
-              <div className="px-4 py-3 bg-white/40 border-t border-brand-purple/10">
-                <div className="flex items-center gap-1.5 mb-1.5">
-                  <svg className="w-3.5 h-3.5 text-brand-purple flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                  </svg>
-                  <span className="text-[10px] font-semibold uppercase tracking-widest text-brand-purple">Overall Assessment</span>
-                </div>
-                <p className="text-[11px] text-brand-navy leading-relaxed">{coachResult.overall_assessment}</p>
-                <div className="flex items-center gap-3 mt-2 pt-2 border-t border-brand-purple/10">
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleGetCoach(); }}
-                    disabled={coachLoading}
-                    className="text-[10px] font-medium text-brand-purple hover:text-brand-purple-70 transition-colors disabled:opacity-50"
-                  >
-                    {coachLoading ? 'Analyzing…' : 'Regenerate'}
-                  </button>
-                </div>
-              </div>
-            </>)}
-          </div>
-        )}
 
         {/* Timeline tab */}
         {activeTab === 'timeline' && <OpportunityTimeline oppId={oppId} />}
