@@ -1656,6 +1656,7 @@ INSTRUCTIONS:
 6. Determine the demo level (D1-D4) based on HOW MUCH IS ACTUALLY KNOWN, not just the pipeline stage.
 7. Generate a "Before You Demo" checklist of 6 items based on the Golden Standard principles, marking each as done (true) or not done (false) based on evidence.
 8. Use **double asterisks** for emphasis on key terms, names, numbers, and findings.
+9. BE CONCISE. Each answer should be 1-3 sentences max. Evidence items should be short (under 20 words each). Coaching tips should be 1-2 sentences. The overall_assessment should be 2-3 sentences. Do NOT write paragraphs — this is a dashboard, not an essay.
 
 Respond in this exact JSON format (no markdown fences, just raw JSON):
 {
@@ -1690,7 +1691,7 @@ Respond in this exact JSON format (no markdown fences, just raw JSON):
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     const response = await client.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 4096,
+      max_tokens: 8192,
       messages: [{ role: 'user', content: prompt }],
     });
 
