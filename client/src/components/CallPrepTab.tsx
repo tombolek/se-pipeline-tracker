@@ -305,6 +305,10 @@ export default function CallPrepTab({ oppId }: { oppId: number }) {
       {data.brief?.proof_point_highlights && data.brief.proof_point_highlights.length > 0 && (
         <div>
           <div className="flex items-center gap-2 mb-3">
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-emerald-600 text-white px-2 py-0.5 rounded">
+              <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              CSP
+            </span>
             <h3 className="text-sm font-semibold text-brand-navy">Customer Stories to Mention</h3>
             <span className="text-[10px] bg-brand-purple-30 text-brand-purple px-2 py-0.5 rounded-full font-medium">AI-selected</span>
             <span className="text-[10px] text-brand-navy-70 ml-auto">Top stories picked for this deal</span>
@@ -326,6 +330,10 @@ export default function CallPrepTab({ oppId }: { oppId: number }) {
                 <div key={i} className={`rounded-lg border p-3 ${isPrimary ? 'border-green-200 bg-green-50/30' : 'border-brand-navy-30/40 bg-white'}`}>
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center gap-0.5 text-[9px] font-bold bg-emerald-600 text-white px-1.5 py-0.5 rounded">
+                        <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                        CSP
+                      </span>
                       <span className="text-[13px] font-semibold text-brand-navy">{h.customer}</span>
                       {dbPP && dbPP.products.map(p => (
                         <span key={p} className="text-[10px] bg-brand-purple-30 text-brand-purple px-1.5 py-0.5 rounded">{p}</span>
@@ -358,6 +366,10 @@ export default function CallPrepTab({ oppId }: { oppId: number }) {
       {data.brief?.differentiator_plays && data.brief.differentiator_plays.length > 0 && (
         <div>
           <div className="flex items-center gap-2 mb-3">
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-blue-600 text-white px-2 py-0.5 rounded">
+              <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+              DIFF
+            </span>
             <h3 className="text-sm font-semibold text-brand-navy">Differentiators to Position</h3>
             <span className="text-[10px] bg-brand-purple-30 text-brand-purple px-2 py-0.5 rounded-full font-medium">
               {data.brief.differentiator_plays.length} relevant
@@ -376,6 +388,7 @@ export default function CallPrepTab({ oppId }: { oppId: number }) {
                 <div key={i} className="rounded-lg border border-brand-navy-30/40 overflow-hidden">
                   <div className="p-3 bg-gray-50/50">
                     <div className="flex items-center gap-2 mb-1">
+                      <span className="inline-flex items-center gap-0.5 text-[9px] font-bold bg-blue-600 text-white px-1.5 py-0.5 rounded">DIFF</span>
                       <span className="text-[13px] font-medium text-brand-navy">{dp.name}</span>
                       {signalMatch && (
                         <span className="text-[10px] bg-brand-pink-30 text-brand-pink px-1.5 py-0.5 rounded font-medium">
@@ -387,9 +400,7 @@ export default function CallPrepTab({ oppId }: { oppId: number }) {
                     {/* Linked proof point */}
                     {dp.backed_by && (
                       <div className="flex items-center gap-2 rounded bg-white border border-brand-navy-30/30 px-2.5 py-1.5 text-[11px]">
-                        <svg className="w-3 h-3 text-brand-purple flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                          <path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
-                        </svg>
+                        <span className="inline-flex items-center gap-0.5 text-[8px] font-bold bg-emerald-600 text-white px-1 py-px rounded flex-shrink-0">CSP</span>
                         <span className="text-brand-navy-70">Backed by:</span>
                         <span className="text-brand-navy font-medium">{dp.backed_by}</span>
                       </div>
@@ -407,6 +418,7 @@ export default function CallPrepTab({ oppId }: { oppId: number }) {
         <details className="group">
           <summary className="flex items-center gap-2 cursor-pointer text-[11px] text-brand-navy-70 hover:text-brand-purple transition-colors py-1">
             <svg className="w-3.5 h-3.5 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M9 5l7 7-7 7"/></svg>
+            <span className="inline-flex items-center gap-0.5 text-[9px] font-bold bg-gray-600 text-white px-1.5 py-0.5 rounded">KB</span>
             All matching stories ({data.proof_points.length})
           </summary>
           <div className="mt-2 space-y-2">
@@ -421,6 +433,10 @@ export default function CallPrepTab({ oppId }: { oppId: number }) {
                 >
                   <div className="flex items-start justify-between mb-1.5">
                     <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center gap-0.5 text-[9px] font-bold bg-emerald-600 text-white px-1.5 py-0.5 rounded">
+                        <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                        CSP
+                      </span>
                       <span className="text-[13px] font-medium text-brand-navy">{pp.customer_name}</span>
                       <span className={`text-[10px] ${m.color} px-1.5 py-0.5 rounded font-medium`}>{m.label}</span>
                     </div>
