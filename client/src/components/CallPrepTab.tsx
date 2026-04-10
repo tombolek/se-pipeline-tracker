@@ -375,10 +375,6 @@ export default function CallPrepTab({ oppId }: { oppId: number }) {
                 <div key={i} className={`rounded-lg border p-3 ${isPrimary ? 'border-green-200 bg-green-50/30' : 'border-brand-navy-30/40 bg-white'}`}>
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <span className="inline-flex items-center gap-0.5 text-[9px] font-bold bg-emerald-600 text-white px-1.5 py-0.5 rounded">
-                        <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                        CSV
-                      </span>
                       <span className="text-[13px] font-semibold text-brand-navy">{h.customer}</span>
                       {dbPP && dbPP.products.map(p => (
                         <span key={p} className="text-[10px] bg-brand-purple-30 text-brand-purple px-1.5 py-0.5 rounded">{p}</span>
@@ -433,7 +429,6 @@ export default function CallPrepTab({ oppId }: { oppId: number }) {
                 <div key={i} className="rounded-lg border border-brand-navy-30/40 overflow-hidden">
                   <div className="p-3 bg-gray-50/50">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="inline-flex items-center gap-0.5 text-[9px] font-bold bg-blue-600 text-white px-1.5 py-0.5 rounded">DIFF</span>
                       <span className="text-[13px] font-medium text-brand-navy">{dp.name}</span>
                       {signalMatch && (
                         <span className="text-[10px] bg-brand-pink-30 text-brand-pink px-1.5 py-0.5 rounded font-medium">
@@ -445,7 +440,9 @@ export default function CallPrepTab({ oppId }: { oppId: number }) {
                     {/* Linked proof point */}
                     {dp.backed_by && (
                       <div className="flex items-center gap-2 rounded bg-white border border-brand-navy-30/30 px-2.5 py-1.5 text-[11px]">
-                        <span className="inline-flex items-center gap-0.5 text-[8px] font-bold bg-emerald-600 text-white px-1 py-px rounded flex-shrink-0">CSV</span>
+                        <svg className="w-3 h-3 text-brand-purple flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                          <path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                        </svg>
                         <span className="text-brand-navy-70">Backed by:</span>
                         <span className="text-brand-navy font-medium">{dp.backed_by}</span>
                       </div>
@@ -478,10 +475,6 @@ export default function CallPrepTab({ oppId }: { oppId: number }) {
                 >
                   <div className="flex items-start justify-between mb-1.5">
                     <div className="flex items-center gap-2">
-                      <span className="inline-flex items-center gap-0.5 text-[9px] font-bold bg-emerald-600 text-white px-1.5 py-0.5 rounded">
-                        <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                        CSV
-                      </span>
                       <span className="text-[13px] font-medium text-brand-navy">{pp.customer_name}</span>
                       <span className={`text-[10px] ${m.color} px-1.5 py-0.5 rounded font-medium`}>{m.label}</span>
                     </div>
