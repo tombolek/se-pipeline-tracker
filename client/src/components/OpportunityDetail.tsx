@@ -18,6 +18,7 @@ import CallPrepTab from './CallPrepTab';
 import AccountTimelinePanel from './AccountTimelinePanel';
 import MeetingNotesModal from './MeetingNotesModal';
 import DealInfoTab from './opportunity/DealInfoTab';
+import DemoPrepTab from './DemoPrepTab';
 
 // ── MEDDPICC Coach types ──────────────────────────────────────────────────────
 export interface CoachElement {
@@ -152,7 +153,7 @@ function MeddpiccPill({ opp, onClick }: { opp: Opportunity; onClick?: () => void
 interface Props {
   oppId: number;
   onRefreshList?: () => void;
-  initialTab?: 'work' | 'timeline' | 'call-prep' | 'deal-info';
+  initialTab?: 'work' | 'timeline' | 'call-prep' | 'demo-prep' | 'deal-info';
   initialAction?: 'summary' | 'notes-processor';
 }
 
@@ -165,7 +166,7 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
   const [showAddTask, setShowAddTask] = useState(false);
   const [showAddNote, setShowAddNote] = useState(false);
   const [assigningOwner, setAssigningOwner] = useState(false);
-  const [activeTab, setActiveTab] = useState<'work' | 'timeline' | 'call-prep' | 'deal-info'>(initialTab ?? 'work');
+  const [activeTab, setActiveTab] = useState<'work' | 'timeline' | 'call-prep' | 'demo-prep' | 'deal-info'>(initialTab ?? 'work');
   const [scrollToSection, setScrollToSection] = useState<string | null>(null);
 
   const [summary, setSummary] = useState<string | null>(null);
@@ -601,6 +602,7 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
             { key: 'work' as const, label: 'Work' },
             { key: 'timeline' as const, label: 'Timeline' },
             { key: 'call-prep' as const, label: 'Call Prep', icon: true },
+            { key: 'demo-prep' as const, label: 'Demo Prep', icon: 'demo' as const },
             { key: 'deal-info' as const, label: 'Deal Info' },
           ]).map(tab => {
             const isActive = activeTab === tab.key;
@@ -615,9 +617,14 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
                 }`}
                 style={isActive ? { marginBottom: '-1px' } : undefined}
               >
-                {tab.icon && (
+                {tab.icon === true && (
                   <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z"/>
+                  </svg>
+                )}
+                {tab.icon === 'demo' && (
+                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5"/>
                   </svg>
                 )}
                 {tab.label}
@@ -636,6 +643,9 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
 
         {/* Call Prep tab */}
         {activeTab === 'call-prep' && <CallPrepTab oppId={oppId} oppName={opp?.name} />}
+
+        {/* Demo Prep tab */}
+        {activeTab === 'demo-prep' && <DemoPrepTab oppId={oppId} oppName={opp?.name} />}
 
         {/* Work tab content */}
         {activeTab === 'work' && <>

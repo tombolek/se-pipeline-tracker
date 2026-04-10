@@ -1509,4 +1509,220 @@ CRITICAL RULES:
   }
 });
 
+// ─── Demo Prep ────────────────────────────────────────────────────────────────
+
+// GET /opportunities/:id/demo-prep — cached result + staleness check
+router.get('/:id/demo-prep', auth, async (req: Request, res: Response): Promise<void> => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) { res.status(400).json(err('Invalid opportunity id')); return; }
+
+  try {
+    const cached = await queryOne<{ content: string; generated_at: string }>(
+      `SELECT content, generated_at FROM ai_summary_cache WHERE key = $1`,
+      [`demo-prep-${id}`]
+    );
+
+    let demoPrep: unknown = null;
+    let generatedAt: string | null = null;
+    let isStale = true;
+
+    if (cached) {
+      const age = Date.now() - new Date(cached.generated_at).getTime();
+      isStale = age > 30 * 24 * 60 * 60 * 1000; // 30 days
+      try { demoPrep = JSON.parse(cached.content); } catch { demoPrep = null; }
+      generatedAt = cached.generated_at;
+      if (!demoPrep) isStale = true;
+    }
+
+    res.json(ok({ demo_prep: demoPrep, generated_at: generatedAt, is_stale: isStale }));
+  } catch (e) {
+    console.error('[demo-prep] error:', e);
+    res.status(500).json(err('Failed to load demo prep data'));
+  }
+});
+
+// POST /opportunities/:id/demo-prep/generate — AI-powered demo readiness assessment
+router.post('/:id/demo-prep/generate', auth, async (req: Request, res: Response): Promise<void> => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) { res.status(400).json(err('Invalid opportunity id')); return; }
+
+  try {
+    const [opp, tasks, notes] = await Promise.all([
+      queryOne<Record<string, unknown>>(
+        `SELECT o.*, u.name AS se_owner_name
+         FROM opportunities o
+         LEFT JOIN users u ON u.id = o.se_owner_id
+         WHERE o.id = $1`,
+        [id]
+      ),
+      query(
+        `SELECT t.title, t.status, t.due_date, t.is_next_step, t.description
+         FROM tasks t WHERE t.opportunity_id = $1 AND t.is_deleted = false
+         ORDER BY t.is_next_step DESC, t.due_date ASC NULLS LAST`,
+        [id]
+      ),
+      query(
+        `SELECT n.content, u.name AS author_name, n.created_at
+         FROM notes n JOIN users u ON u.id = n.author_id
+         WHERE n.opportunity_id = $1 ORDER BY n.created_at DESC LIMIT 25`,
+        [id]
+      ),
+    ]);
+
+    if (!opp) { res.status(404).json(err('Opportunity not found')); return; }
+
+    const formatDate = (d: unknown) => d ? new Date(d as string).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A';
+    const formatARR = (a: unknown) => a ? `$${(Number(a) / 1000).toFixed(0)}K` : 'N/A';
+
+    const meddpiccContext = MEDDPICC_KEYS.map(f => {
+      const val = opp[f.key] as string | null;
+      return `${f.label}: ${val?.trim() || '(empty)'}`;
+    }).join('\n');
+
+    const taskLines = tasks.length
+      ? tasks.map((t: Record<string, unknown>) =>
+          `- [${t.is_next_step ? 'NEXT STEP' : t.status}] ${t.title}${t.due_date ? ` (due ${formatDate(t.due_date)})` : ''}${t.description ? ` — ${t.description}` : ''}`
+        ).join('\n')
+      : 'No tasks.';
+
+    const noteLines = notes.length
+      ? [...notes].reverse().map((n: Record<string, unknown>) =>
+          `[${formatDate(n.created_at)} — ${n.author_name}]: ${n.content}`
+        ).join('\n')
+      : 'No notes yet.';
+
+    const prompt = `You are an expert presales demo coach for an enterprise B2B data management software company (Ataccama). You are evaluating how prepared a Sales Engineer (SE) is to deliver a high-impact demo.
+
+Your framework is the "Golden Standard Informed Demo (L2)" — the 6-Question Demo Check. For each question, analyze ALL available deal data (MEDDPICC fields, notes, tasks, SF comments) and extract the best possible answer, or identify what's missing.
+
+THE 6-QUESTION DEMO CHECK:
+1. "What initiative are we anchoring to?" — Not "data quality." The actual program or business driver. Clearly restate why they are evaluating us, name the specific pains we agreed on, define what "good" looks like before touching the UI. If we can't say this clearly, we're not ready to demo.
+2. "What is the primary pain we are addressing?" — Be specific. If we can't say it in one sentence, it's not clear enough. Show the current risk or inefficiency. Let them recognize their own situation. No tension, no impact.
+3. "What is the single objective of this demo?" — What must they walk away understanding? One primary objective, one end-to-end flow, no side tracks. Clarity beats coverage.
+4. "What job are we solving?" — Name the job first, then show how we solve it. Explain cause and effect. We demo outcomes, not screens.
+5. "What is the impact if this works?" — Risk reduced? Cost avoided? Revenue enabled? Make it explicit. Do not assume they connect the dots. If we don't translate, we compete on features.
+6. "What commitment are we asking for?" — Shortlist confirmation, validation workshop, executive alignment, defined success criteria, PoC scope agreement. A good demo moves the deal forward.
+
+DEMO LEVEL CALIBRATION:
+- D1 Exploratory: Early engagement, limited discovery. Goal: shape initiative, elevate pain, qualify.
+- D2 Informed: Confirmed initiative and defined pains. Goal: prove alignment and advance.
+- D3 Prescriptive: Shortlist, competitive eval, decision criteria known. Goal: differentiate, reduce decision risk.
+- D4 Executive: Investment justification, economic buyer engaged. Goal: secure leadership confidence.
+
+WHAT A HIGH-IMPACT DEMO LOOKS LIKE:
+- We demonstrate clear understanding of their business driver from the start
+- We show the broken state clearly before introducing the fix
+- One primary storyline runs from problem to resolution (avoid feature detours)
+- Capability is always tied to impact
+- The audience knows what changes if they move forward
+- Spend 50% of prep time on the first 20% of the demo flow (the opening and problem framing)
+
+DEAL CONTEXT:
+Opportunity: ${opp.name}
+Account: ${opp.account_name ?? 'N/A'}
+Industry: ${opp.account_industry ?? 'N/A'}
+Stage: ${opp.stage ?? 'N/A'}
+ARR: ${formatARR(opp.arr)}
+Close Date: ${formatDate(opp.close_date)}
+Deploy Mode: ${opp.deploy_mode ?? 'N/A'}
+Products: ${(opp.products as string[] ?? []).join(', ') || 'N/A'}
+Competitors: ${opp.engaged_competitors ?? 'N/A'}
+PoC Status: ${opp.poc_status ?? 'N/A'}
+Record Type: ${opp.record_type ?? 'N/A'}
+SE Owner: ${opp.se_owner_name ?? 'N/A'}
+AE Owner: ${opp.ae_owner_name ?? 'N/A'}
+
+SF Next Step: ${opp.next_step_sf ?? '(empty)'}
+SE Comments: ${opp.se_comments ?? '(empty)'}
+Manager Comments: ${opp.manager_comments ?? '(empty)'}
+PSM Comments: ${opp.psm_comments ?? '(empty)'}
+Technical Blockers: ${opp.technical_blockers ?? '(empty)'}
+
+MEDDPICC STATUS:
+${meddpiccContext}
+
+TASKS:
+${taskLines}
+
+NOTES (oldest to newest):
+${noteLines}
+
+INSTRUCTIONS:
+1. For each of the 6 questions, assess confidence as "strong" (clear evidence from multiple or authoritative sources), "partial" (some signal but gaps), or "missing" (no evidence).
+2. Extract the best answer you can from the data. For "partial" or "missing", explain what IS known and what's NOT.
+3. Provide specific evidence citations with source labels like "Note (Apr 5)", "MEDDPICC Pain", "SE Comments", "Next Step SF", etc.
+4. For gaps, provide actionable coaching: who to ask, what specific question to ask, phrased naturally as an SE would say it.
+5. For Q6 (commitment), suggest appropriate commitments for the current deal stage.
+6. Determine the demo level (D1-D4) based on HOW MUCH IS ACTUALLY KNOWN, not just the pipeline stage.
+7. Generate a "Before You Demo" checklist of 6 items based on the Golden Standard principles, marking each as done (true) or not done (false) based on evidence.
+8. Use **double asterisks** for emphasis on key terms, names, numbers, and findings.
+
+Respond in this exact JSON format (no markdown fences, just raw JSON):
+{
+  "demo_level": "D1"|"D2"|"D3"|"D4",
+  "demo_level_label": "Exploratory"|"Informed"|"Prescriptive"|"Executive",
+  "demo_level_reasoning": "One sentence explaining why this level was chosen",
+  "questions_answered": <number of questions with confidence "strong">,
+  "total_questions": 6,
+  "questions": [
+    {
+      "question_number": 1,
+      "question": "What initiative are we anchoring to?",
+      "confidence": "strong"|"partial"|"missing",
+      "answer": "Full answer text with **bold** emphasis",
+      "evidence": [
+        { "source": "Note (Apr 5)", "text": "relevant quote or paraphrase" }
+      ],
+      "missing": [
+        { "category": "Cost avoided", "detail": "No estimate of manual effort cost" }
+      ],
+      "coaching_tip": "Specific actionable advice",
+      "suggested_commitments": ["only for Q6"]
+    }
+  ],
+  "overall_assessment": "2-3 sentence narrative summary",
+  "before_you_demo": [
+    { "text": "Checklist item text", "done": true|false }
+  ]
+}`;
+
+    console.log(`[demo-prep] Calling Anthropic API for opp ${id}...`);
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const response = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 4096,
+      messages: [{ role: 'user', content: prompt }],
+    });
+
+    const text = response.content.find(b => b.type === 'text');
+    const raw = text && text.type === 'text' ? text.text : '';
+    console.log(`[demo-prep] Response received for opp ${id}, length=${raw.length}, stop_reason=${response.stop_reason}`);
+
+    let parsed: unknown;
+    try {
+      const cleaned = raw.replace(/^```json\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+      parsed = JSON.parse(cleaned);
+    } catch (parseErr) {
+      console.error(`[demo-prep] JSON parse failed for opp ${id}:`, parseErr, '\nRaw:', raw.slice(0, 500));
+      res.json(ok({ demo_prep: null, raw, error: 'parse_failed' }));
+      return;
+    }
+
+    // Cache result
+    await query(
+      `INSERT INTO ai_summary_cache (key, content, generated_at)
+       VALUES ($1, $2, now())
+       ON CONFLICT (key) DO UPDATE SET content = $2, generated_at = now()`,
+      [`demo-prep-${id}`, JSON.stringify(parsed)]
+    );
+
+    console.log(`[demo-prep] Success for opp ${id}`);
+    res.json(ok({ demo_prep: parsed, generated_at: new Date().toISOString() }));
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error(`[demo-prep] Error for opp ${req.params.id}:`, msg);
+    res.status(500).json(err(`Demo Prep failed: ${msg}`));
+  }
+});
+
 export default router;
