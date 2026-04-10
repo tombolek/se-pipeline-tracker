@@ -150,13 +150,13 @@ const HEALTH_PILL_STYLES = {
   red:   { pill: 'bg-red-50 border-red-200/60 hover:border-red-400', dot: 'bg-status-overdue', text: 'text-red-700', chevron: 'text-red-300' },
 };
 
-function HealthScorePill({ opp }: { opp: Opportunity }) {
+function HealthScorePill({ opp, onClick }: { opp: Opportunity; onClick?: () => void }) {
   const { score, rag, factors } = computeHealthScore(opp);
   const s = HEALTH_PILL_STYLES[rag];
 
   return (
     <div className="relative group/health">
-      <button className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border transition-colors ${s.pill}`}>
+      <button onClick={onClick} className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border transition-colors ${s.pill}`}>
         <div className={`w-2 h-2 rounded-full ${s.dot}`} />
         <span className={`text-[11px] font-semibold tabular-nums ${s.text}`}>{score}</span>
         <svg className={`w-2.5 h-2.5 ${s.chevron}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
@@ -198,13 +198,13 @@ const QUALITY_ICON = {
   empty:  <span className="text-brand-navy-30">○</span>,
 };
 
-function MeddpiccPill({ opp }: { opp: Opportunity }) {
+function MeddpiccPill({ opp, onClick }: { opp: Opportunity; onClick?: () => void }) {
   const { fields, strong, rag } = computeMeddpicc(opp);
   const s = MEDDPICC_PILL_STYLES[rag];
 
   return (
     <div className="relative group/medd">
-      <button className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border transition-colors ${s.pill}`}>
+      <button onClick={onClick} className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border transition-colors ${s.pill}`}>
         <span className={`text-[11px] font-semibold tabular-nums ${s.text}`}>{strong}/9</span>
         <svg className={`w-2.5 h-2.5 ${s.chevron}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
       </button>
@@ -298,7 +298,8 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
   const [showAddTask, setShowAddTask] = useState(false);
   const [showAddNote, setShowAddNote] = useState(false);
   const [assigningOwner, setAssigningOwner] = useState(false);
-  const [activeTab, setActiveTab] = useState<'work' | 'timeline' | 'call-prep'>('work');
+  const [activeTab, setActiveTab] = useState<'work' | 'timeline' | 'call-prep' | 'deal-info'>('work');
+  const [scrollToSection, setScrollToSection] = useState<string | null>(null);
 
   const [showAllFields, setShowAllFields] = useState(false);
   const [summary, setSummary] = useState<string | null>(null);
@@ -334,6 +335,18 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
 
   useEffect(() => { initialLoadDone.current = false; reload(); }, [reload]);
   useEffect(() => { track('open', 'opportunity', oppId); }, [oppId]);
+
+  // Scroll to a section when navigating to Deal Info via pill click
+  useEffect(() => {
+    if (scrollToSection && activeTab === 'deal-info') {
+      const timer = setTimeout(() => {
+        const el = document.getElementById(scrollToSection);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        setScrollToSection(null);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [scrollToSection, activeTab]);
 
   async function handleTaskStatusChange(id: number, status: Task['status']) {
     await updateTask(id, { status });
@@ -429,10 +442,7 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
   const notesFreshnessDays = daysSince(opp.last_note_at);
 
   return (
-    <div className="flex-1 flex min-h-0 overflow-hidden bg-[#F5F5F7] relative">
-
-      {/* ── Left: working area (55%) ── */}
-      <div className="w-[55%] flex-shrink-0 min-w-0 flex flex-col overflow-hidden">
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-[#F5F5F7] relative">
 
         {/* Compact header */}
         <div className="px-5 pt-4 pb-3 bg-white border-b border-brand-navy-30/30 flex-shrink-0">
@@ -506,8 +516,8 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
 
             {/* Score pills — compact, hover for details */}
             <div className="ml-auto flex items-center gap-2">
-              <HealthScorePill opp={opp} />
-              <MeddpiccPill opp={opp} />
+              <HealthScorePill opp={opp} onClick={() => { setActiveTab('deal-info'); setScrollToSection('health-breakdown'); }} />
+              <MeddpiccPill opp={opp} onClick={() => { setActiveTab('deal-info'); setScrollToSection('meddpicc'); }} />
               {/* MEDDPICC Coach trigger */}
               <button
                 onClick={handleGetCoach}
@@ -663,24 +673,33 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
           )}
         </div>
 
-        {/* Tab bar */}
-        <div className="flex gap-1 bg-white mx-5 mt-3 border border-brand-navy-30/40 rounded-xl p-1 flex-shrink-0">
-          {(['work', 'timeline', 'call-prep'] as const).map(tab => (
+        {/* Tab bar — top-border style anchored to header bottom */}
+        <div className="flex bg-white border-b border-brand-navy-30/40 px-5 flex-shrink-0">
+          {([
+            { key: 'work' as const, label: 'Work' },
+            { key: 'timeline' as const, label: 'Timeline' },
+            { key: 'call-prep' as const, label: 'Call Prep', icon: true },
+            { key: 'deal-info' as const, label: 'Deal Info' },
+          ]).map(tab => (
             <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1 ${
-                activeTab === tab
-                  ? 'bg-brand-purple text-white'
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`relative px-4 py-2.5 text-xs font-medium transition-colors flex items-center gap-1.5 ${
+                activeTab === tab.key
+                  ? 'text-brand-purple'
                   : 'text-brand-navy-70 hover:text-brand-navy'
               }`}
             >
-              {tab === 'call-prep' && (
+              {tab.icon && (
                 <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z"/>
                 </svg>
               )}
-              {tab === 'work' ? 'Work' : tab === 'timeline' ? 'Timeline' : 'Call Prep'}
+              {tab.label}
+              {/* Active indicator — top border */}
+              {activeTab === tab.key && (
+                <span className="absolute bottom-0 left-2 right-2 h-[2px] bg-brand-purple rounded-t-full" />
+              )}
             </button>
           ))}
         </div>
@@ -795,120 +814,169 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
 
         </>}
 
-        </div>{/* end scrollable work area */}
-      </div>
+        {/* Deal Info tab */}
+        {activeTab === 'deal-info' && (
+          <div className="max-w-[700px] mx-auto w-full space-y-4">
+            {/* Open in SF */}
+            <div className="flex items-center justify-between">
+              <a
+                href={`https://ataccama.lightning.force.com/lightning/r/Opportunity/${opp.sf_opportunity_id}/view`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-brand-navy-30 text-[11px] font-medium text-brand-navy-70 hover:text-brand-navy hover:border-brand-navy transition-colors"
+              >
+                <svg className="w-3.5 h-3.5 text-[#00A1E0]" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M15.8 5.4c-.7-.7-1.6-1.1-2.6-1.1-1.3 0-2.5.7-3.2 1.7C9.4 5.4 8.6 5 7.7 5 5.7 5 4 6.7 4 8.8c0 .4.1.8.2 1.2C3 10.7 2 12 2 13.5 2 15.4 3.6 17 5.5 17c.3 0 .5 0 .8-.1.5 1.4 1.8 2.4 3.4 2.4 1.3 0 2.4-.7 3-1.8.6.4 1.2.6 2 .6 1.3 0 2.4-.7 3-1.8.3.1.7.1 1.1.1C21 16.4 23 14.5 23 12c0-2-1.3-3.7-3.1-4.3-.7-1.3-2.1-2.3-3.6-2.3h-.5z"/>
+                </svg>
+                Open in Salesforce
+                <svg className="w-2.5 h-2.5 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+              </a>
+            </div>
 
-      {/* ── Right: SF info panel (45%) ── */}
-      <div className="flex-1 min-w-0 overflow-y-auto bg-white border-l border-brand-navy-30/30">
-        {/* Open in SF — compact */}
-        <div className="px-4 pt-3 pb-2 border-b border-brand-navy-30/20">
-          <a
-            href={`https://ataccama.lightning.force.com/lightning/r/Opportunity/${opp.sf_opportunity_id}/view`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-brand-navy-30 text-[11px] font-medium text-brand-navy-70 hover:text-brand-navy hover:border-brand-navy transition-colors"
-          >
-            <svg className="w-3.5 h-3.5 text-[#00A1E0]" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M15.8 5.4c-.7-.7-1.6-1.1-2.6-1.1-1.3 0-2.5.7-3.2 1.7C9.4 5.4 8.6 5 7.7 5 5.7 5 4 6.7 4 8.8c0 .4.1.8.2 1.2C3 10.7 2 12 2 13.5 2 15.4 3.6 17 5.5 17c.3 0 .5 0 .8-.1.5 1.4 1.8 2.4 3.4 2.4 1.3 0 2.4-.7 3-1.8.6.4 1.2.6 2 .6 1.3 0 2.4-.7 3-1.8.3.1.7.1 1.1.1C21 16.4 23 14.5 23 12c0-2-1.3-3.7-3.1-4.3-.7-1.3-2.1-2.3-3.6-2.3h-.5z"/>
-            </svg>
-            Open
-            <svg className="w-2.5 h-2.5 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-          </a>
-        </div>
-        <div className="px-4 py-3 border-b border-brand-navy-30/20">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-navy-70 mb-2">Deal Info</p>
-          <FieldRow label="Stage" value={opp.stage} />
-          <FieldRow label="ARR" value={formatARR(opp.arr)} />
-          <FieldRow label="Close" value={formatDate(opp.close_date)} />
-          <FieldRow label="AE Owner" value={opp.ae_owner_name} />
-          <FieldRow label="SE Owner" value={opp.se_owner?.name ?? 'Unassigned'} />
-          <FieldRow label="Team" value={opp.team} />
-          <FieldRow label="Record Type" value={opp.record_type} />
-          <FieldRow label="Deploy" value={opp.deploy_mode} />
-          <FieldRow label="PoC Status" value={opp.poc_status} />
-          <FieldRow label="RFx Status" value={opp.rfx_status} />
-          <FieldRow label="Competitors" value={opp.engaged_competitors} />
-          <ProductsField products={opp.products ?? []} oppId={opp.id} readOnly={isReadOnly} onUpdate={reload} />
-        </div>
+            {/* Deal Info grid */}
+            <div className="bg-white rounded-xl border border-brand-navy-30 px-5 py-4">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-navy-70 mb-3">Deal Info</p>
+              <div className="grid grid-cols-2 gap-x-8">
+                <FieldRow label="Stage" value={opp.stage} />
+                <FieldRow label="ARR" value={formatARR(opp.arr)} />
+                <FieldRow label="Close" value={formatDate(opp.close_date)} />
+                <FieldRow label="AE Owner" value={opp.ae_owner_name} />
+                <FieldRow label="SE Owner" value={opp.se_owner?.name ?? 'Unassigned'} />
+                <FieldRow label="Team" value={opp.team} />
+                <FieldRow label="Record Type" value={opp.record_type} />
+                <FieldRow label="Deploy" value={opp.deploy_mode} />
+                <FieldRow label="PoC Status" value={opp.poc_status} />
+                <FieldRow label="RFx Status" value={opp.rfx_status} />
+                <FieldRow label="Competitors" value={opp.engaged_competitors} />
+              </div>
+              <div className="mt-2 pt-2 border-t border-brand-navy-30/30">
+                <ProductsField products={opp.products ?? []} oppId={opp.id} readOnly={isReadOnly} onUpdate={reload} />
+              </div>
+            </div>
 
-        {/* See all fields */}
-        <div className="mb-3">
-          <button
-            onClick={() => setShowAllFields(v => !v)}
-            className="flex items-center gap-1.5 text-[11px] text-brand-navy-70 hover:text-brand-navy transition-colors"
-          >
-            <svg className={`w-3 h-3 transition-transform ${showAllFields ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-            </svg>
-            {showAllFields ? 'Hide all fields' : 'See all fields'}
-          </button>
-          {showAllFields && opp.sf_raw_fields && (
-            <div className="mt-2 border border-brand-navy-30/40 rounded-lg overflow-hidden">
-              {Object.entries(opp.sf_raw_fields).map(([key, val]) => (
-                <div key={key} className="flex justify-between gap-2 px-3 py-1.5 text-xs border-b border-brand-navy-30/20 last:border-0 even:bg-gray-50/60">
-                  <span className="text-brand-navy-70 flex-shrink-0 max-w-[45%]">{key}</span>
-                  <span className="text-brand-navy font-medium text-right break-words">{val === null || val === undefined || val === '' ? '—' : String(val)}</span>
+            {/* SF Next Step */}
+            <div className="bg-white rounded-xl border border-brand-navy-30 px-5 py-4">
+              <Collapsible title="SF Next Step" defaultOpen={true}>
+                <p className="text-xs text-brand-navy leading-relaxed">{opp.next_step_sf ?? '—'}</p>
+                <FieldHistory oppId={oppId} field="next_step_sf" />
+              </Collapsible>
+            </div>
+
+            {/* SE Comments */}
+            <div className="bg-white rounded-xl border border-brand-navy-30 px-5 py-4">
+              <Collapsible title="SE Comments" defaultOpen={true}>
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <FreshnessTag updatedAt={opp.se_comments_updated_at} />
                 </div>
-              ))}
+                <p className="text-xs text-brand-navy leading-relaxed whitespace-pre-wrap">{opp.se_comments ?? '—'}</p>
+                <FieldHistory oppId={oppId} field="se_comments" />
+              </Collapsible>
             </div>
-          )}
-        </div>
 
-        <div className="px-4 space-y-0 border-t border-brand-navy-30/50 pt-2">
-          <Collapsible title="SF Next Step" defaultOpen={true}>
-            <p className="text-xs text-brand-navy leading-relaxed">{opp.next_step_sf ?? '—'}</p>
-            <FieldHistory oppId={oppId} field="next_step_sf" />
-          </Collapsible>
+            {/* Manager Comments */}
+            {(opp.manager_comments || user?.role === 'manager') && (
+              <div className="bg-white rounded-xl border border-brand-navy-30 px-5 py-4">
+                <Collapsible title="Manager Comments" defaultOpen={false}>
+                  <p className="text-xs text-brand-navy leading-relaxed whitespace-pre-wrap">{opp.manager_comments ?? '—'}</p>
+                </Collapsible>
+              </div>
+            )}
 
-          <Collapsible title="SE Comments" defaultOpen={true}>
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <FreshnessTag updatedAt={opp.se_comments_updated_at} />
-            </div>
-            <p className="text-xs text-brand-navy leading-relaxed whitespace-pre-wrap">{opp.se_comments ?? '—'}</p>
-            <FieldHistory oppId={oppId} field="se_comments" />
-          </Collapsible>
+            {/* Stage History */}
+            {opp.previous_stage && (
+              <div className="bg-white rounded-xl border border-brand-navy-30 px-5 py-4">
+                <Collapsible title="Stage History" defaultOpen={false}>
+                  <FieldRow label="Previous" value={opp.previous_stage} />
+                  <FieldRow label="Changed" value={formatDate(opp.stage_changed_at)} />
+                </Collapsible>
+              </div>
+            )}
 
-          {(opp.manager_comments || user?.role === 'manager') && (
-            <Collapsible title="Manager Comments" defaultOpen={false}>
-              <p className="text-xs text-brand-navy leading-relaxed whitespace-pre-wrap">{opp.manager_comments ?? '—'}</p>
-            </Collapsible>
-          )}
-
-          {opp.previous_stage && (
-            <Collapsible title="Stage History" defaultOpen={false}>
-              <FieldRow label="Previous" value={opp.previous_stage} />
-              <FieldRow label="Changed" value={formatDate(opp.stage_changed_at)} />
-            </Collapsible>
-          )}
-
-          <Collapsible title="MEDDPICC" defaultOpen={false}>
-            {(() => {
-              const { fields } = computeMeddpicc(opp);
-              return (
-                <div className="space-y-2.5">
-                  {fields.map(f => {
-                    const val = opp[f.key] as string | null;
-                    return (
-                      <div key={f.key as string}>
-                        <div className="flex items-center gap-1.5 mb-0.5">
-                          <span className="text-[10px]">{QUALITY_ICON[f.quality]}</span>
-                          <span className="text-[10px] font-semibold uppercase tracking-wide text-brand-navy-70">{f.label}</span>
-                          {f.quality === 'weak' && (
-                            <span className="text-[9px] text-status-warning font-medium ml-auto">short</span>
-                          )}
-                        </div>
-                        <p className={`text-xs leading-relaxed ${val ? 'text-brand-navy' : 'text-brand-navy-30 italic'}`}>
-                          {val ?? 'Not filled'}
-                        </p>
+            {/* Health Score Breakdown */}
+            <div id="health-breakdown" className="bg-white rounded-xl border border-brand-navy-30 px-5 py-4">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-navy-70 mb-3">Health Score Breakdown</p>
+              {(() => {
+                const { score, rag, factors } = computeHealthScore(opp);
+                const s = HEALTH_PILL_STYLES[rag];
+                return (
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className={`w-3 h-3 rounded-full ${s.dot}`} />
+                      <span className={`text-sm font-semibold ${s.text}`}>{score}/100</span>
+                      <span className={`text-xs ${s.text}`}>{rag === 'green' ? 'Healthy' : rag === 'amber' ? 'Needs attention' : 'At risk'}</span>
+                    </div>
+                    {factors.length === 0 ? (
+                      <p className="text-xs text-status-success">No issues detected</p>
+                    ) : (
+                      <div className="space-y-1.5">
+                        {factors.map(f => (
+                          <div key={f.label} className="flex items-center justify-between text-xs">
+                            <span className="text-brand-navy-70">{f.label}</span>
+                            <span className="font-semibold text-status-overdue">-{f.deduction}</span>
+                          </div>
+                        ))}
                       </div>
-                    );
-                  })}
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* MEDDPICC */}
+            <div id="meddpicc" className="bg-white rounded-xl border border-brand-navy-30 px-5 py-4">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-navy-70 mb-3">MEDDPICC</p>
+              {(() => {
+                const { fields } = computeMeddpicc(opp);
+                return (
+                  <div className="space-y-2.5">
+                    {fields.map(f => {
+                      const val = opp[f.key] as string | null;
+                      return (
+                        <div key={f.key as string}>
+                          <div className="flex items-center gap-1.5 mb-0.5">
+                            <span className="text-[10px]">{QUALITY_ICON[f.quality]}</span>
+                            <span className="text-[10px] font-semibold uppercase tracking-wide text-brand-navy-70">{f.label}</span>
+                            {f.quality === 'weak' && (
+                              <span className="text-[9px] text-status-warning font-medium ml-auto">short</span>
+                            )}
+                          </div>
+                          <p className={`text-xs leading-relaxed ${val ? 'text-brand-navy' : 'text-brand-navy-30 italic'}`}>
+                            {val ?? 'Not filled'}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* See all fields */}
+            <div className="bg-white rounded-xl border border-brand-navy-30 px-5 py-4">
+              <button
+                onClick={() => setShowAllFields(v => !v)}
+                className="flex items-center gap-1.5 text-[11px] text-brand-navy-70 hover:text-brand-navy transition-colors"
+              >
+                <svg className={`w-3 h-3 transition-transform ${showAllFields ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+                {showAllFields ? 'Hide all fields' : 'See all fields'}
+              </button>
+              {showAllFields && opp.sf_raw_fields && (
+                <div className="mt-2 border border-brand-navy-30/40 rounded-lg overflow-hidden">
+                  {Object.entries(opp.sf_raw_fields).map(([key, val]) => (
+                    <div key={key} className="flex justify-between gap-2 px-3 py-1.5 text-xs border-b border-brand-navy-30/20 last:border-0 even:bg-gray-50/60">
+                      <span className="text-brand-navy-70 flex-shrink-0 max-w-[45%]">{key}</span>
+                      <span className="text-brand-navy font-medium text-right break-words">{val === null || val === undefined || val === '' ? '—' : String(val)}</span>
+                    </div>
+                  ))}
                 </div>
-              );
-            })()}
-          </Collapsible>
-        </div>
-      </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        </div>{/* end scrollable work area */}
 
       {/* ── Meeting Notes Modal ── */}
       {showNotesModal && (
