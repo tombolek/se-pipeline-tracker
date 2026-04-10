@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deal Info Layout — Settings with Live Preview</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Poppins', system-ui, sans-serif; background: #F5F5F7; color: #1A0C42; min-height: 100vh; }
+
+  /* Brand colors */
+  :root {
+    --purple: #6A2CF5;
+    --purple-70: #9C72F8;
+    --purple-30: #DED0FD;
+    --navy: #1A0C42;
+    --navy-70: #665D81;
+    --navy-30: #CCC9D5;
+    --pink: #F10090;
+    --success: #00E5B6;
+    --warning: #FFAB00;
+    --overdue: #FF464C;
+  }
+
+  /* Layout: two-column */
+  .page { display: flex; gap: 32px; padding: 32px; max-width: 1400px; margin: 0 auto; }
+  .config-side { flex: 1; min-width: 0; max-width: 560px; }
+  .preview-side { flex: 1; min-width: 0; position: sticky; top: 32px; align-self: flex-start; }
+
+  /* Header */
+  .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .page-header h2 { font-size: 18px; font-weight: 600; color: var(--navy); }
+  .page-header p { font-size: 12px; color: var(--navy-70); margin-top: 2px; }
+  .reset-btn { padding: 6px 12px; font-size: 12px; font-weight: 500; color: var(--navy-70); border: 1px solid var(--navy-30); border-radius: 8px; background: white; cursor: pointer; }
+  .reset-btn:hover { border-color: var(--navy); color: var(--navy); }
+
+  /* Section cards */
+  .section-card { background: white; border-radius: 12px; border: 1px solid rgba(204,201,213,0.4); margin-bottom: 8px; overflow: hidden; }
+  .section-header { display: flex; align-items: center; gap: 12px; padding: 12px 16px; }
+  .drag-handle { color: var(--navy-30); flex-shrink: 0; cursor: grab; }
+  .section-name { font-size: 14px; font-weight: 500; color: var(--navy); flex: 1; }
+  .type-badge { font-size: 10px; font-weight: 500; padding: 2px 6px; border-radius: 4px; }
+  .type-grid { background: #EFF6FF; color: #2563EB; }
+  .type-collapsible { background: #F3F4F6; color: var(--navy-70); }
+  .type-special { background: #FFFBEB; color: #D97706; }
+  .state-badge { font-size: 10px; font-weight: 500; padding: 4px 8px; border-radius: 6px; border: 1px solid; cursor: pointer; }
+  .state-expanded { background: rgba(222,208,253,0.3); color: var(--purple); border-color: rgba(106,44,245,0.2); }
+  .state-collapsed { background: #F9FAFB; color: var(--navy-70); border-color: rgba(204,201,213,0.4); }
+  .arrow-btn { padding: 4px; color: var(--navy-30); cursor: pointer; background: none; border: none; border-radius: 4px; }
+  .arrow-btn:hover { color: var(--navy); }
+  .arrow-btn:disabled { opacity: 0.2; cursor: default; }
+  .remove-btn { padding: 4px; color: var(--navy-30); cursor: pointer; background: none; border: none; border-radius: 4px; }
+  .remove-btn:hover { color: var(--overdue); }
+
+  /* Preview panel */
+  .preview-panel { background: white; border-radius: 16px; border: 1px solid rgba(204,201,213,0.4); overflow: hidden; box-shadow: 0 4px 24px rgba(26,12,66,0.06); }
+  .preview-header { padding: 16px 20px; border-bottom: 1px solid rgba(204,201,213,0.3); }
+  .preview-header h3 { font-size: 13px; font-weight: 600; color: var(--navy); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+  .preview-header h3 .badge { font-size: 9px; background: var(--purple-30); color: var(--purple); padding: 2px 6px; border-radius: 10px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; }
+
+  /* Search */
+  .search-wrapper { position: relative; }
+  .search-input { width: 100%; padding: 8px 12px 8px 32px; border: 1px solid var(--navy-30); border-radius: 8px; font-size: 13px; font-family: inherit; color: var(--navy); outline: none; transition: all 0.15s; }
+  .search-input:focus { border-color: var(--purple); box-shadow: 0 0 0 3px rgba(106,44,245,0.1); }
+  .search-input::placeholder { color: var(--navy-70); }
+  .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--navy-30); }
+  .search-results { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid var(--navy-30); border-radius: 8px; box-shadow: 0 8px 24px rgba(26,12,66,0.12); z-index: 10; max-height: 200px; overflow-y: auto; margin-top: 4px; }
+  .search-result { padding: 8px 12px; font-size: 12px; cursor: pointer; border-bottom: 1px solid rgba(204,201,213,0.2); display: flex; justify-content: space-between; align-items: center; }
+  .search-result:last-child { border-bottom: none; }
+  .search-result:hover { background: rgba(222,208,253,0.2); }
+  .search-result .opp-name { color: var(--navy); font-weight: 500; }
+  .search-result .opp-meta { color: var(--navy-70); font-size: 11px; }
+  .selected-opp { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: rgba(222,208,253,0.2); border-radius: 8px; margin-top: 8px; }
+  .selected-opp .name { font-size: 12px; font-weight: 500; color: var(--navy); flex: 1; }
+  .selected-opp .meta { font-size: 11px; color: var(--navy-70); }
+  .selected-opp .clear { background: none; border: none; color: var(--navy-70); cursor: pointer; padding: 2px; border-radius: 4px; }
+  .selected-opp .clear:hover { color: var(--navy); }
+
+  /* Preview content */
+  .preview-content { padding: 16px 20px; max-height: 600px; overflow-y: auto; }
+  .preview-section { margin-bottom: 12px; }
+  .preview-card { background: white; border: 1px solid rgba(204,201,213,0.4); border-radius: 10px; padding: 14px 16px; }
+  .preview-card-label { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; color: var(--navy-70); margin-bottom: 10px; }
+  .preview-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px; }
+  .preview-field { display: flex; justify-content: space-between; gap: 8px; padding: 3px 0; font-size: 12px; }
+  .preview-field .label { color: var(--navy-70); flex-shrink: 0; }
+  .preview-field .value { color: var(--navy); font-weight: 500; text-align: right; }
+
+  /* Collapsible preview */
+  .preview-collapsible { border: 1px solid rgba(204,201,213,0.4); border-radius: 10px; padding: 10px 16px; }
+  .preview-collapsible-header { display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
+  .preview-collapsible-title { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; color: var(--navy-70); }
+  .preview-collapsible-chevron { color: var(--navy-70); transition: transform 0.2s; font-size: 10px; }
+  .preview-collapsible-body { margin-top: 8px; font-size: 12px; color: var(--navy); line-height: 1.6; }
+  .preview-collapsed .preview-collapsible-body { display: none; }
+  .preview-collapsed .preview-collapsible-chevron { transform: rotate(-90deg); }
+
+  /* Special sections */
+  .preview-special { border: 1px solid rgba(204,201,213,0.4); border-radius: 10px; padding: 14px 16px; }
+  .preview-special-label { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; color: var(--navy-70); margin-bottom: 8px; }
+
+  .health-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .health-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .health-dot.green { background: var(--success); }
+  .health-score { font-size: 14px; font-weight: 600; color: #047857; }
+  .health-label { font-size: 12px; color: #047857; }
+  .health-factor { display: flex; justify-content: space-between; font-size: 12px; padding: 2px 0; }
+  .health-factor .label { color: var(--navy-70); }
+  .health-factor .deduction { color: var(--overdue); font-weight: 600; }
+
+  .meddpicc-item { margin-bottom: 8px; }
+  .meddpicc-item-header { display: flex; align-items: center; gap: 6px; margin-bottom: 2px; }
+  .meddpicc-icon { font-size: 10px; width: 14px; text-align: center; }
+  .meddpicc-icon.strong { color: var(--success); font-weight: bold; }
+  .meddpicc-icon.weak { color: var(--warning); }
+  .meddpicc-icon.empty { color: var(--navy-30); }
+  .meddpicc-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--navy-70); }
+  .meddpicc-value { font-size: 12px; color: var(--navy); line-height: 1.5; }
+  .meddpicc-value.empty { color: var(--navy-30); font-style: italic; }
+
+  .see-all-btn { font-size: 11px; color: var(--navy-70); display: flex; align-items: center; gap: 6px; background: none; border: none; cursor: pointer; font-family: inherit; }
+  .see-all-btn:hover { color: var(--navy); }
+
+  /* Empty state */
+  .empty-preview { text-align: center; padding: 40px 20px; color: var(--navy-70); }
+  .empty-preview .icon { width: 48px; height: 48px; background: rgba(222,208,253,0.3); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; }
+  .empty-preview p { font-size: 13px; }
+  .empty-preview .hint { font-size: 11px; margin-top: 4px; color: var(--navy-30); }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <!-- LEFT: Config side -->
+  <div class="config-side">
+    <div class="page-header">
+      <div>
+        <h2>Deal Info Layout</h2>
+        <p>Configure which fields and sections appear in the Deal Info tab. Changes apply to all users.</p>
+      </div>
+      <button class="reset-btn">Reset to default</button>
+    </div>
+
+    <!-- Section list -->
+    <div id="sectionList">
+      <!-- Deal Info Grid -->
+      <div class="section-card">
+        <div class="section-header">
+          <svg class="drag-handle" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16"/></svg>
+          <span class="section-name">Deal Info</span>
+          <span class="type-badge type-grid">Grid</span>
+          <span class="state-badge state-expanded">Expanded</span>
+          <button class="arrow-btn" disabled><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"/></svg></button>
+          <button class="arrow-btn"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg></button>
+          <button class="remove-btn"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
+        </div>
+      </div>
+
+      <!-- SF Next Step -->
+      <div class="section-card">
+        <div class="section-header">
+          <svg class="drag-handle" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16"/></svg>
+          <span class="section-name">SF Next Step</span>
+          <span class="type-badge type-collapsible">Collapsible</span>
+          <span class="state-badge state-expanded">Expanded</span>
+          <button class="arrow-btn"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"/></svg></button>
+          <button class="arrow-btn"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg></button>
+          <button class="remove-btn"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
+        </div>
+      </div>
+
+      <!-- SE Comments -->
+      <div class="section-card">
+        <div class="section-header">
+          <svg class="drag-handle" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16"/></svg>
+          <span class="section-name">SE Comments</span>
+          <span class="type-badge type-collapsible">Collapsible</span>
+          <span class="state-badge state-expanded">Expanded</span>
+          <button class="arrow-btn"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"/></svg></button>
+          <button class="arrow-btn"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg></button>
+          <button class="remove-btn"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
+        </div>
+      </div>
+
+      <!-- Manager Comments -->
+      <div class="section-card">
+        <div class="section-header">
+          <svg class="drag-handle" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16"/></svg>
+          <span class="section-name">Manager Comments</span>
+          <span class="type-badge type-collapsible">Collapsible</span>
+          <span class="state-badge state-collapsed">Collapsed</span>
+          <button class="arrow-btn"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"/></svg></button>
+          <button class="arrow-btn"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg></button>
+          <button class="remove-btn"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
+        </div>
+      </div>
+
+      <!-- MEDDPICC -->
+      <div class="section-card">
+        <div class="section-header">
+          <svg class="drag-handle" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16"/></svg>
+          <span class="section-name">MEDDPICC</span>
+          <span class="type-badge type-special">Special</span>
+          <span class="state-badge state-expanded">Expanded</span>
+          <button class="arrow-btn"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"/></svg></button>
+          <button class="arrow-btn"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg></button>
+          <button class="remove-btn"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
+        </div>
+      </div>
+
+      <!-- Health Score -->
+      <div class="section-card">
+        <div class="section-header">
+          <svg class="drag-handle" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16"/></svg>
+          <span class="section-name">Health Score Breakdown</span>
+          <span class="type-badge type-special">Special</span>
+          <span class="state-badge state-expanded">Expanded</span>
+          <button class="arrow-btn"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"/></svg></button>
+          <button class="arrow-btn"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg></button>
+          <button class="remove-btn"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
+        </div>
+      </div>
+
+      <!-- See All Fields -->
+      <div class="section-card">
+        <div class="section-header">
+          <svg class="drag-handle" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16"/></svg>
+          <span class="section-name">See All Fields</span>
+          <span class="type-badge type-special">Special</span>
+          <span class="state-badge state-collapsed">Collapsed</span>
+          <button class="arrow-btn"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"/></svg></button>
+          <button class="arrow-btn"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg></button>
+          <button class="remove-btn"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top: 12px; padding: 0 4px;">
+      <p style="font-size: 11px; color: var(--navy-70); line-height: 1.6;">
+        <strong>Grid</strong> sections display fields in a 2-column layout. <strong>Collapsible</strong> sections show content in expandable blocks. <strong>Special</strong> sections (Health Score, MEDDPICC, See All Fields) have fixed content but can be reordered or removed.
+      </p>
+    </div>
+  </div>
+
+  <!-- RIGHT: Live Preview -->
+  <div class="preview-side">
+    <div class="preview-panel">
+      <div class="preview-header">
+        <h3>
+          Live Preview
+          <span class="badge">Updates as you edit</span>
+        </h3>
+
+        <!-- Search -->
+        <div class="search-wrapper">
+          <svg class="search-icon" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="text" class="search-input" placeholder="Search opportunity by name..." id="oppSearch" onfocus="showResults()" oninput="filterResults()">
+          <div class="search-results" id="searchResults" style="display:none;">
+            <div class="search-result" onclick="selectOpp('[RS] Telekom Srbija - DQ/DG via Deloitte', 'Telekom Srbija', 'Develop Solution', '$250K')">
+              <span class="opp-name">[RS] Telekom Srbija - DQ/DG via Deloitte</span>
+              <span class="opp-meta">$250K</span>
+            </div>
+            <div class="search-result" onclick="selectOpp('[US] Fidelity National - MDM Platform', 'Fidelity National', 'Build Value', '$180K')">
+              <span class="opp-name">[US] Fidelity National - MDM Platform</span>
+              <span class="opp-meta">$180K</span>
+            </div>
+            <div class="search-result" onclick="selectOpp('[DE] Commerzbank - DQ Modernization', 'Commerzbank', 'Proposal Sent', '$320K')">
+              <span class="opp-name">[DE] Commerzbank - DQ Modernization</span>
+              <span class="opp-meta">$320K</span>
+            </div>
+            <div class="search-result" onclick="selectOpp('[UK] Rolls-Royce - Data Governance', 'Rolls-Royce', 'Qualify', '$95K')">
+              <span class="opp-name">[UK] Rolls-Royce - Data Governance</span>
+              <span class="opp-meta">$95K</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Selected opp pill (hidden by default) -->
+        <div class="selected-opp" id="selectedOpp" style="display:none;">
+          <span class="name" id="selectedName"></span>
+          <span class="meta" id="selectedMeta"></span>
+          <button class="clear" onclick="clearOpp()">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Preview content -->
+      <div class="preview-content" id="previewContent">
+        <!-- Empty state -->
+        <div class="empty-preview" id="emptyState">
+          <div class="icon">
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="var(--purple)" stroke-width="1.5" opacity="0.5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          </div>
+          <p>Search for an opportunity above</p>
+          <p class="hint">The preview will show how the Deal Info tab looks with the current layout</p>
+        </div>
+
+        <!-- Filled preview (hidden by default) -->
+        <div id="filledPreview" style="display:none;">
+          <!-- SF Link -->
+          <div style="margin-bottom: 12px;">
+            <span style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid var(--navy-30); border-radius: 8px; font-size: 11px; font-weight: 500; color: var(--navy-70);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="#00A1E0"><path d="M15.8 5.4c-.7-.7-1.6-1.1-2.6-1.1-1.3 0-2.5.7-3.2 1.7C9.4 5.4 8.6 5 7.7 5 5.7 5 4 6.7 4 8.8c0 .4.1.8.2 1.2C3 10.7 2 12 2 13.5 2 15.4 3.6 17 5.5 17c.3 0 .5 0 .8-.1.5 1.4 1.8 2.4 3.4 2.4 1.3 0 2.4-.7 3-1.8.6.4 1.2.6 2 .6 1.3 0 2.4-.7 3-1.8.3.1.7.1 1.1.1C21 16.4 23 14.5 23 12c0-2-1.3-3.7-3.1-4.3-.7-1.3-2.1-2.3-3.6-2.3h-.5z"/></svg>
+              Open in Salesforce &#8599;
+            </span>
+          </div>
+
+          <!-- Deal Info Grid -->
+          <div class="preview-section" id="prev-deal-info-grid">
+            <div class="preview-card">
+              <div class="preview-card-label">Deal Info</div>
+              <div class="preview-grid">
+                <div class="preview-field"><span class="label">Stage</span><span class="value" id="pv-stage">Develop Solution</span></div>
+                <div class="preview-field"><span class="label">ARR</span><span class="value" id="pv-arr">$250K</span></div>
+                <div class="preview-field"><span class="label">Close</span><span class="value">Apr 30, 2026</span></div>
+                <div class="preview-field"><span class="label">AE Owner</span><span class="value">Jan Novak</span></div>
+                <div class="preview-field"><span class="label">SE Owner</span><span class="value">Tomas Bolek</span></div>
+                <div class="preview-field"><span class="label">Team</span><span class="value">EMEA</span></div>
+                <div class="preview-field"><span class="label">Record Type</span><span class="value">New Logo</span></div>
+                <div class="preview-field"><span class="label">Deploy</span><span class="value">SaaS</span></div>
+                <div class="preview-field"><span class="label">PoC Status</span><span class="value">Planned</span></div>
+                <div class="preview-field"><span class="label">Competitors</span><span class="value">Informatica</span></div>
+              </div>
+              <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(204,201,213,0.3);">
+                <div class="preview-field">
+                  <span class="label">Products</span>
+                  <span class="value" style="display: flex; gap: 4px;">
+                    <span style="background: var(--purple-30); color: var(--purple); font-size: 10px; padding: 1px 6px; border-radius: 4px;">DQ</span>
+                    <span style="background: var(--purple-30); color: var(--purple); font-size: 10px; padding: 1px 6px; border-radius: 4px;">DG</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SF Next Step -->
+          <div class="preview-section" id="prev-sf-next-step">
+            <div class="preview-collapsible">
+              <div class="preview-collapsible-header">
+                <span class="preview-collapsible-title">SF Next Step</span>
+                <span class="preview-collapsible-chevron">&#9660;</span>
+              </div>
+              <div class="preview-collapsible-body">
+                Schedule technical deep-dive with Deloitte team to review DQ architecture for AWS migration. Confirm PoC scope by Apr 15.
+              </div>
+            </div>
+          </div>
+
+          <!-- SE Comments -->
+          <div class="preview-section" id="prev-se-comments">
+            <div class="preview-collapsible">
+              <div class="preview-collapsible-header">
+                <span class="preview-collapsible-title">SE Comments</span>
+                <span class="preview-collapsible-chevron">&#9660;</span>
+              </div>
+              <div class="preview-collapsible-body">
+                <span style="font-size: 10px; font-weight: 500; color: var(--success);">3d ago</span>
+                <p style="margin-top: 4px;">Customer is moving from on-prem Oracle DQ to cloud. They want Ataccama DQ + Data Governance on AWS. Deloitte is the SI partner. Key concern is migration timeline &mdash; they need to be live by Q3.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Manager Comments (collapsed) -->
+          <div class="preview-section" id="prev-manager-comments">
+            <div class="preview-collapsible preview-collapsed">
+              <div class="preview-collapsible-header">
+                <span class="preview-collapsible-title">Manager Comments</span>
+                <span class="preview-collapsible-chevron">&#9660;</span>
+              </div>
+              <div class="preview-collapsible-body">
+                Strategic account for EMEA expansion. Ensure Deloitte partnership is leveraged correctly.
+              </div>
+            </div>
+          </div>
+
+          <!-- MEDDPICC -->
+          <div class="preview-section" id="prev-meddpicc">
+            <div class="preview-special">
+              <div class="preview-special-label">MEDDPICC</div>
+              <div class="meddpicc-item">
+                <div class="meddpicc-item-header"><span class="meddpicc-icon strong">&#10003;</span><span class="meddpicc-label">Metrics</span></div>
+                <div class="meddpicc-value">40% reduction in DQ incident resolution time targeted</div>
+              </div>
+              <div class="meddpicc-item">
+                <div class="meddpicc-item-header"><span class="meddpicc-icon weak">&#9684;</span><span class="meddpicc-label">Economic Buyer</span></div>
+                <div class="meddpicc-value">VP Data &mdash; need to confirm budget authority</div>
+              </div>
+              <div class="meddpicc-item">
+                <div class="meddpicc-item-header"><span class="meddpicc-icon empty">&#9675;</span><span class="meddpicc-label">Decision Process</span></div>
+                <div class="meddpicc-value empty">Not filled</div>
+              </div>
+              <div class="meddpicc-item">
+                <div class="meddpicc-item-header"><span class="meddpicc-icon strong">&#10003;</span><span class="meddpicc-label">Champion</span></div>
+                <div class="meddpicc-value">Head of Data Engineering &mdash; strong internal advocate, pushing for Ataccama</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Health Score -->
+          <div class="preview-section" id="prev-health-breakdown">
+            <div class="preview-special">
+              <div class="preview-special-label">Health Score Breakdown</div>
+              <div class="health-row">
+                <div class="health-dot green"></div>
+                <span class="health-score">80/100</span>
+                <span class="health-label">Healthy</span>
+              </div>
+              <div class="health-factor"><span class="label">No notes in 12 days</span><span class="deduction">-10</span></div>
+              <div class="health-factor"><span class="label">MEDDPICC gaps</span><span class="deduction">-10</span></div>
+            </div>
+          </div>
+
+          <!-- See All Fields -->
+          <div class="preview-section" id="prev-see-all-fields">
+            <div class="preview-special">
+              <button class="see-all-btn">
+                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                See all fields
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Search interaction
+  function showResults() {
+    document.getElementById('searchResults').style.display = 'block';
+    filterResults();
+  }
+  function filterResults() {
+    const q = document.getElementById('oppSearch').value.toLowerCase();
+    const results = document.querySelectorAll('.search-result');
+    let anyVisible = false;
+    results.forEach(r => {
+      const name = r.querySelector('.opp-name').textContent.toLowerCase();
+      const show = !q || name.includes(q);
+      r.style.display = show ? 'flex' : 'none';
+      if (show) anyVisible = true;
+    });
+    document.getElementById('searchResults').style.display = anyVisible ? 'block' : 'none';
+  }
+  function selectOpp(name, account, stage, arr) {
+    document.getElementById('searchResults').style.display = 'none';
+    document.getElementById('oppSearch').value = '';
+    document.getElementById('selectedOpp').style.display = 'flex';
+    document.getElementById('selectedName').textContent = name;
+    document.getElementById('selectedMeta').textContent = account + ' · ' + stage;
+    document.getElementById('emptyState').style.display = 'none';
+    document.getElementById('filledPreview').style.display = 'block';
+    // Update preview values
+    document.getElementById('pv-stage').textContent = stage;
+    document.getElementById('pv-arr').textContent = arr;
+  }
+  function clearOpp() {
+    document.getElementById('selectedOpp').style.display = 'none';
+    document.getElementById('emptyState').style.display = 'block';
+    document.getElementById('filledPreview').style.display = 'none';
+  }
+  // Close search results on click outside
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.search-wrapper')) {
+      document.getElementById('searchResults').style.display = 'none';
+    }
+  });
+</script>
+
+</body>
+</html>

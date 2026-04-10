@@ -403,14 +403,21 @@ interface DealInfoTabProps {
   onUpdate: () => void;
   scrollToSection: string | null;
   onScrollDone: () => void;
+  configOverride?: DealInfoConfig;
 }
 
-export default function DealInfoTab({ opp, oppId, readOnly, onUpdate, scrollToSection, onScrollDone }: DealInfoTabProps) {
+export default function DealInfoTab({ opp, oppId, readOnly, onUpdate, scrollToSection, onScrollDone, configOverride }: DealInfoTabProps) {
   const { user } = useAuthStore();
-  const [config, setConfig] = useState<DealInfoConfig>(cachedConfig ?? DEFAULT_CONFIG);
+  const [config, setConfig] = useState<DealInfoConfig>(configOverride ?? cachedConfig ?? DEFAULT_CONFIG);
   const didFetch = useRef(false);
 
+  // Use configOverride when provided (settings preview mode)
   useEffect(() => {
+    if (configOverride) { setConfig(configOverride); return; }
+  }, [configOverride]);
+
+  useEffect(() => {
+    if (configOverride) return; // skip fetch when using override
     if (didFetch.current && cachedConfig && Date.now() - cacheTimestamp < CACHE_TTL) return;
     didFetch.current = true;
     getDealInfoConfig()
@@ -420,7 +427,7 @@ export default function DealInfoTab({ opp, oppId, readOnly, onUpdate, scrollToSe
         setConfig(resp.config);
       })
       .catch(() => { /* use default */ });
-  }, []);
+  }, [configOverride]);
 
   // Scroll-to-section support
   useEffect(() => {
