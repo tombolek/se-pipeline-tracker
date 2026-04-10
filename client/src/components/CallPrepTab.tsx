@@ -115,8 +115,129 @@ function matchLabel(pp: ProofPoint, oppProducts: string[]): { label: string; col
   return { label: 'Weak', color: 'bg-gray-100 text-gray-600' };
 }
 
+/* ── PDF Export ── */
+function exportCallPrepPdf(data: CallPrepResponse, oppName: string) {
+  const b = data.brief;
+  if (!b) return;
+
+  const stripBold = (t: string) => t.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  const now = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
+  const sections: string[] = [];
+
+  sections.push(`
+    <div class="section">
+      <h2>Deal Context</h2>
+      <p>${stripBold(b.deal_context)}</p>
+    </div>
+  `);
+
+  if (b.talking_points.length) {
+    sections.push(`
+      <div class="section">
+        <h2>Key Talking Points</h2>
+        <ul>${b.talking_points.map(tp => `<li>${stripBold(tp)}</li>`).join('')}</ul>
+      </div>
+    `);
+  }
+
+  if (b.risks.length) {
+    sections.push(`
+      <div class="section">
+        <h2>Risks &amp; Open Items</h2>
+        <ul>${b.risks.map(r => `<li><span class="severity ${r.severity}">${r.severity.toUpperCase()}</span> ${stripBold(r.text)}</li>`).join('')}</ul>
+      </div>
+    `);
+  }
+
+  if (b.discovery_questions.length) {
+    sections.push(`
+      <div class="section">
+        <h2>Discovery Questions</h2>
+        <ol>${b.discovery_questions.map(q => `<li>${stripBold(q)}</li>`).join('')}</ol>
+      </div>
+    `);
+  }
+
+  if (b.proof_point_highlights?.length) {
+    sections.push(`
+      <div class="section">
+        <h2><span class="badge csv">CSV</span> Customer Stories to Mention</h2>
+        ${b.proof_point_highlights.map(h => `
+          <div class="card">
+            <div class="card-header">
+              <strong>${h.customer}</strong>
+              <span class="role-badge ${h.role}">${h.role}</span>
+            </div>
+            <table class="card-grid">
+              <tr><td class="label">Why relevant</td><td>${stripBold(h.why_relevant)}</td></tr>
+              <tr><td class="label">Key stat</td><td>${stripBold(h.key_stat)}</td></tr>
+              <tr><td class="label">When to use</td><td>${stripBold(h.when_to_use)}</td></tr>
+            </table>
+          </div>
+        `).join('')}
+      </div>
+    `);
+  }
+
+  if (b.differentiator_plays?.length) {
+    sections.push(`
+      <div class="section">
+        <h2><span class="badge diff">DIFF</span> Differentiators to Position</h2>
+        ${b.differentiator_plays.map(dp => `
+          <div class="card">
+            <div class="card-header"><strong>${dp.name}</strong></div>
+            <p>${stripBold(dp.positioning)}</p>
+            ${dp.backed_by ? `<p class="backed-by">Backed by: <strong>${dp.backed_by}</strong></p>` : ''}
+          </div>
+        `).join('')}
+      </div>
+    `);
+  }
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+<title>Pre-Call Brief — ${oppName}</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; font-size: 11pt; color: #1a0c42; line-height: 1.5; padding: 40px; max-width: 800px; margin: 0 auto; }
+  h1 { font-size: 18pt; margin-bottom: 4px; }
+  .subtitle { font-size: 10pt; color: #665d81; margin-bottom: 24px; }
+  h2 { font-size: 12pt; color: #6a2cf5; border-bottom: 1px solid #ded0fd; padding-bottom: 4px; margin-bottom: 10px; margin-top: 20px; }
+  .section { margin-bottom: 16px; }
+  ul, ol { margin-left: 18px; }
+  li { margin-bottom: 6px; }
+  .severity { font-size: 9pt; font-weight: 700; padding: 1px 5px; border-radius: 3px; margin-right: 4px; }
+  .severity.high { background: #ffe0e1; color: #c0392b; }
+  .severity.medium { background: #fff3cd; color: #d68910; }
+  .severity.low { background: #e8f8f5; color: #1e8449; }
+  .card { border: 1px solid #ccc9d5; border-radius: 6px; padding: 10px 12px; margin-bottom: 8px; }
+  .card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .role-badge { font-size: 8pt; padding: 1px 6px; border-radius: 3px; font-weight: 600; }
+  .role-badge.primary { background: #d5f5e3; color: #1e8449; }
+  .role-badge.scale { background: #d6eaf8; color: #2471a3; }
+  .role-badge.backup { background: #fef9e7; color: #d68910; }
+  .card-grid { width: 100%; font-size: 10pt; }
+  .card-grid td { padding: 2px 8px 2px 0; vertical-align: top; }
+  .card-grid .label { color: #665d81; white-space: nowrap; width: 90px; }
+  .backed-by { font-size: 10pt; color: #665d81; margin-top: 6px; padding: 4px 8px; background: #f5f5f7; border-radius: 4px; }
+  .badge { font-size: 8pt; font-weight: 700; color: white; padding: 2px 6px; border-radius: 3px; margin-right: 4px; }
+  .badge.csv { background: #059669; }
+  .badge.diff { background: #2563eb; }
+  strong { font-weight: 600; }
+  @media print { body { padding: 20px; } }
+</style></head><body>
+<h1>Pre-Call Brief</h1>
+<div class="subtitle">${oppName} — Generated ${now}${data.generated_at ? ' (' + timeAgo(data.generated_at) + ')' : ''}</div>
+${sections.join('')}
+<script>window.onload = function() { window.print(); }</script>
+</body></html>`;
+
+  const win = window.open('', '_blank');
+  if (win) { win.document.write(html); win.document.close(); }
+}
+
 /* ── Component ── */
-export default function CallPrepTab({ oppId }: { oppId: number }) {
+export default function CallPrepTab({ oppId, oppName }: { oppId: number; oppName?: string }) {
   const [data, setData] = useState<CallPrepResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -250,6 +371,22 @@ export default function CallPrepTab({ oppId }: { oppId: number }) {
                 ) : (
                   <><svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>Copy</>
                 )}
+              </button>
+              <button
+                onClick={() => data && exportCallPrepPdf(data, oppName ?? `Opportunity #${oppId}`)}
+                className="text-[11px] text-brand-navy-70 hover:text-brand-purple flex items-center gap-1 px-2 py-1 rounded hover:bg-white/50 transition-colors"
+                title="Download as PDF"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                PDF
+              </button>
+              <button
+                onClick={() => alert('Slack integration coming soon!')}
+                className="text-[11px] text-brand-navy-70 hover:text-brand-purple flex items-center gap-1 px-2 py-1 rounded hover:bg-white/50 transition-colors"
+                title="Send to Slack (coming soon)"
+              >
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M5.042 15.165a2.528 2.528 0 01-2.52 2.523A2.528 2.528 0 010 15.165a2.527 2.527 0 012.522-2.52h2.52v2.52zm1.271 0a2.527 2.527 0 012.521-2.52 2.527 2.527 0 012.521 2.52v6.313A2.528 2.528 0 018.834 24a2.528 2.528 0 01-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 01-2.521-2.52A2.528 2.528 0 018.834 0a2.528 2.528 0 012.521 2.522v2.52H8.834zm0 1.271a2.528 2.528 0 012.521 2.521 2.528 2.528 0 01-2.521 2.521H2.522A2.528 2.528 0 010 8.834a2.528 2.528 0 012.522-2.521h6.312zm10.122 2.521a2.528 2.528 0 012.522-2.521A2.528 2.528 0 0124 8.834a2.528 2.528 0 01-2.522 2.521h-2.522V8.834zm-1.268 0a2.528 2.528 0 01-2.523 2.521 2.527 2.527 0 01-2.52-2.521V2.522A2.527 2.527 0 0115.165 0a2.528 2.528 0 012.523 2.522v6.312zm-2.523 10.122a2.528 2.528 0 012.523 2.522A2.528 2.528 0 0115.165 24a2.527 2.527 0 01-2.52-2.522v-2.522h2.52zm0-1.268a2.527 2.527 0 01-2.52-2.523 2.526 2.526 0 012.52-2.52h6.313A2.527 2.527 0 0124 15.165a2.528 2.528 0 01-2.522 2.523h-6.313z"/></svg>
+                Slack
               </button>
               <button onClick={generate} disabled={generating} className="text-[11px] text-brand-purple hover:text-brand-purple/80 flex items-center gap-1 px-2 py-1 rounded bg-white/60 hover:bg-white transition-colors font-medium">
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>

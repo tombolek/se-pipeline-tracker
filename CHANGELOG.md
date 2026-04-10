@@ -14,6 +14,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 - **Deal Info Layout Settings** — new manager settings page (`/settings/deal-info-layout`) to configure which fields and sections appear in the Deal Info tab. Sections can be reordered, toggled between expanded/collapsed default, and fields can be added from all 55+ SF columns or sf_raw_fields. Config stored server-side, applies globally. Live preview panel shows layout changes with real opportunity data.
 - **AI Quick Links on Home Screen** — three action cards (Pre-Call Brief, Process Call Notes, Opp Summary) on the daily digest page. Click a card, search for an opportunity, and the drawer opens with the AI feature ready to go. (Issue #93)
+- **Call Prep PDF export** — "PDF" button in the Pre-Call Brief header opens a print-ready page with all sections (deal context, talking points, risks, questions, customer stories, differentiators) formatted for clean PDF download. (Issue #95)
+- **Call Prep Slack placeholder** — "Slack" button in the brief header for future Slack integration. (Issue #95)
 
 ### Changed
 - **Opportunity Detail — full-width tab layout** — removed the 55/45 split layout. SF data now lives in a 4th "Deal Info" tab alongside Work, Timeline, and Call Prep. Tab bar uses a top-border indicator style. MEDDPICC and Health Score header pills are clickable — they navigate to the Deal Info tab and scroll to the relevant section. (Issue #66)

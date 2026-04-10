@@ -628,7 +628,7 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
         {activeTab === 'timeline' && <OpportunityTimeline oppId={oppId} />}
 
         {/* Call Prep tab */}
-        {activeTab === 'call-prep' && <CallPrepTab oppId={oppId} />}
+        {activeTab === 'call-prep' && <CallPrepTab oppId={oppId} oppName={opp?.name} />}
 
         {/* Work tab content */}
         {activeTab === 'work' && <>
