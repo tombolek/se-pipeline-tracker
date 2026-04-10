@@ -452,54 +452,55 @@ router.post('/:id/meddpicc-coach', auth, async (req: Request, res: Response): Pr
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json(err('Invalid opportunity id')); return; }
 
-  const [opp, tasks, notes] = await Promise.all([
-    queryOne<Record<string, unknown>>(
-      `SELECT o.*, u.name AS se_owner_name
-       FROM opportunities o
-       LEFT JOIN users u ON u.id = o.se_owner_id
-       WHERE o.id = $1`,
-      [id]
-    ),
-    query(
-      `SELECT t.title, t.status, t.due_date, t.is_next_step, t.description
-       FROM tasks t WHERE t.opportunity_id = $1 AND t.is_deleted = false
-       ORDER BY t.is_next_step DESC, t.due_date ASC NULLS LAST`,
-      [id]
-    ),
-    query(
-      `SELECT n.content, u.name AS author_name, n.created_at
-       FROM notes n JOIN users u ON u.id = n.author_id
-       WHERE n.opportunity_id = $1 ORDER BY n.created_at DESC LIMIT 25`,
-      [id]
-    ),
-  ]);
+  try {
+    const [opp, tasks, notes] = await Promise.all([
+      queryOne<Record<string, unknown>>(
+        `SELECT o.*, u.name AS se_owner_name
+         FROM opportunities o
+         LEFT JOIN users u ON u.id = o.se_owner_id
+         WHERE o.id = $1`,
+        [id]
+      ),
+      query(
+        `SELECT t.title, t.status, t.due_date, t.is_next_step, t.description
+         FROM tasks t WHERE t.opportunity_id = $1 AND t.is_deleted = false
+         ORDER BY t.is_next_step DESC, t.due_date ASC NULLS LAST`,
+        [id]
+      ),
+      query(
+        `SELECT n.content, u.name AS author_name, n.created_at
+         FROM notes n JOIN users u ON u.id = n.author_id
+         WHERE n.opportunity_id = $1 ORDER BY n.created_at DESC LIMIT 25`,
+        [id]
+      ),
+    ]);
 
-  if (!opp) { res.status(404).json(err('Opportunity not found')); return; }
+    if (!opp) { res.status(404).json(err('Opportunity not found')); return; }
 
-  const formatDate = (d: unknown) => d ? new Date(d as string).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A';
-  const formatARR = (a: unknown) => a ? `$${(Number(a) / 1000).toFixed(0)}K` : 'N/A';
+    const formatDate = (d: unknown) => d ? new Date(d as string).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A';
+    const formatARR = (a: unknown) => a ? `$${(Number(a) / 1000).toFixed(0)}K` : 'N/A';
 
-  // Build MEDDPICC fields context
-  const meddpiccContext = MEDDPICC_KEYS.map(f => {
-    const val = opp[f.key] as string | null;
-    return `${f.label}: ${val?.trim() || '(empty)'}`;
-  }).join('\n');
+    // Build MEDDPICC fields context
+    const meddpiccContext = MEDDPICC_KEYS.map(f => {
+      const val = opp[f.key] as string | null;
+      return `${f.label}: ${val?.trim() || '(empty)'}`;
+    }).join('\n');
 
-  // Build tasks context
-  const taskLines = tasks.length
-    ? tasks.map((t: Record<string, unknown>) =>
-        `- [${t.is_next_step ? 'NEXT STEP' : t.status}] ${t.title}${t.due_date ? ` (due ${formatDate(t.due_date)})` : ''}${t.description ? ` — ${t.description}` : ''}`
-      ).join('\n')
-    : 'No tasks.';
+    // Build tasks context
+    const taskLines = tasks.length
+      ? tasks.map((t: Record<string, unknown>) =>
+          `- [${t.is_next_step ? 'NEXT STEP' : t.status}] ${t.title}${t.due_date ? ` (due ${formatDate(t.due_date)})` : ''}${t.description ? ` — ${t.description}` : ''}`
+        ).join('\n')
+      : 'No tasks.';
 
-  // Build notes context (oldest first for chronology)
-  const noteLines = notes.length
-    ? [...notes].reverse().map((n: Record<string, unknown>) =>
-        `[${formatDate(n.created_at)} — ${n.author_name}]: ${n.content}`
-      ).join('\n')
-    : 'No notes yet.';
+    // Build notes context (oldest first for chronology)
+    const noteLines = notes.length
+      ? [...notes].reverse().map((n: Record<string, unknown>) =>
+          `[${formatDate(n.created_at)} — ${n.author_name}]: ${n.content}`
+        ).join('\n')
+      : 'No notes yet.';
 
-  const prompt = `You are an expert MEDDPICC sales methodology coach analyzing a software deal for an SE (Sales Engineer). Your job is NOT to score completeness — a separate tool does that. Your job is to read all available deal context (notes, tasks, comments, field values) and identify what the SE still needs to discover or validate.
+    const prompt = `You are an expert MEDDPICC sales methodology coach analyzing a software deal for an SE (Sales Engineer). Your job is NOT to score completeness — a separate tool does that. Your job is to read all available deal context (notes, tasks, comments, field values) and identify what the SE still needs to discover or validate.
 
 For each of the 9 MEDDPICC elements below, produce a verdict:
 - GREEN: Meaningful evidence found in the deal context. State what evidence you found.
@@ -566,35 +567,44 @@ Respond in this exact JSON format (no markdown fences, just raw JSON):
 
 Include all 9 MEDDPICC elements in the elements array, in this order: metrics, economic_buyer, decision_criteria, decision_process, paper_process, implicate_pain, champion, authority, need.`;
 
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-  const response = await client.messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 2500,
-    messages: [{ role: 'user', content: prompt }],
-  });
+    console.log(`[meddpicc-coach] Calling Anthropic API for opp ${id}...`);
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const response = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 2500,
+      messages: [{ role: 'user', content: prompt }],
+    });
+    console.log(`[meddpicc-coach] API response received for opp ${id}, stop_reason=${response.stop_reason}`);
 
-  const text = response.content.find(b => b.type === 'text');
-  const raw = text && text.type === 'text' ? text.text : '';
+    const text = response.content.find(b => b.type === 'text');
+    const raw = text && text.type === 'text' ? text.text : '';
 
-  let parsed: unknown;
-  try {
-    // Handle case where Claude wraps in ```json ... ```
-    const cleaned = raw.replace(/^```json\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
-    parsed = JSON.parse(cleaned);
-  } catch {
-    res.json(ok({ coach: null, raw, error: 'parse_failed' }));
-    return;
+    let parsed: unknown;
+    try {
+      // Handle case where Claude wraps in ```json ... ```
+      const cleaned = raw.replace(/^```json\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+      parsed = JSON.parse(cleaned);
+    } catch (parseErr) {
+      console.error(`[meddpicc-coach] JSON parse failed for opp ${id}:`, parseErr, '\nRaw:', raw.slice(0, 500));
+      res.json(ok({ coach: null, raw, error: 'parse_failed' }));
+      return;
+    }
+
+    // Cache result
+    await query(
+      `INSERT INTO ai_summary_cache (key, content, generated_at)
+       VALUES ($1, $2, now())
+       ON CONFLICT (key) DO UPDATE SET content = $2, generated_at = now()`,
+      [`meddpicc-coach-${id}`, JSON.stringify(parsed)]
+    );
+
+    console.log(`[meddpicc-coach] Success for opp ${id}, cached.`);
+    res.json(ok({ coach: parsed, generated_at: new Date().toISOString() }));
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error(`[meddpicc-coach] Error for opp ${id}:`, msg);
+    res.status(500).json(err(`MEDDPICC Coach failed: ${msg}`));
   }
-
-  // Cache result
-  await query(
-    `INSERT INTO ai_summary_cache (key, content, generated_at)
-     VALUES ($1, $2, now())
-     ON CONFLICT (key) DO UPDATE SET content = $2, generated_at = now()`,
-    [`meddpicc-coach-${id}`, JSON.stringify(parsed)]
-  );
-
-  res.json(ok({ coach: parsed, generated_at: new Date().toISOString() }));
 });
 
 // GET /opportunities  (list)
