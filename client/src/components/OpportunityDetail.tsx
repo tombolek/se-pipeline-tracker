@@ -168,6 +168,8 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
 
   const [summary, setSummary] = useState<string | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
+  const [summaryGeneratedAt, setSummaryGeneratedAt] = useState<string | null>(null);
+  const [summaryCollapsed, setSummaryCollapsed] = useState(false);
   const [coachResult, setCoachResult] = useState<CoachResult | null>(null);
   const [coachLoading, setCoachLoading] = useState(false);
   const [coachGeneratedAt, setCoachGeneratedAt] = useState<string | null>(null);
@@ -255,16 +257,26 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
   async function handleGetSummary() {
     setSummaryLoading(true);
     setSummary(null);
+    setSummaryCollapsed(false);
     try {
-      const { data } = await api.post<ApiResponse<{ summary: string }>>(`/opportunities/${oppId}/summary`);
+      const { data } = await api.post<ApiResponse<{ summary: string; generated_at: string }>>(`/opportunities/${oppId}/summary`);
       setSummary(data.data.summary);
+      setSummaryGeneratedAt(data.data.generated_at);
     } finally {
       setSummaryLoading(false);
     }
   }
 
-  // Load cached coach result on mount
+  // Load cached summary + coach result on mount
   useEffect(() => {
+    api.get<ApiResponse<{ summary: string; generated_at: string } | null>>(`/opportunities/${oppId}/summary/cached`)
+      .then(r => {
+        if (r.data.data) {
+          setSummary(r.data.data.summary);
+          setSummaryGeneratedAt(r.data.data.generated_at);
+        }
+      })
+      .catch(() => {});
     api.get<ApiResponse<{ coach: CoachResult; generated_at: string } | null>>(`/opportunities/${oppId}/meddpicc-coach/cached`)
       .then(r => {
         if (r.data.data) {
@@ -406,36 +418,60 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
         {/* Summary callout (below header, above tabs) */}
         <div className="px-5">
           {summary && (
-            <div className="mt-3 bg-brand-purple-30 border border-brand-purple/20 rounded-xl px-4 py-3">
-              <div className="flex items-center gap-1.5 mb-1.5">
+            <div className="mt-3 bg-brand-purple-30 border border-brand-purple/20 rounded-xl overflow-hidden">
+              {/* Header — always visible, clickable to collapse */}
+              <button
+                onClick={() => setSummaryCollapsed(c => !c)}
+                className="w-full flex items-center gap-1.5 px-4 py-2.5 text-left"
+              >
                 <svg className="w-3.5 h-3.5 text-brand-purple flex-shrink-0" viewBox="0 0 24 24" fill="none">
                   <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="#6A2CF5"/>
                 </svg>
                 <span className="text-[10px] font-semibold uppercase tracking-widest text-brand-purple">AI Summary</span>
-                <button onClick={() => setSummary(null)} className="ml-auto text-brand-navy-70 hover:text-brand-navy">
-                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-              <div className="text-sm text-brand-navy leading-relaxed space-y-2">
-                {summary.split('\n').filter(line => line.trim()).map((line, i) => {
-                  // Strip markdown headers (##, ###)
-                  const stripped = line.replace(/^#{1,4}\s+/, '');
-                  const isHeader = line !== stripped;
-                  // Render bold markers
-                  const parts = stripped.split(/\*\*(.+?)\*\*/g);
-                  const rendered = parts.map((part, j) =>
-                    j % 2 === 1
-                      ? <strong key={j} className="font-semibold text-brand-navy">{part}</strong>
-                      : <span key={j}>{part}</span>
+                {summaryGeneratedAt && (() => {
+                  const days = Math.floor((Date.now() - new Date(summaryGeneratedAt).getTime()) / 86400000);
+                  const color = days <= 3 ? 'text-status-success' : days <= 14 ? 'text-status-warning' : 'text-status-overdue';
+                  return (
+                    <span className={`text-[10px] font-medium ${color} ml-1`}>
+                      {days === 0 ? 'today' : `${days}d ago`}
+                    </span>
                   );
-                  if (isHeader) {
-                    return <p key={i} className="font-semibold text-brand-navy text-xs uppercase tracking-wide mt-2 first:mt-0">{rendered}</p>;
-                  }
-                  return <p key={i}>{rendered}</p>;
-                })}
-              </div>
+                })()}
+                <div className="ml-auto flex items-center gap-1">
+                  <svg className={`w-3 h-3 text-brand-navy-70 transition-transform ${summaryCollapsed ? '' : 'rotate-180'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </button>
+              {/* Body — collapsible */}
+              {!summaryCollapsed && (
+                <div className="px-4 pb-3 text-sm text-brand-navy leading-relaxed space-y-2">
+                  {summary.split('\n').filter(line => line.trim()).map((line, i) => {
+                    const stripped = line.replace(/^#{1,4}\s+/, '');
+                    const isHeader = line !== stripped;
+                    const parts = stripped.split(/\*\*(.+?)\*\*/g);
+                    const rendered = parts.map((part, j) =>
+                      j % 2 === 1
+                        ? <strong key={j} className="font-semibold text-brand-navy">{part}</strong>
+                        : <span key={j}>{part}</span>
+                    );
+                    if (isHeader) {
+                      return <p key={i} className="font-semibold text-brand-navy text-xs uppercase tracking-wide mt-2 first:mt-0">{rendered}</p>;
+                    }
+                    return <p key={i}>{rendered}</p>;
+                  })}
+                  {/* Regenerate link */}
+                  <div className="flex items-center gap-3 pt-1">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleGetSummary(); }}
+                      disabled={summaryLoading}
+                      className="text-[10px] font-medium text-brand-purple hover:text-brand-purple-70 transition-colors disabled:opacity-50"
+                    >
+                      {summaryLoading ? 'Regenerating...' : 'Regenerate'}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
           {/* MEDDPICC Gap Coach panel */}

@@ -310,6 +310,20 @@ router.post('/:id/tasks', auth, async (req: Request, res: Response): Promise<voi
   });
 });
 
+// GET /opportunities/:id/summary/cached — return cached AI summary
+router.get('/:id/summary/cached', auth, async (req: Request, res: Response): Promise<void> => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) { res.status(400).json(err('Invalid opportunity id')); return; }
+
+  const rows = await query<{ content: string; generated_at: string }>(
+    `SELECT content, generated_at FROM ai_summary_cache WHERE key = $1`,
+    [`summary-${id}`]
+  );
+  if (rows.length === 0) { res.json(ok(null)); return; }
+
+  res.json(ok({ summary: rows[0].content, generated_at: rows[0].generated_at }));
+});
+
 // POST /opportunities/:id/summary  — AI deal summary
 router.post('/:id/summary', auth, async (req: Request, res: Response): Promise<void> => {
   const id = parseInt(req.params.id);
@@ -388,7 +402,16 @@ ${noteLines}`;
 
   const summaryBlock = response.content.find(b => b.type === 'text');
   const summary = summaryBlock && summaryBlock.type === 'text' ? summaryBlock.text : '';
-  res.json(ok({ summary }));
+
+  // Cache the summary
+  await query(
+    `INSERT INTO ai_summary_cache (key, content, generated_at)
+     VALUES ($1, $2, now())
+     ON CONFLICT (key) DO UPDATE SET content = $2, generated_at = now()`,
+    [`summary-${id}`, summary]
+  );
+
+  res.json(ok({ summary, generated_at: new Date().toISOString() }));
 });
 
 // ── MEDDPICC Gap Coach ──────────────────────────────────────────────────────
