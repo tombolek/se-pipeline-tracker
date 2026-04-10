@@ -1283,12 +1283,12 @@ router.post('/:id/call-prep/generate', auth, async (req: Request, res: Response)
       [id]
     );
 
-    // KB matches for context
+    // KB matches for context — full text, no truncation
     const products = (opp.products as string[]) || [];
     const proofPoints = products.length > 0 ? await query<{
-      customer_name: string; vertical: string; products: string[]; proof_point_text: string;
+      customer_name: string; about: string | null; vertical: string; products: string[]; initiatives: string[]; proof_point_text: string;
     }>(
-      `SELECT customer_name, vertical, products, proof_point_text
+      `SELECT customer_name, about, vertical, products, initiatives, proof_point_text
        FROM kb_proof_points WHERE products && $1
        ORDER BY array_length(ARRAY(SELECT unnest(products) INTERSECT SELECT unnest($1::text[])), 1) DESC NULLS LAST
        LIMIT 5`,
@@ -1301,23 +1301,49 @@ router.post('/:id/call-prep/generate', auth, async (req: Request, res: Response)
     if (competitors) searchTerms.push(...competitors.split(/[,;]/).map(s => s.trim().toLowerCase()).filter(Boolean));
     if (industry) searchTerms.push(industry.toLowerCase());
 
-    const allDiffs = await query<{ name: string; tagline: string | null; core_message: string | null; need_signals: string[] }>(
-      'SELECT name, tagline, core_message, need_signals FROM kb_differentiators', []
+    const allDiffs = await query<{
+      name: string; tagline: string | null; core_message: string | null;
+      need_signals: string[]; proof_points_json: unknown; competitive_positioning: string | null;
+    }>(
+      'SELECT name, tagline, core_message, need_signals, proof_points_json, competitive_positioning FROM kb_differentiators', []
     );
     const topDiffs = allDiffs.map(d => {
       let score = 0;
       const signals = d.need_signals.map(s => s.toLowerCase());
       for (const term of searchTerms) { for (const signal of signals) { if (signal.includes(term)) score += 2; } }
+      if (products.some(p => ['DQ'].includes(p)) && d.name.includes('Quality')) score += 3;
+      if (products.some(p => ['MDM', 'RDM', 'Catalog', 'Lineage', 'Observability'].includes(p)) && d.name.includes('Unified')) score += 3;
       return { ...d, score };
-    }).sort((a, b) => b.score - a.score).slice(0, 3);
+    }).sort((a, b) => b.score - a.score).slice(0, 4);
 
     // Build prompt
     const today = new Date().toISOString().slice(0, 10);
     const openTasks = tasks.filter(t => t.status !== 'done');
     const overdueTasks = openTasks.filter(t => t.due_date && t.due_date < today);
-    const nextSteps = tasks.filter(t => t.is_next_step && t.status !== 'done');
 
-    const prompt = `You are an expert Sales Engineering assistant. Generate a Pre-Call Brief for the following opportunity.
+    // Format proof points with full text for the prompt
+    const ppContext = proofPoints.map((p, i) => {
+      const overlap = p.products.filter(pr => products.includes(pr));
+      return `STORY ${i + 1}: ${p.customer_name}
+  Vertical: ${p.vertical}
+  Products: ${p.products.join(', ')} (overlaps with this deal: ${overlap.join(', ')})
+  About: ${p.about || 'N/A'}
+  Proof Point: ${p.proof_point_text}`;
+    }).join('\n\n') || 'None available';
+
+    // Format differentiators with their embedded proof points
+    const diffContext = topDiffs.map(d => {
+      const ppJson = d.proof_points_json as Array<{ customer: string; detail: string }> | null;
+      const embeddedPPs = ppJson && Array.isArray(ppJson) ? ppJson.map(p => `    - ${p.customer}: ${p.detail}`).join('\n') : '    None';
+      return `DIFFERENTIATOR: ${d.name}
+  Tagline: ${d.tagline || 'N/A'}
+  Core Message: ${d.core_message || 'N/A'}
+  Competitive Positioning: ${d.competitive_positioning || 'N/A'}
+  Embedded Proof Points:
+${embeddedPPs}`;
+    }).join('\n\n') || 'None matched';
+
+    const prompt = `You are an expert Sales Engineering assistant preparing an SE for a customer call. Generate a Pre-Call Brief that TIGHTLY INTEGRATES customer proof points into actionable guidance.
 
 DEAL CONTEXT:
 - Opportunity: ${opp.name}
@@ -1355,46 +1381,61 @@ ${openTasks.map(t => `- [${t.status}] ${t.title}${t.due_date ? ` (due: ${t.due_d
 OVERDUE TASKS: ${overdueTasks.length > 0 ? overdueTasks.map(t => t.title).join(', ') : 'None'}
 
 RECENT NOTES (last 10):
-${notes.map(n => `[${n.created_at}] ${n.author_name}: ${n.content.slice(0, 300)}`).join('\n') || 'None'}
+${notes.map(n => `[${n.created_at}] ${n.author_name}: ${n.content.slice(0, 500)}`).join('\n') || 'None'}
 
-MATCHING CUSTOMER PROOF POINTS:
-${proofPoints.map(p => `- ${p.customer_name} (${p.vertical}, ${p.products.join('/')}): ${p.proof_point_text.slice(0, 200)}`).join('\n') || 'None available'}
+===== CUSTOMER VALUE STORIES (use these in talking points!) =====
+${ppContext}
 
-MATCHING DIFFERENTIATORS:
-${topDiffs.map(d => `- ${d.name}: ${d.tagline || ''} — ${d.core_message || ''}`).join('\n') || 'None matched'}
+===== PLATFORM DIFFERENTIATORS (tie to proof points above!) =====
+${diffContext}
 
 Today's date: ${today}
 
-Generate a JSON response with this exact structure:
+Generate a JSON response with this EXACT structure:
 {
-  "deal_context": "2-3 sentence summary of the deal situation, stage, and what's happening.",
+  "deal_context": "2-3 sentences summarizing the deal, what's at stake, and what's happening right now.",
   "talking_points": [
-    "Specific actionable talking point with reasoning. Reference proof points or differentiators where relevant.",
-    "Another talking point.",
-    "A third talking point."
+    "Each talking point MUST reference a specific customer name and concrete outcome from the stories above when relevant. Example: 'Lead with Scout Motors — same manufacturing vertical, replaced Informatica, 40% fewer DQ incidents in 4 months.' Tie differentiators to the proof point that backs them up.",
+    "Another specific, customer-backed talking point.",
+    "A MEDDPICC-gap talking point with a suggested question."
+  ],
+  "proof_point_highlights": [
+    {
+      "customer": "Customer name from the stories above",
+      "role": "primary|scale|backup",
+      "why_relevant": "Why this story matters for THIS specific deal (shared products, industry, competitor, SI, etc.)",
+      "key_stat": "The single most compelling metric or outcome from their proof point",
+      "when_to_use": "Specific moment in the call when the SE should drop this reference"
+    }
+  ],
+  "differentiator_plays": [
+    {
+      "name": "Differentiator name",
+      "positioning": "1 sentence on how to position this against the specific competitor in this deal",
+      "backed_by": "Customer name whose proof point validates this differentiator"
+    }
   ],
   "risks": [
-    { "severity": "high|medium", "text": "Description of the risk or gap." }
+    { "severity": "high|medium", "text": "Description of risk or gap." }
   ],
   "discovery_questions": [
-    "A natural discovery question the SE should ask on the call.",
-    "Another question.",
-    "A third question."
+    "Conversational question tied to an identified gap."
   ]
 }
 
-Rules:
-- talking_points: 3-5 items. Be specific — reference customer names from proof points, name the differentiator, cite MEDDPICC gaps.
-- risks: 2-4 items. Include overdue tasks, stale SE comments, MEDDPICC gaps, timeline concerns. severity is "high" or "medium".
-- discovery_questions: 2-4 questions. Make them conversational and tied to identified gaps.
-- deal_context: Focus on what's most important for this specific call.
-- Be concise. No filler. Every sentence should be actionable.
+CRITICAL RULES:
+- talking_points: 3-5 items. Every point that can reference a customer story MUST do so by name with a specific metric. No generic statements like "emphasize the unified engine" — instead say "reference Volvo Group — 15 facilities, 2M records/day with cross-plant DQ rules."
+- proof_point_highlights: Pick the 2-3 BEST stories for this deal. "role" = "primary" (lead story), "scale" (impressive at-scale reference), "backup" (different angle). Only include stories from the CUSTOMER VALUE STORIES section above.
+- differentiator_plays: 1-3 items. Each MUST link back to a proof point customer in "backed_by". If a differentiator has no relevant proof point, omit it.
+- risks: 2-4 items. Include overdue tasks, stale SE comments, MEDDPICC gaps, timeline concerns.
+- discovery_questions: 2-4 natural questions tied to gaps.
+- Be concise. No filler. Every sentence actionable.
 - Return ONLY valid JSON, no markdown fences.`;
 
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     const response = await client.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 2000,
+      max_tokens: 3000,
       messages: [{ role: 'user', content: prompt }],
     });
 
@@ -1409,6 +1450,10 @@ Rules:
       res.status(500).json(err('Failed to parse AI response — try again'));
       return;
     }
+
+    // Normalize: ensure arrays exist even if Claude omits them
+    if (!Array.isArray(parsed.proof_point_highlights)) parsed.proof_point_highlights = [];
+    if (!Array.isArray(parsed.differentiator_plays)) parsed.differentiator_plays = [];
 
     // Cache the brief
     await query(

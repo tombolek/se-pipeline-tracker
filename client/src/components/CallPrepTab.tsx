@@ -3,9 +3,25 @@ import api from '../api/client';
 import type { ApiResponse } from '../types';
 
 /* ── Types ── */
+interface ProofPointHighlight {
+  customer: string;
+  role: string; // "primary" | "scale" | "backup"
+  why_relevant: string;
+  key_stat: string;
+  when_to_use: string;
+}
+
+interface DifferentiatorPlay {
+  name: string;
+  positioning: string;
+  backed_by: string;
+}
+
 interface BriefData {
   deal_context: string;
   talking_points: string[];
+  proof_point_highlights: ProofPointHighlight[];
+  differentiator_plays: DifferentiatorPlay[];
   risks: { severity: string; text: string }[];
   discovery_questions: string[];
 }
@@ -64,8 +80,6 @@ export default function CallPrepTab({ oppId }: { oppId: number }) {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [expandedDiff, setExpandedDiff] = useState<number | null>(null);
-  const [showAllPP, setShowAllPP] = useState(false);
   const [expandedPP, setExpandedPP] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -109,13 +123,23 @@ export default function CallPrepTab({ oppId }: { oppId: number }) {
   const copyBrief = () => {
     if (!data?.brief) return;
     const b = data.brief;
-    const text = [
+    const sections = [
       `DEAL CONTEXT:\n${b.deal_context}`,
       `\nKEY TALKING POINTS:\n${b.talking_points.map((t, i) => `${i + 1}. ${t}`).join('\n')}`,
-      `\nRISKS:\n${b.risks.map(r => `- [${r.severity.toUpperCase()}] ${r.text}`).join('\n')}`,
-      `\nDISCOVERY QUESTIONS:\n${b.discovery_questions.map((q, i) => `${i + 1}. ${q}`).join('\n')}`,
-    ].join('\n');
-    navigator.clipboard.writeText(text);
+    ];
+    if (b.proof_point_highlights?.length) {
+      sections.push(`\nCUSTOMER STORIES TO MENTION:\n${b.proof_point_highlights.map(h =>
+        `- ${h.customer} [${h.role}]: ${h.key_stat} — Use when: ${h.when_to_use}`
+      ).join('\n')}`);
+    }
+    if (b.differentiator_plays?.length) {
+      sections.push(`\nDIFFERENTIATORS TO POSITION:\n${b.differentiator_plays.map(d =>
+        `- ${d.name}: ${d.positioning} (backed by: ${d.backed_by})`
+      ).join('\n')}`);
+    }
+    sections.push(`\nRISKS:\n${b.risks.map(r => `- [${r.severity.toUpperCase()}] ${r.text}`).join('\n')}`);
+    sections.push(`\nDISCOVERY QUESTIONS:\n${b.discovery_questions.map((q, i) => `${i + 1}. ${q}`).join('\n')}`);
+    navigator.clipboard.writeText(sections.join('\n'));
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -144,8 +168,6 @@ export default function CallPrepTab({ oppId }: { oppId: number }) {
 
   const products = data.match_context.products;
   const noProducts = products.length === 0;
-  const visiblePP = showAllPP ? data.proof_points : data.proof_points.slice(0, 3);
-  const topDiffs = data.differentiators.filter(d => d.relevance_score > 0).slice(0, 5);
 
   return (
     <div className="px-5 py-5 space-y-6">
@@ -256,28 +278,123 @@ export default function CallPrepTab({ oppId }: { oppId: number }) {
         </div>
       ) : null}
 
-      {/* ── MATCHING PROOF POINTS ── */}
-      {data.proof_points.length > 0 && (
+      {/* ── CUSTOMER STORIES TO MENTION (AI-selected) ── */}
+      {data.brief?.proof_point_highlights && data.brief.proof_point_highlights.length > 0 && (
         <div>
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm font-semibold text-brand-navy">Matching Customer Stories</h3>
-              <span className="text-[10px] bg-brand-purple-30 text-brand-purple px-2 py-0.5 rounded-full font-medium">
-                {data.proof_points.length} match{data.proof_points.length !== 1 ? 'es' : ''}
-              </span>
-            </div>
-            <span className="text-[10px] text-brand-navy-70">By product + industry relevance</span>
+          <div className="flex items-center gap-2 mb-3">
+            <h3 className="text-sm font-semibold text-brand-navy">Customer Stories to Mention</h3>
+            <span className="text-[10px] bg-brand-purple-30 text-brand-purple px-2 py-0.5 rounded-full font-medium">AI-selected</span>
+            <span className="text-[10px] text-brand-navy-70 ml-auto">Top stories picked for this deal</span>
           </div>
 
           <div className="space-y-2">
-            {visiblePP.map(pp => {
+            {data.brief.proof_point_highlights.map((h, i) => {
+              const roleColors: Record<string, { bg: string; text: string; label: string }> = {
+                primary: { bg: 'bg-green-100', text: 'text-green-700', label: 'Primary reference' },
+                scale:   { bg: 'bg-blue-100',  text: 'text-blue-700',  label: 'Scale reference' },
+                backup:  { bg: 'bg-yellow-100', text: 'text-yellow-700', label: 'Backup reference' },
+              };
+              const rc = roleColors[h.role] || roleColors.backup;
+              const isPrimary = h.role === 'primary';
+              // Find matching DB proof point for product pills
+              const dbPP = data.proof_points.find(pp => pp.customer_name.toLowerCase() === h.customer.toLowerCase());
+
+              return (
+                <div key={i} className={`rounded-lg border p-3 ${isPrimary ? 'border-green-200 bg-green-50/30' : 'border-brand-navy-30/40 bg-white'}`}>
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[13px] font-semibold text-brand-navy">{h.customer}</span>
+                      {dbPP && dbPP.products.map(p => (
+                        <span key={p} className="text-[10px] bg-brand-purple-30 text-brand-purple px-1.5 py-0.5 rounded">{p}</span>
+                      ))}
+                    </div>
+                    <span className={`text-[10px] ${rc.bg} ${rc.text} px-1.5 py-0.5 rounded font-medium`}>{rc.label}</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3 text-[11px]">
+                    <div>
+                      <span className="text-brand-navy-70 block mb-0.5">Why relevant</span>
+                      <span className="text-brand-navy">{h.why_relevant}</span>
+                    </div>
+                    <div>
+                      <span className="text-brand-navy-70 block mb-0.5">Key stat</span>
+                      <span className="text-brand-navy font-medium">{h.key_stat}</span>
+                    </div>
+                    <div>
+                      <span className="text-brand-navy-70 block mb-0.5">When to use</span>
+                      <span className="text-brand-navy">{h.when_to_use}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── DIFFERENTIATORS TO POSITION (AI-selected, linked to proof points) ── */}
+      {data.brief?.differentiator_plays && data.brief.differentiator_plays.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <h3 className="text-sm font-semibold text-brand-navy">Differentiators to Position</h3>
+            <span className="text-[10px] bg-brand-purple-30 text-brand-purple px-2 py-0.5 rounded-full font-medium">
+              {data.brief.differentiator_plays.length} relevant
+            </span>
+          </div>
+
+          <div className="space-y-2">
+            {data.brief.differentiator_plays.map((dp, i) => {
+              // Find the full differentiator from KB data for signal badge
+              const dbDiff = data.differentiators.find(d => d.name.toLowerCase().includes(dp.name.toLowerCase().split(' ')[0]));
+              const signalMatch = dbDiff && data.match_context.competitors
+                ? dbDiff.need_signals.find(s => data.match_context.competitors!.toLowerCase().includes(s.toLowerCase().split(' ')[0]))
+                : null;
+
+              return (
+                <div key={i} className="rounded-lg border border-brand-navy-30/40 overflow-hidden">
+                  <div className="p-3 bg-gray-50/50">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-[13px] font-medium text-brand-navy">{dp.name}</span>
+                      {signalMatch && (
+                        <span className="text-[10px] bg-brand-pink-30 text-brand-pink px-1.5 py-0.5 rounded font-medium">
+                          vs. {signalMatch}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[12px] text-brand-navy-70 leading-relaxed mb-2">{dp.positioning}</p>
+                    {/* Linked proof point */}
+                    {dp.backed_by && (
+                      <div className="flex items-center gap-2 rounded bg-white border border-brand-navy-30/30 px-2.5 py-1.5 text-[11px]">
+                        <svg className="w-3 h-3 text-brand-purple flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                          <path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                        </svg>
+                        <span className="text-brand-navy-70">Backed by:</span>
+                        <span className="text-brand-navy font-medium">{dp.backed_by}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── RAW KB MATCHES (collapsible, for deeper exploration) ── */}
+      {data.proof_points.length > 0 && (
+        <details className="group">
+          <summary className="flex items-center gap-2 cursor-pointer text-[11px] text-brand-navy-70 hover:text-brand-purple transition-colors py-1">
+            <svg className="w-3.5 h-3.5 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M9 5l7 7-7 7"/></svg>
+            All matching stories ({data.proof_points.length})
+          </summary>
+          <div className="mt-2 space-y-2">
+            {data.proof_points.map(pp => {
               const m = matchLabel(pp, products);
               const isExpanded = expandedPP === pp.id;
               return (
                 <div
                   key={pp.id}
                   onClick={() => setExpandedPP(isExpanded ? null : pp.id)}
-                  className="rounded-lg border border-brand-navy-30/40 p-3 hover:border-brand-purple/30 transition-colors cursor-pointer group"
+                  className="rounded-lg border border-brand-navy-30/40 p-3 hover:border-brand-purple/30 transition-colors cursor-pointer group/pp"
                 >
                   <div className="flex items-start justify-between mb-1.5">
                     <div className="flex items-center gap-2">
@@ -296,89 +413,19 @@ export default function CallPrepTab({ oppId }: { oppId: number }) {
                   <div className="flex items-center gap-3 mt-2 text-[10px] text-brand-navy-70">
                     <span>{pp.vertical}</span>
                     {pp.about && <><span className="text-brand-navy-30">|</span><span>{pp.about.slice(0, 60)}{pp.about.length > 60 ? '...' : ''}</span></>}
-                    <span className="text-brand-purple opacity-0 group-hover:opacity-100 transition-opacity ml-auto">
+                    <span className="text-brand-purple opacity-0 group-hover/pp:opacity-100 transition-opacity ml-auto">
                       {isExpanded ? 'Collapse' : 'Show full story'}
                     </span>
                   </div>
                 </div>
               );
             })}
-
-            {data.proof_points.length > 3 && !showAllPP && (
-              <button
-                onClick={() => setShowAllPP(true)}
-                className="w-full text-center text-[11px] text-brand-purple hover:text-brand-purple/80 py-2 rounded-lg hover:bg-brand-purple-30/20 transition-colors"
-              >
-                + {data.proof_points.length - 3} more match{data.proof_points.length - 3 !== 1 ? 'es' : ''}
-              </button>
-            )}
           </div>
-        </div>
-      )}
-
-      {/* ── MATCHING DIFFERENTIATORS ── */}
-      {topDiffs.length > 0 && (
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm font-semibold text-brand-navy">Relevant Differentiators</h3>
-              <span className="text-[10px] bg-brand-purple-30 text-brand-purple px-2 py-0.5 rounded-full font-medium">
-                {topDiffs.length} matched
-              </span>
-            </div>
-            <span className="text-[10px] text-brand-navy-70">Based on competitor & need signals</span>
-          </div>
-
-          <div className="space-y-2">
-            {topDiffs.map(d => {
-              const isExpanded = expandedDiff === d.id;
-              // Find top signal
-              const signalMatch = data.match_context.competitors
-                ? d.need_signals.find(s => data.match_context.competitors!.toLowerCase().includes(s.toLowerCase().split(' ')[0]))
-                : null;
-
-              return (
-                <div key={d.id} className="rounded-lg border border-brand-navy-30/40 overflow-hidden">
-                  <div
-                    onClick={() => setExpandedDiff(isExpanded ? null : d.id)}
-                    className={`p-3 cursor-pointer hover:bg-gray-50/80 transition-colors ${isExpanded ? 'bg-gray-50/50' : ''}`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <span className="text-[13px] font-medium text-brand-navy">{d.name}</span>
-                          {signalMatch && (
-                            <span className="text-[10px] bg-brand-pink-30 text-brand-pink px-1.5 py-0.5 rounded font-medium">
-                              Signal: {signalMatch}
-                            </span>
-                          )}
-                        </div>
-                        {d.tagline && <p className="text-[11px] text-brand-navy-70 italic">{d.tagline}</p>}
-                      </div>
-                      <svg className={`w-4 h-4 text-brand-navy-30 mt-1 transition-transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                        <path d="M19 9l-7 7-7-7"/>
-                      </svg>
-                    </div>
-                  </div>
-                  {isExpanded && (
-                    <div className="px-3 pb-3 border-t border-brand-navy-30/20 pt-2">
-                      {d.core_message && <p className="text-[12px] text-brand-navy-70 leading-relaxed mb-2">{d.core_message}</p>}
-                      {d.competitive_positioning && (
-                        <div className="text-[11px] text-brand-navy-70 bg-gray-50 rounded p-2 mt-1">
-                          <span className="font-medium">vs. competition: </span>{d.competitive_positioning}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        </details>
       )}
 
       {/* No KB data at all */}
-      {data.proof_points.length === 0 && topDiffs.length === 0 && !noProducts && (
+      {data.proof_points.length === 0 && !data.brief?.proof_point_highlights?.length && !noProducts && (
         <div className="text-center py-4 text-[12px] text-brand-navy-70">
           No matching customer stories or differentiators found for the tagged products.
         </div>
