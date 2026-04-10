@@ -283,22 +283,26 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
       .catch(() => {});
     api.get<ApiResponse<{ coach: CoachResult; generated_at: string } | null>>(`/opportunities/${oppId}/meddpicc-coach/cached`)
       .then(r => {
-        if (r.data.data) {
+        if (r.data.data?.coach) {
           setCoachResult(r.data.data.coach);
           setCoachGeneratedAt(r.data.data.generated_at);
         }
       })
-      .catch(() => {}); // silently ignore
+      .catch(e => console.warn('Failed to load cached coach:', e));
   }, [oppId]);
 
   async function handleGetCoach() {
     setCoachLoading(true);
     try {
       const { data } = await api.post<ApiResponse<{ coach: CoachResult; generated_at: string }>>(`/opportunities/${oppId}/meddpicc-coach`);
-      setCoachResult(data.data.coach);
-      setCoachGeneratedAt(data.data.generated_at);
-      // Scroll into view after render
-      setTimeout(() => coachPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
+      if (data.data?.coach) {
+        setCoachResult(data.data.coach);
+        setCoachGeneratedAt(data.data.generated_at);
+        setCoachCollapsed(false); // auto-expand when freshly generated
+        setTimeout(() => coachPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
+      } else {
+        console.error('MEDDPICC Coach: API returned no coach data', data);
+      }
     } catch (e) {
       console.error('MEDDPICC Coach error:', e);
     } finally {
