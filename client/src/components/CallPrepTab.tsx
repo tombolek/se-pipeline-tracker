@@ -336,15 +336,15 @@ export default function CallPrepTab({ oppId }: { oppId: number }) {
                   <div className="grid grid-cols-3 gap-3 text-[11px]">
                     <div>
                       <span className="text-brand-navy-70 block mb-0.5">Why relevant</span>
-                      <span className="text-brand-navy">{h.why_relevant}</span>
+                      <span className="text-brand-navy">{highlightBold(h.why_relevant)}</span>
                     </div>
                     <div>
                       <span className="text-brand-navy-70 block mb-0.5">Key stat</span>
-                      <span className="text-brand-navy font-medium">{h.key_stat}</span>
+                      <span className="text-brand-navy font-medium">{highlightBold(h.key_stat)}</span>
                     </div>
                     <div>
                       <span className="text-brand-navy-70 block mb-0.5">When to use</span>
-                      <span className="text-brand-navy">{h.when_to_use}</span>
+                      <span className="text-brand-navy">{highlightBold(h.when_to_use)}</span>
                     </div>
                   </div>
                 </div>
@@ -383,7 +383,7 @@ export default function CallPrepTab({ oppId }: { oppId: number }) {
                         </span>
                       )}
                     </div>
-                    <p className="text-[12px] text-brand-navy-70 leading-relaxed mb-2">{dp.positioning}</p>
+                    <p className="text-[12px] text-brand-navy-70 leading-relaxed mb-2">{highlightBold(dp.positioning)}</p>
                     {/* Linked proof point */}
                     {dp.backed_by && (
                       <div className="flex items-center gap-2 rounded bg-white border border-brand-navy-30/30 px-2.5 py-1.5 text-[11px]">

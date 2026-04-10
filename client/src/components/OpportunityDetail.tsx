@@ -673,39 +673,41 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
           )}
         </div>
 
-        {/* Tab bar — top-border style anchored to header bottom */}
-        <div className="flex bg-white border-b border-brand-navy-30/40 px-5 flex-shrink-0">
+        {/* Tab bar — real tab style with active tab connected to content */}
+        <div className="flex px-5 bg-[#F5F5F7] pt-1 flex-shrink-0">
           {([
             { key: 'work' as const, label: 'Work' },
             { key: 'timeline' as const, label: 'Timeline' },
             { key: 'call-prep' as const, label: 'Call Prep', icon: true },
             { key: 'deal-info' as const, label: 'Deal Info' },
-          ]).map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`relative px-4 py-2.5 text-xs font-medium transition-colors flex items-center gap-1.5 ${
-                activeTab === tab.key
-                  ? 'text-brand-purple'
-                  : 'text-brand-navy-70 hover:text-brand-navy'
-              }`}
-            >
-              {tab.icon && (
-                <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z"/>
-                </svg>
-              )}
-              {tab.label}
-              {/* Active indicator — top border */}
-              {activeTab === tab.key && (
-                <span className="absolute bottom-0 left-2 right-2 h-[2px] bg-brand-purple rounded-t-full" />
-              )}
-            </button>
-          ))}
+          ]).map(tab => {
+            const isActive = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`relative px-5 py-2 text-xs font-semibold transition-colors flex items-center gap-1.5 rounded-t-lg border border-b-0 ${
+                  isActive
+                    ? 'bg-white text-brand-purple border-brand-navy-30/40 z-10'
+                    : 'bg-transparent text-brand-navy-70 border-transparent hover:text-brand-navy hover:bg-white/50'
+                }`}
+                style={isActive ? { marginBottom: '-1px' } : undefined}
+              >
+                {tab.icon && (
+                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z"/>
+                  </svg>
+                )}
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
+        {/* Divider line under tabs — active tab overlaps it */}
+        <div className="border-t border-brand-navy-30/40 flex-shrink-0" />
 
         {/* Scrollable work area */}
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-6">
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-6 bg-white">
 
         {/* Timeline tab */}
         {activeTab === 'timeline' && <OpportunityTimeline oppId={oppId} />}
