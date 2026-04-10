@@ -115,8 +115,8 @@ const KNOWN_COLUMN_FIELDS = [
 /* ── GET /settings/deal-info-config ── */
 router.get('/deal-info-config', auth, async (_req: Request, res: Response): Promise<void> => {
   try {
-    const result = await query('SELECT config FROM deal_info_config WHERE id = 1');
-    const config = result.rows.length > 0 ? result.rows[0].config : DEFAULT_CONFIG;
+    const result = await query('SELECT config FROM deal_info_config WHERE id = 1') as { config: unknown }[];
+    const config = result.length > 0 ? result[0].config : DEFAULT_CONFIG;
 
     // Gather sf_raw_fields keys across all opps for the "add field" picker
     let sfRawKeys: string[] = [];
@@ -126,8 +126,8 @@ router.get('/deal-info-config', auth, async (_req: Request, res: Response): Prom
         FROM opportunities, LATERAL jsonb_object_keys(COALESCE(sf_raw_fields, '{}')) AS k
         ORDER BY k
         LIMIT 200
-      `);
-      sfRawKeys = rawResult.rows.map((r: { key: string }) => r.key);
+      `) as { key: string }[];
+      sfRawKeys = rawResult.map(r => r.key);
     } catch { /* sf_raw_fields may be empty */ }
 
     const sfRawFields = sfRawKeys.map(key => ({
@@ -177,7 +177,7 @@ router.put('/deal-info-config', auth, async (req: Request, res: Response): Promi
       `INSERT INTO deal_info_config (id, config, updated_by, updated_at)
        VALUES (1, $1, $2, now())
        ON CONFLICT (id) DO UPDATE SET config = $1, updated_by = $2, updated_at = now()`,
-      [JSON.stringify(config), user.id]
+      [JSON.stringify(config), user.userId]
     );
 
     // Audit log
@@ -185,7 +185,7 @@ router.put('/deal-info-config', auth, async (req: Request, res: Response): Promi
       await query(
         `INSERT INTO audit_log (user_id, action, entity_type, details, timestamp)
          VALUES ($1, 'update', 'deal_info_config', $2, now())`,
-        [user.id, JSON.stringify({ sections_count: config.sections.length })]
+        [user.userId, JSON.stringify({ sections_count: config.sections.length })]
       );
     } catch { /* audit log is best-effort */ }
 
@@ -209,7 +209,7 @@ router.post('/deal-info-config/reset', auth, async (req: Request, res: Response)
       `INSERT INTO deal_info_config (id, config, updated_by, updated_at)
        VALUES (1, $1, $2, now())
        ON CONFLICT (id) DO UPDATE SET config = $1, updated_by = $2, updated_at = now()`,
-      [JSON.stringify(DEFAULT_CONFIG), user.id]
+      [JSON.stringify(DEFAULT_CONFIG), user.userId]
     );
     res.json(ok({ config: DEFAULT_CONFIG }));
   } catch (error) {
