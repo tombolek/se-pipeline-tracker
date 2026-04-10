@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/client';
-import type { ApiResponse } from '../types';
+import type { ApiResponse, Opportunity } from '../types';
 import { useAuthStore } from '../store/auth';
 import { formatARR } from '../utils/formatters';
+import { listOpportunities } from '../api/opportunities';
 import Drawer from '../components/Drawer';
 import OpportunityDetail from '../components/OpportunityDetail';
 
@@ -135,13 +136,71 @@ export default function HomePage() {
   const [data, setData] = useState<DigestData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedOppId, setSelectedOppId] = useState<number | null>(null);
+  const [drawerInitialTab, setDrawerInitialTab] = useState<'work' | 'timeline' | 'call-prep' | 'deal-info' | undefined>(undefined);
+  const [drawerInitialAction, setDrawerInitialAction] = useState<'summary' | 'notes-processor' | undefined>(undefined);
+
+  // AI quick links state
+  const [allOpps, setAllOpps] = useState<Opportunity[]>([]);
+  const [aiPickerOpen, setAiPickerOpen] = useState<'call-prep' | 'notes-processor' | 'summary' | null>(null);
+  const [aiSearch, setAiSearch] = useState('');
+  const aiPickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     api.get<ApiResponse<DigestData>>('/home/digest')
       .then(r => setData(r.data.data))
       .catch(err => console.error('Digest load failed:', err))
       .finally(() => setLoading(false));
+    listOpportunities({ include_qualify: true })
+      .then(setAllOpps)
+      .catch(() => {});
   }, []);
+
+  // Close picker on click outside
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (aiPickerRef.current && !aiPickerRef.current.contains(e.target as Node)) {
+        setAiPickerOpen(null);
+        setAiSearch('');
+      }
+    }
+    if (aiPickerOpen) document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [aiPickerOpen]);
+
+  function openAiFeature(oppId: number, feature: 'call-prep' | 'notes-processor' | 'summary') {
+    setAiPickerOpen(null);
+    setAiSearch('');
+    if (feature === 'call-prep') {
+      setDrawerInitialTab('call-prep');
+      setDrawerInitialAction(undefined);
+    } else if (feature === 'summary') {
+      setDrawerInitialTab('work');
+      setDrawerInitialAction('summary');
+    } else {
+      setDrawerInitialTab('work');
+      setDrawerInitialAction('notes-processor');
+    }
+    setSelectedOppId(oppId);
+  }
+
+  function handleCloseDrawer() {
+    setSelectedOppId(null);
+    setDrawerInitialTab(undefined);
+    setDrawerInitialAction(undefined);
+  }
+
+  function openOpp(oppId: number) {
+    setDrawerInitialTab(undefined);
+    setDrawerInitialAction(undefined);
+    setSelectedOppId(oppId);
+  }
+
+  const filteredAiOpps = aiSearch.trim().length > 0
+    ? allOpps.filter(o =>
+        o.name.toLowerCase().includes(aiSearch.toLowerCase()) ||
+        (o.account_name ?? '').toLowerCase().includes(aiSearch.toLowerCase())
+      ).slice(0, 6)
+    : allOpps.slice(0, 6);
 
   if (loading) {
     return <div className="flex items-center justify-center flex-1 text-sm text-brand-navy-70">Loading your daily digest...</div>;
@@ -175,6 +234,109 @@ export default function HomePage() {
             icon={<svg className="w-5 h-5 text-brand-pink" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>} />
         </div>
 
+        {/* AI Quick Links */}
+        <div className="grid grid-cols-3 gap-4 mb-6" ref={aiPickerRef}>
+          {([
+            {
+              key: 'call-prep' as const,
+              label: 'Pre-Call Brief',
+              desc: 'AI-generated talking points, risks & customer stories',
+              icon: (
+                <svg className="w-5 h-5 text-brand-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
+                </svg>
+              ),
+              gradient: 'from-brand-purple/5 to-brand-purple/10',
+            },
+            {
+              key: 'notes-processor' as const,
+              label: 'Process Call Notes',
+              desc: 'Extract tasks, MEDDPICC updates & blockers from notes',
+              icon: (
+                <svg className="w-5 h-5 text-status-info" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                </svg>
+              ),
+              gradient: 'from-status-info/5 to-status-info/10',
+            },
+            {
+              key: 'summary' as const,
+              label: 'Opp Summary',
+              desc: 'Quick AI summary of deal status, risks & next actions',
+              icon: (
+                <svg className="w-5 h-5 text-status-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
+                </svg>
+              ),
+              gradient: 'from-status-warning/5 to-status-warning/10',
+            },
+          ]).map(item => (
+            <div key={item.key} className="relative">
+              <button
+                onClick={() => { setAiPickerOpen(aiPickerOpen === item.key ? null : item.key); setAiSearch(''); }}
+                className={`w-full bg-gradient-to-br ${item.gradient} rounded-2xl border border-brand-navy-30/40 p-4 text-left hover:border-brand-purple/30 hover:shadow-sm transition-all group ${
+                  aiPickerOpen === item.key ? 'border-brand-purple/40 shadow-sm' : ''
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-white/80 flex items-center justify-center shadow-sm">
+                    {item.icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-brand-navy">{item.label}</p>
+                    <p className="text-[10px] text-brand-navy-70 mt-0.5 leading-relaxed">{item.desc}</p>
+                  </div>
+                  <svg className="w-4 h-4 text-brand-navy-30 group-hover:text-brand-purple transition-colors flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </button>
+
+              {/* Opportunity picker dropdown */}
+              {aiPickerOpen === item.key && (
+                <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-white border border-brand-navy-30 rounded-xl shadow-lg overflow-hidden">
+                  <div className="p-2 border-b border-brand-navy-30/20">
+                    <div className="relative">
+                      <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-brand-navy-30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                      <input
+                        autoFocus
+                        type="text"
+                        placeholder="Search opportunities..."
+                        value={aiSearch}
+                        onChange={e => setAiSearch(e.target.value)}
+                        className="w-full pl-8 pr-3 py-1.5 text-xs border border-brand-navy-30/60 rounded-lg bg-white focus:outline-none focus:border-brand-purple focus:ring-1 focus:ring-brand-purple/30 placeholder:text-brand-navy-30"
+                      />
+                    </div>
+                  </div>
+                  <div className="max-h-[220px] overflow-y-auto">
+                    {filteredAiOpps.length === 0 ? (
+                      <p className="px-3 py-4 text-xs text-brand-navy-30 text-center">No opportunities found</p>
+                    ) : filteredAiOpps.map(o => (
+                      <button
+                        key={o.id}
+                        onClick={() => openAiFeature(o.id, item.key)}
+                        className="w-full text-left px-3 py-2.5 text-xs hover:bg-brand-purple-30/30 transition-colors border-b border-brand-navy-30/10 last:border-0 flex items-center gap-3"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="text-brand-navy font-medium truncate">{o.name}</p>
+                          <p className="text-brand-navy-70 text-[10px] truncate">{o.account_name} &middot; {o.stage}</p>
+                        </div>
+                        {o.arr != null && (
+                          <span className="text-[10px] text-brand-navy-70 flex-shrink-0">
+                            ${(o.arr / 1000).toFixed(0)}k
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
         {/* Two-column layout */}
         <div className="grid grid-cols-2 gap-6">
 
@@ -198,7 +360,7 @@ export default function HomePage() {
                       : due.text === 'Due today' ? 'bg-status-warning ring-status-warning/20'
                       : 'bg-blue-400 ring-blue-400/20';
                     return (
-                      <div key={t.id} onClick={() => setSelectedOppId(t.opportunity_id)} className="px-5 py-3 hover:bg-brand-purple-30/20 cursor-pointer transition-colors">
+                      <div key={t.id} onClick={() => openOpp(t.opportunity_id)} className="px-5 py-3 hover:bg-brand-purple-30/20 cursor-pointer transition-colors">
                         <div className="flex items-start gap-3">
                           <span className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ring-2 ${dotColor}`} />
                           <div className="flex-1 min-w-0">
@@ -233,7 +395,7 @@ export default function HomePage() {
               ) : (
                 <div className="divide-y divide-brand-navy-30/15">
                   {data.poc_alerts.map(p => (
-                    <div key={p.id} onClick={() => setSelectedOppId(p.id)} className="px-5 py-3 hover:bg-brand-purple-30/20 cursor-pointer transition-colors">
+                    <div key={p.id} onClick={() => openOpp(p.id)} className="px-5 py-3 hover:bg-brand-purple-30/20 cursor-pointer transition-colors">
                       <div className="flex items-start gap-3">
                         <span className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ring-2 ${p.days_remaining <= 0 ? 'bg-status-overdue ring-status-overdue/20' : p.days_remaining <= 3 ? 'bg-status-warning ring-status-warning/20' : 'bg-brand-purple ring-brand-purple/20'}`} />
                         <div className="flex-1 min-w-0">
@@ -267,7 +429,7 @@ export default function HomePage() {
                   {data.stale_deals.map(d => {
                     const daysSince = d.last_activity_at ? Math.floor((Date.now() - new Date(d.last_activity_at).getTime()) / 86400000) : null;
                     return (
-                      <div key={d.id} onClick={() => setSelectedOppId(d.id)} className="px-5 py-3 hover:bg-brand-purple-30/20 cursor-pointer transition-colors">
+                      <div key={d.id} onClick={() => openOpp(d.id)} className="px-5 py-3 hover:bg-brand-purple-30/20 cursor-pointer transition-colors">
                         <div className="flex items-start gap-3">
                           <span className="mt-1 w-2 h-2 rounded-full bg-brand-navy-30 flex-shrink-0 ring-2 ring-brand-navy-30/20" />
                           <div className="flex-1 min-w-0">
@@ -303,7 +465,7 @@ export default function HomePage() {
                   {data.recent_activity.slice(0, 6).map((a, i) => {
                     const initials = a.actor_name ? a.actor_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : '';
                     return (
-                      <div key={i} onClick={() => setSelectedOppId(a.opportunity_id)} className="px-5 py-3 hover:bg-brand-purple-30/20 cursor-pointer transition-colors">
+                      <div key={i} onClick={() => openOpp(a.opportunity_id)} className="px-5 py-3 hover:bg-brand-purple-30/20 cursor-pointer transition-colors">
                         <div className="flex items-start gap-3">
                           {a.activity_type === 'note' && (
                             <div className="mt-0.5 w-6 h-6 rounded-full bg-brand-purple flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0">{initials}</div>
@@ -350,7 +512,7 @@ export default function HomePage() {
               >
                 <div className="divide-y divide-brand-navy-30/15">
                   {data.closed_lost.map(cl => (
-                    <div key={cl.id} onClick={() => setSelectedOppId(cl.id)} className="px-5 py-3 hover:bg-brand-purple-30/20 cursor-pointer transition-colors">
+                    <div key={cl.id} onClick={() => openOpp(cl.id)} className="px-5 py-3 hover:bg-brand-purple-30/20 cursor-pointer transition-colors">
                       <div className="flex items-start gap-3">
                         <span className="mt-1 w-2 h-2 rounded-full bg-brand-pink flex-shrink-0 ring-2 ring-brand-pink/20" />
                         <div className="flex-1 min-w-0">
@@ -388,7 +550,7 @@ export default function HomePage() {
                       ? { text: 'Next Step', cls: 'text-brand-purple bg-brand-purple-30/50' }
                       : null;
                     return (
-                      <div key={i} onClick={() => setSelectedOppId(ev.opportunity_id)} className="px-5 py-3 hover:bg-brand-purple-30/20 cursor-pointer transition-colors">
+                      <div key={i} onClick={() => openOpp(ev.opportunity_id)} className="px-5 py-3 hover:bg-brand-purple-30/20 cursor-pointer transition-colors">
                         <div className="flex items-center gap-3">
                           <span className="text-[10px] font-semibold text-brand-navy-70 w-12 flex-shrink-0">{formatEventDate(ev.event_date)}</span>
                           <div className="flex-1 min-w-0">
@@ -410,8 +572,14 @@ export default function HomePage() {
       </div>
 
       {/* Opportunity Drawer */}
-      <Drawer open={selectedOppId !== null} onClose={() => setSelectedOppId(null)}>
-        {selectedOppId && <OpportunityDetail oppId={selectedOppId} />}
+      <Drawer open={selectedOppId !== null} onClose={handleCloseDrawer}>
+        {selectedOppId && (
+          <OpportunityDetail
+            oppId={selectedOppId}
+            initialTab={drawerInitialTab}
+            initialAction={drawerInitialAction}
+          />
+        )}
       </Drawer>
     </div>
   );

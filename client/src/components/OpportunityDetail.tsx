@@ -150,9 +150,11 @@ function MeddpiccPill({ opp, onClick }: { opp: Opportunity; onClick?: () => void
 interface Props {
   oppId: number;
   onRefreshList?: () => void;
+  initialTab?: 'work' | 'timeline' | 'call-prep' | 'deal-info';
+  initialAction?: 'summary' | 'notes-processor';
 }
 
-export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
+export default function OpportunityDetail({ oppId, onRefreshList, initialTab, initialAction }: Props) {
   const { user } = useAuthStore();
   const [opp, setOpp] = useState<Opportunity | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
@@ -161,7 +163,7 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
   const [showAddTask, setShowAddTask] = useState(false);
   const [showAddNote, setShowAddNote] = useState(false);
   const [assigningOwner, setAssigningOwner] = useState(false);
-  const [activeTab, setActiveTab] = useState<'work' | 'timeline' | 'call-prep' | 'deal-info'>('work');
+  const [activeTab, setActiveTab] = useState<'work' | 'timeline' | 'call-prep' | 'deal-info'>(initialTab ?? 'work');
   const [scrollToSection, setScrollToSection] = useState<string | null>(null);
 
   const [summary, setSummary] = useState<string | null>(null);
@@ -197,6 +199,16 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
 
   useEffect(() => { initialLoadDone.current = false; reload(); }, [reload]);
   useEffect(() => { track('open', 'opportunity', oppId); }, [oppId]);
+
+  // Trigger initial action (summary or notes processor) after first load
+  const initialActionFired = useRef(false);
+  useEffect(() => {
+    if (!initialAction || initialActionFired.current || !opp || loading) return;
+    initialActionFired.current = true;
+    if (initialAction === 'summary') handleGetSummary();
+    if (initialAction === 'notes-processor') setShowNotesModal(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialAction, opp, loading]);
 
   async function handleTaskStatusChange(id: number, status: Task['status']) {
     await updateTask(id, { status });
