@@ -68,6 +68,36 @@ function highlightBold(text: string): React.ReactNode {
   );
 }
 
+const CSV_BADGE = <span className="inline-flex items-center gap-px text-[8px] font-bold bg-emerald-600 text-white px-1 py-px rounded align-middle mx-0.5 leading-none"><svg className="w-1.5 h-1.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>CSV</span>;
+const DIFF_BADGE = <span className="inline-flex items-center gap-px text-[8px] font-bold bg-blue-600 text-white px-1 py-px rounded align-middle mx-0.5 leading-none">DIFF</span>;
+
+/** Like highlightBold, but also injects CSV/DIFF badges next to recognized entity names */
+function renderBriefText(text: string, customerNames: string[], diffNames: string[]): React.ReactNode {
+  const parts = text.split(/\*\*(.+?)\*\*/g);
+  if (parts.length === 1) return text;
+
+  // Lowercase sets for matching
+  const customerLower = customerNames.map(n => n.toLowerCase());
+  const diffLower = diffNames.map(n => n.toLowerCase());
+
+  return parts.map((part, i) => {
+    if (i % 2 === 0) return <React.Fragment key={i}>{part}</React.Fragment>; // plain text
+
+    // Bold segment — check if it matches a known entity
+    const lower = part.toLowerCase();
+    const isCustomer = customerLower.some(c => lower.includes(c) || c.includes(lower));
+    const isDiff = diffLower.some(d => lower.includes(d) || d.includes(lower));
+
+    if (isCustomer) {
+      return <React.Fragment key={i}>{CSV_BADGE}<strong className="text-brand-navy font-semibold">{part}</strong></React.Fragment>;
+    }
+    if (isDiff) {
+      return <React.Fragment key={i}>{DIFF_BADGE}<strong className="text-brand-navy font-semibold">{part}</strong></React.Fragment>;
+    }
+    return <strong key={i} className="text-brand-navy font-semibold">{part}</strong>;
+  });
+}
+
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
@@ -229,11 +259,24 @@ export default function CallPrepTab({ oppId }: { oppId: number }) {
           </div>
 
           {/* Brief content */}
+          {(() => {
+            // Collect entity names for inline badge detection
+            const csvNames = [
+              ...data.proof_points.map(pp => pp.customer_name),
+              ...(data.brief.proof_point_highlights?.map(h => h.customer) ?? []),
+            ].filter((v, i, a) => a.indexOf(v) === i); // dedupe
+            const diffNames = [
+              ...data.differentiators.map(d => d.name),
+              ...(data.brief.differentiator_plays?.map(d => d.name) ?? []),
+            ].filter((v, i, a) => a.indexOf(v) === i);
+            const render = (text: string) => renderBriefText(text, csvNames, diffNames);
+
+            return (
           <div className="space-y-4 text-[13px] text-brand-navy leading-relaxed">
             {/* Deal Context — always visible */}
             <div>
               <h4 className="text-[11px] uppercase tracking-wider text-brand-navy-70 font-semibold mb-1.5">Deal Context</h4>
-              <p>{highlightBold(data.brief.deal_context)}</p>
+              <p>{render(data.brief.deal_context)}</p>
             </div>
 
             {/* Talking Points — collapsible */}
@@ -247,7 +290,7 @@ export default function CallPrepTab({ oppId }: { oppId: number }) {
                 {data.brief.talking_points.map((tp, i) => (
                   <li key={i} className="flex items-start gap-2">
                     <span className="text-brand-purple mt-0.5 text-xs">&#9679;</span>
-                    <span>{highlightBold(tp)}</span>
+                    <span>{render(tp)}</span>
                   </li>
                 ))}
               </ul>
@@ -264,7 +307,7 @@ export default function CallPrepTab({ oppId }: { oppId: number }) {
                 {data.brief.risks.map((r, i) => (
                   <li key={i} className="flex items-start gap-2">
                     <span className={`mt-0.5 text-xs ${r.severity === 'high' ? 'text-status-overdue' : 'text-status-warning'}`}>&#9679;</span>
-                    <span>{highlightBold(r.text)}</span>
+                    <span>{render(r.text)}</span>
                   </li>
                 ))}
               </ul>
@@ -279,11 +322,13 @@ export default function CallPrepTab({ oppId }: { oppId: number }) {
               </summary>
               <ol className="mt-1.5 space-y-1.5 list-decimal list-inside text-brand-navy-70">
                 {data.brief.discovery_questions.map((q, i) => (
-                  <li key={i}>{highlightBold(q)}</li>
+                  <li key={i}>{render(q)}</li>
                 ))}
               </ol>
             </details>
           </div>
+            );
+          })()}
         </div>
       ) : noProducts ? (
         /* Empty state — no products */
@@ -307,7 +352,7 @@ export default function CallPrepTab({ oppId }: { oppId: number }) {
           <div className="flex items-center gap-2 mb-3">
             <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-emerald-600 text-white px-2 py-0.5 rounded">
               <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-              CSP
+              CSV
             </span>
             <h3 className="text-sm font-semibold text-brand-navy">Customer Stories to Mention</h3>
             <span className="text-[10px] bg-brand-purple-30 text-brand-purple px-2 py-0.5 rounded-full font-medium">AI-selected</span>
@@ -332,7 +377,7 @@ export default function CallPrepTab({ oppId }: { oppId: number }) {
                     <div className="flex items-center gap-2">
                       <span className="inline-flex items-center gap-0.5 text-[9px] font-bold bg-emerald-600 text-white px-1.5 py-0.5 rounded">
                         <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                        CSP
+                        CSV
                       </span>
                       <span className="text-[13px] font-semibold text-brand-navy">{h.customer}</span>
                       {dbPP && dbPP.products.map(p => (
@@ -400,7 +445,7 @@ export default function CallPrepTab({ oppId }: { oppId: number }) {
                     {/* Linked proof point */}
                     {dp.backed_by && (
                       <div className="flex items-center gap-2 rounded bg-white border border-brand-navy-30/30 px-2.5 py-1.5 text-[11px]">
-                        <span className="inline-flex items-center gap-0.5 text-[8px] font-bold bg-emerald-600 text-white px-1 py-px rounded flex-shrink-0">CSP</span>
+                        <span className="inline-flex items-center gap-0.5 text-[8px] font-bold bg-emerald-600 text-white px-1 py-px rounded flex-shrink-0">CSV</span>
                         <span className="text-brand-navy-70">Backed by:</span>
                         <span className="text-brand-navy font-medium">{dp.backed_by}</span>
                       </div>
@@ -435,7 +480,7 @@ export default function CallPrepTab({ oppId }: { oppId: number }) {
                     <div className="flex items-center gap-2">
                       <span className="inline-flex items-center gap-0.5 text-[9px] font-bold bg-emerald-600 text-white px-1.5 py-0.5 rounded">
                         <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                        CSP
+                        CSV
                       </span>
                       <span className="text-[13px] font-medium text-brand-navy">{pp.customer_name}</span>
                       <span className={`text-[10px] ${m.color} px-1.5 py-0.5 rounded font-medium`}>{m.label}</span>
