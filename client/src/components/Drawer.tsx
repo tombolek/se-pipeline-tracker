@@ -34,10 +34,10 @@ export default function Drawer({ open, onClose, children }: Props) {
           open ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
-        {/* Close button */}
+        {/* Close button — top-left corner to avoid header button overlap */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-10 w-7 h-7 rounded-full bg-brand-navy-30/50 hover:bg-brand-navy-30 flex items-center justify-center text-brand-navy-70 hover:text-brand-navy transition-colors"
+          className="absolute top-3 left-3 z-10 w-7 h-7 rounded-full bg-brand-navy-30/50 hover:bg-brand-navy-30 flex items-center justify-center text-brand-navy-70 hover:text-brand-navy transition-colors"
           aria-label="Close"
         >
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>

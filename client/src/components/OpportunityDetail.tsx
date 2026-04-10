@@ -294,8 +294,8 @@ export default function OpportunityDetail({ oppId, onRefreshList }: Props) {
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-[#F5F5F7] relative">
 
-        {/* Compact header */}
-        <div className="px-5 pt-4 pb-3 bg-white border-b border-brand-navy-30/30 flex-shrink-0">
+        {/* Compact header — pl-12 leaves space for Drawer close button */}
+        <div className="pl-12 pr-5 pt-4 pb-3 bg-white border-b border-brand-navy-30/30 flex-shrink-0">
           {/* Row 1: Title + badges + Summarize */}
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
