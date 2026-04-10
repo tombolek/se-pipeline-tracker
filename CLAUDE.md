@@ -5,9 +5,9 @@
 
 ## 1. What We're Building
 
-A browser-based tool for an SE Manager and their team to track tasks, next steps, and activity against Salesforce opportunities. Salesforce is the source of deal data (read-only, imported via CSV). Everything else — tasks, notes, assignments — lives natively in this tool.
+A full SE team workspace with AI-powered deal coaching, pre-call briefs, meeting notes processing, and a daily digest — built around Salesforce opportunity data. Salesforce is the source of deal data (read-only, imported via CSV). Everything else — tasks, notes, call prep, AI coaching, assignments — lives natively in this tool.
 
-**The problem it solves:** SEs and their manager need a focused, fast workspace to manage deal-level activity without living inside Salesforce. It should surface what needs attention, who owns what, and what's falling through the cracks.
+**The problem it solves:** SEs and their manager need a focused, fast workspace to manage deal-level activity, prepare for customer calls, and get AI-driven deal insights without living inside Salesforce. It should surface what needs attention, who owns what, what's falling through the cracks, and coach SEs on MEDDPICC gaps.
 
 ---
 
@@ -33,7 +33,7 @@ Everyone sees everything. Manager has extra controls on top.
 | Backend | Node.js + Express | Lightweight, containerizes trivially |
 | Database | PostgreSQL (via Docker) | Production-grade, migrates directly to AWS RDS or Azure DB |
 | Auth | JWT + bcrypt | Stateless sessions, provider-agnostic (Google SSO slot built in) |
-| AI Summaries | Anthropic Claude API (`claude-sonnet-4-20250514`) | Same API key as Claude Code |
+| AI | Anthropic Claude API (`claude-sonnet-4-6`) | AI Summary, MEDDPICC Coach, Call Prep, Meeting Notes Processor, Tech Blockers insights. Server uses `@anthropic-ai/sdk` v0.32.1 |
 | Containers | Docker + Docker Compose | One command to start everything; same containers go to cloud |
 | Version Control | Git + GitHub (private repo) | Standard |
 
@@ -396,18 +396,26 @@ PATCH  /users/me/preferences             body: { show_qualify: true|false }
 - Still allows viewing notes and tasks on the closed opportunity (read-only)
 
 ### Opportunity Detail (`/opportunities/:id`)
-- Header: SF data (read-only) — name, account, stage, ARR, close date, AE owner, team, SE owner, deploy mode, PoC status, competitors
-- **Right column — SF fields (all collapsible, click to expand/collapse):**
-  - Deal info section (always visible, not collapsible): AE owner, team, stage, record type, ARR, close date, deploy mode, PoC status, competitors
-  - **Next Step** — expanded by default
-  - **Manager Comments** — collapsed by default
-  - **SE Comments** — expanded by default; freshness badge visible in header even when collapsed: green (≤7d), amber (8–21d), red (21d+). Freshness is based on `se_comments_updated_at` — set on import when the field value changes
-  - **Technical Blockers / Risk** — collapsed by default; placeholder message shown until field arrives in SF export (auto-populates from `sf_raw_fields` on next import, no code change needed)
-- **Left column — working area:**
-  - Next Steps section (is_next_step = true tasks, shown prominently at top)
-  - Tasks section — full list, add/edit/complete
-  - Notes section — chronological, append-only, with author + timestamp
-- **AI Summary button** in header — triggers Claude API using opportunity metadata + all tasks + all notes + SE comments as context
+- **Full-width layout with 4 tabs:** Work, Timeline, Call Prep, Deal Info
+- **Header area** (always visible above tabs):
+  - SF data (read-only) — name, account (clickable → Account History panel), stage, ARR, close date, AE owner, team, SE owner, deploy mode, PoC status, competitors
+  - **AI Summary** — collapsible, persisted open/closed state, freshness indicator showing when last generated
+  - **MEDDPICC Gap Coach** — collapsible, persisted open/closed state, AI-powered analysis of MEDDPICC field gaps with coaching recommendations
+- **Work tab:** Next Steps (is_next_step = true, shown prominently), Tasks (full list, add/edit/complete), Notes (chronological, append-only, with author + timestamp)
+- **Timeline tab:** Chronological activity feed for the opportunity (OpportunityTimeline component)
+- **Call Prep tab:** AI-powered pre-call brief generation with PDF export, uses knowledge base files from `kb/` directory
+- **Deal Info tab:** Read-only SF fields — deal info, Next Step, Manager Comments, SE Comments (with freshness badge), Technical Blockers/Risk, MEDDPICC fields, partner info, PoC details
+- **Account History panel:** Click account name in header to open a slide-out panel showing all opportunities and activity for that account (AccountTimelinePanel)
+- **Meeting Notes Processor:** Modal to paste or upload meeting notes; AI extracts action items, key decisions, and follow-ups, then creates tasks and notes on the opportunity
+
+### Home / Daily Digest (`/`)
+- Landing page with a personalized daily digest for the logged-in user
+- Upcoming meetings/calls, overdue tasks, deals needing attention, recent activity summary
+- AI-generated insights on pipeline health and priority actions
+
+### My Pipeline (`/my-pipeline`)
+- Filtered view showing only opportunities assigned to the current SE
+- Quick access to deal status, upcoming tasks, and call prep for owned deals
 
 ### My Tasks (`/my-tasks`)
 - All open/in-progress tasks assigned to logged-in user, across all opportunities
@@ -561,9 +569,8 @@ Load Poppins via Google Fonts in `index.html`:
 
 ### 8.6 Layout Decisions
 - **Navigation:** collapsible sidebar (Linear/Notion style), `#1A0C42` navy background, `#6A2CF5` active indicator
-- **Pipeline view:** split view — opportunity list left (~340px), detail panel right. Selecting a row loads detail inline without navigation
-- **Opportunity detail:** two-column within the detail panel — left column is the working area (next steps, tasks, notes); right column is read-only SF data (240px)
-- **SF right column fields in order:** Deal info (always visible) → Next Step (expanded) → Manager Comments (collapsed) → SE Comments (expanded, freshness badge in header) → Technical Blockers/Risk (collapsed, placeholder until field arrives in export)
+- **Pipeline view:** list view with a **slide-out drawer** for opportunity quick-view. Clicking a row opens a drawer from the right; clicking the opportunity name navigates to the full detail page
+- **Opportunity detail:** **full-width layout with 4 tabs** (Work, Timeline, Call Prep, Deal Info). AI Summary and MEDDPICC Gap Coach are in the header area above tabs (both collapsible, state persisted). No right column for SF data — Deal Info is now its own tab
 - **Closed Lost nav item** shows a pink dot badge with unread count (iOS-style)
 - **Quick-capture modal** triggered by `Cmd/Ctrl+K` from anywhere and by `+` button pinned at top of sidebar
 
@@ -571,7 +578,9 @@ Load Poppins via Google Fonts in `index.html`:
 Sidebar (always visible):
   [+] Quick capture  (Cmd/Ctrl+K)
   ──────────────────
+  - Home / Daily Digest
   - Pipeline
+  - My Pipeline
   - Closed Lost      ← pink dot badge (unread count)
   - My Tasks
   - Inbox            ← grey count badge (unresolved items)
@@ -582,9 +591,12 @@ Sidebar (always visible):
     Missing Notes
     Team Workload
     Overdue Tasks
+    Weekly Digest
+    Team Tasks
   Settings
     Users
     Import History
+    Deal Info Config
 ```
 
 ---
@@ -596,7 +608,20 @@ se-pipeline-tracker/
 ├── client/                  # React + TypeScript + Vite
 │   ├── src/
 │   │   ├── components/      # Shared UI components
+│   │   │   ├── CallPrepTab.tsx
+│   │   │   ├── MeetingNotesModal.tsx
+│   │   │   ├── AccountTimelinePanel.tsx
+│   │   │   ├── OpportunityTimeline.tsx
+│   │   │   └── opportunity/
+│   │   │       └── DealInfoTab.tsx
 │   │   ├── pages/           # Route-level page components
+│   │   │   ├── HomePage.tsx
+│   │   │   ├── MyPipelinePage.tsx
+│   │   │   ├── insights/
+│   │   │   │   ├── WeeklyDigestPage.tsx
+│   │   │   │   └── TeamTasksPage.tsx
+│   │   │   └── settings/
+│   │   │       └── DealInfoConfigPage.tsx
 │   │   ├── hooks/           # Custom React hooks
 │   │   ├── api/             # Axios client + typed API functions
 │   │   ├── store/           # Auth state (Context or Zustand)
@@ -604,12 +629,14 @@ se-pipeline-tracker/
 ├── server/                  # Node.js + Express + TypeScript
 │   ├── src/
 │   │   ├── routes/          # Express route handlers
+│   │   │   └── settings.ts  # Settings/config routes
 │   │   ├── middleware/       # Auth, error handling
 │   │   ├── services/        # Business logic (import, AI, insights)
 │   │   ├── db/              # PostgreSQL client + query helpers
 │   │   └── types/
 │   ├── migrations/          # SQL migration files (numbered)
 │   └── scripts/             # seed.ts, etc.
+├── kb/                      # Knowledge base files for Call Prep AI
 ├── docker-compose.yml
 ├── .env.example             # Committed — placeholder values only
 ├── .env                     # NOT committed — real values
@@ -620,7 +647,9 @@ se-pipeline-tracker/
 
 ## 10. Build Order for Claude Code
 
-Work in this sequence. Don't skip ahead — each step depends on the previous being tested.
+> **Note:** This was the original build order. The app is now fully built. For new feature work, the current workflow is: edit code → TypeScript check → commit with scope tag → push → deploy.
+
+Original build sequence (kept for reference). Each step depended on the previous being tested.
 
 1. **Environment check** — verify WSL2, Docker, Node versions
 2. **Project scaffold** — create directory structure, git init, push to GitHub
@@ -732,6 +761,9 @@ After CDK deploy, always run a full or server-only deploy so EC2's `.env.prod` p
 - **Never run `npm install` on Windows** for the client — the `rolldown` native binding is platform-specific; it must be installed in WSL (`wsl -e bash -ic 'cd /mnt/c/... && npm install'`)
 - **Never skip the `export PATH="$HOME/bin:$PATH"` prefix** in WSL commands — non-interactive WSL shells don't load `~/.bashrc`, so `aws` won't be found otherwise
 - **No GitHub Actions, no webhooks** — there is intentionally no automated CI. Commit → push → deploy manually.
+- **Every commit message must include a deploy scope tag:** `[fe]`, `[be]`, `[fe+be]`, or `[infra]` — this indicates what changed and which deploy mode to use
+- **TypeScript checking:** `npx tsc` doesn't work in this environment. Use an inline node script instead: `node -e "const ts = require('typescript'); ..."` from the `client/` directory
+- **Anthropic SDK version:** The server uses `@anthropic-ai/sdk` v0.32.1 (older version) — check API compatibility before using newer SDK features
 
 ### Changelog
 
@@ -758,22 +790,24 @@ Add new entries at the top, under `## [Unreleased]` if the date isn't known yet,
 ### After any validated feature
 
 Always commit, push, and deploy without being asked. The sequence is:
-1. `git add <files> && git commit -m "..."`
+1. `git add <files> && git commit -m "[fe] ..."` (use `[fe]`, `[be]`, `[fe+be]`, or `[infra]` tag)
 2. `git push origin master`
 3. Run the appropriate deploy command above (frontend-only if only client changed, full if server changed)
 
 ---
 
-## 14. Future Roadmap (Out of Scope for v1)
+## 14. Future Roadmap
 
-Keep these in mind so v1 architecture doesn't accidentally block them:
+### Completed (originally planned for later)
+- ✅ **Export to PDF** — Call Prep PDF export is implemented
+- ✅ **Calendar drag-and-drop** — done
 
+### Still Pending
 - **Slack notifications** — overdue tasks, stage changes. Needs: notification service module + Slack bot token
 - **Google SSO** — Ataccama Google Workspace. Needs: OAuth2 provider swap in auth layer (slot already exists in JWT architecture)
 - **Automated SF import** — Cowork or scheduled script POSTs CSV to import endpoint (endpoint already designed to accept this)
 - **Mobile layout** — Tailwind breakpoints from day 1 means this is just CSS work
 - **Email notifications**
-- **Export to CSV / PDF**
 - **AE read-only access**
 - **Sales leadership dashboard**
 

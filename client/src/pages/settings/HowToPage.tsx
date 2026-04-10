@@ -2,8 +2,10 @@
 // ── Section IDs (used for ToC anchors) ───────────────────────────────────────
 const SECTIONS = [
   { id: 'pipeline',    label: 'Pipeline' },
+  { id: 'home',        label: 'Home / Daily Digest' },
   { id: 'closed-lost', label: 'Closed Lost' },
   { id: 'my-tasks',    label: 'My Tasks' },
+  { id: 'my-pipeline', label: 'My Pipeline' },
   { id: 'calendar',    label: 'Calendar' },
   { id: 'inbox',       label: 'Inbox & Quick Capture' },
   { id: 'se-mapping',  label: 'SE Deal Mapping' },
@@ -12,6 +14,7 @@ const SECTIONS = [
   { id: 'insights',    label: 'Insights (Manager)' },
   { id: 'settings',    label: 'Settings (Manager)' },
   { id: 'audit',       label: 'Audit (Manager)' },
+  { id: 'ai-features', label: 'AI Features' },
 ];
 
 // ── Layout components ────────────────────────────────────────────────────────
@@ -180,15 +183,46 @@ export default function HowToPage() {
       <P>Hover over the score in the pipeline list to see a tooltip with the exact breakdown. In the opportunity detail, click the health bar to expand the full factor list with explanations. Use the <strong>At-risk only</strong> filter button in the pipeline to instantly surface all Red and Amber deals.</P>
 
       <SubTitle>Opportunity detail</SubTitle>
-      <P>Click any row to open the detail side panel. It has two columns:</P>
-      <Ul>
-        <Li><strong>Left</strong> — working area: Next Steps, Tasks, and Notes. This is where you add and complete work.</Li>
-        <Li><strong>Right</strong> — read-only Salesforce fields: Deal Info, Next Step (SF), Manager Comments, SE Comments, Technical Blockers. Drag the divider between the two columns to resize.</Li>
-      </Ul>
-      <P>The <strong>AI Summary</strong> button generates a short briefing from the opportunity metadata, tasks, notes, and SE comments.</P>
+      <P>Click any row to open the detail side panel. The header shows the opportunity name, account name (clickable to open Account History), current stage, ARR, close date, a <Badge color="green">Health score</Badge> pill, a <Badge color="purple">MEDDPICC score</Badge> pill, a Coach lightbulb button, and a Summarize button.</P>
 
-      {/* ── 2. Closed Lost ── */}
-      <SectionTitle id="closed-lost">2. Closed Lost</SectionTitle>
+      <P><strong>AI Summary</strong> — a collapsible panel below the header. Shows a freshness indicator (e.g. "Generated 2h ago"). The summary is persisted server-side and can be regenerated on demand with the Regenerate button.</P>
+
+      <P><strong>MEDDPICC Gap Coach</strong> — a second collapsible panel below the AI Summary. Shows per-element analysis with Green/Amber/Red ratings, evidence, gaps, and suggested discovery questions.</P>
+
+      <P>The detail view has <strong>4 tabs</strong>:</P>
+      <Ul>
+        <Li><strong>Work</strong> — tasks, notes, and the Meeting Notes Processor (paste raw call notes and let AI extract structured outputs).</Li>
+        <Li><strong>Timeline</strong> — unified event history across tasks, notes, stage changes, and SF field updates in chronological order.</Li>
+        <Li><strong>Call Prep</strong> — AI-generated pre-call brief with talking points, risk areas, questions, customer stories, and differentiator plays. Includes a PDF export button.</Li>
+        <Li><strong>Deal Info</strong> — configurable Salesforce fields (layout managed in Settings), MEDDPICC scores with an "Show AI notes" toggle to display inline AI analysis per element.</Li>
+      </Ul>
+
+      {/* ── 2. Home / Daily Digest ── */}
+      <SectionTitle id="home">2. Home / Daily Digest</SectionTitle>
+      <RoleTag role="all" />
+      <P>The Home page (<code>/home</code>) is a personalised SE dashboard — your landing page when you log in.</P>
+
+      <SubTitle>Summary KPI cards</SubTitle>
+      <P>At the top of the page, KPI cards show key metrics for your pipeline. Use the <strong>7d / 14d / 30d</strong> toggle to change the time window for all cards at once.</P>
+
+      <SubTitle>Sections</SubTitle>
+      <Ul>
+        <Li><strong>Today's Tasks</strong> — tasks due today or overdue, with quick-complete checkboxes.</Li>
+        <Li><strong>PoC Alerts</strong> — PoCs approaching or past their end date that need attention.</Li>
+        <Li><strong>Recent Activity</strong> — latest notes, task completions, and stage changes across your deals.</Li>
+        <Li><strong>Stale Deals</strong> — opportunities with no activity in the last 14+ days, sorted by staleness.</Li>
+      </Ul>
+
+      <SubTitle>AI Quick Links</SubTitle>
+      <P>Three shortcut buttons let you search for any opportunity and immediately open a drawer with the selected AI feature activated:</P>
+      <Ul>
+        <Li><strong>Pre-Call Brief</strong> — generates a call preparation brief for the selected opportunity.</Li>
+        <Li><strong>Process Call Notes</strong> — opens the Meeting Notes Processor for the selected opportunity.</Li>
+        <Li><strong>Opp Summary</strong> — generates or shows the AI Summary for the selected opportunity.</Li>
+      </Ul>
+
+      {/* ── 3. Closed Lost ── */}
+      <SectionTitle id="closed-lost">3. Closed Lost</SectionTitle>
       <RoleTag role="all" />
       <P>Lists every opportunity that has disappeared from the Salesforce import — meaning the deal was marked Closed Lost in SF.</P>
 
@@ -200,8 +234,8 @@ export default function HowToPage() {
 
       <InfoBox>Tasks and notes on closed-lost opportunities are visible in read-only mode — nothing can be edited once a deal is closed.</InfoBox>
 
-      {/* ── 3. My Tasks ── */}
-      <SectionTitle id="my-tasks">3. My Tasks</SectionTitle>
+      {/* ── 4. My Tasks ── */}
+      <SectionTitle id="my-tasks">4. My Tasks</SectionTitle>
       <RoleTag role="all" />
       <P>All open and in-progress tasks assigned to you, across every opportunity, in one place.</P>
       <Ul>
@@ -210,8 +244,14 @@ export default function HowToPage() {
         <Li>Click an opportunity name to jump straight to its detail view.</Li>
       </Ul>
 
-      {/* ── 4. Calendar ── */}
-      <SectionTitle id="calendar">4. Calendar</SectionTitle>
+      {/* ── 5. My Pipeline ── */}
+      <SectionTitle id="my-pipeline">5. My Pipeline</SectionTitle>
+      <RoleTag role="all" />
+      <P>A personal pipeline view scoped exclusively to your deals. It shows the same columns, filters, and sort options as the global Pipeline, but the SE owner filter is locked to the current user and cannot be changed.</P>
+      <P>Use this when you want a focused view of just your opportunities without the noise of the full team pipeline.</P>
+
+      {/* ── 6. Calendar ── */}
+      <SectionTitle id="calendar">6. Calendar</SectionTitle>
       <RoleTag role="all" />
       <P>A month-by-month calendar view that consolidates upcoming PoC timelines, RFx submission deadlines, and task due dates in one place.</P>
       <Ul>
@@ -222,8 +262,8 @@ export default function HowToPage() {
       </Ul>
       <InfoBox>Use the team scope selector (top-right) to toggle between your own events and the full team view.</InfoBox>
 
-      {/* ── 5. Inbox ── */}
-      <SectionTitle id="inbox">5. Inbox & Quick Capture</SectionTitle>
+      {/* ── 7. Inbox ── */}
+      <SectionTitle id="inbox">7. Inbox & Quick Capture</SectionTitle>
       <RoleTag role="all" />
       <P>A personal scratch pad for capturing thoughts before they're linked to a deal.</P>
 
@@ -238,8 +278,8 @@ export default function HowToPage() {
       <SubTitle>Inbox page</SubTitle>
       <P>Lists all unlinked jots. From here you can link a jot to an opportunity (converting it to a task or note), mark a todo done, or delete it. The sidebar badge counts unresolved items.</P>
 
-      {/* ── 6. SE Mapping ── */}
-      <SectionTitle id="se-mapping">6. SE Deal Mapping</SectionTitle>
+      {/* ── 8. SE Mapping ── */}
+      <SectionTitle id="se-mapping">8. SE Deal Mapping</SectionTitle>
       <RoleTag role="all" />
       <P>A dedicated view for managing which SE owns each opportunity.</P>
 
@@ -276,8 +316,8 @@ export default function HowToPage() {
         <Li><strong>SE buttons</strong> — quickly show All deals, Unassigned deals, or deals for a specific SE.</Li>
       </Ul>
 
-      {/* ── 7. PoC Board ── */}
-      <SectionTitle id="poc-board">7. PoC Board</SectionTitle>
+      {/* ── 9. PoC Board ── */}
+      <SectionTitle id="poc-board">9. PoC Board</SectionTitle>
       <RoleTag role="all" />
       <P>A kanban-style board showing all active opportunities with a PoC status set in Salesforce. Columns correspond to PoC stages (Identified, In Progress, In Deployment, Completed, etc.).</P>
       <Ul>
@@ -288,8 +328,8 @@ export default function HowToPage() {
         <Li>Click any card to open the full opportunity detail.</Li>
       </Ul>
 
-      {/* ── 8. RFx Board ── */}
-      <SectionTitle id="rfx-board">8. RFx Board</SectionTitle>
+      {/* ── 10. RFx Board ── */}
+      <SectionTitle id="rfx-board">10. RFx Board</SectionTitle>
       <RoleTag role="all" />
       <P>Tracks active opportunities with an RFx status (RFP, RFI, RFQ, etc.) from Salesforce.</P>
       <Ul>
@@ -299,8 +339,8 @@ export default function HowToPage() {
         <Li>Click any card or row to open the full opportunity detail.</Li>
       </Ul>
 
-      {/* ── 9. Insights ── */}
-      <SectionTitle id="insights">9. Insights</SectionTitle>
+      {/* ── 11. Insights ── */}
+      <SectionTitle id="insights">11. Insights</SectionTitle>
       <RoleTag role="manager" />
       <P>A set of manager-only intelligence views for spotting issues across the team. Which views appear in the sidebar can be configured via <strong>Settings → Menu Settings</strong>.</P>
 
@@ -328,8 +368,17 @@ export default function HowToPage() {
       <SubTitle>Agentic Qual</SubTitle>
       <P>Lists active opportunities with an Agentic Qualification value set in Salesforce. The <strong>Recently Changed</strong> tab shows field-history changes so you can track how agentic qualification is evolving across the pipeline.</P>
 
-      {/* ── 10. Settings ── */}
-      <SectionTitle id="settings">10. Settings</SectionTitle>
+      <SubTitle>Weekly Pipeline Digest</SubTitle>
+      <P>A manager summary of pipeline changes over a configurable window (<strong>7d / 14d / 30d</strong> toggle). Includes KPI stat cards at the top, followed by collapsible sections for stage progressions, stale deals, active PoCs, at-risk deals (low Health score), and recently closed lost opportunities.</P>
+
+      <SubTitle>Team Tasks</SubTitle>
+      <P>View all tasks across the team in either <strong>Kanban</strong> or <strong>List</strong> layout. Filterable by task status, assignee, and due date. Kanban columns correspond to task statuses (Open, In Progress, Blocked, Done).</P>
+
+      <SubTitle>SE Deal Mapping</SubTitle>
+      <P>Also available under Insights for quick access. This view is available to <strong>all users</strong> (not just managers) and shows the same SE assignment interface described in the SE Deal Mapping section above.</P>
+
+      {/* ── 12. Settings ── */}
+      <SectionTitle id="settings">12. Settings</SectionTitle>
       <RoleTag role="manager" />
 
       <SubTitle>Users</SubTitle>
@@ -374,8 +423,11 @@ export default function HowToPage() {
         <Li><strong>Insights nav</strong> — toggle and reorder the manager Insights views that appear under the collapsible Insights section.</Li>
       </Ul>
 
-      {/* ── 11. Audit ── */}
-      <SectionTitle id="audit">11. Audit</SectionTitle>
+      <SubTitle>Deal Info Layout</SubTitle>
+      <P>Configure which fields and sections appear in the <strong>Deal Info</strong> tab of the opportunity detail panel. Drag sections to reorder them and use toggles to show or hide individual sections. A live preview using real opportunity data updates as you make changes, so you can see exactly what the layout will look like before saving.</P>
+
+      {/* ── 13. Audit ── */}
+      <SectionTitle id="audit">13. Audit</SectionTitle>
       <RoleTag role="manager" />
       <P>Usage analytics and an activity log for the entire team. Accessible from the sidebar (above Settings).</P>
 
@@ -393,6 +445,34 @@ export default function HowToPage() {
         <Li>Expand any row to see a before/after JSON diff of what changed.</Li>
       </Ul>
       <InfoBox>Audit records older than 180 days are automatically purged on server startup.</InfoBox>
+
+      {/* ── 14. AI Features ── */}
+      <SectionTitle id="ai-features">14. AI Features</SectionTitle>
+      <RoleTag role="all" />
+      <P>All AI features are powered by Claude and available to every user. This section documents them in one place.</P>
+
+      <SubTitle>AI Summary</SubTitle>
+      <P>Generates a 3-paragraph briefing from the deal context — opportunity metadata, tasks, notes, SE comments, and MEDDPICC fields. The summary is displayed in a collapsible panel at the top of the opportunity detail and is <strong>persisted server-side</strong> with a freshness indicator (e.g. "Generated 3h ago"). Click <strong>Regenerate</strong> to refresh it with the latest deal data.</P>
+
+      <SubTitle>MEDDPICC Gap Coach</SubTitle>
+      <P>Triggered via the lightbulb button in the opportunity detail header. Analyses all deal context and produces a <Badge color="green">Green</Badge> / <Badge color="amber">Amber</Badge> / <Badge color="red">Red</Badge> rating per MEDDPICC element, along with supporting evidence, identified gaps, and suggested discovery questions. Results are cached server-side to avoid redundant API calls. The same analysis also appears inline in the <strong>Deal Info</strong> tab when you enable the "Show AI notes" toggle next to each MEDDPICC element.</P>
+
+      <SubTitle>Pre-Call Brief</SubTitle>
+      <P>Located in the <strong>Call Prep</strong> tab of the opportunity detail. Generates talking points, risk areas, recommended questions, relevant customer stories, and differentiator plays. Each piece of information is tagged with a source badge — <Badge color="gray">CSV</Badge> (from Salesforce import data), <Badge color="purple">DIFF</Badge> (from recent field changes), or <Badge color="green">KB</Badge> (from the knowledge base) — so you know where the insight comes from. Use the <strong>PDF export</strong> button to download the brief for offline use.</P>
+
+      <SubTitle>Meeting Notes Processor</SubTitle>
+      <P>Available in the <strong>Work</strong> tab of the opportunity detail. Paste raw call notes (with an optional source URL for reference) and Claude extracts structured outputs:</P>
+      <Ul>
+        <Li><strong>Tasks</strong> — action items with suggested assignees and due dates.</Li>
+        <Li><strong>MEDDPICC updates</strong> — new information mapped to the relevant MEDDPICC elements.</Li>
+        <Li><strong>SE comment draft</strong> — a suggested update for the SE Comments field in Salesforce.</Li>
+        <Li><strong>Technical blockers</strong> — any technical risks or blockers mentioned in the call.</Li>
+        <Li><strong>Next steps</strong> — agreed follow-ups and commitments.</Li>
+      </Ul>
+      <P>Each section can be reviewed and confirmed independently — accept the ones that look right, edit or discard the rest.</P>
+
+      <SubTitle>Tech Blockers AI Insights</SubTitle>
+      <P>Available in the <strong>Tech Blockers</strong> Insights view. Generates a Claude-powered summary of technical blockers across the entire pipeline, weighted by severity. Useful for identifying systemic technical issues and prioritising engineering support across deals.</P>
 
       <div className="h-8" />
     </div>

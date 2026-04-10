@@ -107,12 +107,27 @@ This tool pulls deal data from Salesforce via a CSV/XLS export and layers a nati
 
 ### Opportunity Detail (slide-in drawer)
 - Opens from any deal row in Pipeline, Closed Lost, or Insights views
-- Left column (working area): Next Steps (top), Tasks, Notes
-- Right column (read-only SF data): stage, ARR, close date, AE owner, deploy mode, PoC status, competitors
-- Collapsible SF fields: Next Step, Manager Comments, SE Comments (with freshness badge), Technical Blockers
-- **AI Summary** button — calls Claude API with all deal context to produce a one-click summary
-- Inline task creation, editing (pencil icon), status changes, deletion
-- Append-only notes with author and timestamp
+- **Header**: opp name, account name (clickable — opens Account History panel), stage, ARR, close date, "Health" score pill, "MEDDPICC" score pill, lightbulb coach button, Summarize button
+- **AI Summary** — collapsible panel below the header. Shows freshness indicator (green <=3d, amber <=14d, red 14d+). Summary is persisted server-side. Regenerate button to refresh on demand
+- **MEDDPICC Gap Coach** — lightbulb button triggers AI analysis of all 9 MEDDPICC elements (Metrics, Economic Buyer, Decision Criteria, Decision Process, Paper Process, Implicate Pain, Champion, Budget, Authority). Shows Green/Amber/Red per element with evidence, gaps, and suggested discovery questions. Collapsible panel below AI Summary with freshness indicator. Results cached server-side
+- **4 tabs** replacing the previous two-column layout:
+  - **Work** — Next Steps, Tasks, Notes, Meeting Notes Processor (paste raw call notes, AI extracts action items and creates tasks/notes)
+  - **Timeline** — unified reverse-chronological event history (tasks, notes, stage changes, imports, AI summaries)
+  - **Call Prep** — AI-generated pre-call brief with CSV/DIFF/KB source badges, PDF export button, Slack send placeholder
+  - **Deal Info** — configurable layout of SF fields (sections reorderable by manager in Settings). Includes MEDDPICC section with "Show AI notes" toggle that overlays coach insights inline next to each field
+- **Account History panel**: click the account name in the header to see all deals (open and closed) for that account in a side panel
+
+### Home / Daily Digest (`/home`)
+- Landing page shown after login
+- **Summary KPI cards**: ARR moved forward, ARR closed lost, net pipeline change, new qualified deals, stale deals
+- **Period selector**: 7d / 14d / 30d toggle
+- **Sections**: New Qualified Opps, Stage Progressions, Stale Deals, PoCs Started/Ended, Deals Flagged At-Risk, Closed Lost This Period
+- **AI Quick Links**: Pre-Call Brief, Process Call Notes, Opp Summary — each lets you pick an opportunity via search, then opens the drawer with that AI feature activated
+
+### My Pipeline (`/my-pipeline`)
+- Personal pipeline view scoped to the logged-in user's deals
+- Same columns, filters, sort, and column picker as the global Pipeline view
+- SE Owner filter is locked to the current user (cannot be changed)
 
 ### My Tasks (`/my-tasks`)
 - All open tasks assigned to the logged-in user across all deals
@@ -199,6 +214,18 @@ This tool pulls deal data from Salesforce via a CSV/XLS export and layers a nati
 - **Recently Changed tab**: field history for `agentic_qual` with 14/30/60/90d window
 - Filter by SE owner, stage, and text search
 
+#### Team Tasks (`/insights/team-tasks`)
+- Kanban and List views for all tasks across the team
+- Filters: status, assignee, due date, text search
+- Kanban columns map to task statuses (open, in progress, done, blocked)
+- List view with sortable columns
+
+#### Weekly Pipeline Digest (`/insights/weekly-digest`)
+- Manager-facing weekly summary of pipeline activity
+- **Period toggle**: 7d / 14d / 30d
+- **Summary stat cards**: ARR moved forward, ARR closed lost, net pipeline, new qualified, stale deals
+- **Collapsible sections**: Stage Progressions, Stale Deals, PoCs Started/Ended, Deals Flagged At-Risk, Closed Lost This Period
+
 #### SE Deal Mapping (`/insights/se-deal-mapping`)
 - Kanban or table view for assigning/reassigning SE owners across all active opportunities
 - Drag-and-drop between SE columns in kanban view
@@ -229,6 +256,13 @@ This tool pulls deal data from Salesforce via a CSV/XLS export and layers a nati
 - **Deploy button** triggers the server to download the latest GitHub tarball, rebuild the React frontend in-process (npm ci + Vite build) on EC2, upload the built `dist/` to S3, and submit a CloudFront cache invalidation
 - **Live log terminal** auto-polls every 2 seconds and auto-scrolls as build lines arrive
 - **Commit history panel** — lists the 20 most recent GitHub commits with deploy-scope badges (`[fe]`, `[be]`, `[fe+be]`, `[infra]`)
+
+#### Deal Info Layout (`/settings/deal-info-config`)
+- Manager settings page to configure the Deal Info tab layout in Opportunity Detail
+- Sections can be reordered and toggled on/off
+- Individual fields can be added from any SF column available in the opportunities table
+- Configuration stored server-side (applies to all users)
+- **Live preview panel** showing the configured layout with real opportunity data
 
 #### Menu Settings (`/settings/menu-settings`)
 - **Main nav**: toggle visibility and reorder Calendar, SE Mapping, PoC Board, RFx Board
@@ -267,7 +301,7 @@ Manager-only usage analytics and activity log.
 | Database | PostgreSQL 16 | Docker locally; AWS RDS in production |
 | ORM | Raw SQL via `pg` | Parameterized queries throughout — no ORM |
 | Auth | JWT + bcrypt | Stateless sessions |
-| AI | Anthropic Claude API (`claude-sonnet-4-6`) | Opportunity summarization + Tech Blockers analysis |
+| AI | Anthropic Claude API (`claude-sonnet-4-6`) | AI Summary, MEDDPICC Gap Coach, Call Prep, Meeting Notes Processor, Tech Blockers AI Insights |
 | Containerization | Docker + Docker Compose | One-command local start |
 | Hosting | AWS EC2 + CloudFront + S3 | EC2 runs the backend container; S3/CloudFront serves the frontend |
 
@@ -314,13 +348,18 @@ se-pipeline-tracker/
 │       │   ├── Sidebar.tsx          # Nav with collapsible sections, dynamic insights nav
 │       │   ├── Drawer.tsx           # Slide-in panel used by all list views
 │       │   ├── OpportunityDetail.tsx
+│       │   ├── CallPrepTab.tsx         # AI pre-call brief with source badges + PDF export
+│       │   ├── MeetingNotesModal.tsx   # Paste call notes → AI extracts tasks/notes
+│       │   ├── AccountTimelinePanel.tsx # Account History side panel
+│       │   ├── OpportunityTimeline.tsx  # Unified reverse-chronological event history
 │       │   ├── ProtectedRoute.tsx
 │       │   ├── QuickCapture.tsx     # Ctrl+K global modal
 │       │   ├── RowCapture.tsx       # Inline quick-capture on list rows
 │       │   ├── ColumnPicker.tsx     # Reorderable column selector
 │       │   ├── opportunity/
 │       │   │   ├── TaskSection.tsx
-│       │   │   └── NoteSection.tsx
+│       │   │   ├── NoteSection.tsx
+│       │   │   └── DealInfoTab.tsx      # Configurable SF fields layout + MEDDPICC AI overlay
 │       │   └── shared/
 │       │       ├── StageBadge.tsx
 │       │       ├── StatusChip.tsx
@@ -331,7 +370,9 @@ se-pipeline-tracker/
 │       ├── pages/
 │       │   ├── LoginPage.tsx
 │       │   ├── ChangePasswordPage.tsx
+│       │   ├── HomePage.tsx            # Daily Digest landing page
 │       │   ├── PipelinePage.tsx
+│       │   ├── MyPipelinePage.tsx       # Personal pipeline (SE owner locked)
 │       │   ├── ClosedLostPage.tsx
 │       │   ├── MyTasksPage.tsx
 │       │   ├── CalendarPage.tsx     # Month view: PoC timelines, RFx dates, task due dates
@@ -349,6 +390,8 @@ se-pipeline-tracker/
 │       │   │   ├── ClosedLostStatsPage.tsx
 │       │   │   ├── SeDealMappingPage.tsx
 │       │   │   ├── AgenticQualPage.tsx
+│       │   │   ├── WeeklyDigestPage.tsx  # Manager weekly pipeline summary
+│       │   │   ├── TeamTasksPage.tsx     # Kanban + List task views
 │       │   │   └── shared.tsx       # Loading, Empty shared components
 │       │   └── settings/
 │       │       ├── UsersPage.tsx
@@ -357,6 +400,7 @@ se-pipeline-tracker/
 │       │       ├── BackupPage.tsx        # Backup & Restore
 │       │       ├── DeployPage.tsx        # In-app frontend deploy
 │       │       ├── InsightsMenuPage.tsx  # Menu Settings — main nav + insights nav config
+│       │       ├── DealInfoConfigPage.tsx # Deal Info tab layout configuration
 │       │       └── HowToPage.tsx
 │       ├── pages/
 │       │   └── AuditPage.tsx            # Usage stats + activity log (manager only)
@@ -392,7 +436,13 @@ se-pipeline-tracker/
 │   │   ├── 015_add_user_team.sql
 │   │   ├── 016_users_team_to_teams_array.sql
 │   │   ├── 017_add_events_audit_log.sql
-│   │   └── 018_create_deploy_log.sql
+│   │   ├── 018_create_deploy_log.sql
+│   │   ├── 019_create_meeting_notes.sql
+│   │   ├── 020_create_call_prep_cache.sql
+│   │   ├── 021_create_meddpicc_coach_cache.sql
+│   │   ├── 022_create_opportunity_timeline.sql
+│   │   ├── 023_create_weekly_digest_cache.sql
+│   │   └── 024_create_deal_info_config.sql
 │   ├── scripts/
 │   │   ├── migrate.ts
 │   │   ├── seed.ts
@@ -418,8 +468,10 @@ se-pipeline-tracker/
 │           ├── users.ts
 │           ├── backup.ts
 │           ├── deploy.ts
-│           └── audit.ts
+│           ├── audit.ts
+│           └── settings.ts         # Deal Info layout config endpoints
 │
+├── kb/                              # Knowledge base files for Call Prep AI context
 ├── scripts/
 │   └── deploy.sh                    # Full deploy or --server-only to AWS EC2 + S3/CloudFront
 ├── infra/                           # AWS CloudFormation stack definition
