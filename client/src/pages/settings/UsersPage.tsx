@@ -811,19 +811,23 @@ export default function UsersPage() {
 
       {/* Tab nav */}
       <div className="flex gap-1 border-b border-brand-navy-30/40 mb-6">
-        {TABS.map(t => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors border-b-2 -mb-px ${
-              tab === t.id
-                ? 'border-brand-purple text-brand-purple'
-                : 'border-transparent text-brand-navy-70 hover:text-brand-navy'
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
+        {TABS.map(t => {
+          const isActive = tab === t.id;
+          return (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={`relative px-5 py-2 text-xs font-semibold transition-colors rounded-t-lg border border-b-0 ${
+                isActive
+                  ? 'bg-white text-brand-purple border-brand-navy-30/40 z-10'
+                  : 'bg-transparent text-brand-navy-70 border-transparent hover:text-brand-navy hover:bg-white/50'
+              }`}
+              style={isActive ? { marginBottom: '-1px' } : undefined}
+            >
+              {t.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Content */}
