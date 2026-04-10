@@ -123,3 +123,32 @@ export interface ApiResponse<T = unknown> {
   error: string | null;
   meta: Record<string, unknown>;
 }
+
+/* ── Deal Info Config ── */
+export interface DealInfoFieldDef {
+  key: string;
+  label: string;
+  source: 'column' | 'sf_raw';
+  format?: 'arr' | 'date' | 'se_owner' | 'products';
+}
+
+export interface DealInfoSection {
+  id: string;
+  label: string;
+  type: 'grid' | 'collapsible' | 'computed';
+  defaultOpen: boolean;
+  fields?: DealInfoFieldDef[];
+  extras?: string[];
+  visibility?: string;
+}
+
+export interface DealInfoConfig {
+  sections: DealInfoSection[];
+}
+
+export interface AvailableField {
+  key: string;
+  label: string;
+  source: 'column' | 'sf_raw';
+  format?: string;
+}

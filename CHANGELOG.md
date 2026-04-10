@@ -12,8 +12,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - **AI MEDDPICC Gap Coach** — lightbulb button next to the MEDDPICC score pill in Opportunity Detail. Reads all notes, tasks, MEDDPICC fields, and comments, then returns a per-element Green/Amber/Red assessment with specific discovery questions for gaps. Results are cached and auto-cleared on SF import. (Issue #82)
 - **Team Tasks page** — new Insights view (`/insights/team-tasks`) with Kanban (grouped by status) and List (sortable table) views. Filters: status, assignee, due date quick filters (Overdue/Today/This Week), and search. Clicking "Open Tasks" in Team Workload now navigates here filtered to that SE.
 
+- **Deal Info Layout Settings** — new manager settings page (`/settings/deal-info-layout`) to configure which fields and sections appear in the Deal Info tab. Sections can be reordered, toggled between expanded/collapsed default, and fields can be added from all 55+ SF columns or sf_raw_fields. Config stored server-side, applies globally.
+
 ### Changed
 - **Opportunity Detail — full-width tab layout** — removed the 55/45 split layout. SF data now lives in a 4th "Deal Info" tab alongside Work, Timeline, and Call Prep. Tab bar uses a top-border indicator style. MEDDPICC and Health Score header pills are clickable — they navigate to the Deal Info tab and scroll to the relevant section. (Issue #66)
+- **Deal Info tab is now config-driven** — renders sections and fields based on the server-stored layout configuration instead of hardcoded JSX.
 
 ---
 

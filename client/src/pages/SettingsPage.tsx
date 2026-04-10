@@ -6,6 +6,7 @@ import InsightsMenuPage from './settings/InsightsMenuPage';
 import HowToPage from './settings/HowToPage';
 import BackupPage from './settings/BackupPage';
 import DeployPage from './settings/DeployPage';
+import DealInfoConfigPage from './settings/DealInfoConfigPage';
 
 export default function SettingsPage() {
   const { pathname } = useLocation();
@@ -17,6 +18,7 @@ export default function SettingsPage() {
   else if (pathname.includes('how-to'))     content = <HowToPage />;
   else if (pathname.includes('backup'))     content = <BackupPage />;
   else if (pathname.includes('deploy'))     content = <DeployPage />;
+  else if (pathname.includes('deal-info-layout')) content = <DealInfoConfigPage />;
   else                                      content = <UsersPage />;
 
   return (
