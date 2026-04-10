@@ -571,7 +571,7 @@ Include all 9 MEDDPICC elements in the elements array, in this order: metrics, e
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     const response = await client.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 2500,
+      max_tokens: 4096,
       messages: [{ role: 'user', content: prompt }],
     });
     console.log(`[meddpicc-coach] API response received for opp ${id}, stop_reason=${response.stop_reason}`);
