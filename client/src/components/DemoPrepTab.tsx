@@ -66,7 +66,8 @@ const CONFIDENCE_CONFIG = {
 };
 
 /* ── Component ── */
-export default function DemoPrepTab({ oppId, oppName }: { oppId: number; oppName?: string }) {
+export default function DemoPrepTab({ oppId, oppName: _oppName }: { oppId: number; oppName?: string }) {
+  // _oppName reserved for future use (e.g. PDF export header)
   const [data, setData] = useState<DemoPrepResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
