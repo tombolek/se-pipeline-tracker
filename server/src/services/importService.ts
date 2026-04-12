@@ -63,6 +63,7 @@ const COLUMN_MAP: Record<string, string | null> = {
   'poc deployment type':                'poc_deploy_type',
   'rfx status':                         'rfx_status',
   'technical blockers/risk':            'technical_blockers',
+  'forecast category':                  'forecast_category',
   'stage date: qualify':                'stage_date_qualify',
   'stage date: build value':            'stage_date_build_value',
   'stage date: develop solution':       'stage_date_develop_solution',

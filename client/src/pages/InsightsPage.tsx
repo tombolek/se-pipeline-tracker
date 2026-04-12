@@ -14,6 +14,7 @@ import TechBlockersPage from './insights/TechBlockersPage';
 import AgenticQualPage from './insights/AgenticQualPage';
 import WeeklyDigestPage from './insights/WeeklyDigestPage';
 import TeamTasksPage from './insights/TeamTasksPage';
+import ForecastingBriefPage from './insights/ForecastingBriefPage';
 
 function ScopeBar() {
   const { user } = useAuthStore();
@@ -29,6 +30,16 @@ export default function InsightsPage() {
   const { pathname } = useLocation();
 
   // Full-height pages (kanban boards + scroll-managed pages) get their own flex container
+  if (pathname.includes('forecasting-brief')) {
+    return (
+      <div className="flex-1 overflow-hidden bg-[#F5F5F7] flex flex-col relative">
+        <ScopeBar />
+        <div className="flex-1 overflow-hidden flex flex-col">
+          <ForecastingBriefPage />
+        </div>
+      </div>
+    );
+  }
   if (pathname.includes('poc-board')) {
     return (
       <div className="flex-1 overflow-hidden bg-[#F5F5F7] flex flex-col relative">

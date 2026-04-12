@@ -5,6 +5,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ---
 
+## 2026-04-12
+
+### Added
+- **Forecasting Brief** — new manager-only Insights page (`/insights/forecasting-brief`) for SE forecast calls. Two tabs: "Current FQ" with KPI cards (pipeline total, commit+ML, SE engagement health), forecast table with expandable rows showing inline AI summary, SE comments, tech status & MEDDPICC gaps, plus an AI-generated forecast narrative; and "Key Deals" with collapsible deal cards. Expandable rows link to full Opportunity Detail drawer. Thursday stale-comment alerts, Friday auto-refresh of narrative. Includes `forecast_category` DB field + SF import mapping. (Issue #98)
+
 ## [Unreleased]
 
 ### Added

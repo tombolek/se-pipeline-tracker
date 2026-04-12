@@ -1,0 +1,232 @@
+import Anthropic from '@anthropic-ai/sdk';
+import { Router, Request, Response } from 'express';
+import { query, queryOne } from '../db/index.js';
+import { requireAuth, requireManager } from '../middleware/auth.js';
+import { ok, err } from '../types/index.js';
+
+const router = Router();
+const auth = requireAuth as unknown as (req: Request, res: Response, next: () => void) => void;
+const mgr  = requireManager as unknown as (req: Request, res: Response, next: () => void) => void;
+
+// ── MEDDPICC fields for score computation ───────────────────────────────────
+const MEDDPICC_FIELDS = [
+  'metrics', 'economic_buyer', 'decision_criteria', 'decision_process',
+  'paper_process', 'implicate_pain', 'champion', 'authority', 'need',
+];
+
+function computeMeddpiccScore(row: Record<string, unknown>): number {
+  return MEDDPICC_FIELDS.filter(f => row[f] && String(row[f]).trim().length > 0).length;
+}
+
+// ── GET /forecasting-brief?fq=Q2-2026 ──────────────────────────────────────
+router.get('/', auth, mgr, async (req: Request, res: Response): Promise<void> => {
+  let fq = req.query.fq as string | undefined;
+
+  // Default to the most common fiscal_period among active opps
+  if (!fq) {
+    const fqRow = await queryOne(
+      `SELECT fiscal_period, COUNT(*) as cnt
+       FROM opportunities
+       WHERE is_active = true AND is_closed_lost = false AND fiscal_period IS NOT NULL
+       GROUP BY fiscal_period ORDER BY cnt DESC LIMIT 1`
+    );
+    fq = fqRow?.fiscal_period as string || 'Q2-2026';
+  }
+
+  // Fetch all opportunities for this FQ
+  const rows = await query(
+    `SELECT
+       o.id, o.name, o.account_name, o.account_industry,
+       o.arr, o.arr_currency, o.stage, o.stage_changed_at, o.close_date,
+       o.forecast_category, o.record_type, o.team, o.key_deal,
+       o.se_owner_id,
+       u.name AS se_owner_name,
+       o.ae_owner_name,
+       o.se_comments, o.se_comments_updated_at,
+       CASE
+         WHEN o.se_comments_updated_at IS NULL THEN NULL
+         ELSE EXTRACT(DAY FROM now() - o.se_comments_updated_at)::integer
+       END AS se_comments_days_ago,
+       o.next_step_sf, o.technical_blockers, o.poc_status, o.deploy_mode,
+       o.engaged_competitors,
+       o.metrics, o.economic_buyer, o.decision_criteria, o.decision_process,
+       o.paper_process, o.implicate_pain, o.champion, o.authority, o.need, o.budget,
+       COALESCE(
+         (SELECT COUNT(*) FROM tasks t
+          WHERE t.opportunity_id = o.id AND t.is_deleted = false
+            AND t.status IN ('open','in_progress','blocked')
+            AND t.due_date < CURRENT_DATE), 0
+       )::integer AS overdue_task_count,
+       o.products,
+       s.content AS ai_summary,
+       s.generated_at AS ai_summary_generated_at
+     FROM opportunities o
+     LEFT JOIN users u ON u.id = o.se_owner_id
+     LEFT JOIN ai_summary_cache s ON s.key = 'summary-' || o.id::text
+     WHERE o.is_active = true AND o.is_closed_lost = false AND o.fiscal_period = $1
+     ORDER BY
+       CASE o.forecast_category
+         WHEN 'Commit' THEN 1
+         WHEN 'Most Likely' THEN 2
+         WHEN 'Upside' THEN 3
+         WHEN 'Pipeline' THEN 4
+         WHEN 'Omitted' THEN 5
+         ELSE 6
+       END,
+       o.arr DESC NULLS LAST`,
+    [fq]
+  );
+
+  // Compute KPIs from the fetched rows
+  let totalArr = 0, commitArr = 0, mlArr = 0, upsideArr = 0, wonArr = 0;
+  let commitCount = 0, mlCount = 0, upsideCount = 0;
+  let staleCount = 0, unassignedCount = 0, activePocs = 0;
+  let meddpiccSum = 0, meddpiccDenom = 0;
+
+  for (const r of rows) {
+    const arr = parseFloat(String(r.arr ?? '0')) || 0;
+    totalArr += arr;
+    const fc = String(r.forecast_category || '').toLowerCase();
+    if (fc === 'commit') { commitArr += arr; commitCount++; }
+    else if (fc === 'most likely') { mlArr += arr; mlCount++; }
+    else if (fc === 'upside') { upsideArr += arr; upsideCount++; }
+    const daysAgo = r.se_comments_days_ago as number | null | undefined;
+    if (daysAgo != null && daysAgo > 7) staleCount++;
+    else if (r.se_comments_updated_at == null) staleCount++;
+    if (!r.se_owner_id) unassignedCount++;
+    const pocStatus = String(r.poc_status || '');
+    if (pocStatus && pocStatus.toLowerCase().includes('in progress')) activePocs++;
+    // MEDDPICC avg for Commit + Most Likely
+    if (fc === 'commit' || fc === 'most likely') {
+      meddpiccSum += computeMeddpiccScore(r);
+      meddpiccDenom++;
+    }
+  }
+
+  const kpi = {
+    total_arr: totalArr,
+    deal_count: rows.length,
+    commit_arr: commitArr,
+    commit_count: commitCount,
+    most_likely_arr: mlArr,
+    most_likely_count: mlCount,
+    upside_arr: upsideArr,
+    upside_count: upsideCount,
+    won_arr: wonArr,
+    stale_comments_count: staleCount,
+    unassigned_se_count: unassignedCount,
+    active_pocs: activePocs,
+    avg_meddpicc_commit_ml: meddpiccDenom > 0
+      ? Math.round((meddpiccSum / meddpiccDenom) * 10) / 10
+      : 0,
+  };
+
+  // Fetch cached narrative
+  const narrativeRow = await queryOne(
+    `SELECT content, generated_at FROM ai_summary_cache WHERE key = $1`,
+    [`forecast-narrative-${fq}`]
+  );
+  const narrative = narrativeRow
+    ? { content: narrativeRow.content as string, generated_at: (narrativeRow.generated_at as Date).toISOString() }
+    : null;
+
+  res.json(ok({
+    fiscal_period: fq,
+    kpi,
+    opportunities: rows,
+    narrative,
+  }));
+});
+
+// ── POST /forecasting-brief/narrative/generate ──────────────────────────────
+router.post('/narrative/generate', auth, mgr, async (req: Request, res: Response): Promise<void> => {
+  const fq = req.body.fiscal_period as string;
+  if (!fq) { res.status(400).json(err('fiscal_period is required')); return; }
+
+  // Fetch pipeline data for the prompt
+  const rows = await query(
+    `SELECT
+       o.name, o.account_name, o.arr, o.arr_currency, o.stage, o.forecast_category,
+       o.se_comments, o.se_comments_updated_at, o.technical_blockers, o.key_deal,
+       o.poc_status, o.next_step_sf, o.engaged_competitors,
+       o.metrics, o.economic_buyer, o.decision_criteria, o.decision_process,
+       o.paper_process, o.implicate_pain, o.champion, o.authority, o.need,
+       u.name AS se_owner_name,
+       CASE
+         WHEN o.se_comments_updated_at IS NULL THEN NULL
+         ELSE EXTRACT(DAY FROM now() - o.se_comments_updated_at)::integer
+       END AS se_comments_days_ago
+     FROM opportunities o
+     LEFT JOIN users u ON u.id = o.se_owner_id
+     WHERE o.is_active = true AND o.is_closed_lost = false AND o.fiscal_period = $1
+     ORDER BY o.arr DESC NULLS LAST`,
+    [fq]
+  );
+
+  if (rows.length === 0) {
+    res.status(404).json(err('No opportunities found for this fiscal period'));
+    return;
+  }
+
+  // Build deal summaries for prompt
+  const dealLines = rows.map((r: Record<string, unknown>) => {
+    const arr = parseFloat(r.arr as string) || 0;
+    const fc = r.forecast_category || 'Unset';
+    const se = r.se_owner_name || 'Unassigned';
+    const stale = r.se_comments_days_ago !== null ? `${r.se_comments_days_ago}d ago` : 'never';
+    const meddpicc = computeMeddpiccScore(r);
+    const blockers = r.technical_blockers || 'None';
+    return `- ${r.name} | ${r.account_name} | $${Math.round(arr / 1000)}K ${r.arr_currency} | ${r.stage} | ${fc} | SE: ${se} | SE comments: ${stale} | MEDDPICC: ${meddpicc}/9 | PoC: ${r.poc_status || 'N/A'} | Blockers: ${blockers} | Competitors: ${r.engaged_competitors || 'None'} | Next Step: ${r.next_step_sf || 'None'}`;
+  }).join('\n');
+
+  const totalArr = rows.reduce((s: number, r: Record<string, unknown>) => s + (parseFloat(r.arr as string) || 0), 0);
+  const commitArr = rows.filter((r: Record<string, unknown>) => (r.forecast_category as string || '').toLowerCase() === 'commit')
+    .reduce((s: number, r: Record<string, unknown>) => s + (parseFloat(r.arr as string) || 0), 0);
+  const mlArr = rows.filter((r: Record<string, unknown>) => (r.forecast_category as string || '').toLowerCase() === 'most likely')
+    .reduce((s: number, r: Record<string, unknown>) => s + (parseFloat(r.arr as string) || 0), 0);
+
+  const prompt = `You are an SE Manager preparing a forecasting brief for your leadership call.
+
+Fiscal Quarter: ${fq}
+Pipeline: $${Math.round(totalArr / 1000)}K total | $${Math.round(commitArr / 1000)}K Commit | $${Math.round(mlArr / 1000)}K Most Likely | ${rows.length} deals
+
+Deals:
+${dealLines}
+
+Write a concise SE-perspective forecast narrative with exactly these 3 sections:
+
+**On Track** — Deals progressing well from SE perspective. Mention specific deal names, ARR, and why they're on track (tech validated, PoC complete, fresh SE engagement, etc.)
+
+**At Risk** — Deals with SE concerns: stale comments (>7d), technical blockers, low MEDDPICC scores, PoC delays, competitive threats. Be specific about the risk and what needs to happen.
+
+**Needs Attention** — Deals requiring manager action: no SE assigned, critical gaps, escalation needed.
+
+BE CONCISE. Each section should be 2-4 sentences. Use deal names and dollar amounts. Focus on actionable SE insights, not generic observations. Total response should be under 300 words.`;
+
+  try {
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const response = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 800,
+      messages: [{ role: 'user', content: prompt }],
+    });
+
+    const textBlock = response.content.find(b => b.type === 'text');
+    const content = textBlock && textBlock.type === 'text' ? textBlock.text : '';
+
+    // Cache the narrative
+    await query(
+      `INSERT INTO ai_summary_cache (key, content, generated_at)
+       VALUES ($1, $2, now())
+       ON CONFLICT (key) DO UPDATE SET content = $2, generated_at = now()`,
+      [`forecast-narrative-${fq}`, content]
+    );
+
+    res.json(ok({ content, generated_at: new Date().toISOString() }));
+  } catch (e: unknown) {
+    console.error('[forecasting-brief] narrative generation failed:', e);
+    res.status(500).json(err('Failed to generate forecast narrative'));
+  }
+});
+
+export default router;

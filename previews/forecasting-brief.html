@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Forecasting Brief — Preview (#98)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      fontFamily: { poppins: ['Poppins', 'system-ui', 'sans-serif'] },
+      colors: {
+        'brand-navy':   { DEFAULT: '#1A0C42', 30: '#CCC9D5', 70: '#665D81' },
+        'brand-purple': { DEFAULT: '#6A2CF5', 30: '#DED0FD', 70: '#9C72F8' },
+        'brand-pink':   { DEFAULT: '#F10090', 30: '#FCC6E6' },
+        'status-overdue':  '#FF464C',
+        'status-warning':  '#FFAB00',
+        'status-success':  '#00E5B6',
+        'status-info':     '#00DDFF',
+      }
+    }
+  }
+}
+</script>
+<style>
+  body { font-family: 'Poppins', system-ui, sans-serif; }
+  details summary::-webkit-details-marker { display: none; }
+  details summary { list-style: none; }
+  .shimmer { background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+</style>
+</head>
+<body class="bg-[#F5F5F7] font-poppins text-brand-navy min-h-screen">
+
+<!-- Context banner -->
+<div class="max-w-[1200px] mx-auto px-6 pt-4 mb-4">
+  <div class="bg-brand-purple-30/40 border border-brand-purple/20 rounded-lg px-4 py-2 text-xs text-brand-navy-70">
+    <strong>Preview #98:</strong> Forecasting Brief for SE Managers — pipeline overview with SE lens + key deal deep dives. Manager-only page under Insights. <strong>NEW:</strong> Click any table row to expand inline AI summary, SE comments, tech status &amp; MEDDPICC gaps. "Open full detail" links to the Opportunity Detail drawer.
+  </div>
+</div>
+
+<!-- Page container -->
+<div class="max-w-[1200px] mx-auto px-6 pb-12">
+
+  <!-- Page Header -->
+  <div class="flex items-center justify-between mb-5">
+    <div>
+      <div class="flex items-center gap-3">
+        <h1 class="text-xl font-bold text-brand-navy">Forecasting Brief</h1>
+        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-brand-purple/10 text-brand-purple border border-brand-purple/20">Q2-2026</span>
+        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">EMEA + ANZ</span>
+      </div>
+      <p class="text-[12px] text-brand-navy-70 mt-0.5">SE perspective for your forecast call. Auto-refreshed Fridays.</p>
+    </div>
+    <div class="flex items-center gap-3">
+      <span class="text-[10px] text-brand-navy-30">Last refreshed: Today, 6:08 AM</span>
+      <button class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-purple text-white text-[11px] font-medium hover:bg-brand-purple-70 transition-colors shadow-sm">
+        <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  <!-- Stale Comments Alert Banner (Thursday) -->
+  <div class="mb-5 rounded-xl bg-amber-50 border border-amber-200/60 px-4 py-3 flex items-center gap-3">
+    <div class="w-8 h-8 rounded-full bg-status-warning/15 flex items-center justify-center flex-shrink-0">
+      <svg class="w-4 h-4 text-status-warning" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"/></svg>
+    </div>
+    <div class="flex-1">
+      <p class="text-[12px] font-semibold text-amber-900">5 deals have stale SE comments (>7 days old)</p>
+      <p class="text-[11px] text-amber-700 mt-0.5">Forecast brief refreshes tomorrow morning. Consider notifying SEs to update their comments.</p>
+    </div>
+    <button class="px-3 py-1.5 rounded-lg bg-amber-100 text-amber-800 text-[11px] font-medium hover:bg-amber-200 transition-colors border border-amber-200/60">
+      Notify SEs
+    </button>
+    <button class="text-[11px] text-amber-600 hover:text-amber-800 font-medium">Dismiss</button>
+  </div>
+
+  <!-- Tab Bar -->
+  <div class="flex gap-0.5 mb-5">
+    <button id="tab-fq" onclick="switchTab('fq')" class="px-5 py-2.5 text-xs font-semibold rounded-t-xl border border-b-0 bg-white text-brand-purple border-brand-navy-30/40 z-10" style="margin-bottom:-1px">
+      Current FQ
+    </button>
+    <button id="tab-deals" onclick="switchTab('deals')" class="px-5 py-2.5 text-xs font-semibold rounded-t-xl border border-b-0 bg-transparent text-brand-navy-70 border-transparent hover:text-brand-navy hover:bg-white/50">
+      Key Deals
+    </button>
+  </div>
+  <div class="border-t border-brand-navy-30/40 -mt-[5px]"></div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- TAB 1: CURRENT FQ — Pipeline Overview with SE Lens     -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div id="panel-fq" class="pt-5">
+
+    <!-- KPI Cards Row 1 -->
+    <div class="grid grid-cols-3 gap-4 mb-4">
+      <!-- Pipeline Total -->
+      <div class="bg-white rounded-xl border border-brand-navy-30/40 p-4 shadow-sm">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wider">Sales Pipeline</span>
+          <span class="text-[9px] text-brand-navy-30">19 deals</span>
+        </div>
+        <div class="text-2xl font-bold text-brand-navy">$2.70M</div>
+        <div class="flex items-center gap-2 mt-2">
+          <div class="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden flex">
+            <div class="h-full bg-emerald-400 rounded-l-full" style="width:8%"></div>
+            <div class="h-full bg-blue-400" style="width:10%"></div>
+            <div class="h-full bg-amber-400" style="width:12%"></div>
+            <div class="h-full bg-purple-300 rounded-r-full" style="width:70%"></div>
+          </div>
+        </div>
+        <div class="flex items-center gap-3 mt-1.5 text-[9px] text-brand-navy-70">
+          <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-400"></span>Won $0</span>
+          <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-blue-400"></span>Commit $229K</span>
+          <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-amber-400"></span>Most Likely $256K</span>
+          <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-purple-300"></span>Upside $2.22M</span>
+        </div>
+      </div>
+
+      <!-- Commit + Most Likely -->
+      <div class="bg-white rounded-xl border border-brand-navy-30/40 p-4 shadow-sm">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wider">Commit + Most Likely</span>
+          <span class="text-[9px] text-brand-navy-30">7 deals</span>
+        </div>
+        <div class="text-2xl font-bold text-brand-navy">$485K</div>
+        <div class="mt-2 text-[11px] text-brand-navy-70">
+          SLT Verbal Call: <strong class="text-brand-navy">$481K</strong>
+        </div>
+        <div class="mt-1 flex items-center gap-1.5">
+          <span class="text-[10px] text-emerald-600 font-medium flex items-center gap-0.5">
+            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg>
+            5 with fresh SE comments
+          </span>
+          <span class="text-brand-navy-30">|</span>
+          <span class="text-[10px] text-status-overdue font-medium">2 stale</span>
+        </div>
+      </div>
+
+      <!-- SE Engagement Health -->
+      <div class="bg-white rounded-xl border border-brand-navy-30/40 p-4 shadow-sm">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wider">SE Engagement Health</span>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <div class="text-lg font-bold text-status-overdue">5</div>
+            <div class="text-[10px] text-brand-navy-70">Stale SE Comments</div>
+          </div>
+          <div>
+            <div class="text-lg font-bold text-status-warning">2</div>
+            <div class="text-[10px] text-brand-navy-70">No SE Assigned</div>
+          </div>
+          <div>
+            <div class="text-lg font-bold text-brand-purple">3</div>
+            <div class="text-[10px] text-brand-navy-70">Active PoCs</div>
+          </div>
+          <div>
+            <div class="text-lg font-bold text-brand-navy">6.2</div>
+            <div class="text-[10px] text-brand-navy-70">Avg MEDDPICC (C+ML)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Forecast Table -->
+    <div class="bg-white rounded-xl border border-brand-navy-30/40 shadow-sm overflow-hidden mb-5">
+      <div class="px-4 py-3 border-b border-brand-navy-30/20 flex items-center justify-between bg-gray-50/50">
+        <h3 class="text-[12px] font-semibold text-brand-navy uppercase tracking-wider">Pipeline — Q2 2026</h3>
+        <div class="flex items-center gap-2">
+          <select class="text-[10px] border border-brand-navy-30/40 rounded px-2 py-1 text-brand-navy-70 bg-white">
+            <option>All Forecast Categories</option>
+            <option>Commit</option>
+            <option>Most Likely</option>
+            <option>Upside</option>
+          </select>
+          <select class="text-[10px] border border-brand-navy-30/40 rounded px-2 py-1 text-brand-navy-70 bg-white">
+            <option>All SEs</option>
+            <option>Tom Bolek</option>
+            <option>James Cullis</option>
+            <option>Nick Stammers</option>
+          </select>
+        </div>
+      </div>
+
+      <table class="w-full text-[11px]">
+        <thead>
+          <tr class="bg-gray-50/80 border-b border-brand-navy-30/20 text-[9px] font-semibold text-brand-navy-70 uppercase tracking-wider">
+            <th class="text-left px-3 py-2">Opportunity</th>
+            <th class="text-right px-3 py-2 w-20">ARR</th>
+            <th class="text-center px-2 py-2 w-24">Stage</th>
+            <th class="text-center px-2 py-2 w-20">Forecast</th>
+            <th class="text-left px-3 py-2 w-24">SE Owner</th>
+            <th class="text-left px-3 py-2">SE Comments</th>
+            <th class="text-center px-2 py-2 w-16">Health</th>
+            <th class="text-left px-3 py-2 w-40">Tech Next Step</th>
+            <th class="text-center px-2 py-2 w-12">
+              <svg class="w-3 h-3 mx-auto text-brand-navy-70" viewBox="0 0 20 20" fill="currentColor" title="Blockers"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92z"/></svg>
+            </th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-brand-navy-30/15">
+          <!-- Row 1: Commit, fresh comments, healthy -->
+          <tr onclick="toggleRow('row1')" class="hover:bg-brand-purple-30/10 cursor-pointer transition-colors" id="row1-header">
+            <td class="px-3 py-2.5">
+              <div class="flex items-center gap-1.5">
+                <svg id="row1-chevron" class="w-3 h-3 text-brand-navy-30 transition-transform flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M9 5l7 7-7 7"/></svg>
+                <span class="font-medium text-brand-navy">[AU] Optus - RDM</span>
+                <span class="text-[8px] font-semibold bg-yellow-100 text-yellow-700 px-1 py-px rounded-full">KEY</span>
+              </div>
+              <div class="text-[10px] text-brand-navy-70 ml-[18px]">Optus &middot; Telco</div>
+            </td>
+            <td class="text-right px-3 py-2.5 font-semibold">$105K</td>
+            <td class="text-center px-2 py-2.5"><span class="text-[9px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200/60 font-semibold">Negotiate</span></td>
+            <td class="text-center px-2 py-2.5"><span class="text-[9px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 font-semibold">Commit</span></td>
+            <td class="px-3 py-2.5 text-[10px] text-brand-navy-70">James C.</td>
+            <td class="px-3 py-2.5">
+              <div class="flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-status-success flex-shrink-0"></span>
+                <span class="text-[10px] text-brand-navy-70 truncate max-w-[180px]">Contract redline in progress, legal review next week</span>
+                <span class="text-[9px] text-brand-navy-30 flex-shrink-0">2d</span>
+              </div>
+            </td>
+            <td class="text-center px-2 py-2.5">
+              <span class="text-[10px] font-semibold text-emerald-600">82</span>
+            </td>
+            <td class="px-3 py-2.5 text-[10px] text-brand-navy-70 truncate max-w-[160px]">Legal review by Apr 18</td>
+            <td class="text-center px-2 py-2.5">—</td>
+          </tr>
+          <!-- Row 1 Expansion: inline detail -->
+          <tr id="row1-detail" class="hidden">
+            <td colspan="9" class="p-0">
+              <div class="bg-brand-purple-30/10 border-l-4 border-brand-purple px-5 py-4">
+                <div class="grid grid-cols-4 gap-4">
+                  <!-- AI Summary -->
+                  <div>
+                    <div class="flex items-center gap-1.5 mb-1.5">
+                      <svg class="w-3 h-3 text-brand-purple" viewBox="0 0 24 24" fill="none"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="currentColor"/></svg>
+                      <h4 class="text-[10px] font-semibold text-brand-navy uppercase tracking-wider">AI Summary</h4>
+                    </div>
+                    <p class="text-[11px] text-brand-navy leading-relaxed">Strong deal in final stages. All technical validation complete, no blockers. Contract in redline with legal review expected next week. Expansion opportunity into MDM. Only risk is procurement timeline slipping past quarter-end.</p>
+                  </div>
+                  <!-- SE Comments (full) -->
+                  <div>
+                    <h4 class="text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wider mb-1.5">SE Comments</h4>
+                    <div class="flex items-center gap-1.5 mb-1">
+                      <span class="w-1.5 h-1.5 rounded-full bg-status-success"></span>
+                      <span class="text-[9px] text-emerald-700 font-medium">Updated 2 days ago</span>
+                    </div>
+                    <p class="text-[11px] text-brand-navy leading-relaxed">Contract redline in progress, legal review expected next week. No technical concerns remaining — all integration requirements addressed during PoC. Optus IT team fully aligned.</p>
+                  </div>
+                  <!-- Tech Status + Blockers -->
+                  <div>
+                    <h4 class="text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wider mb-1.5">Technical Status</h4>
+                    <div class="space-y-1 text-[11px]">
+                      <div class="flex items-center gap-2">
+                        <span class="text-[9px] font-semibold text-brand-navy-70 w-16">PoC:</span>
+                        <span class="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-emerald-50 text-emerald-700">Completed</span>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <span class="text-[9px] font-semibold text-brand-navy-70 w-16">Blockers:</span>
+                        <span class="text-emerald-600">None</span>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <span class="text-[9px] font-semibold text-brand-navy-70 w-16">Compete:</span>
+                        <span class="text-brand-navy">Informatica</span>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- MEDDPICC Gaps -->
+                  <div>
+                    <h4 class="text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wider mb-1.5">MEDDPICC Gaps</h4>
+                    <div class="flex flex-wrap gap-1 mb-2">
+                      <span class="px-1.5 py-0.5 rounded text-[9px] bg-emerald-50 text-emerald-700 font-medium">Metrics ✓</span>
+                      <span class="px-1.5 py-0.5 rounded text-[9px] bg-emerald-50 text-emerald-700 font-medium">Econ Buyer ✓</span>
+                      <span class="px-1.5 py-0.5 rounded text-[9px] bg-emerald-50 text-emerald-700 font-medium">Decision Crit ✓</span>
+                      <span class="px-1.5 py-0.5 rounded text-[9px] bg-emerald-50 text-emerald-700 font-medium">Decision Proc ✓</span>
+                      <span class="px-1.5 py-0.5 rounded text-[9px] bg-status-warning/15 text-status-warning font-semibold border border-status-warning/30">Paper Process ❌</span>
+                      <span class="px-1.5 py-0.5 rounded text-[9px] bg-emerald-50 text-emerald-700 font-medium">Pain ✓</span>
+                      <span class="px-1.5 py-0.5 rounded text-[9px] bg-emerald-50 text-emerald-700 font-medium">Champion ✓</span>
+                    </div>
+                    <div class="text-[10px] text-brand-navy-70">Score: <strong class="text-brand-navy">8/9</strong> — missing Paper Process</div>
+                  </div>
+                </div>
+                <!-- Footer with link to full detail -->
+                <div class="mt-3 pt-2.5 border-t border-brand-purple/10 flex items-center justify-between">
+                  <div class="text-[10px] text-brand-navy-70">Stage: Negotiate for <strong class="text-brand-navy">14 days</strong> &middot; Close: Apr 30, 2026</div>
+                  <button class="flex items-center gap-1 text-[11px] text-brand-purple font-semibold hover:text-brand-purple-70 transition-colors">
+                    Open full detail
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
+                  </button>
+                </div>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Row 2: Most Likely, slightly stale -->
+          <tr onclick="toggleRow('row2')" class="hover:bg-brand-purple-30/10 cursor-pointer transition-colors" id="row2-header">
+            <td class="px-3 py-2.5">
+              <div class="flex items-center gap-1.5">
+                <svg id="row2-chevron" class="w-3 h-3 text-brand-navy-30 transition-transform flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M9 5l7 7-7 7"/></svg>
+                <span class="font-medium text-brand-navy">[AU] Australian Unity - PaaS upgrade</span>
+              </div>
+              <div class="text-[10px] text-brand-navy-70 ml-[18px]">Australian Unity &middot; Insurance</div>
+            </td>
+            <td class="text-right px-3 py-2.5 font-semibold">$127K</td>
+            <td class="text-center px-2 py-2.5"><span class="text-[9px] px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200/60 font-semibold">Proposal Sent</span></td>
+            <td class="text-center px-2 py-2.5"><span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-semibold">Most Likely</span></td>
+            <td class="px-3 py-2.5 text-[10px] text-brand-navy-70">Tom B.</td>
+            <td class="px-3 py-2.5">
+              <div class="flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-status-warning flex-shrink-0"></span>
+                <span class="text-[10px] text-brand-navy-70 truncate max-w-[180px]">PoC completed successfully, discussing pricing</span>
+                <span class="text-[9px] text-status-warning flex-shrink-0 font-medium">5d</span>
+              </div>
+            </td>
+            <td class="text-center px-2 py-2.5">
+              <span class="text-[10px] font-semibold text-amber-600">68</span>
+            </td>
+            <td class="px-3 py-2.5 text-[10px] text-brand-navy-70 truncate max-w-[160px]">Pricing approval from CFO</td>
+            <td class="text-center px-2 py-2.5">—</td>
+          </tr>
+          <!-- Row 2 Expansion -->
+          <tr id="row2-detail" class="hidden">
+            <td colspan="9" class="p-0">
+              <div class="bg-brand-purple-30/10 border-l-4 border-brand-purple px-5 py-4">
+                <div class="grid grid-cols-4 gap-4">
+                  <div>
+                    <div class="flex items-center gap-1.5 mb-1.5">
+                      <svg class="w-3 h-3 text-brand-purple" viewBox="0 0 24 24" fill="none"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="currentColor"/></svg>
+                      <h4 class="text-[10px] font-semibold text-brand-navy uppercase tracking-wider">AI Summary</h4>
+                    </div>
+                    <p class="text-[11px] text-brand-navy leading-relaxed">PaaS upgrade for existing customer. PoC completed successfully, now in pricing/proposal phase. Good technical relationship but CFO approval needed for budget. SE comments slightly stale — recommend updating before forecast call.</p>
+                  </div>
+                  <div>
+                    <h4 class="text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wider mb-1.5">SE Comments</h4>
+                    <div class="flex items-center gap-1.5 mb-1">
+                      <span class="w-1.5 h-1.5 rounded-full bg-status-warning"></span>
+                      <span class="text-[9px] text-status-warning font-medium">Updated 5 days ago</span>
+                    </div>
+                    <p class="text-[11px] text-brand-navy leading-relaxed">PoC completed successfully, discussing pricing with procurement. CFO wants to see ROI business case before signing off on the upgrade budget.</p>
+                  </div>
+                  <div>
+                    <h4 class="text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wider mb-1.5">Technical Status</h4>
+                    <div class="space-y-1 text-[11px]">
+                      <div class="flex items-center gap-2">
+                        <span class="text-[9px] font-semibold text-brand-navy-70 w-16">PoC:</span>
+                        <span class="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-emerald-50 text-emerald-700">Completed</span>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <span class="text-[9px] font-semibold text-brand-navy-70 w-16">Blockers:</span>
+                        <span class="text-emerald-600">None</span>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <span class="text-[9px] font-semibold text-brand-navy-70 w-16">Deploy:</span>
+                        <span class="text-brand-navy">PaaS+</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <h4 class="text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wider mb-1.5">MEDDPICC Gaps</h4>
+                    <div class="flex flex-wrap gap-1 mb-2">
+                      <span class="px-1.5 py-0.5 rounded text-[9px] bg-emerald-50 text-emerald-700 font-medium">Metrics ✓</span>
+                      <span class="px-1.5 py-0.5 rounded text-[9px] bg-status-warning/15 text-status-warning font-semibold border border-status-warning/30">Econ Buyer ❌</span>
+                      <span class="px-1.5 py-0.5 rounded text-[9px] bg-emerald-50 text-emerald-700 font-medium">Decision Crit ✓</span>
+                      <span class="px-1.5 py-0.5 rounded text-[9px] bg-status-warning/15 text-status-warning font-semibold border border-status-warning/30">Paper Process ❌</span>
+                      <span class="px-1.5 py-0.5 rounded text-[9px] bg-emerald-50 text-emerald-700 font-medium">Champion ✓</span>
+                    </div>
+                    <div class="text-[10px] text-brand-navy-70">Score: <strong class="text-brand-navy">6/9</strong> — missing Econ Buyer, Paper Process, Budget</div>
+                  </div>
+                </div>
+                <div class="mt-3 pt-2.5 border-t border-brand-purple/10 flex items-center justify-between">
+                  <div class="text-[10px] text-brand-navy-70">Stage: Proposal Sent for <strong class="text-brand-navy">8 days</strong> &middot; Close: May 15, 2026</div>
+                  <button class="flex items-center gap-1 text-[11px] text-brand-purple font-semibold hover:text-brand-purple-70 transition-colors">
+                    Open full detail
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
+                  </button>
+                </div>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Row 3: Upside, stale comments, technical blocker -->
+          <tr onclick="toggleRow('row3')" class="hover:bg-brand-purple-30/10 cursor-pointer transition-colors bg-red-50/20" id="row3-header">
+            <td class="px-3 py-2.5">
+              <div class="flex items-center gap-1.5">
+                <svg id="row3-chevron" class="w-3 h-3 text-brand-navy-30 transition-transform flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M9 5l7 7-7 7"/></svg>
+                <span class="font-medium text-brand-navy">[PH] ICTSI_MDM with Emsha</span>
+                <span class="text-[8px] font-semibold bg-yellow-100 text-yellow-700 px-1 py-px rounded-full">KEY</span>
+              </div>
+              <div class="text-[10px] text-brand-navy-70 ml-[18px]">ICTSI &middot; Logistics</div>
+            </td>
+            <td class="text-right px-3 py-2.5 font-semibold">$440K</td>
+            <td class="text-center px-2 py-2.5"><span class="text-[9px] px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200/60 font-semibold">Develop Solution</span></td>
+            <td class="text-center px-2 py-2.5"><span class="text-[9px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-800 font-semibold">Upside</span></td>
+            <td class="px-3 py-2.5 text-[10px] text-brand-navy-70">Nick S.</td>
+            <td class="px-3 py-2.5">
+              <div class="flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-status-overdue flex-shrink-0"></span>
+                <span class="text-[10px] text-brand-navy-70 truncate max-w-[180px]">Need to validate MDM data model with their SAP team</span>
+                <span class="text-[9px] text-status-overdue flex-shrink-0 font-bold">12d</span>
+              </div>
+            </td>
+            <td class="text-center px-2 py-2.5">
+              <span class="text-[10px] font-semibold text-status-overdue">52</span>
+            </td>
+            <td class="px-3 py-2.5 text-[10px] text-brand-navy-70 truncate max-w-[160px]">SAP integration workshop</td>
+            <td class="text-center px-2 py-2.5">
+              <span class="text-status-overdue" title="SAP connector compatibility issue">
+                <svg class="w-3.5 h-3.5 mx-auto" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92z"/></svg>
+              </span>
+            </td>
+          </tr>
+          <!-- Row 3 Expansion -->
+          <tr id="row3-detail" class="hidden">
+            <td colspan="9" class="p-0">
+              <div class="bg-red-50/40 border-l-4 border-status-overdue px-5 py-4">
+                <div class="grid grid-cols-4 gap-4">
+                  <div>
+                    <div class="flex items-center gap-1.5 mb-1.5">
+                      <svg class="w-3 h-3 text-status-overdue" viewBox="0 0 24 24" fill="none"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="currentColor"/></svg>
+                      <h4 class="text-[10px] font-semibold text-brand-navy uppercase tracking-wider">AI Summary</h4>
+                    </div>
+                    <p class="text-[11px] text-brand-navy leading-relaxed">Largest upside deal but stalling. SAP connector compatibility blocker unresolved for 2+ weeks. Partner Emsha should lead on-site workshop but no date set. Risk of losing to Reltio if integration capability not demonstrated soon. 4 MEDDPICC gaps is high for Develop Solution.</p>
+                  </div>
+                  <div>
+                    <h4 class="text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wider mb-1.5">SE Comments</h4>
+                    <div class="flex items-center gap-1.5 mb-1">
+                      <span class="w-1.5 h-1.5 rounded-full bg-status-overdue"></span>
+                      <span class="text-[9px] text-status-overdue font-bold">Updated 12 days ago — STALE</span>
+                    </div>
+                    <p class="text-[11px] text-brand-navy leading-relaxed">Need to validate MDM data model with their SAP team. Partner Emsha to lead on-site workshop but no date confirmed yet.</p>
+                  </div>
+                  <div>
+                    <h4 class="text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wider mb-1.5">Technical Status</h4>
+                    <div class="space-y-1 text-[11px]">
+                      <div class="flex items-center gap-2">
+                        <span class="text-[9px] font-semibold text-brand-navy-70 w-16">PoC:</span>
+                        <span class="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-amber-50 text-amber-700">Pending</span>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <span class="text-[9px] font-semibold text-brand-navy-70 w-16">Blockers:</span>
+                        <span class="text-status-overdue font-semibold">SAP connector</span>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <span class="text-[9px] font-semibold text-brand-navy-70 w-16">Compete:</span>
+                        <span class="text-brand-navy">Reltio, Semarchy</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <h4 class="text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wider mb-1.5">MEDDPICC Gaps</h4>
+                    <div class="flex flex-wrap gap-1 mb-2">
+                      <span class="px-1.5 py-0.5 rounded text-[9px] bg-status-overdue/10 text-status-overdue font-semibold border border-status-overdue/20">Metrics ❌</span>
+                      <span class="px-1.5 py-0.5 rounded text-[9px] bg-emerald-50 text-emerald-700 font-medium">Econ Buyer ✓</span>
+                      <span class="px-1.5 py-0.5 rounded text-[9px] bg-status-overdue/10 text-status-overdue font-semibold border border-status-overdue/20">Decision Crit ❌</span>
+                      <span class="px-1.5 py-0.5 rounded text-[9px] bg-status-overdue/10 text-status-overdue font-semibold border border-status-overdue/20">Paper Process ❌</span>
+                      <span class="px-1.5 py-0.5 rounded text-[9px] bg-status-overdue/10 text-status-overdue font-semibold border border-status-overdue/20">Champion ❌</span>
+                    </div>
+                    <div class="text-[10px] text-brand-navy-70">Score: <strong class="text-status-overdue">5/9</strong> — critical gaps for this stage</div>
+                  </div>
+                </div>
+                <div class="mt-3 pt-2.5 border-t border-status-overdue/20 flex items-center justify-between">
+                  <div class="text-[10px] text-brand-navy-70">Stage: Develop Solution for <strong class="text-status-warning">38 days</strong> &middot; Close: Jun 30, 2026</div>
+                  <button class="flex items-center gap-1 text-[11px] text-brand-purple font-semibold hover:text-brand-purple-70 transition-colors">
+                    Open full detail
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
+                  </button>
+                </div>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Row 4: Upside, no SE assigned -->
+          <tr onclick="toggleRow('row4')" class="hover:bg-brand-purple-30/10 cursor-pointer transition-colors bg-amber-50/20" id="row4-header">
+            <td class="px-3 py-2.5">
+              <div class="flex items-center gap-1.5">
+                <svg id="row4-chevron" class="w-3 h-3 text-brand-navy-30 transition-transform flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M9 5l7 7-7 7"/></svg>
+                <span class="font-medium text-brand-navy">[ES] MAPFRE-DQG</span>
+              </div>
+              <div class="text-[10px] text-brand-navy-70 ml-[18px]">MAPFRE &middot; Insurance</div>
+            </td>
+            <td class="text-right px-3 py-2.5 font-semibold">$375K</td>
+            <td class="text-center px-2 py-2.5"><span class="text-[9px] px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200/60 font-semibold">Develop Solution</span></td>
+            <td class="text-center px-2 py-2.5"><span class="text-[9px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-800 font-semibold">Upside</span></td>
+            <td class="px-3 py-2.5">
+              <span class="text-[10px] text-status-overdue font-medium italic">Unassigned</span>
+            </td>
+            <td class="px-3 py-2.5">
+              <span class="text-[10px] text-brand-navy-30 italic">No SE comments</span>
+            </td>
+            <td class="text-center px-2 py-2.5">
+              <span class="text-[10px] font-semibold text-brand-navy-30">—</span>
+            </td>
+            <td class="px-3 py-2.5 text-[10px] text-brand-navy-30 italic">None</td>
+            <td class="text-center px-2 py-2.5">—</td>
+          </tr>
+          <!-- Row 4 Expansion -->
+          <tr id="row4-detail" class="hidden">
+            <td colspan="9" class="p-0">
+              <div class="bg-amber-50/40 border-l-4 border-status-warning px-5 py-4">
+                <div class="grid grid-cols-4 gap-4">
+                  <div>
+                    <div class="flex items-center gap-1.5 mb-1.5">
+                      <svg class="w-3 h-3 text-status-warning" viewBox="0 0 24 24" fill="none"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="currentColor"/></svg>
+                      <h4 class="text-[10px] font-semibold text-brand-navy uppercase tracking-wider">AI Summary</h4>
+                    </div>
+                    <p class="text-[11px] text-brand-navy leading-relaxed">$375K DQ deal with no SE assigned. Insurance vertical (ICP sweet spot). Only 3/9 MEDDPICC fields filled — significant discovery gaps. Risk of stalling without technical engagement. Assign SE immediately to prevent competitor gaining ground.</p>
+                  </div>
+                  <div>
+                    <h4 class="text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wider mb-1.5">SE Comments</h4>
+                    <div class="mt-2 rounded-lg bg-amber-100/60 border border-amber-200/60 px-3 py-2 text-center">
+                      <span class="text-[10px] text-amber-800 font-medium">No SE assigned — no comments available</span>
+                    </div>
+                  </div>
+                  <div>
+                    <h4 class="text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wider mb-1.5">Technical Status</h4>
+                    <div class="space-y-1 text-[11px]">
+                      <div class="flex items-center gap-2">
+                        <span class="text-[9px] font-semibold text-brand-navy-70 w-16">PoC:</span>
+                        <span class="text-brand-navy-30">Not started</span>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <span class="text-[9px] font-semibold text-brand-navy-70 w-16">Blockers:</span>
+                        <span class="text-brand-navy-30">Unknown</span>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <span class="text-[9px] font-semibold text-brand-navy-70 w-16">Products:</span>
+                        <span class="text-brand-navy">DQ Gateway</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <h4 class="text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wider mb-1.5">MEDDPICC Gaps</h4>
+                    <div class="flex flex-wrap gap-1 mb-2">
+                      <span class="px-1.5 py-0.5 rounded text-[9px] bg-status-overdue/10 text-status-overdue font-semibold border border-status-overdue/20">Metrics ❌</span>
+                      <span class="px-1.5 py-0.5 rounded text-[9px] bg-status-overdue/10 text-status-overdue font-semibold border border-status-overdue/20">Econ Buyer ❌</span>
+                      <span class="px-1.5 py-0.5 rounded text-[9px] bg-status-overdue/10 text-status-overdue font-semibold border border-status-overdue/20">Decision Crit ❌</span>
+                      <span class="px-1.5 py-0.5 rounded text-[9px] bg-status-overdue/10 text-status-overdue font-semibold border border-status-overdue/20">Decision Proc ❌</span>
+                      <span class="px-1.5 py-0.5 rounded text-[9px] bg-status-overdue/10 text-status-overdue font-semibold border border-status-overdue/20">Paper Process ❌</span>
+                      <span class="px-1.5 py-0.5 rounded text-[9px] bg-emerald-50 text-emerald-700 font-medium">Need ✓</span>
+                    </div>
+                    <div class="text-[10px] text-brand-navy-70">Score: <strong class="text-status-overdue">3/9</strong> — needs full discovery</div>
+                  </div>
+                </div>
+                <div class="mt-3 pt-2.5 border-t border-status-warning/20 flex items-center justify-between">
+                  <div class="text-[10px] text-brand-navy-70">Stage: Develop Solution for <strong class="text-brand-navy">22 days</strong> &middot; Close: Jun 15, 2026</div>
+                  <button class="flex items-center gap-1 text-[11px] text-brand-purple font-semibold hover:text-brand-purple-70 transition-colors">
+                    Open full detail
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
+                  </button>
+                </div>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Row 5: Commit, fresh, PoC active -->
+          <tr onclick="toggleRow('row5')" class="hover:bg-brand-purple-30/10 cursor-pointer transition-colors" id="row5-header">
+            <td class="px-3 py-2.5">
+              <div class="flex items-center gap-1.5">
+                <svg id="row5-chevron" class="w-3 h-3 text-brand-navy-30 transition-transform flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M9 5l7 7-7 7"/></svg>
+                <span class="font-medium text-brand-navy">[AU] Optus - 1 additional non-prod</span>
+              </div>
+              <div class="text-[10px] text-brand-navy-70 ml-[18px]">Optus &middot; Telco</div>
+            </td>
+            <td class="text-right px-3 py-2.5 font-semibold">$98K</td>
+            <td class="text-center px-2 py-2.5"><span class="text-[9px] px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200/60 font-semibold">Proposal Sent</span></td>
+            <td class="text-center px-2 py-2.5"><span class="text-[9px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 font-semibold">Commit</span></td>
+            <td class="px-3 py-2.5 text-[10px] text-brand-navy-70">James C.</td>
+            <td class="px-3 py-2.5">
+              <div class="flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-status-success flex-shrink-0"></span>
+                <span class="text-[10px] text-brand-navy-70 truncate max-w-[180px]">Expansion deal, tech already validated</span>
+                <span class="text-[9px] text-brand-navy-30 flex-shrink-0">1d</span>
+              </div>
+            </td>
+            <td class="text-center px-2 py-2.5">
+              <span class="text-[10px] font-semibold text-emerald-600">88</span>
+            </td>
+            <td class="px-3 py-2.5 text-[10px] text-brand-navy-70 truncate max-w-[160px]">Final sign-off from IT</td>
+            <td class="text-center px-2 py-2.5">—</td>
+          </tr>
+          <!-- Row 5 Expansion -->
+          <tr id="row5-detail" class="hidden">
+            <td colspan="9" class="p-0">
+              <div class="bg-brand-purple-30/10 border-l-4 border-brand-purple px-5 py-4">
+                <div class="grid grid-cols-4 gap-4">
+                  <div>
+                    <div class="flex items-center gap-1.5 mb-1.5">
+                      <svg class="w-3 h-3 text-brand-purple" viewBox="0 0 24 24" fill="none"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="currentColor"/></svg>
+                      <h4 class="text-[10px] font-semibold text-brand-navy uppercase tracking-wider">AI Summary</h4>
+                    </div>
+                    <p class="text-[11px] text-brand-navy leading-relaxed">Low-risk expansion on an existing account with a validated tech stack. SE has confirmed all technical requirements are met. Waiting on final IT sign-off — expected this week. Should close on schedule.</p>
+                  </div>
+                  <div>
+                    <h4 class="text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wider mb-1.5">SE Comments</h4>
+                    <div class="flex items-center gap-1.5 mb-1">
+                      <span class="w-1.5 h-1.5 rounded-full bg-status-success"></span>
+                      <span class="text-[9px] text-emerald-700 font-medium">Updated 1 day ago</span>
+                    </div>
+                    <p class="text-[11px] text-brand-navy leading-relaxed">Expansion deal, tech already validated from RDM engagement. Just waiting on IT budget approval for the additional non-prod environment.</p>
+                  </div>
+                  <div>
+                    <h4 class="text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wider mb-1.5">Technical Status</h4>
+                    <div class="space-y-1 text-[11px]">
+                      <div class="flex items-center gap-2">
+                        <span class="text-[9px] font-semibold text-brand-navy-70 w-16">PoC:</span>
+                        <span class="text-brand-navy-70">N/A (expansion)</span>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <span class="text-[9px] font-semibold text-brand-navy-70 w-16">Blockers:</span>
+                        <span class="text-emerald-600">None</span>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <span class="text-[9px] font-semibold text-brand-navy-70 w-16">Deploy:</span>
+                        <span class="text-brand-navy">PaaS+</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <h4 class="text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wider mb-1.5">MEDDPICC Gaps</h4>
+                    <div class="flex flex-wrap gap-1 mb-2">
+                      <span class="px-1.5 py-0.5 rounded text-[9px] bg-emerald-50 text-emerald-700 font-medium">Metrics ✓</span>
+                      <span class="px-1.5 py-0.5 rounded text-[9px] bg-emerald-50 text-emerald-700 font-medium">Econ Buyer ✓</span>
+                      <span class="px-1.5 py-0.5 rounded text-[9px] bg-emerald-50 text-emerald-700 font-medium">Champion ✓</span>
+                      <span class="px-1.5 py-0.5 rounded text-[9px] bg-emerald-50 text-emerald-700 font-medium">Pain ✓</span>
+                      <span class="px-1.5 py-0.5 rounded text-[9px] bg-emerald-50 text-emerald-700 font-medium">Need ✓</span>
+                    </div>
+                    <div class="text-[10px] text-brand-navy-70">Score: <strong class="text-emerald-600">8/9</strong> — strong coverage</div>
+                  </div>
+                </div>
+                <div class="mt-3 pt-2.5 border-t border-brand-purple/10 flex items-center justify-between">
+                  <div class="text-[10px] text-brand-navy-70">Stage: Proposal Sent for <strong class="text-brand-navy">5 days</strong> &middot; Close: Apr 25, 2026</div>
+                  <button class="flex items-center gap-1 text-[11px] text-brand-purple font-semibold hover:text-brand-purple-70 transition-colors">
+                    Open full detail
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
+                  </button>
+                </div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Table footer -->
+      <div class="px-4 py-2.5 border-t border-brand-navy-30/20 bg-gray-50/50 flex items-center justify-between text-[10px] text-brand-navy-70">
+        <span>Showing 5 of 19 deals</span>
+        <div class="flex items-center gap-4">
+          <span class="font-semibold text-brand-navy">Total: $2,701K</span>
+          <span>Commit: $229K</span>
+          <span>Most Likely: $256K</span>
+          <span>Upside: $2,217K</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI Forecast Narrative -->
+    <div class="bg-white rounded-xl border border-brand-navy-30/40 shadow-sm overflow-hidden">
+      <div class="px-4 py-3 border-b border-brand-navy-30/20 bg-gradient-to-r from-brand-pink/[0.03] to-brand-purple/[0.03] flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="url(#sg2)"/>
+            <defs><linearGradient id="sg2" x1="2" y1="2" x2="22" y2="22"><stop stop-color="#F10090"/><stop offset="1" stop-color="#6A2CF5"/></linearGradient></defs>
+          </svg>
+          <h3 class="text-[12px] font-semibold text-brand-navy">AI Forecast Narrative — SE Perspective</h3>
+          <span class="text-[9px] text-brand-navy-30 ml-2">Generated Apr 12, 6:08 AM</span>
+        </div>
+        <button class="text-[10px] text-brand-purple font-medium hover:text-brand-purple-70">Regenerate</button>
+      </div>
+      <div class="p-4 space-y-3 text-[12px] text-brand-navy leading-relaxed">
+        <div>
+          <h4 class="text-[10px] font-semibold text-emerald-700 uppercase tracking-wider mb-1">On Track</h4>
+          <p>The <strong>Optus RDM</strong> and <strong>Optus non-prod expansion</strong> deals ($203K combined) are in strong shape — contracts in redline, tech fully validated, and SE comments are current. These should close on schedule. <strong>Australian Unity PaaS</strong> ($127K) completed PoC successfully and is in pricing discussions.</p>
+        </div>
+        <div>
+          <h4 class="text-[10px] font-semibold text-status-warning uppercase tracking-wider mb-1">At Risk</h4>
+          <p><strong>ICTSI MDM</strong> ($440K) is the largest upside deal but has a <strong>SAP connector compatibility blocker</strong> and SE comments are 12 days stale. The SAP integration workshop hasn't been scheduled yet — this needs immediate SE attention. <strong>RS Telekom Srbija</strong> ($287K) has no defined next step and health score is declining.</p>
+        </div>
+        <div>
+          <h4 class="text-[10px] font-semibold text-status-overdue uppercase tracking-wider mb-1">Needs Attention</h4>
+          <p><strong>MAPFRE</strong> ($375K) and <strong>Bank of Indonesia</strong> ($193K) have <strong>no SE assigned</strong>. These are in Develop Solution stage — without SE engagement, they risk stalling. Recommend assigning SE coverage before next week's forecast call.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- TAB 2: KEY DEALS — Deep Dive Cards                     -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div id="panel-deals" class="pt-5 hidden">
+
+    <p class="text-[11px] text-brand-navy-70 mb-4">Quick-access summaries for your key deals. Click to expand full detail.</p>
+
+    <div class="space-y-4">
+
+      <!-- Deal Card 1: Healthy -->
+      <div class="bg-white rounded-xl border border-brand-navy-30/40 shadow-sm overflow-hidden">
+        <details open class="group">
+          <summary class="flex items-center gap-4 px-5 py-3.5 cursor-pointer select-none hover:bg-gray-50/50 transition-colors">
+            <svg class="w-3.5 h-3.5 text-brand-navy-70 transition-transform group-open:rotate-90 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M9 5l7 7-7 7"/></svg>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2">
+                <span class="font-semibold text-[13px] text-brand-navy">[AU] Optus - RDM</span>
+                <span class="text-[8px] font-semibold bg-yellow-100 text-yellow-700 px-1.5 py-px rounded-full">KEY</span>
+                <span class="text-[9px] px-2 py-0.5 rounded bg-blue-100 text-blue-800 font-semibold">Commit</span>
+              </div>
+              <div class="text-[10px] text-brand-navy-70 mt-0.5">Optus &middot; $105K &middot; Negotiate &middot; Close Apr 30 &middot; SE: James Cullis</div>
+            </div>
+            <div class="flex items-center gap-3 flex-shrink-0">
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">Health 82</span>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-brand-purple-30 text-brand-purple border border-brand-purple/20">MEDDPICC 8/9</span>
+            </div>
+          </summary>
+          <div class="px-5 pb-4 border-t border-brand-navy-30/20 bg-gray-50/30">
+            <div class="grid grid-cols-3 gap-5 pt-3">
+              <!-- SE Perspective -->
+              <div>
+                <h4 class="text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wider mb-1.5">SE Comments</h4>
+                <div class="flex items-center gap-1.5 mb-1">
+                  <span class="w-1.5 h-1.5 rounded-full bg-status-success"></span>
+                  <span class="text-[9px] text-emerald-700 font-medium">Updated 2 days ago</span>
+                </div>
+                <p class="text-[11px] text-brand-navy leading-relaxed">Contract redline in progress, legal review expected next week. No technical concerns remaining — all integration requirements addressed during PoC.</p>
+              </div>
+              <!-- Technical Status -->
+              <div>
+                <h4 class="text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wider mb-1.5">Technical Status</h4>
+                <div class="space-y-1.5 text-[11px]">
+                  <div class="flex items-center gap-2">
+                    <span class="text-[9px] font-semibold text-brand-navy-70 w-20">PoC Status:</span>
+                    <span class="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-emerald-50 text-emerald-700">Completed</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-[9px] font-semibold text-brand-navy-70 w-20">Products:</span>
+                    <span class="text-brand-navy">RDM, MDM</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-[9px] font-semibold text-brand-navy-70 w-20">Competitors:</span>
+                    <span class="text-brand-navy">Informatica</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-[9px] font-semibold text-brand-navy-70 w-20">Blockers:</span>
+                    <span class="text-emerald-600">None</span>
+                  </div>
+                </div>
+              </div>
+              <!-- Next Steps + Velocity -->
+              <div>
+                <h4 class="text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wider mb-1.5">Next Steps & Velocity</h4>
+                <div class="space-y-1.5 text-[11px]">
+                  <div class="flex items-start gap-1.5">
+                    <span class="text-brand-purple mt-0.5">&#9679;</span>
+                    <span class="text-brand-navy">Legal review by Apr 18</span>
+                  </div>
+                  <div class="flex items-start gap-1.5">
+                    <span class="text-brand-purple mt-0.5">&#9679;</span>
+                    <span class="text-brand-navy">Final sign-off from CTO</span>
+                  </div>
+                </div>
+                <div class="mt-2 pt-2 border-t border-brand-navy-30/20">
+                  <div class="flex items-center gap-2 text-[10px]">
+                    <span class="text-brand-navy-70">In Negotiate for:</span>
+                    <span class="font-semibold text-brand-navy">14 days</span>
+                  </div>
+                  <div class="flex items-center gap-2 text-[10px] mt-0.5">
+                    <span class="text-brand-navy-70">MEDDPICC gaps:</span>
+                    <span class="text-status-warning font-medium">Paper Process</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- AI Quick Take -->
+            <div class="mt-3 rounded-lg bg-brand-purple-30/20 border border-brand-purple/10 px-3 py-2 flex items-start gap-2">
+              <svg class="w-3.5 h-3.5 text-brand-purple mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="currentColor"/></svg>
+              <p class="text-[11px] text-brand-navy leading-relaxed"><strong>AI Quick Take:</strong> Strong deal in final stage. All technical validation complete. Only risk is legal/procurement timeline — confirm paper process details for the forecast call.</p>
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <!-- Deal Card 2: At Risk -->
+      <div class="bg-white rounded-xl border border-status-overdue/20 shadow-sm overflow-hidden">
+        <details class="group">
+          <summary class="flex items-center gap-4 px-5 py-3.5 cursor-pointer select-none hover:bg-red-50/30 transition-colors bg-red-50/10">
+            <svg class="w-3.5 h-3.5 text-brand-navy-70 transition-transform group-open:rotate-90 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M9 5l7 7-7 7"/></svg>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2">
+                <span class="font-semibold text-[13px] text-brand-navy">[PH] ICTSI_MDM with Emsha</span>
+                <span class="text-[8px] font-semibold bg-yellow-100 text-yellow-700 px-1.5 py-px rounded-full">KEY</span>
+                <span class="text-[9px] px-2 py-0.5 rounded bg-purple-100 text-purple-800 font-semibold">Upside</span>
+                <span class="text-[8px] px-1.5 py-0.5 rounded bg-status-overdue/10 text-status-overdue font-bold border border-status-overdue/20">BLOCKER</span>
+              </div>
+              <div class="text-[10px] text-brand-navy-70 mt-0.5">ICTSI &middot; $440K &middot; Develop Solution &middot; Close Jun 30 &middot; SE: Nick Stammers</div>
+            </div>
+            <div class="flex items-center gap-3 flex-shrink-0">
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-50 text-red-700 border border-red-200">Health 52</span>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-brand-purple-30 text-brand-purple border border-brand-purple/20">MEDDPICC 5/9</span>
+            </div>
+          </summary>
+          <div class="px-5 pb-4 border-t border-status-overdue/20 bg-red-50/10">
+            <div class="grid grid-cols-3 gap-5 pt-3">
+              <div>
+                <h4 class="text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wider mb-1.5">SE Comments</h4>
+                <div class="flex items-center gap-1.5 mb-1">
+                  <span class="w-1.5 h-1.5 rounded-full bg-status-overdue"></span>
+                  <span class="text-[9px] text-status-overdue font-bold">Updated 12 days ago</span>
+                </div>
+                <p class="text-[11px] text-brand-navy leading-relaxed">Need to validate MDM data model with their SAP team. Partner Emsha to lead on-site workshop but no date confirmed yet.</p>
+              </div>
+              <div>
+                <h4 class="text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wider mb-1.5">Technical Status</h4>
+                <div class="space-y-1.5 text-[11px]">
+                  <div class="flex items-center gap-2">
+                    <span class="text-[9px] font-semibold text-brand-navy-70 w-20">PoC Status:</span>
+                    <span class="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-amber-50 text-amber-700">Pending</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-[9px] font-semibold text-brand-navy-70 w-20">Products:</span>
+                    <span class="text-brand-navy">MDM</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-[9px] font-semibold text-brand-navy-70 w-20">Competitors:</span>
+                    <span class="text-brand-navy">Reltio, Semarchy</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-[9px] font-semibold text-brand-navy-70 w-20">Blockers:</span>
+                    <span class="text-status-overdue font-semibold">SAP connector compatibility</span>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <h4 class="text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wider mb-1.5">Next Steps & Velocity</h4>
+                <div class="space-y-1.5 text-[11px]">
+                  <div class="flex items-start gap-1.5">
+                    <span class="text-status-overdue mt-0.5">&#9679;</span>
+                    <span class="text-brand-navy">Schedule SAP integration workshop (overdue)</span>
+                  </div>
+                  <div class="flex items-start gap-1.5">
+                    <span class="text-brand-purple mt-0.5">&#9679;</span>
+                    <span class="text-brand-navy">Confirm data model with ICTSI IT team</span>
+                  </div>
+                </div>
+                <div class="mt-2 pt-2 border-t border-brand-navy-30/20">
+                  <div class="flex items-center gap-2 text-[10px]">
+                    <span class="text-brand-navy-70">In Develop Solution for:</span>
+                    <span class="font-semibold text-status-warning">38 days</span>
+                  </div>
+                  <div class="flex items-center gap-2 text-[10px] mt-0.5">
+                    <span class="text-brand-navy-70">MEDDPICC gaps:</span>
+                    <span class="text-status-overdue font-medium">Metrics, Decision Criteria, Paper Process, Champion</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="mt-3 rounded-lg bg-red-50 border border-status-overdue/20 px-3 py-2 flex items-start gap-2">
+              <svg class="w-3.5 h-3.5 text-status-overdue mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="currentColor"/></svg>
+              <p class="text-[11px] text-brand-navy leading-relaxed"><strong>AI Quick Take:</strong> Highest-value upside deal but stalling. SAP blocker unresolved for 2+ weeks, SE comments stale, and 4 MEDDPICC gaps in Develop Solution. Risk of losing to Reltio if we don't demonstrate SAP integration capability soon. Recommend escalation to SE manager.</p>
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <!-- Deal Card 3: No SE assigned -->
+      <div class="bg-white rounded-xl border border-status-warning/30 shadow-sm overflow-hidden">
+        <details class="group">
+          <summary class="flex items-center gap-4 px-5 py-3.5 cursor-pointer select-none hover:bg-amber-50/30 transition-colors bg-amber-50/10">
+            <svg class="w-3.5 h-3.5 text-brand-navy-70 transition-transform group-open:rotate-90 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M9 5l7 7-7 7"/></svg>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2">
+                <span class="font-semibold text-[13px] text-brand-navy">[ES] MAPFRE-DQG</span>
+                <span class="text-[9px] px-2 py-0.5 rounded bg-purple-100 text-purple-800 font-semibold">Upside</span>
+                <span class="text-[8px] px-1.5 py-0.5 rounded bg-status-warning/10 text-status-warning font-bold border border-status-warning/20">NO SE</span>
+              </div>
+              <div class="text-[10px] text-brand-navy-70 mt-0.5">MAPFRE &middot; $375K &middot; Develop Solution &middot; Close Jun 15 &middot; <span class="text-status-overdue font-medium">SE: Unassigned</span></div>
+            </div>
+            <div class="flex items-center gap-3 flex-shrink-0">
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-brand-navy-70 border border-brand-navy-30/30">Health —</span>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-brand-navy-70 border border-brand-navy-30/30">MEDDPICC 3/9</span>
+            </div>
+          </summary>
+          <div class="px-5 pb-4 border-t border-status-warning/20 bg-amber-50/10">
+            <div class="mt-3 rounded-lg bg-amber-50 border border-amber-200/60 px-3 py-2.5 flex items-start gap-2">
+              <svg class="w-3.5 h-3.5 text-status-warning mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="currentColor"/></svg>
+              <p class="text-[11px] text-brand-navy leading-relaxed"><strong>AI Quick Take:</strong> $375K deal in Develop Solution with no SE coverage. MEDDPICC at 3/9 — critical discovery gaps. Insurance vertical is an ICP sweet spot. Assign SE immediately to prevent this from stalling or being lost to a competitor who shows up with a demo.</p>
+            </div>
+          </div>
+        </details>
+      </div>
+
+    </div><!-- /space-y-4 -->
+  </div>
+
+</div>
+
+<script>
+function toggleRow(rowId) {
+  const detail = document.getElementById(rowId + '-detail');
+  const chevron = document.getElementById(rowId + '-chevron');
+  const header = document.getElementById(rowId + '-header');
+  const isHidden = detail.classList.contains('hidden');
+  detail.classList.toggle('hidden');
+  chevron.style.transform = isHidden ? 'rotate(90deg)' : '';
+  if (isHidden) {
+    header.classList.add('bg-brand-purple-30/10');
+  } else {
+    header.classList.remove('bg-brand-purple-30/10');
+  }
+}
+
+function switchTab(tab) {
+  document.getElementById('panel-fq').classList.toggle('hidden', tab !== 'fq');
+  document.getElementById('panel-deals').classList.toggle('hidden', tab !== 'deals');
+  const fqBtn = document.getElementById('tab-fq');
+  const dealsBtn = document.getElementById('tab-deals');
+  if (tab === 'fq') {
+    fqBtn.className = 'px-5 py-2.5 text-xs font-semibold rounded-t-xl border border-b-0 bg-white text-brand-purple border-brand-navy-30/40 z-10';
+    fqBtn.style.marginBottom = '-1px';
+    dealsBtn.className = 'px-5 py-2.5 text-xs font-semibold rounded-t-xl border border-b-0 bg-transparent text-brand-navy-70 border-transparent hover:text-brand-navy hover:bg-white/50';
+    dealsBtn.style.marginBottom = '';
+  } else {
+    dealsBtn.className = 'px-5 py-2.5 text-xs font-semibold rounded-t-xl border border-b-0 bg-white text-brand-purple border-brand-navy-30/40 z-10';
+    dealsBtn.style.marginBottom = '-1px';
+    fqBtn.className = 'px-5 py-2.5 text-xs font-semibold rounded-t-xl border border-b-0 bg-transparent text-brand-navy-70 border-transparent hover:text-brand-navy hover:bg-white/50';
+    fqBtn.style.marginBottom = '';
+  }
+}
+</script>
+
+</body>
+</html>
