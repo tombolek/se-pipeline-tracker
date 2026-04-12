@@ -82,3 +82,15 @@ export async function generateNarrative(fiscalPeriod: string): Promise<ForecastN
   const { data } = await api.post<ApiResponse<ForecastNarrative>>('/forecasting-brief/narrative/generate', { fiscal_period: fiscalPeriod });
   return data.data;
 }
+
+export interface BulkSummaryResult {
+  total: number;
+  succeeded: number;
+  failed: number;
+  results: { id: number; status: 'ok' | 'error'; error?: string }[];
+}
+
+export async function bulkGenerateSummaries(oppIds: number[]): Promise<BulkSummaryResult> {
+  const { data } = await api.post<ApiResponse<BulkSummaryResult>>('/forecasting-brief/summaries/bulk-generate', { opp_ids: oppIds });
+  return data.data;
+}

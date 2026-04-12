@@ -228,4 +228,117 @@ BE CONCISE. Each section should be 2-4 sentences. Use deal names and dollar amou
   }
 });
 
+// ── POST /forecasting-brief/summaries/bulk-generate ────────────────────────
+// Accepts { opp_ids: number[] } and generates AI summaries sequentially.
+// Only called after client filters to opps that are stale or missing summaries.
+router.post('/summaries/bulk-generate', auth, mgr, async (req: Request, res: Response): Promise<void> => {
+  const oppIds = req.body.opp_ids as number[] | undefined;
+  if (!Array.isArray(oppIds) || oppIds.length === 0) {
+    res.status(400).json(err('opp_ids array is required'));
+    return;
+  }
+
+  // Cap at 200 to prevent abuse
+  if (oppIds.length > 200) {
+    res.status(400).json(err('Maximum 200 opportunities per batch'));
+    return;
+  }
+
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const results: { id: number; status: 'ok' | 'error'; error?: string }[] = [];
+
+  for (const oppId of oppIds) {
+    try {
+      const opp = await queryOne<Record<string, unknown>>(
+        `SELECT o.*, u.name AS se_owner_name
+         FROM opportunities o
+         LEFT JOIN users u ON u.id = o.se_owner_id
+         WHERE o.id = $1`,
+        [oppId]
+      );
+      if (!opp) { results.push({ id: oppId, status: 'error', error: 'Not found' }); continue; }
+
+      const tasks = await query(
+        `SELECT t.title, t.status, t.due_date, t.is_next_step
+         FROM tasks t WHERE t.opportunity_id = $1 AND t.is_deleted = false AND t.status != 'done'
+         ORDER BY t.is_next_step DESC, t.due_date ASC NULLS LAST`,
+        [oppId]
+      );
+
+      const notes = await query(
+        `SELECT n.content, u.name AS author_name, n.created_at
+         FROM notes n JOIN users u ON u.id = n.author_id
+         WHERE n.opportunity_id = $1 ORDER BY n.created_at DESC LIMIT 10`,
+        [oppId]
+      );
+
+      const fmtDate = (d: unknown) => d ? new Date(d as string).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A';
+      const fmtARR = (a: unknown) => a ? `$${(Number(a) / 1000).toFixed(0)}K` : 'N/A';
+
+      const taskLines = tasks.length
+        ? tasks.map((t: Record<string, unknown>) =>
+            `- [${t.is_next_step ? 'NEXT STEP' : t.status}] ${t.title}${t.due_date ? ` (due ${fmtDate(t.due_date)})` : ''}`
+          ).join('\n')
+        : 'No open tasks.';
+
+      const noteLines = notes.length
+        ? [...notes].reverse().map((n: Record<string, unknown>) =>
+            `[${fmtDate(n.created_at)} — ${n.author_name}]: ${n.content}`
+          ).join('\n')
+        : 'No notes yet.';
+
+      const prompt = `You are an SE deal intelligence assistant. Write a concise deal summary in 3 short paragraphs using plain text with **bold** for emphasis on key names, numbers, and actions. Do NOT use markdown headers (#), bullet points, or lists. Keep it conversational and direct.
+
+Paragraph 1: Current deal status and momentum (1-2 sentences).
+Paragraph 2: Key risks or blockers (1-2 sentences).
+Paragraph 3: Recommended next action starting with "**Recommended next action:**" (1-2 sentences).
+
+Opportunity: ${opp.name}
+Account: ${opp.account_name ?? 'N/A'}
+Stage: ${opp.stage}
+ARR: ${fmtARR(opp.arr)}
+Close Date: ${fmtDate(opp.close_date)}
+AE Owner: ${opp.ae_owner_name ?? 'N/A'}
+SE Owner: ${opp.se_owner_name ?? 'Unassigned'}
+
+Next Step (from SF): ${opp.next_step_sf ?? 'N/A'}
+
+SE Comments: ${opp.se_comments ?? 'None'}
+
+Manager Comments: ${opp.manager_comments ?? 'None'}
+
+Open Tasks:
+${taskLines}
+
+Recent Notes (oldest to newest):
+${noteLines}`;
+
+      const response = await client.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 400,
+        messages: [{ role: 'user', content: prompt }],
+      });
+
+      const summaryBlock = response.content.find(b => b.type === 'text');
+      const summary = summaryBlock && summaryBlock.type === 'text' ? summaryBlock.text : '';
+
+      await query(
+        `INSERT INTO ai_summary_cache (key, content, generated_at)
+         VALUES ($1, $2, now())
+         ON CONFLICT (key) DO UPDATE SET content = $2, generated_at = now()`,
+        [`summary-${oppId}`, summary]
+      );
+
+      results.push({ id: oppId, status: 'ok' });
+    } catch (e: unknown) {
+      console.error(`[bulk-summary] Failed for opp ${oppId}:`, e);
+      results.push({ id: oppId, status: 'error', error: String((e as Error).message || e) });
+    }
+  }
+
+  const succeeded = results.filter(r => r.status === 'ok').length;
+  const failed = results.filter(r => r.status === 'error').length;
+  res.json(ok({ total: oppIds.length, succeeded, failed, results }));
+});
+
 export default router;

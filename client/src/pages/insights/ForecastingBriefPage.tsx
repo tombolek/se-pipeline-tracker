@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { getForecastingBrief, generateNarrative } from '../../api/forecastingBrief';
+import { getForecastingBrief, generateNarrative, bulkGenerateSummaries } from '../../api/forecastingBrief';
 import type { ForecastingBriefData, ForecastOpp } from '../../api/forecastingBrief';
 import { formatARR, formatDate } from '../../utils/formatters';
 import { useTeamScope } from '../../hooks/useTeamScope';
@@ -283,6 +283,12 @@ export default function ForecastingBriefPage() {
   // Drawer state
   const [drawerOppId, setDrawerOppId] = useState<number | null>(null);
 
+  // Bulk summary generation state
+  const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
+  const [bulkRunning, setBulkRunning] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number } | null>(null);
+  const [bulkResult, setBulkResult] = useState<{ succeeded: number; failed: number } | null>(null);
+
   // ── Load data ───────────────────────────────────────────────────────────
   const load = useCallback(async () => {
     setLoading(true);
@@ -428,6 +434,46 @@ export default function ForecastingBriefPage() {
 
   const toggleRow = (id: number) => {
     setExpandedRow(prev => prev === id ? null : id);
+  };
+
+  // Opps needing a summary refresh (no summary or >5 days old)
+  const oppsNeedingSummary = useMemo(() => {
+    if (!data) return [];
+    const fiveDaysMs = 5 * 86400000;
+    return data.opportunities.filter(o => {
+      if (!o.ai_summary_generated_at) return true;
+      return Date.now() - new Date(o.ai_summary_generated_at).getTime() > fiveDaysMs;
+    });
+  }, [data]);
+
+  const handleBulkGenerate = async () => {
+    setBulkConfirmOpen(false);
+    setBulkRunning(true);
+    setBulkResult(null);
+    const ids = oppsNeedingSummary.map(o => o.id);
+    setBulkProgress({ done: 0, total: ids.length });
+
+    // Process in batches of 10 to show progress updates
+    const batchSize = 10;
+    let totalSucceeded = 0;
+    let totalFailed = 0;
+    for (let i = 0; i < ids.length; i += batchSize) {
+      const batch = ids.slice(i, i + batchSize);
+      try {
+        const result = await bulkGenerateSummaries(batch);
+        totalSucceeded += result.succeeded;
+        totalFailed += result.failed;
+      } catch {
+        totalFailed += batch.length;
+      }
+      setBulkProgress({ done: Math.min(i + batchSize, ids.length), total: ids.length });
+    }
+
+    setBulkRunning(false);
+    setBulkProgress(null);
+    setBulkResult({ succeeded: totalSucceeded, failed: totalFailed });
+    // Refresh data to pick up new summaries
+    load();
   };
 
   // ── Render ──────────────────────────────────────────────────────────────
@@ -687,6 +733,14 @@ export default function ForecastingBriefPage() {
                   <option value="">All SEs</option>
                   {seList.map(se => <option key={se} value={se}>{se}</option>)}
                 </select>
+                <button
+                  onClick={() => setBulkConfirmOpen(true)}
+                  disabled={bulkRunning || oppsNeedingSummary.length === 0}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-brand-purple/30 bg-brand-purple/5 text-brand-purple text-[10px] font-medium hover:bg-brand-purple/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="currentColor"/></svg>
+                  {bulkRunning ? `Generating ${bulkProgress?.done ?? 0}/${bulkProgress?.total ?? 0}…` : `Refresh Summaries${oppsNeedingSummary.length > 0 ? ` (${oppsNeedingSummary.length})` : ''}`}
+                </button>
               </div>
             </div>
 
@@ -788,6 +842,95 @@ export default function ForecastingBriefPage() {
           />
         )}
       </Drawer>
+
+      {/* Bulk Summary Confirmation Modal */}
+      {bulkConfirmOpen && (
+        <div className="fixed inset-0 z-[9998] flex items-center justify-center">
+          <div className="absolute inset-0 bg-brand-navy/40 backdrop-blur-sm" onClick={() => setBulkConfirmOpen(false)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl border border-brand-navy-30/40 w-[420px] p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-brand-purple/10 flex items-center justify-center">
+                <svg className="w-5 h-5 text-brand-purple" viewBox="0 0 24 24" fill="none"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="currentColor"/></svg>
+              </div>
+              <div>
+                <h3 className="text-[14px] font-semibold text-brand-navy">Refresh AI Summaries</h3>
+                <p className="text-[11px] text-brand-navy-70">Generate summaries for deals missing or with stale (&gt;5 days) summaries</p>
+              </div>
+            </div>
+            <div className="bg-gray-50 rounded-xl px-4 py-3 mb-5">
+              <div className="flex items-center justify-between text-[12px]">
+                <span className="text-brand-navy-70">Deals to process</span>
+                <span className="font-bold text-brand-navy text-[16px]">{oppsNeedingSummary.length}</span>
+              </div>
+              <div className="flex items-center justify-between text-[11px] text-brand-navy-70 mt-1">
+                <span>Total deals in {fiscal_period}</span>
+                <span>{data.opportunities.length}</span>
+              </div>
+              <div className="flex items-center justify-between text-[11px] text-brand-navy-70 mt-0.5">
+                <span>Already up to date</span>
+                <span>{data.opportunities.length - oppsNeedingSummary.length}</span>
+              </div>
+            </div>
+            <p className="text-[11px] text-brand-navy-70 mb-5">
+              This will make <strong>{oppsNeedingSummary.length}</strong> API calls to Claude. Each deal takes ~2-3 seconds.
+              Estimated time: <strong>~{Math.ceil(oppsNeedingSummary.length * 2.5 / 60)} min</strong>.
+            </p>
+            <div className="flex items-center justify-end gap-3">
+              <button
+                onClick={() => setBulkConfirmOpen(false)}
+                className="px-4 py-2 rounded-lg text-[11px] font-medium text-brand-navy-70 hover:bg-gray-100 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBulkGenerate}
+                className="px-4 py-2 rounded-lg bg-brand-purple text-white text-[11px] font-medium hover:bg-brand-purple-70 transition-colors shadow-sm"
+              >
+                Generate {oppsNeedingSummary.length} Summaries
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Summary Progress Overlay */}
+      {bulkRunning && bulkProgress && (
+        <div className="fixed bottom-6 right-6 z-[9999] bg-white rounded-xl shadow-2xl border border-brand-navy-30/40 p-4 w-[300px]">
+          <div className="flex items-center gap-2 mb-2">
+            <svg className="w-4 h-4 text-brand-purple animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2v4m0 12v4m-7.07-3.93l2.83-2.83m8.49-8.49l2.83-2.83M2 12h4m12 0h4m-3.93 7.07l-2.83-2.83M7.76 7.76L4.93 4.93"/></svg>
+            <span className="text-[12px] font-semibold text-brand-navy">Generating AI Summaries…</span>
+          </div>
+          <div className="h-2 bg-gray-100 rounded-full overflow-hidden mb-1.5">
+            <div
+              className="h-full bg-brand-purple rounded-full transition-all duration-300"
+              style={{ width: `${(bulkProgress.done / bulkProgress.total) * 100}%` }}
+            />
+          </div>
+          <span className="text-[10px] text-brand-navy-70">{bulkProgress.done} of {bulkProgress.total} deals processed</span>
+        </div>
+      )}
+
+      {/* Bulk Summary Result Toast */}
+      {bulkResult && !bulkRunning && (
+        <div className="fixed bottom-6 right-6 z-[9999] bg-white rounded-xl shadow-2xl border border-brand-navy-30/40 p-4 w-[300px]">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-6 h-6 rounded-full bg-emerald-50 flex items-center justify-center">
+                <svg className="w-3.5 h-3.5 text-emerald-600" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg>
+              </span>
+              <div>
+                <span className="text-[12px] font-semibold text-brand-navy">Summaries Generated</span>
+                <p className="text-[10px] text-brand-navy-70">
+                  {bulkResult.succeeded} succeeded{bulkResult.failed > 0 ? `, ${bulkResult.failed} failed` : ''}
+                </p>
+              </div>
+            </div>
+            <button onClick={() => setBulkResult(null)} className="text-brand-navy-30 hover:text-brand-navy">
+              <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"/></svg>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
