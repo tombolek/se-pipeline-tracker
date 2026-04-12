@@ -20,9 +20,11 @@ COPY --from=builder /app/dist ./dist
 # Copy SQL migration files (read by dist/migrate.js at startup)
 COPY migrations/ ./migrations/
 
-# Install production dependencies only
+# Install production dependencies (bcrypt needs build tools for native binding)
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN apk add --no-cache python3 make g++ && \
+    npm ci --omit=dev && \
+    apk del python3 make g++
 
 EXPOSE 3001
 
