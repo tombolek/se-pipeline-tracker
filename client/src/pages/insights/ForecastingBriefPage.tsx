@@ -7,6 +7,16 @@ import { Loading } from './shared';
 import Drawer from '../../components/Drawer';
 import OpportunityDetail from '../../components/OpportunityDetail';
 
+// ── Bold text renderer ─────────────────────────────────────────────────────
+function renderBold(text: string): React.ReactNode {
+  const parts = text.split(/\*\*(.+?)\*\*/g);
+  return parts.map((part, i) =>
+    i % 2 === 1
+      ? <strong key={i} className="text-brand-navy font-semibold">{part}</strong>
+      : part
+  );
+}
+
 // ── Initials helper ────────────────────────────────────────────────────────
 function initials(name: string | null | undefined): string {
   if (!name) return '—';
@@ -1014,8 +1024,8 @@ function OppRow({ opp, isExpanded, rowBg, freshness, hasBlocker, onToggle, onOpe
         <tr>
           <td colSpan={8} className="p-0">
             <div className={`border-l-4 px-5 py-4 ${!opp.se_owner_id ? 'bg-amber-50/40 border-status-warning' : hasBlocker ? 'bg-red-50/40 border-status-overdue' : 'bg-brand-purple-30/10 border-brand-purple'}`}>
-              <div className="grid grid-cols-4 gap-4">
-                {/* AI Summary */}
+              <div className="grid grid-cols-[2fr_1fr_1fr] gap-5">
+                {/* AI Summary — wide left column */}
                 <div>
                   <div className="flex items-center gap-1.5 mb-1.5">
                     <svg className="w-3 h-3 text-brand-purple" viewBox="0 0 24 24" fill="none"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="currentColor"/></svg>
@@ -1023,7 +1033,7 @@ function OppRow({ opp, isExpanded, rowBg, freshness, hasBlocker, onToggle, onOpe
                   </div>
                   {opp.ai_summary ? (
                     <>
-                      <p className="text-[11px] text-brand-navy leading-relaxed">{opp.ai_summary}</p>
+                      <p className="text-[11px] text-brand-navy leading-relaxed">{renderBold(opp.ai_summary)}</p>
                       {opp.ai_summary_generated_at && (
                         <p className="text-[9px] text-brand-navy-30 mt-1">Generated {formatDate(opp.ai_summary_generated_at)}</p>
                       )}
@@ -1033,7 +1043,7 @@ function OppRow({ opp, isExpanded, rowBg, freshness, hasBlocker, onToggle, onOpe
                   )}
                 </div>
 
-                {/* SE Comments */}
+                {/* SE Comments — middle column */}
                 <div>
                   <h4 className="text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wider mb-1.5">SE Comments</h4>
                   {opp.se_comments ? (
@@ -1056,55 +1066,58 @@ function OppRow({ opp, isExpanded, rowBg, freshness, hasBlocker, onToggle, onOpe
                   )}
                 </div>
 
-                {/* Technical Status */}
-                <div>
-                  <h4 className="text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wider mb-1.5">Technical Status</h4>
-                  <div className="space-y-1 text-[11px]">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[9px] font-semibold text-brand-navy-70 w-16">PoC:</span>
-                      {opp.poc_status ? (
-                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold ${opp.poc_status.toLowerCase().includes('completed') ? 'bg-emerald-50 text-emerald-700' : opp.poc_status.toLowerCase().includes('in progress') ? 'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700'}`}>
-                          {opp.poc_status}
-                        </span>
-                      ) : <span className="text-brand-navy-30">N/A</span>}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[9px] font-semibold text-brand-navy-70 w-16">Blockers:</span>
-                      {opp.technical_blockers ? (
-                        <span className="text-status-overdue font-semibold">{opp.technical_blockers}</span>
-                      ) : <span className="text-emerald-600">None</span>}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[9px] font-semibold text-brand-navy-70 w-16">Compete:</span>
-                      <span className="text-brand-navy">{opp.engaged_competitors || 'None'}</span>
-                    </div>
-                    {opp.deploy_mode && (
+                {/* Right column — Technical Status + MEDDPICC stacked */}
+                <div className="space-y-4">
+                  {/* Technical Status */}
+                  <div>
+                    <h4 className="text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wider mb-1.5">Technical Status</h4>
+                    <div className="space-y-1 text-[11px]">
                       <div className="flex items-center gap-2">
-                        <span className="text-[9px] font-semibold text-brand-navy-70 w-16">Deploy:</span>
-                        <span className="text-brand-navy">{opp.deploy_mode}</span>
+                        <span className="text-[9px] font-semibold text-brand-navy-70 w-16">PoC:</span>
+                        {opp.poc_status ? (
+                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold ${opp.poc_status.toLowerCase().includes('completed') ? 'bg-emerald-50 text-emerald-700' : opp.poc_status.toLowerCase().includes('in progress') ? 'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700'}`}>
+                            {opp.poc_status}
+                          </span>
+                        ) : <span className="text-brand-navy-30">N/A</span>}
                       </div>
-                    )}
+                      <div className="flex items-center gap-2">
+                        <span className="text-[9px] font-semibold text-brand-navy-70 w-16">Blockers:</span>
+                        {opp.technical_blockers ? (
+                          <span className="text-status-overdue font-semibold">{opp.technical_blockers}</span>
+                        ) : <span className="text-emerald-600">None</span>}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[9px] font-semibold text-brand-navy-70 w-16">Compete:</span>
+                        <span className="text-brand-navy">{opp.engaged_competitors || 'None'}</span>
+                      </div>
+                      {opp.deploy_mode && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-[9px] font-semibold text-brand-navy-70 w-16">Deploy:</span>
+                          <span className="text-brand-navy">{opp.deploy_mode}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
 
-                {/* MEDDPICC Gaps */}
-                <div>
-                  <h4 className="text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wider mb-1.5">MEDDPICC Gaps</h4>
-                  <div className="flex flex-wrap gap-1 mb-2">
-                    {MEDDPICC_FIELDS.map(f => {
-                      const isFilled = filled.has(f.key);
-                      return (
-                        <span
-                          key={f.key}
-                          className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${isFilled ? 'bg-emerald-50 text-emerald-700' : 'bg-status-overdue/10 text-status-overdue font-semibold border border-status-overdue/20'}`}
-                        >
-                          {f.label} {isFilled ? '✓' : '❌'}
-                        </span>
-                      );
-                    })}
-                  </div>
-                  <div className="text-[10px] text-brand-navy-70">
-                    Score: <strong className={score >= 7 ? 'text-emerald-600' : score >= 5 ? 'text-brand-navy' : 'text-status-overdue'}>{score}/9</strong>
+                  {/* MEDDPICC Gaps */}
+                  <div>
+                    <h4 className="text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wider mb-1.5">MEDDPICC Gaps</h4>
+                    <div className="flex flex-wrap gap-1 mb-1.5">
+                      {MEDDPICC_FIELDS.map(f => {
+                        const isFilled = filled.has(f.key);
+                        return (
+                          <span
+                            key={f.key}
+                            className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${isFilled ? 'bg-emerald-50 text-emerald-700' : 'bg-status-overdue/10 text-status-overdue font-semibold border border-status-overdue/20'}`}
+                          >
+                            {f.label} {isFilled ? '✓' : '❌'}
+                          </span>
+                        );
+                      })}
+                    </div>
+                    <div className="text-[10px] text-brand-navy-70">
+                      Score: <strong className={score >= 7 ? 'text-emerald-600' : score >= 5 ? 'text-brand-navy' : 'text-status-overdue'}>{score}/9</strong>
+                    </div>
                   </div>
                 </div>
               </div>
