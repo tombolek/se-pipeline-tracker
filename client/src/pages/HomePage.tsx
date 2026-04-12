@@ -136,12 +136,12 @@ export default function HomePage() {
   const [data, setData] = useState<DigestData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedOppId, setSelectedOppId] = useState<number | null>(null);
-  const [drawerInitialTab, setDrawerInitialTab] = useState<'work' | 'timeline' | 'call-prep' | 'deal-info' | undefined>(undefined);
+  const [drawerInitialTab, setDrawerInitialTab] = useState<'work' | 'timeline' | 'call-prep' | 'demo-prep' | 'deal-info' | undefined>(undefined);
   const [drawerInitialAction, setDrawerInitialAction] = useState<'summary' | 'notes-processor' | undefined>(undefined);
 
   // AI quick links state
   const [allOpps, setAllOpps] = useState<Opportunity[]>([]);
-  const [aiPickerOpen, setAiPickerOpen] = useState<'call-prep' | 'notes-processor' | 'summary' | null>(null);
+  const [aiPickerOpen, setAiPickerOpen] = useState<'call-prep' | 'notes-processor' | 'summary' | 'demo-prep' | null>(null);
   const [aiSearch, setAiSearch] = useState('');
   const aiPickerRef = useRef<HTMLDivElement>(null);
 
@@ -167,11 +167,14 @@ export default function HomePage() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, [aiPickerOpen]);
 
-  function openAiFeature(oppId: number, feature: 'call-prep' | 'notes-processor' | 'summary') {
+  function openAiFeature(oppId: number, feature: 'call-prep' | 'notes-processor' | 'summary' | 'demo-prep') {
     setAiPickerOpen(null);
     setAiSearch('');
     if (feature === 'call-prep') {
       setDrawerInitialTab('call-prep');
+      setDrawerInitialAction(undefined);
+    } else if (feature === 'demo-prep') {
+      setDrawerInitialTab('demo-prep');
       setDrawerInitialAction(undefined);
     } else if (feature === 'summary') {
       setDrawerInitialTab('work');
@@ -235,7 +238,7 @@ export default function HomePage() {
         </div>
 
         {/* AI Quick Links */}
-        <div className="grid grid-cols-3 gap-4 mb-6" ref={aiPickerRef}>
+        <div className="grid grid-cols-4 gap-4 mb-6" ref={aiPickerRef}>
           {([
             {
               key: 'call-prep' as const,
@@ -247,6 +250,17 @@ export default function HomePage() {
                 </svg>
               ),
               gradient: 'from-brand-purple/5 to-brand-purple/10',
+            },
+            {
+              key: 'demo-prep' as const,
+              label: 'Demo Prep',
+              desc: 'AI demo readiness assessment with coaching tips',
+              icon: (
+                <svg className="w-5 h-5 text-status-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5M9 11.25v1.5M12 9v3.75m3-6v6" />
+                </svg>
+              ),
+              gradient: 'from-status-success/5 to-status-success/10',
             },
             {
               key: 'notes-processor' as const,
