@@ -436,15 +436,14 @@ export default function ForecastingBriefPage() {
     setExpandedRow(prev => prev === id ? null : id);
   };
 
-  // Opps needing a summary refresh (no summary or >5 days old)
+  // Opps needing a summary refresh (no summary or >5 days old), scoped to current region
   const oppsNeedingSummary = useMemo(() => {
-    if (!data) return [];
     const fiveDaysMs = 5 * 86400000;
-    return data.opportunities.filter(o => {
+    return filteredOpps.filter(o => {
       if (!o.ai_summary_generated_at) return true;
       return Date.now() - new Date(o.ai_summary_generated_at).getTime() > fiveDaysMs;
     });
-  }, [data]);
+  }, [filteredOpps]);
 
   const handleBulkGenerate = async () => {
     setBulkConfirmOpen(false);
@@ -863,12 +862,12 @@ export default function ForecastingBriefPage() {
                 <span className="font-bold text-brand-navy text-[16px]">{oppsNeedingSummary.length}</span>
               </div>
               <div className="flex items-center justify-between text-[11px] text-brand-navy-70 mt-1">
-                <span>Total deals in {fiscal_period}</span>
-                <span>{data.opportunities.length}</span>
+                <span>Total deals in {fiscal_period} ({region})</span>
+                <span>{filteredOpps.length}</span>
               </div>
               <div className="flex items-center justify-between text-[11px] text-brand-navy-70 mt-0.5">
                 <span>Already up to date</span>
-                <span>{data.opportunities.length - oppsNeedingSummary.length}</span>
+                <span>{filteredOpps.length - oppsNeedingSummary.length}</span>
               </div>
             </div>
             <p className="text-[11px] text-brand-navy-70 mb-5">
