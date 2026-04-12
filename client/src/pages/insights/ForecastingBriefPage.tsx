@@ -540,6 +540,53 @@ export default function ForecastingBriefPage() {
       {/* ═══ TAB 1: CURRENT FQ ═══ */}
       {activeTab === 'fq' && (
         <div className="pt-5">
+          {/* AI Forecast Narrative (collapsible, above pipeline) */}
+          <details open className="mb-5 bg-white rounded-xl border border-brand-navy-30/40 shadow-sm overflow-hidden group">
+            <summary className="px-4 py-3 border-b border-brand-navy-30/20 bg-gradient-to-r from-brand-pink/[0.03] to-brand-purple/[0.03] flex items-center justify-between cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden">
+              <div className="flex items-center gap-2">
+                <svg className="w-3 h-3 text-brand-navy-30 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path d="M9 5l7 7-7 7"/></svg>
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="url(#sg-fb)"/>
+                  <defs><linearGradient id="sg-fb" x1="2" y1="2" x2="22" y2="22"><stop stopColor="#F10090"/><stop offset="1" stopColor="#6A2CF5"/></linearGradient></defs>
+                </svg>
+                <h3 className="text-[12px] font-semibold text-brand-navy">AI Forecast Narrative — SE Perspective</h3>
+                {narrative && (
+                  <span className="text-[9px] text-brand-navy-30 ml-2">
+                    Generated {new Date(narrative.generated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={(e) => { e.preventDefault(); handleGenerateNarrative(); }}
+                disabled={narrativeLoading}
+                className="text-[10px] text-brand-purple font-medium hover:text-brand-purple-70 disabled:opacity-50"
+              >
+                {narrativeLoading ? 'Generating…' : narrative ? 'Regenerate' : 'Generate'}
+              </button>
+            </summary>
+            <div className="p-4">
+              {narrativeLoading && !narrative ? (
+                <div className="space-y-2">
+                  <div className="h-3 bg-gray-100 rounded animate-pulse w-full" />
+                  <div className="h-3 bg-gray-100 rounded animate-pulse w-4/5" />
+                  <div className="h-3 bg-gray-100 rounded animate-pulse w-3/5" />
+                </div>
+              ) : narrative ? (
+                <NarrativeContent content={narrative.content} />
+              ) : (
+                <div className="text-center py-6">
+                  <p className="text-[12px] text-brand-navy-70 mb-2">No narrative generated yet for {fiscal_period}.</p>
+                  <button
+                    onClick={handleGenerateNarrative}
+                    className="px-4 py-2 rounded-lg bg-brand-purple text-white text-[11px] font-medium hover:bg-brand-purple-70 transition-colors"
+                  >
+                    Generate Narrative
+                  </button>
+                </div>
+              )}
+            </div>
+          </details>
+
           {/* KPI Cards */}
           <div className="grid grid-cols-3 gap-4 mb-4">
             {/* Pipeline Total */}
@@ -649,7 +696,6 @@ export default function ForecastingBriefPage() {
                   <th className="text-left px-3 py-2">Opportunity</th>
                   <th className="text-right px-3 py-2 w-20">ARR</th>
                   <th className="text-center px-2 py-2 w-24">Stage</th>
-                  <th className="text-center px-2 py-2 w-20">Forecast</th>
                   <th className="text-left px-3 py-2 w-14">SE</th>
                   <th className="text-left px-3 py-2">SE Comments</th>
                   <th className="text-center px-2 py-2 w-16">Health</th>
@@ -663,12 +709,15 @@ export default function ForecastingBriefPage() {
                 {groupedOpps.map(group => (
                   <React.Fragment key={group.label}>
                     {/* Forecast category group header */}
-                    <tr className="bg-gray-50/80">
-                      <td colSpan={9} className="px-3 py-2">
-                        <div className="flex items-center gap-2">
+                    <tr className="border-t-2 border-brand-navy-30/40">
+                      <td colSpan={8} className="px-3 py-2.5 bg-gradient-to-r from-gray-100/90 to-gray-50/60">
+                        <div className="flex items-center gap-2.5">
                           <ForecastBadge category={group.label === 'Uncategorized' ? null : group.label} />
-                          <span className="text-[10px] font-semibold text-brand-navy-70">
-                            {group.opps.length} deal{group.opps.length !== 1 ? 's' : ''} · {formatARR(group.opps.reduce((s, o) => s + (parseFloat(o.arr || '0') || 0), 0))}
+                          <span className="text-[11px] font-bold text-brand-navy">
+                            {group.opps.length} deal{group.opps.length !== 1 ? 's' : ''}
+                          </span>
+                          <span className="text-[11px] font-semibold text-brand-navy-70">
+                            {formatARR(group.opps.reduce((s, o) => s + (parseFloat(o.arr || '0') || 0), 0))}
                           </span>
                         </div>
                       </td>
@@ -706,51 +755,6 @@ export default function ForecastingBriefPage() {
             </div>
           </div>
 
-          {/* AI Forecast Narrative */}
-          <div className="bg-white rounded-xl border border-brand-navy-30/40 shadow-sm overflow-hidden">
-            <div className="px-4 py-3 border-b border-brand-navy-30/20 bg-gradient-to-r from-brand-pink/[0.03] to-brand-purple/[0.03] flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="url(#sg-fb)"/>
-                  <defs><linearGradient id="sg-fb" x1="2" y1="2" x2="22" y2="22"><stop stopColor="#F10090"/><stop offset="1" stopColor="#6A2CF5"/></linearGradient></defs>
-                </svg>
-                <h3 className="text-[12px] font-semibold text-brand-navy">AI Forecast Narrative — SE Perspective</h3>
-                {narrative && (
-                  <span className="text-[9px] text-brand-navy-30 ml-2">
-                    Generated {new Date(narrative.generated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                  </span>
-                )}
-              </div>
-              <button
-                onClick={handleGenerateNarrative}
-                disabled={narrativeLoading}
-                className="text-[10px] text-brand-purple font-medium hover:text-brand-purple-70 disabled:opacity-50"
-              >
-                {narrativeLoading ? 'Generating…' : narrative ? 'Regenerate' : 'Generate'}
-              </button>
-            </div>
-            <div className="p-4">
-              {narrativeLoading && !narrative ? (
-                <div className="space-y-2">
-                  <div className="h-3 bg-gray-100 rounded animate-pulse w-full" />
-                  <div className="h-3 bg-gray-100 rounded animate-pulse w-4/5" />
-                  <div className="h-3 bg-gray-100 rounded animate-pulse w-3/5" />
-                </div>
-              ) : narrative ? (
-                <NarrativeContent content={narrative.content} />
-              ) : (
-                <div className="text-center py-6">
-                  <p className="text-[12px] text-brand-navy-70 mb-2">No narrative generated yet for {fiscal_period}.</p>
-                  <button
-                    onClick={handleGenerateNarrative}
-                    className="px-4 py-2 rounded-lg bg-brand-purple text-white text-[11px] font-medium hover:bg-brand-purple-70 transition-colors"
-                  >
-                    Generate Narrative
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
         </div>
       )}
 
@@ -824,7 +828,6 @@ function OppRow({ opp, isExpanded, rowBg, freshness, hasBlocker, onToggle, onOpe
         </td>
         <td className="text-right px-3 py-2.5 font-semibold">{formatARR(opp.arr)}</td>
         <td className="text-center px-2 py-2.5"><StagePill stage={opp.stage} /></td>
-        <td className="text-center px-2 py-2.5"><ForecastBadge category={opp.forecast_category} /></td>
         <td className="px-3 py-2.5 text-[10px] text-brand-navy-70">
           {opp.se_owner_name ? (
             <span className="font-semibold cursor-default" title={opp.se_owner_name}>{initials(opp.se_owner_name)}</span>
@@ -869,7 +872,7 @@ function OppRow({ opp, isExpanded, rowBg, freshness, hasBlocker, onToggle, onOpe
       {/* Expansion row */}
       {isExpanded && (
         <tr>
-          <td colSpan={9} className="p-0">
+          <td colSpan={8} className="p-0">
             <div className={`border-l-4 px-5 py-4 ${!opp.se_owner_id ? 'bg-amber-50/40 border-status-warning' : hasBlocker ? 'bg-red-50/40 border-status-overdue' : 'bg-brand-purple-30/10 border-brand-purple'}`}>
               <div className="grid grid-cols-4 gap-4">
                 {/* AI Summary */}
