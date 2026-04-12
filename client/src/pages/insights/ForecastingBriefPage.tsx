@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { getForecastingBrief, generateNarrative } from '../../api/forecastingBrief';
 import type { ForecastingBriefData, ForecastOpp } from '../../api/forecastingBrief';
 import { formatARR, formatDate } from '../../utils/formatters';
@@ -6,6 +6,52 @@ import { useTeamScope } from '../../hooks/useTeamScope';
 import { Loading } from './shared';
 import Drawer from '../../components/Drawer';
 import OpportunityDetail from '../../components/OpportunityDetail';
+
+// ── Initials helper ────────────────────────────────────────────────────────
+function initials(name: string | null | undefined): string {
+  if (!name) return '—';
+  return name.split(/\s+/).map(w => w[0]?.toUpperCase() || '').join('');
+}
+
+// ── Hover Tooltip (positioned, portal-free) ────────────────────────────────
+function HoverTooltip({ children, content, width = 260 }: {
+  children: React.ReactNode;
+  content: React.ReactNode;
+  width?: number;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [show, setShow] = useState(false);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+
+  const handleEnter = () => {
+    if (!ref.current) return;
+    const rect = ref.current.getBoundingClientRect();
+    setPos({
+      top: rect.bottom + 6,
+      left: Math.max(8, rect.left + rect.width / 2 - width / 2),
+    });
+    setShow(true);
+  };
+
+  return (
+    <div
+      ref={ref}
+      className="relative inline-flex"
+      onMouseEnter={handleEnter}
+      onMouseLeave={() => setShow(false)}
+    >
+      {children}
+      {show && pos && (
+        <div
+          className="fixed z-[9999] bg-white rounded-lg shadow-xl border border-brand-navy-30/30 p-3 text-[11px] text-brand-navy leading-relaxed"
+          style={{ top: pos.top, left: pos.left, width }}
+        >
+          {content}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ── MEDDPICC helpers ────────────────────────────────────────────────────────
 const MEDDPICC_FIELDS = [
@@ -82,8 +128,47 @@ function StagePill({ stage }: { stage: string }) {
 // ── Health score (simple inline) ────────────────────────────────────────────
 function HealthBadge({ opp }: { opp: ForecastOpp }) {
   const score = computeSimpleHealth(opp);
+  const factors = computeHealthFactors(opp);
   const color = score >= 70 ? 'text-emerald-600' : score >= 40 ? 'text-amber-600' : 'text-status-overdue';
-  return <span className={`text-[10px] font-semibold ${color}`}>{score}</span>;
+  return (
+    <HoverTooltip width={220} content={
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[10px] font-bold text-brand-navy">Health Score</span>
+          <span className={`text-[12px] font-bold ${color}`}>{score}/100</span>
+        </div>
+        <div className="space-y-1">
+          {factors.map(f => (
+            <div key={f.label} className="flex items-center justify-between text-[10px]">
+              <span className="text-brand-navy-70">{f.label}</span>
+              <span className={f.penalty > 0 ? 'text-status-overdue font-medium' : 'text-emerald-600 font-medium'}>
+                {f.penalty > 0 ? `−${f.penalty}` : '✓'}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    }>
+      <span className={`text-[10px] font-semibold ${color} cursor-default`}>{score}</span>
+    </HoverTooltip>
+  );
+}
+
+function computeHealthFactors(opp: ForecastOpp): { label: string; penalty: number }[] {
+  const factors: { label: string; penalty: number }[] = [];
+  const mScore = meddpiccScore(opp);
+  const meddpiccMax = opp.record_type?.toLowerCase()?.includes('upsell') ? 10 : 30;
+  const mPenalty = Math.round(((9 - mScore) / 9) * meddpiccMax);
+  factors.push({ label: `MEDDPICC (${mScore}/9)`, penalty: mPenalty });
+  const daysAgo = opp.se_comments_days_ago;
+  const cPenalty = daysAgo === null ? 15 : daysAgo > 21 ? 25 : daysAgo > 7 ? 10 : 0;
+  factors.push({ label: `SE Comments (${daysAgo !== null ? `${daysAgo}d` : 'never'})`, penalty: cPenalty });
+  const tPenalty = Math.min(opp.overdue_task_count * 7, 35);
+  factors.push({ label: `Overdue Tasks (${opp.overdue_task_count})`, penalty: tPenalty });
+  const stDays = daysInStage(opp.stage_changed_at);
+  const sPenalty = stDays !== null && stDays > 45 ? 15 : stDays !== null && stDays > 30 ? 8 : 0;
+  factors.push({ label: `Stage Velocity (${stDays !== null ? `${stDays}d` : '?'})`, penalty: sPenalty });
+  return factors;
 }
 
 function computeSimpleHealth(opp: ForecastOpp): number {
@@ -565,7 +650,7 @@ export default function ForecastingBriefPage() {
                   <th className="text-right px-3 py-2 w-20">ARR</th>
                   <th className="text-center px-2 py-2 w-24">Stage</th>
                   <th className="text-center px-2 py-2 w-20">Forecast</th>
-                  <th className="text-left px-3 py-2 w-24">SE Owner</th>
+                  <th className="text-left px-3 py-2 w-14">SE</th>
                   <th className="text-left px-3 py-2">SE Comments</th>
                   <th className="text-center px-2 py-2 w-16">Health</th>
                   <th className="text-left px-3 py-2 w-40">Tech Next Step</th>
@@ -741,17 +826,31 @@ function OppRow({ opp, isExpanded, rowBg, freshness, hasBlocker, onToggle, onOpe
         <td className="text-center px-2 py-2.5"><StagePill stage={opp.stage} /></td>
         <td className="text-center px-2 py-2.5"><ForecastBadge category={opp.forecast_category} /></td>
         <td className="px-3 py-2.5 text-[10px] text-brand-navy-70">
-          {opp.se_owner_name || <span className="text-status-overdue font-medium italic">Unassigned</span>}
+          {opp.se_owner_name ? (
+            <span className="font-semibold cursor-default" title={opp.se_owner_name}>{initials(opp.se_owner_name)}</span>
+          ) : <span className="text-status-overdue font-medium italic">—</span>}
         </td>
-        <td className="px-3 py-2.5">
+        <td className="px-3 py-2.5" onClick={e => e.stopPropagation()}>
           {opp.se_comments ? (
-            <div className="flex items-center gap-1.5">
-              <span className={`w-1.5 h-1.5 rounded-full ${freshness.color} flex-shrink-0`} />
-              <span className="text-[10px] text-brand-navy-70 truncate max-w-[180px]">{opp.se_comments}</span>
-              <span className={`text-[9px] flex-shrink-0 font-medium ${opp.se_comments_days_ago !== null && opp.se_comments_days_ago > 7 ? 'text-status-overdue' : opp.se_comments_days_ago !== null && opp.se_comments_days_ago > 3 ? 'text-status-warning' : 'text-brand-navy-30'}`}>
-                {freshness.label}
-              </span>
-            </div>
+            <HoverTooltip width={320} content={
+              <div>
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <span className={`w-2 h-2 rounded-full ${freshness.color}`} />
+                  <span className="text-[10px] font-semibold text-brand-navy-70">
+                    SE: {opp.se_owner_name || 'Unassigned'} · Updated {opp.se_comments_days_ago !== null ? `${opp.se_comments_days_ago} days ago` : 'unknown'}
+                  </span>
+                </div>
+                <p className="text-[11px] text-brand-navy whitespace-pre-wrap">{opp.se_comments}</p>
+              </div>
+            }>
+              <div className="flex items-center gap-1.5 cursor-default">
+                <span className={`w-1.5 h-1.5 rounded-full ${freshness.color} flex-shrink-0`} />
+                <span className="text-[10px] text-brand-navy-70 truncate max-w-[180px]">{opp.se_comments}</span>
+                <span className={`text-[9px] flex-shrink-0 font-medium ${opp.se_comments_days_ago !== null && opp.se_comments_days_ago > 7 ? 'text-status-overdue' : opp.se_comments_days_ago !== null && opp.se_comments_days_ago > 3 ? 'text-status-warning' : 'text-brand-navy-30'}`}>
+                  {freshness.label}
+                </span>
+              </div>
+            </HoverTooltip>
           ) : opp.se_owner_id ? (
             <span className="text-[10px] text-brand-navy-30 italic">No SE comments</span>
           ) : null}
@@ -924,7 +1023,7 @@ function KeyDealCard({ opp, onOpenDetail }: { opp: ForecastOpp; onOpenDetail: ()
           <div className="text-[10px] text-brand-navy-70 mt-0.5">
             {opp.account_name} · {formatARR(opp.arr)} · {opp.stage}
             {opp.close_date && <> · Close {formatDate(opp.close_date)}</>}
-            · SE: {opp.se_owner_name || <span className="text-status-overdue font-medium">Unassigned</span>}
+            · SE: {opp.se_owner_name ? <span title={opp.se_owner_name}>{initials(opp.se_owner_name)}</span> : <span className="text-status-overdue font-medium">Unassigned</span>}
           </div>
         </div>
         <div className="flex items-center gap-3 flex-shrink-0">
