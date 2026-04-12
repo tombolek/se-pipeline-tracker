@@ -33,7 +33,7 @@ export default function InsightsPage() {
   if (pathname.includes('forecasting-brief')) {
     return (
       <div className="flex-1 overflow-hidden bg-[#F5F5F7] flex flex-col relative">
-        <ScopeBar />
+        {/* No ScopeBar — ForecastingBriefPage has its own NA/INTL region toggle */}
         <div className="flex-1 overflow-hidden flex flex-col">
           <ForecastingBriefPage />
         </div>

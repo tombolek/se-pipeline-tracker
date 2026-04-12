@@ -106,12 +106,81 @@ function computeSimpleHealth(opp: ForecastOpp): number {
   return Math.max(0, Math.min(100, score));
 }
 
+// ── Territory grouping ──────────────────────────────────────────────────────
+const NA_TEAMS = new Set(['NA Enterprise', 'NA Strategic']);
+const INTL_TEAMS = new Set(['EMEA', 'ANZ']);
+
+type ForecastRegion = 'NA' | 'INTL';
+
+function detectDefaultRegion(userTeams: string[]): ForecastRegion {
+  for (const t of userTeams) {
+    if (NA_TEAMS.has(t)) return 'NA';
+    if (INTL_TEAMS.has(t)) return 'INTL';
+  }
+  return 'NA'; // fallback
+}
+
+function regionFilter(opp: { team?: string | null }, region: ForecastRegion): boolean {
+  const t = opp.team || '';
+  if (region === 'NA') return NA_TEAMS.has(t);
+  return INTL_TEAMS.has(t);
+}
+
+// ── Stage ordering for pipeline sort ────────────────────────────────────────
+const STAGE_ORDER: Record<string, number> = {
+  'Qualify': 1,
+  'Build Value': 2,
+  'Develop Solution': 3,
+  'Proposal Sent': 4,
+  'Negotiate': 5,
+  'Submitted for Booking': 6,
+};
+
+// ── Forecast category ordering ──────────────────────────────────────────────
+const FC_ORDER: Record<string, number> = {
+  'commit': 1,
+  'most likely': 2,
+  'upside': 3,
+  'pipeline': 4,
+  'omitted': 5,
+};
+
+function getFcGroup(fc: string | null): string {
+  if (!fc) return 'Uncategorized';
+  return fc;
+}
+
+// ── FQ helpers ──────────────────────────────────────────────────────────────
+function getCurrentFQ(): string {
+  const now = new Date();
+  const q = Math.ceil((now.getMonth() + 1) / 3);
+  return `Q${q}-${now.getFullYear()}`;
+}
+
+function getNextFQ(): string {
+  const now = new Date();
+  const q = Math.ceil((now.getMonth() + 1) / 3);
+  if (q === 4) return `Q1-${now.getFullYear() + 1}`;
+  return `Q${q + 1}-${now.getFullYear()}`;
+}
+
 // ═════════════════════════════════════════════════════════════════════════════
 // Main Component
 // ═════════════════════════════════════════════════════════════════════════════
 
 export default function ForecastingBriefPage() {
-  const { filterOpp } = useTeamScope();
+  const { teamNames } = useTeamScope();
+  const userTeams = useMemo(() => [...teamNames], [teamNames]);
+
+  // Region + FQ state
+  const [region, setRegion] = useState<ForecastRegion>(() => detectDefaultRegion(userTeams));
+  const [showNextFQ, setShowNextFQ] = useState(false);
+  const activeFQ = showNextFQ ? getNextFQ() : getCurrentFQ();
+
+  // Update default region when user teams load
+  useEffect(() => {
+    if (userTeams.length > 0) setRegion(detectDefaultRegion(userTeams));
+  }, [userTeams]);
 
   // Data state
   const [data, setData] = useState<ForecastingBriefData | null>(null);
@@ -134,14 +203,14 @@ export default function ForecastingBriefPage() {
     setLoading(true);
     setError(null);
     try {
-      const result = await getForecastingBrief();
+      const result = await getForecastingBrief(activeFQ);
       setData(result);
     } catch {
       setError('Failed to load forecasting brief');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [activeFQ]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -152,9 +221,8 @@ export default function ForecastingBriefPage() {
     if (!isFriday) return;
     if (data.narrative) {
       const genAge = (Date.now() - new Date(data.narrative.generated_at).getTime()) / 86400000;
-      if (genAge < 1) return; // Already fresh today
+      if (genAge < 1) return;
     }
-    // Auto-regenerate
     (async () => {
       setNarrativeLoading(true);
       try {
@@ -165,32 +233,102 @@ export default function ForecastingBriefPage() {
     })();
   }, [data?.fiscal_period, data?.narrative?.generated_at]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Filtered opportunities ──────────────────────────────────────────────
+  // ── Filtered + sorted opportunities ─────────────────────────────────────
   const filteredOpps = useMemo(() => {
     if (!data) return [];
     return data.opportunities
-      .filter(o => filterOpp({ se_owner_id: o.se_owner_id, team: o.team }))
+      .filter(o => regionFilter(o, region))
       .filter(o => !filterFc || (o.forecast_category || '').toLowerCase() === filterFc.toLowerCase())
-      .filter(o => !filterSe || (o.se_owner_name || '') === filterSe);
-  }, [data, filterOpp, filterFc, filterSe]);
+      .filter(o => !filterSe || (o.se_owner_name || '') === filterSe)
+      .sort((a, b) => {
+        // Primary: forecast category order
+        const fcA = FC_ORDER[(a.forecast_category || '').toLowerCase()] ?? 99;
+        const fcB = FC_ORDER[(b.forecast_category || '').toLowerCase()] ?? 99;
+        if (fcA !== fcB) return fcA - fcB;
+        // Secondary: stage order (further along = first)
+        const stA = STAGE_ORDER[a.stage] ?? 99;
+        const stB = STAGE_ORDER[b.stage] ?? 99;
+        if (stA !== stB) return stB - stA; // reverse: later stage first
+        // Tertiary: ARR descending
+        return (parseFloat(b.arr || '0') || 0) - (parseFloat(a.arr || '0') || 0);
+      });
+  }, [data, region, filterFc, filterSe]);
 
-  // Key deals
+  // Group opps by forecast category for rendering
+  const groupedOpps = useMemo(() => {
+    const groups: { label: string; opps: ForecastOpp[] }[] = [];
+    let currentGroup = '';
+    for (const opp of filteredOpps) {
+      const group = getFcGroup(opp.forecast_category);
+      if (group !== currentGroup) {
+        groups.push({ label: group, opps: [] });
+        currentGroup = group;
+      }
+      groups[groups.length - 1].opps.push(opp);
+    }
+    return groups;
+  }, [filteredOpps]);
+
+  // Key deals (filtered by region)
   const keyDeals = useMemo(() => {
     if (!data) return [];
     return data.opportunities
-      .filter(o => o.key_deal && filterOpp({ se_owner_id: o.se_owner_id, team: o.team }));
-  }, [data, filterOpp]);
+      .filter(o => o.key_deal && regionFilter(o, region));
+  }, [data, region]);
 
-  // SE list for filter dropdown
+  // SE list for filter dropdown (scoped to region)
   const seList = useMemo(() => {
     if (!data) return [];
-    const names = new Set(data.opportunities.map(o => o.se_owner_name).filter(Boolean) as string[]);
+    const names = new Set(
+      data.opportunities
+        .filter(o => regionFilter(o, region))
+        .map(o => o.se_owner_name)
+        .filter(Boolean) as string[]
+    );
     return Array.from(names).sort();
-  }, [data]);
+  }, [data, region]);
+
+  // Recompute KPIs from region-filtered data
+  const regionKpi = useMemo(() => {
+    const opps = data?.opportunities.filter(o => regionFilter(o, region)) ?? [];
+    let totalArr = 0, commitArr = 0, mlArr = 0, upsideArr = 0;
+    let commitCount = 0, mlCount = 0;
+    let staleCount = 0, unassignedCount = 0, activePocs = 0;
+    let meddpiccSum = 0, meddpiccDenom = 0;
+
+    for (const o of opps) {
+      const arr = parseFloat(o.arr || '0') || 0;
+      totalArr += arr;
+      const fc = (o.forecast_category || '').toLowerCase();
+      if (fc === 'commit') { commitArr += arr; commitCount++; }
+      else if (fc === 'most likely') { mlArr += arr; mlCount++; }
+      else if (fc === 'upside') { upsideArr += arr; }
+      if (o.se_owner_id) {
+        if (o.se_comments_days_ago != null && o.se_comments_days_ago > 7) staleCount++;
+        else if (!o.se_comments_updated_at) staleCount++;
+      }
+      if (!o.se_owner_id) unassignedCount++;
+      if (o.poc_status?.toLowerCase().includes('in progress')) activePocs++;
+      if (fc === 'commit' || fc === 'most likely') {
+        meddpiccSum += meddpiccScore(o);
+        meddpiccDenom++;
+      }
+    }
+
+    return {
+      total_arr: totalArr, deal_count: opps.length,
+      commit_arr: commitArr, commit_count: commitCount,
+      most_likely_arr: mlArr, most_likely_count: mlCount,
+      upside_arr: upsideArr,
+      stale_comments_count: staleCount, unassigned_se_count: unassignedCount,
+      active_pocs: activePocs,
+      avg_meddpicc_commit_ml: meddpiccDenom > 0 ? Math.round((meddpiccSum / meddpiccDenom) * 10) / 10 : 0,
+    };
+  }, [data, region]);
 
   // Thursday stale alert check
   const isThursday = new Date().getDay() === 4;
-  const showStaleAlert = isThursday && !dismissedAlert && data && data.kpi.stale_comments_count > 0;
+  const showStaleAlert = isThursday && !dismissedAlert && regionKpi.stale_comments_count > 0;
 
   // ── Handlers ────────────────────────────────────────────────────────────
   const handleGenerateNarrative = async () => {
@@ -213,7 +351,9 @@ export default function ForecastingBriefPage() {
     <div className="flex items-center justify-center py-16 text-sm text-status-overdue">{error || 'No data'}</div>
   );
 
-  const { kpi, narrative, fiscal_period } = data;
+  const { narrative, fiscal_period } = data;
+  const kpi = regionKpi;
+  const regionTeams = region === 'NA' ? 'NA Enterprise + NA Strategic' : 'EMEA + ANZ';
 
   return (
     <div className="flex-1 overflow-y-auto px-8 py-6">
@@ -225,13 +365,43 @@ export default function ForecastingBriefPage() {
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-brand-purple/10 text-brand-purple border border-brand-purple/20">
               {fiscal_period}
             </span>
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+              {region} — {regionTeams}
+            </span>
           </div>
           <p className="text-[12px] text-brand-navy-70 mt-0.5">SE perspective for your forecast call. Auto-refreshed Fridays.</p>
         </div>
         <div className="flex items-center gap-3">
+          {/* Region toggle */}
+          <div className="flex rounded-lg border border-brand-navy-30/40 overflow-hidden">
+            <button
+              onClick={() => setRegion('NA')}
+              className={`px-3 py-1.5 text-[10px] font-semibold transition-colors ${region === 'NA' ? 'bg-brand-purple text-white' : 'bg-white text-brand-navy-70 hover:bg-gray-50'}`}
+            >
+              NA
+            </button>
+            <button
+              onClick={() => setRegion('INTL')}
+              className={`px-3 py-1.5 text-[10px] font-semibold transition-colors border-l border-brand-navy-30/40 ${region === 'INTL' ? 'bg-brand-purple text-white' : 'bg-white text-brand-navy-70 hover:bg-gray-50'}`}
+            >
+              INTL
+            </button>
+          </div>
+
+          {/* FQ toggle */}
+          <label className="flex items-center gap-1.5 cursor-pointer">
+            <span className="text-[10px] text-brand-navy-70">Next FQ</span>
+            <div
+              onClick={() => setShowNextFQ(!showNextFQ)}
+              className={`relative w-8 h-[18px] rounded-full transition-colors cursor-pointer ${showNextFQ ? 'bg-brand-purple' : 'bg-brand-navy-30/60'}`}
+            >
+              <div className={`absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white shadow transition-transform ${showNextFQ ? 'translate-x-[16px]' : 'translate-x-[2px]'}`} />
+            </div>
+          </label>
+
           {narrative && (
             <span className="text-[10px] text-brand-navy-30">
-              Last refreshed: {new Date(narrative.generated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}, {new Date(narrative.generated_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+              Refreshed {new Date(narrative.generated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
             </span>
           )}
           <button
@@ -405,31 +575,46 @@ export default function ForecastingBriefPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-brand-navy-30/15">
-                {filteredOpps.map(opp => {
-                  const freshness = freshnessDot(opp.se_comments_days_ago);
-                  const isExpanded = expandedRow === opp.id;
-                  const hasBlocker = !!opp.technical_blockers;
-                  const rowBg = !opp.se_owner_id ? 'bg-amber-50/20' : hasBlocker ? 'bg-red-50/20' : '';
+                {groupedOpps.map(group => (
+                  <React.Fragment key={group.label}>
+                    {/* Forecast category group header */}
+                    <tr className="bg-gray-50/80">
+                      <td colSpan={9} className="px-3 py-2">
+                        <div className="flex items-center gap-2">
+                          <ForecastBadge category={group.label === 'Uncategorized' ? null : group.label} />
+                          <span className="text-[10px] font-semibold text-brand-navy-70">
+                            {group.opps.length} deal{group.opps.length !== 1 ? 's' : ''} · {formatARR(group.opps.reduce((s, o) => s + (parseFloat(o.arr || '0') || 0), 0))}
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                    {group.opps.map(opp => {
+                      const freshness = freshnessDot(opp.se_comments_days_ago);
+                      const isExpanded = expandedRow === opp.id;
+                      const hasBlocker = !!opp.technical_blockers;
+                      const rowBg = !opp.se_owner_id ? 'bg-amber-50/20' : hasBlocker ? 'bg-red-50/20' : '';
 
-                  return (
-                    <OppRow
-                      key={opp.id}
-                      opp={opp}
-                      isExpanded={isExpanded}
-                      rowBg={rowBg}
-                      freshness={freshness}
-                      hasBlocker={hasBlocker}
-                      onToggle={() => toggleRow(opp.id)}
-                      onOpenDetail={() => setDrawerOppId(opp.id)}
-                    />
-                  );
-                })}
+                      return (
+                        <OppRow
+                          key={opp.id}
+                          opp={opp}
+                          isExpanded={isExpanded}
+                          rowBg={rowBg}
+                          freshness={freshness}
+                          hasBlocker={hasBlocker}
+                          onToggle={() => toggleRow(opp.id)}
+                          onOpenDetail={() => setDrawerOppId(opp.id)}
+                        />
+                      );
+                    })}
+                  </React.Fragment>
+                ))}
               </tbody>
             </table>
 
             {/* Table footer */}
             <div className="px-4 py-2.5 border-t border-brand-navy-30/20 bg-gray-50/50 flex items-center justify-between text-[10px] text-brand-navy-70">
-              <span>Showing {filteredOpps.length} of {data.opportunities.length} deals</span>
+              <span>Showing {filteredOpps.length} deals ({region})</span>
               <div className="flex items-center gap-4">
                 <span className="font-semibold text-brand-navy">Total: {formatARR(filteredOpps.reduce((s, o) => s + (parseFloat(o.arr || '0') || 0), 0))}</span>
               </div>
