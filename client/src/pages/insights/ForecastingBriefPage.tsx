@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { getForecastingBrief, generateNarrative } from '../../api/forecastingBrief';
-import type { ForecastingBriefData, ForecastOpp, ForecastNarrative } from '../../api/forecastingBrief';
+import type { ForecastingBriefData, ForecastOpp } from '../../api/forecastingBrief';
 import { formatARR, formatDate } from '../../utils/formatters';
 import { useTeamScope } from '../../hooks/useTeamScope';
 import { Loading } from './shared';
@@ -42,11 +42,6 @@ function freshnessDot(daysAgo: number | null): { color: string; label: string } 
   if (daysAgo <= 3) return { color: 'bg-status-success', label: `${daysAgo}d` };
   if (daysAgo <= 7) return { color: 'bg-status-warning', label: `${daysAgo}d` };
   return { color: 'bg-status-overdue', label: `${daysAgo}d` };
-}
-
-function daysSince(dateStr: string | null): number | null {
-  if (!dateStr) return null;
-  return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000);
 }
 
 function daysInStage(stageChangedAt: string | null): number | null {
@@ -403,7 +398,7 @@ export default function ForecastingBriefPage() {
                   <th className="text-center px-2 py-2 w-16">Health</th>
                   <th className="text-left px-3 py-2 w-40">Tech Next Step</th>
                   <th className="text-center px-2 py-2 w-12">
-                    <svg className="w-3 h-3 mx-auto text-brand-navy-70" viewBox="0 0 20 20" fill="currentColor" title="Blockers"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92z"/></svg>
+                    <svg className="w-3 h-3 mx-auto text-brand-navy-70" viewBox="0 0 20 20" fill="currentColor" aria-label="Blockers"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92z"/></svg>
                   </th>
                 </tr>
               </thead>
@@ -866,7 +861,7 @@ function NarrativeContent({ content }: { content: string }) {
     return <p className="text-[12px] text-brand-navy leading-relaxed whitespace-pre-wrap">{content}</p>;
   }
 
-  const rendered: JSX.Element[] = [];
+  const rendered: React.JSX.Element[] = [];
   // sections[0] is text before first header (usually empty)
   if (sections[0].trim()) {
     rendered.push(<p key="intro" className="text-[12px] text-brand-navy leading-relaxed mb-2">{sections[0].trim()}</p>);
@@ -893,7 +888,7 @@ function NarrativeContent({ content }: { content: string }) {
 }
 
 /** Convert **text** to <strong> */
-function highlightBold(text: string): (string | JSX.Element)[] {
+function highlightBold(text: string): (string | React.JSX.Element)[] {
   const parts = text.split(/\*\*([^*]+)\*\*/g);
   return parts.map((part, i) =>
     i % 2 === 1 ? <strong key={i}>{part}</strong> : part
