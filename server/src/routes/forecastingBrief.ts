@@ -22,15 +22,11 @@ function computeMeddpiccScore(row: Record<string, unknown>): number {
 router.get('/', auth, mgr, async (req: Request, res: Response): Promise<void> => {
   let fq = req.query.fq as string | undefined;
 
-  // Default to the most common fiscal_period among active opps
+  // Default to the current fiscal quarter based on today's date
   if (!fq) {
-    const fqRow = await queryOne(
-      `SELECT fiscal_period, COUNT(*) as cnt
-       FROM opportunities
-       WHERE is_active = true AND is_closed_lost = false AND fiscal_period IS NOT NULL
-       GROUP BY fiscal_period ORDER BY cnt DESC LIMIT 1`
-    );
-    fq = fqRow?.fiscal_period as string || 'Q2-2026';
+    const now = new Date();
+    const quarter = Math.ceil((now.getMonth() + 1) / 3);
+    fq = `Q${quarter}-${now.getFullYear()}`;
   }
 
   // Fetch all opportunities for this FQ
@@ -91,8 +87,11 @@ router.get('/', auth, mgr, async (req: Request, res: Response): Promise<void> =>
     else if (fc === 'most likely') { mlArr += arr; mlCount++; }
     else if (fc === 'upside') { upsideArr += arr; upsideCount++; }
     const daysAgo = r.se_comments_days_ago as number | null | undefined;
-    if (daysAgo != null && daysAgo > 7) staleCount++;
-    else if (r.se_comments_updated_at == null) staleCount++;
+    // Only count as stale if SE is assigned but comments are old/missing
+    if (r.se_owner_id) {
+      if (daysAgo != null && daysAgo > 7) staleCount++;
+      else if (r.se_comments_updated_at == null) staleCount++;
+    }
     if (!r.se_owner_id) unassignedCount++;
     const pocStatus = String(r.poc_status || '');
     if (pocStatus && pocStatus.toLowerCase().includes('in progress')) activePocs++;

@@ -320,13 +320,15 @@ export default function ForecastingBriefPage() {
               </div>
               <div className="text-2xl font-bold text-brand-navy">{formatARR(kpi.commit_arr + kpi.most_likely_arr)}</div>
               <div className="mt-2 flex items-center gap-3 text-[10px]">
-                <span className="text-emerald-600 font-medium flex items-center gap-0.5">
-                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M5 13l4 4L19 7"/></svg>
-                  {(kpi.commit_count + kpi.most_likely_count) - kpi.stale_comments_count} with fresh SE comments
-                </span>
+                {kpi.deal_count - kpi.stale_comments_count - kpi.unassigned_se_count > 0 && (
+                  <span className="text-emerald-600 font-medium flex items-center gap-0.5">
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M5 13l4 4L19 7"/></svg>
+                    {kpi.deal_count - kpi.stale_comments_count - kpi.unassigned_se_count} with fresh SE comments
+                  </span>
+                )}
                 {kpi.stale_comments_count > 0 && (
                   <>
-                    <span className="text-brand-navy-30">|</span>
+                    {kpi.deal_count - kpi.stale_comments_count - kpi.unassigned_se_count > 0 && <span className="text-brand-navy-30">|</span>}
                     <span className="text-status-overdue font-medium">{kpi.stale_comments_count} stale</span>
                   </>
                 )}
