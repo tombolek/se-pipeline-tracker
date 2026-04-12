@@ -128,6 +128,77 @@ router.delete('/import/:id', auth, mgr, async (req: Request, res: Response): Pro
   res.json(ok({ rolled_back: importId, restored: opps.length, removed: added_ids.length }));
 });
 
+// ── Favorites ──────────────────────────────────────────────────────────────
+
+// GET /opportunities/favorites — list current user's favorited opportunities
+router.get('/favorites', auth, async (req: Request, res: Response): Promise<void> => {
+  const user = (req as AuthenticatedRequest).user;
+  const rows = await query(
+    `SELECT
+       o.id, o.sf_opportunity_id, o.name, o.account_name, o.account_segment, o.account_industry,
+       o.stage, o.stage_changed_at, o.previous_stage, o.arr, o.arr_currency, o.close_date,
+       o.record_type, o.team, o.deploy_mode, o.key_deal, o.fiscal_period,
+       o.se_comments, o.se_comments_updated_at, o.next_step_sf, o.technical_blockers,
+       o.forecast_category,
+       json_build_object('id', u.id, 'name', u.name, 'email', u.email) AS se_owner,
+       o.ae_owner_name,
+       COALESCE(
+         (SELECT COUNT(*) FROM tasks t
+          WHERE t.opportunity_id = o.id AND t.is_deleted = false
+            AND t.status IN ('open','in_progress','blocked')), 0
+       )::integer AS open_task_count,
+       COALESCE(
+         (SELECT COUNT(*) FROM tasks t
+          WHERE t.opportunity_id = o.id AND t.is_deleted = false
+            AND t.status IN ('open','in_progress','blocked')
+            AND t.due_date < CURRENT_DATE), 0
+       )::integer AS overdue_task_count,
+       o.last_note_at,
+       f.created_at AS favorited_at
+     FROM user_favorites f
+     JOIN opportunities o ON o.id = f.opportunity_id
+     LEFT JOIN users u ON u.id = o.se_owner_id
+     WHERE f.user_id = $1 AND o.is_active = true
+     ORDER BY f.created_at DESC`,
+    [user.id]
+  );
+  res.json(ok(rows));
+});
+
+// GET /opportunities/favorites/ids — just the IDs (for star state checks)
+router.get('/favorites/ids', auth, async (req: Request, res: Response): Promise<void> => {
+  const user = (req as AuthenticatedRequest).user;
+  const rows = await query(
+    `SELECT opportunity_id FROM user_favorites WHERE user_id = $1`,
+    [user.id]
+  );
+  res.json(ok(rows.map((r: Record<string, unknown>) => r.opportunity_id)));
+});
+
+// POST /opportunities/:id/favorite — add to favorites
+router.post('/:id/favorite', auth, async (req: Request, res: Response): Promise<void> => {
+  const user = (req as AuthenticatedRequest).user;
+  const oppId = parseInt(req.params.id);
+  if (isNaN(oppId)) { res.status(400).json(err('Invalid opportunity id')); return; }
+  await query(
+    `INSERT INTO user_favorites (user_id, opportunity_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+    [user.id, oppId]
+  );
+  res.json(ok({ favorited: true }));
+});
+
+// DELETE /opportunities/:id/favorite — remove from favorites
+router.delete('/:id/favorite', auth, async (req: Request, res: Response): Promise<void> => {
+  const user = (req as AuthenticatedRequest).user;
+  const oppId = parseInt(req.params.id);
+  if (isNaN(oppId)) { res.status(400).json(err('Invalid opportunity id')); return; }
+  await query(
+    `DELETE FROM user_favorites WHERE user_id = $1 AND opportunity_id = $2`,
+    [user.id, oppId]
+  );
+  res.json(ok({ favorited: false }));
+});
+
 // GET /opportunities/closed-lost
 router.get('/closed-lost', auth, async (req: Request, res: Response): Promise<void> => {
   const user = (req as AuthenticatedRequest).user;

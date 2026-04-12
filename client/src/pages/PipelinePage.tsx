@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { Opportunity, User } from '../types';
 import { computeHealthScore } from '../utils/healthScore';
-import { listOpportunities } from '../api/opportunities';
+import { listOpportunities, listFavorites } from '../api/opportunities';
 import { updateMyPreferences, listUsers } from '../api/users';
 import { useUsers } from '../hooks/useUsers';
 import { useAuthStore } from '../store/auth';
@@ -296,7 +296,7 @@ function FilterBar({
 }
 
 // ── Page ──────────────────────────────────────────────────────────────────────
-export default function PipelinePage({ myPipelineMode = false }: { myPipelineMode?: boolean }) {
+export default function PipelinePage({ myPipelineMode = false, favoritesMode = false }: { myPipelineMode?: boolean; favoritesMode?: boolean }) {
   const { user, setUser } = useAuthStore();
   const { users } = useUsers();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -332,14 +332,16 @@ export default function PipelinePage({ myPipelineMode = false }: { myPipelineMod
     setLoading(true);
     setError(null);
     try {
-      const opps = await listOpportunities({ include_qualify: true });
+      const opps = favoritesMode
+        ? await listFavorites()
+        : await listOpportunities({ include_qualify: true });
       setAllOpps(opps);
     } catch {
       setError('Failed to load opportunities.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [favoritesMode]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -358,7 +360,7 @@ export default function PipelinePage({ myPipelineMode = false }: { myPipelineMod
   // Skip default when all_teams=1 param is present (e.g. cross-territory drill-through)
   // Skip entirely in myPipelineMode — show all the user's deals regardless of territory
   useEffect(() => {
-    if (myPipelineMode || allTeamsParam) { defaultTeamsSet.current = true; return; }
+    if (myPipelineMode || favoritesMode || allTeamsParam) { defaultTeamsSet.current = true; return; }
     if (!defaultTeamsSet.current && effectiveTeams.length > 0) {
       setTeams(effectiveTeams);
       defaultTeamsSet.current = true;
@@ -384,7 +386,7 @@ export default function PipelinePage({ myPipelineMode = false }: { myPipelineMod
 
   // Apply all filters client-side
   const filtered = allOpps.filter(o => {
-    if ((myPipelineMode || myDeals) && o.se_owner?.id !== user?.id) return false;
+    if (!favoritesMode && (myPipelineMode || myDeals) && o.se_owner?.id !== user?.id) return false;
     if (seIdParam && o.se_owner?.id !== seIdParam) return false;
     if (stages.length > 0 && !stages.includes(o.stage)) return false;
     if (selectedFiscalPeriods.length > 0 && !selectedFiscalPeriods.includes(o.fiscal_period ?? '')) return false;
@@ -425,6 +427,13 @@ export default function PipelinePage({ myPipelineMode = false }: { myPipelineMod
           </span>
         </div>
       )}
+      {favoritesMode && (
+        <div className="flex items-center gap-2 px-5 py-2.5 border-b border-brand-navy-30/40 bg-white flex-shrink-0">
+          <svg className="w-4 h-4 text-amber-400" viewBox="0 0 20 20" fill="currentColor"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <span className="text-[13px] font-semibold text-brand-navy">Favorites</span>
+          <span className="text-[11px] text-brand-navy-70">{allOpps.length} deal{allOpps.length !== 1 ? 's' : ''}</span>
+        </div>
+      )}
       <FilterBar
         search={search} setSearch={setSearch}
         stages={stages} setStages={setStages}
@@ -436,7 +445,7 @@ export default function PipelinePage({ myPipelineMode = false }: { myPipelineMod
         meddpiccMax={meddpiccMax} setMeddpiccMax={setMeddpiccMax}
         seFilterName={seFilterName} clearSeFilter={clearSeFilter}
         total={displayed.length}
-        hideMyDeals={myPipelineMode}
+        hideMyDeals={myPipelineMode || favoritesMode}
         columnPicker={
           <ColumnPicker
             visibleColumns={visibleColumns}

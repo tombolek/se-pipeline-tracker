@@ -62,6 +62,7 @@ export default function App() {
             <Route element={<AppShell><Navigate to="/home" /></AppShell>} path="/" />
             <Route path="/pipeline" element={<AppShell><PipelinePage /></AppShell>} />
             <Route path="/my-pipeline" element={<AppShell><PipelinePage myPipelineMode /></AppShell>} />
+            <Route path="/favorites" element={<AppShell><PipelinePage favoritesMode /></AppShell>} />
             <Route path="/closed-lost" element={<AppShell><ClosedLostPage /></AppShell>} />
             <Route path="/my-tasks" element={<AppShell><MyTasksPage /></AppShell>} />
             <Route path="/inbox" element={<Navigate to="/my-tasks" replace />} />

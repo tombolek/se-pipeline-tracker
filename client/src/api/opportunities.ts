@@ -24,6 +24,26 @@ export async function assignSeOwner(id: number, seOwnerId: number | null): Promi
   return data.data;
 }
 
+// ── Favorites ────────────────────────────────────────────────────────────────
+
+export async function listFavorites(): Promise<Opportunity[]> {
+  const { data } = await api.get<ApiResponse<Opportunity[]>>('/opportunities/favorites');
+  return data.data;
+}
+
+export async function getFavoriteIds(): Promise<number[]> {
+  const { data } = await api.get<ApiResponse<number[]>>('/opportunities/favorites/ids');
+  return data.data;
+}
+
+export async function addFavorite(oppId: number): Promise<void> {
+  await api.post(`/opportunities/${oppId}/favorite`);
+}
+
+export async function removeFavorite(oppId: number): Promise<void> {
+  await api.delete(`/opportunities/${oppId}/favorite`);
+}
+
 export async function listClosedLost(): Promise<{ items: Opportunity[]; unreadCount: number }> {
   const { data } = await api.get<ApiResponse<Opportunity[]>>('/opportunities/closed-lost');
   return { items: data.data, unreadCount: (data.meta.unread_count as number) ?? 0 };
