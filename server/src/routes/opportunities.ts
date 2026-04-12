@@ -160,7 +160,7 @@ router.get('/favorites', auth, async (req: Request, res: Response): Promise<void
      LEFT JOIN users u ON u.id = o.se_owner_id
      WHERE f.user_id = $1 AND o.is_active = true
      ORDER BY f.created_at DESC`,
-    [user.id]
+    [user.userId]
   );
   res.json(ok(rows));
 });
@@ -170,7 +170,7 @@ router.get('/favorites/ids', auth, async (req: Request, res: Response): Promise<
   const user = (req as AuthenticatedRequest).user;
   const rows = await query(
     `SELECT opportunity_id FROM user_favorites WHERE user_id = $1`,
-    [user.id]
+    [user.userId]
   );
   res.json(ok(rows.map((r: Record<string, unknown>) => r.opportunity_id)));
 });
@@ -182,7 +182,7 @@ router.post('/:id/favorite', auth, async (req: Request, res: Response): Promise<
   if (isNaN(oppId)) { res.status(400).json(err('Invalid opportunity id')); return; }
   await query(
     `INSERT INTO user_favorites (user_id, opportunity_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-    [user.id, oppId]
+    [user.userId, oppId]
   );
   res.json(ok({ favorited: true }));
 });
@@ -194,7 +194,7 @@ router.delete('/:id/favorite', auth, async (req: Request, res: Response): Promis
   if (isNaN(oppId)) { res.status(400).json(err('Invalid opportunity id')); return; }
   await query(
     `DELETE FROM user_favorites WHERE user_id = $1 AND opportunity_id = $2`,
-    [user.id, oppId]
+    [user.userId, oppId]
   );
   res.json(ok({ favorited: false }));
 });
