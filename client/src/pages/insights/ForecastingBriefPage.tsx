@@ -452,20 +452,18 @@ export default function ForecastingBriefPage() {
     const ids = oppsNeedingSummary.map(o => o.id);
     setBulkProgress({ done: 0, total: ids.length });
 
-    // Process in batches of 10 to show progress updates
-    const batchSize = 10;
+    // Process one at a time for live progress updates
     let totalSucceeded = 0;
     let totalFailed = 0;
-    for (let i = 0; i < ids.length; i += batchSize) {
-      const batch = ids.slice(i, i + batchSize);
+    for (let i = 0; i < ids.length; i++) {
       try {
-        const result = await bulkGenerateSummaries(batch);
+        const result = await bulkGenerateSummaries([ids[i]]);
         totalSucceeded += result.succeeded;
         totalFailed += result.failed;
       } catch {
-        totalFailed += batch.length;
+        totalFailed += 1;
       }
-      setBulkProgress({ done: Math.min(i + batchSize, ids.length), total: ids.length });
+      setBulkProgress({ done: i + 1, total: ids.length });
     }
 
     setBulkRunning(false);
