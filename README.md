@@ -63,7 +63,9 @@ This tool pulls deal data from Salesforce via a CSV/XLS export and layers a nati
 | Track RFx responses | Insights → RFx Board |
 | See pipeline breakdown by deployment model | Insights → DeployMode Overview |
 | Review technical blockers across the pipeline | Insights → Tech Blockers |
-| Analyse closed lost deals by reason and stage | Insights → Closed Lost Stats |
+| Analyse closed lost deals by competitor, industry, segment, and stage | Insights → Loss Analysis |
+| Reassign SE Owner on a closed (Won or Lost) deal | Insights → Loss Analysis → Filtered Deals table (Manager only) |
+| Run the weekly SE forecast call | Insights → Forecasting Brief |
 | Assign or reassign SE owners across deals | Insights → SE Deal Mapping |
 | Generate an AI analysis of pipeline blockers | Insights → Tech Blockers → AI Insights |
 | Drill into a specific SE's workload or overdue tasks | Team Workload — click any stat |
@@ -104,6 +106,7 @@ This tool pulls deal data from Salesforce via a CSV/XLS export and layers a nati
 - **Unread badge** on sidebar nav item — count of deals not yet seen
 - Auto-marks as read when navigating to the tab
 - Still shows tasks and notes on closed deals (read-only)
+- **Closed Won detection**: if a deal disappears from SF while in the *Submitted for Booking* stage, it is classified as **Closed Won** (new `is_closed_won` / `closed_won_seen` columns) instead of Closed Lost — Won deals do not appear in Closed Lost or Loss Analysis
 
 ### Opportunity Detail (slide-in drawer)
 - Opens from any deal row in Pipeline, Closed Lost, or Insights views
@@ -114,6 +117,7 @@ This tool pulls deal data from Salesforce via a CSV/XLS export and layers a nati
   - **Work** — Next Steps, Tasks, Notes, Meeting Notes Processor (paste raw call notes, AI extracts action items and creates tasks/notes)
   - **Timeline** — unified reverse-chronological event history (tasks, notes, stage changes, imports, AI summaries)
   - **Call Prep** — AI-generated pre-call brief with CSV/DIFF/KB source badges, PDF export button, Slack send placeholder
+  - **Demo Prep** — AI-generated demo readiness brief (6 critical questions with evidence, missing items, suggested commitments, coaching tips, overall assessment, Before-You-Demo checklist). Persisted server-side. PDF export and Slack send buttons mirror Call Prep
   - **Deal Info** — configurable layout of SF fields (sections reorderable by manager in Settings). Includes MEDDPICC section with "Show AI notes" toggle that overlays coach insights inline next to each field
 - **Account History panel**: click the account name in the header to see all deals (open and closed) for that account in a side panel
 
@@ -122,7 +126,7 @@ This tool pulls deal data from Salesforce via a CSV/XLS export and layers a nati
 - **Summary KPI cards**: ARR moved forward, ARR closed lost, net pipeline change, new qualified deals, stale deals
 - **Period selector**: 7d / 14d / 30d toggle
 - **Sections**: New Qualified Opps, Stage Progressions, Stale Deals, PoCs Started/Ended, Deals Flagged At-Risk, Closed Lost This Period
-- **AI Quick Links**: Pre-Call Brief, Process Call Notes, Opp Summary — each lets you pick an opportunity via search, then opens the drawer with that AI feature activated
+- **AI Quick Links**: Pre-Call Brief, Process Call Notes, Opp Summary, and Demo Prep — each lets you pick an opportunity via search, then opens the drawer with that AI feature activated
 
 ### My Pipeline (`/my-pipeline`)
 - Personal pipeline view scoped to the logged-in user's deals
@@ -206,8 +210,23 @@ This tool pulls deal data from Salesforce via a CSV/XLS export and layers a nati
   - Includes all entries, weighted by severity; rendered as structured markdown
   - "Regenerate" button to refresh; "Generate Summary" on first run
 
-#### Closed Lost Stats (`/insights/closed-lost-stats`)
-- Analysis of closed lost deals by reason, stage, deployment mode, and time period
+#### Loss Analysis (`/insights/closed-lost-stats`)
+- Renamed from "Closed Lost Stats" / "Win/Loss Analysis" — includes Closed Lost deals only (Closed Won deals are detected and excluded)
+- Pie-chart dimensions: **By Stage at Close, By Competitor, By Industry, By Segment, By Record Type, By Team, By SE Owner, By AE Owner**
+- KPI cards: Deals Lost, ARR Lost, Avg Deal Size, **Avg Days in Pipeline** (first-seen → closed-lost)
+- Metric toggle: `# Deals` / `ARR`; Time filter: 30d / 90d / 1yr / All
+- Click any pie slice to cross-filter across every chart
+- Competitors parsed from comma/semicolon/slash/pipe/` and `/` & `-delimited strings into per-competitor slices
+- Deals lost in Qualify stage are excluded (not "qualified pipeline")
+- **Filtered Deals table** (always visible) with an editable **SE Owner** column — Manager users can reassign SE ownership on Closed Won / Closed Lost deals inline; SEs see it read-only
+
+#### Forecasting Brief (`/insights/forecasting-brief`)
+- Manager-only SE forecast call prep page
+- **Current FQ tab**: KPI cards (pipeline total, commit+ML, SE engagement health), forecast table with expandable rows showing inline AI summary, SE comments, tech status & MEDDPICC gaps, plus an AI-generated forecast narrative
+- **Key Deals tab**: collapsible deal cards for must-discuss opportunities
+- Expanded rows open the full Opportunity Detail drawer
+- Thursday stale-comment alerts; Friday auto-refresh of the AI narrative
+- Includes `forecast_category` field backed by the SF import
 
 #### Agentic Qual (`/insights/agentic-qual`)
 - Table of active opportunities with an Agentic Qualification value set in Salesforce
@@ -301,7 +320,7 @@ Manager-only usage analytics and activity log.
 | Database | PostgreSQL 16 | Docker locally; AWS RDS in production |
 | ORM | Raw SQL via `pg` | Parameterized queries throughout — no ORM |
 | Auth | JWT + bcrypt | Stateless sessions |
-| AI | Anthropic Claude API (`claude-sonnet-4-6`) | AI Summary, MEDDPICC Gap Coach, Call Prep, Meeting Notes Processor, Tech Blockers AI Insights |
+| AI | Anthropic Claude API (`claude-sonnet-4-6`) | AI Summary, MEDDPICC Gap Coach, Call Prep, Demo Prep, Meeting Notes Processor, Forecasting Brief narrative, Tech Blockers AI Insights |
 | Containerization | Docker + Docker Compose | One-command local start |
 | Hosting | AWS EC2 + CloudFront + S3 | EC2 runs the backend container; S3/CloudFront serves the frontend |
 
@@ -511,7 +530,8 @@ Key columns:
 - `technical_blockers` — mapped from "Technical Blockers/Risk" SF field; emoji prefix (🔴/🟠/🟡/🟢) denotes severity
 - `poc_status`, `poc_start_date`, `poc_end_date`, `poc_type` — PoC tracking
 - `rfx_status` — RFx tracking
-- `stage_changed_at`, `previous_stage` — powers Stage Movement insight
+- `stage_changed_at`, `previous_stage` — import-tracked fallback; all stage transitions across the app (Timeline, Stage Movement, Weekly Digest, Recent Activity, Forecasting Brief) are now derived primarily from SF's per-stage date columns (`stage_date_qualify`, `stage_date_build_value`, `stage_date_proposal_sent`, etc.) so multi-stage jumps produce one row per move
+- `is_closed_won`, `closed_won_seen` — Closed Won tracking (deals disappearing from SF while in *Submitted for Booking* stage)
 - `se_owner_id` — app-managed SE assignment (not from SF)
 - `is_closed_lost`, `closed_at`, `closed_lost_seen` — closed lost tracking
 - `sf_raw_fields` JSONB — all SF columns stored raw; future columns auto-captured

@@ -193,9 +193,11 @@ export default function HowToPage() {
       <Ul>
         <Li><strong>Work</strong> — tasks, notes, and the Meeting Notes Processor (paste raw call notes and let AI extract structured outputs).</Li>
         <Li><strong>Timeline</strong> — unified event history across tasks, notes, stage changes, and SF field updates in chronological order.</Li>
-        <Li><strong>Call Prep</strong> — AI-generated pre-call brief with talking points, risk areas, questions, customer stories, and differentiator plays. Includes a PDF export button.</Li>
+        <Li><strong>Call Prep</strong> — AI-generated pre-call brief with talking points, risk areas, questions, customer stories, and differentiator plays. Includes a PDF export button and a Slack send placeholder.</Li>
+        <Li><strong>Demo Prep</strong> — AI-generated demo readiness brief with 6 critical questions, evidence, missing items, suggested commitments, coaching tips, overall assessment, and a before-you-demo checklist. PDF export and Slack send buttons mirror Call Prep.</Li>
         <Li><strong>Deal Info</strong> — configurable Salesforce fields (layout managed in Settings), MEDDPICC scores with an "Show AI notes" toggle to display inline AI analysis per element.</Li>
       </Ul>
+      <P>All stage-change and time-in-stage data everywhere in the app (Timeline, Stage Movement, Weekly Digest, Recent Activity, Forecasting Brief) is now derived from Salesforce's per-stage date columns (<em>Stage Date: Build Value</em>, etc.), so multi-stage jumps within a window produce one row per move rather than just the most recent.</P>
 
       {/* ── 2. Home / Daily Digest ── */}
       <SectionTitle id="home">2. Home / Daily Digest</SectionTitle>
@@ -214,17 +216,19 @@ export default function HowToPage() {
       </Ul>
 
       <SubTitle>AI Quick Links</SubTitle>
-      <P>Three shortcut buttons let you search for any opportunity and immediately open a drawer with the selected AI feature activated:</P>
+      <P>Four shortcut buttons let you search for any opportunity and immediately open a drawer with the selected AI feature activated:</P>
       <Ul>
         <Li><strong>Pre-Call Brief</strong> — generates a call preparation brief for the selected opportunity.</Li>
         <Li><strong>Process Call Notes</strong> — opens the Meeting Notes Processor for the selected opportunity.</Li>
         <Li><strong>Opp Summary</strong> — generates or shows the AI Summary for the selected opportunity.</Li>
+        <Li><strong>Demo Prep</strong> — generates a demo preparation brief (6 critical questions, evidence, missing items, suggested commitments, coaching tips, overall assessment, and a before-you-demo checklist).</Li>
       </Ul>
 
       {/* ── 3. Closed Lost ── */}
       <SectionTitle id="closed-lost">3. Closed Lost</SectionTitle>
       <RoleTag role="all" />
       <P>Lists every opportunity that has disappeared from the Salesforce import — meaning the deal was marked Closed Lost in SF.</P>
+      <InfoBox><strong>Closed Won detection:</strong> if a deal disappears from SF while in the <em>Submitted for Booking</em> stage, it is classified as Closed Won (not Closed Lost). Those deals are moved out of Closed Lost and out of Loss Analysis.</InfoBox>
 
       <SubTitle>Unread badge</SubTitle>
       <P>A pink badge on the sidebar item counts deals you haven't seen yet. Opening the tab automatically marks all visible records as read. You can also open an individual opportunity to mark it read.</P>
@@ -362,8 +366,17 @@ export default function HowToPage() {
       <SubTitle>DeployMode Overview</SubTitle>
       <P>Stat cards per deployment model (SaaS, PaaS+, etc.) showing deal count and total ARR. Click a stat card to filter the deal table below to that deployment type. Supports a multi-select quarter filter.</P>
 
-      <SubTitle>Closed Lost Stats</SubTitle>
-      <P>Analysis of closed lost deals broken down by reason, stage at close, and deployment model. Filter by time period to focus on recent losses.</P>
+      <SubTitle>Loss Analysis</SubTitle>
+      <P>Analysis of Closed Lost deals (renamed from "Closed Lost Stats" / "Win/Loss Analysis"). Slices the data by Stage at Close, Competitor, Industry, Segment, Record Type, Team, SE Owner, and AE Owner. Includes KPI cards for Deals Lost, ARR Lost, Avg Deal Size, and <strong>Avg Days in Pipeline</strong> (first-seen → closed-lost). Filter by time period (30d / 90d / 1yr / All) or toggle between <em># Deals</em> and <em>ARR</em>. Click any pie slice to cross-filter across every chart. Deals lost while still in Qualify are excluded (they are not "qualified pipeline"). Competitors parsed from comma/semicolon/slash-delimited lists appear as per-competitor slices.</P>
+      <P><strong>Inline SE Owner re-assignment (Manager only):</strong> the Filtered Deals table now always appears and includes an SE Owner column. Managers can change the SE Owner on any closed deal (Won or Lost) via an inline dropdown — useful for cleaning up unassigned deals after a sales cycle closes. SEs see the SE Owner read-only.</P>
+
+      <SubTitle>Forecasting Brief</SubTitle>
+      <P>Manager-only SE forecast call prep page. Two tabs:</P>
+      <Ul>
+        <Li><strong>Current FQ</strong> — KPI cards (pipeline total, commit+ML, SE engagement health), a forecast table with expandable rows showing inline AI summary, SE comments, tech status & MEDDPICC gaps, plus an AI-generated forecast narrative.</Li>
+        <Li><strong>Key Deals</strong> — collapsible deal cards for the must-discuss opportunities.</Li>
+      </Ul>
+      <P>Expanded rows link to the full Opportunity Detail drawer. Stale-comment alerts surface on Thursdays, and the AI narrative auto-refreshes on Fridays.</P>
 
       <SubTitle>Agentic Qual</SubTitle>
       <P>Lists active opportunities with an Agentic Qualification value set in Salesforce. The <strong>Recently Changed</strong> tab shows field-history changes so you can track how agentic qualification is evolving across the pipeline.</P>
@@ -459,6 +472,9 @@ export default function HowToPage() {
 
       <SubTitle>Pre-Call Brief</SubTitle>
       <P>Located in the <strong>Call Prep</strong> tab of the opportunity detail. Generates talking points, risk areas, recommended questions, relevant customer stories, and differentiator plays. Each piece of information is tagged with a source badge — <Badge color="gray">CSV</Badge> (from Salesforce import data), <Badge color="purple">DIFF</Badge> (from recent field changes), or <Badge color="green">KB</Badge> (from the knowledge base) — so you know where the insight comes from. Use the <strong>PDF export</strong> button to download the brief for offline use.</P>
+
+      <SubTitle>Demo Prep</SubTitle>
+      <P>Available as a <strong>Demo Prep</strong> tab on the opportunity detail and as an AI Quick Link on the Home page. Generates a structured demo readiness assessment: 6 critical discovery questions with evidence from the deal, missing items to uncover, suggested commitments to ask for during the demo, coaching tips, an overall readiness assessment, and a <em>Before-You-Demo checklist</em>. Results are persisted server-side and can be exported as <strong>PDF</strong> or sent to <strong>Slack</strong> from the header of the tab.</P>
 
       <SubTitle>Meeting Notes Processor</SubTitle>
       <P>Available in the <strong>Work</strong> tab of the opportunity detail. Paste raw call notes (with an optional source URL for reference) and Claude extracts structured outputs:</P>
