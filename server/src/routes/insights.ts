@@ -2,7 +2,8 @@ import Anthropic from '@anthropic-ai/sdk';
 import { Router, Request, Response } from 'express';
 import { query, queryOne } from '../db/index.js';
 import { requireAuth, requireManager } from '../middleware/auth.js';
-import { ok, err } from '../types/index.js';
+import { AuthenticatedRequest, ok, err } from '../types/index.js';
+import { startJob, completeJob, failJob } from '../services/aiJobs.js';
 
 const router = Router();
 const auth = requireAuth as unknown as (req: Request, res: Response, next: () => void) => void;
@@ -349,6 +350,9 @@ router.get('/tech-blockers/ai-summary/cached', auth, mgr, async (_req: Request, 
 
 // POST /insights/tech-blockers/ai-summary  — Claude-powered summary of all blockers
 router.post('/tech-blockers/ai-summary', auth, mgr, async (req: Request, res: Response): Promise<void> => {
+  const userId = (req as AuthenticatedRequest).user?.userId ?? null;
+  const job = await startJob({ key: 'tech-blockers', feature: 'tech-blockers', userId });
+  try {
   const rows = await query<{
     name: string; account_name: string; se_owner_name: string | null;
     deploy_mode: string | null; stage: string; technical_blockers: string;
@@ -377,6 +381,7 @@ router.post('/tech-blockers/ai-summary', auth, mgr, async (req: Request, res: Re
   );
 
   if (rows.length === 0) {
+    await completeJob(job.id);
     res.json(ok({ summary: 'No technical blockers have been recorded yet.' }));
     return;
   }
@@ -426,7 +431,12 @@ A numbered list of the 2-3 highest-leverage actions the SE manager should take, 
     [summary]
   );
 
+  await completeJob(job.id);
   res.json(ok({ summary, generated_at: new Date().toISOString(), count: rows.length, red: redCount, orange: orangeCount }));
+  } catch (e) {
+    await failJob(job.id, e instanceof Error ? e.message : String(e));
+    throw e;
+  }
 });
 
 // ── Agentic Qualification ──────────────────────────────────────────────────────
@@ -475,7 +485,10 @@ router.get('/agentic-qual/ai-summary/cached', auth, mgr, async (_req: Request, r
 });
 
 // POST /insights/agentic-qual/ai-summary
-router.post('/agentic-qual/ai-summary', auth, mgr, async (_req: Request, res: Response): Promise<void> => {
+router.post('/agentic-qual/ai-summary', auth, mgr, async (req: Request, res: Response): Promise<void> => {
+  const userId = (req as AuthenticatedRequest).user?.userId ?? null;
+  const job = await startJob({ key: 'agentic-qual', feature: 'agentic-qual', userId });
+  try {
   const rows = await query<{
     name: string; account_name: string; se_owner_name: string | null;
     deploy_mode: string | null; stage: string; agentic_qual: string;
@@ -490,6 +503,7 @@ router.post('/agentic-qual/ai-summary', auth, mgr, async (_req: Request, res: Re
   );
 
   if (rows.length === 0) {
+    await completeJob(job.id);
     res.json(ok({ summary: 'No Agentic Qualification data has been recorded yet.' }));
     return;
   }
@@ -530,7 +544,12 @@ A numbered list of 2-3 accounts or situations where the Agentic qualification mi
     [summary]
   );
 
+  await completeJob(job.id);
   res.json(ok({ summary, generated_at: new Date().toISOString(), count: rows.length }));
+  } catch (e) {
+    await failJob(job.id, e instanceof Error ? e.message : String(e));
+    throw e;
+  }
 });
 
 // GET /insights/weekly-digest?days=7|14|30
@@ -976,6 +995,8 @@ router.get('/one-on-one/:se_id', auth, mgr, async (req: Request, res: Response):
 router.post('/one-on-one/:se_id/narrative', auth, mgr, async (req: Request, res: Response): Promise<void> => {
   const seId = parseInt(req.params.se_id);
   if (!seId || isNaN(seId)) { res.status(400).json(err('Invalid se_id')); return; }
+  const userId = (req as AuthenticatedRequest).user?.userId ?? null;
+  const jobKey = `one-on-one-narrative-${seId}`;
 
   const seUser = await queryOne<{ id: number; name: string; email: string }>(
     `SELECT id, name, email FROM users WHERE id = $1 AND is_active = true`,
@@ -1042,6 +1063,7 @@ Write a brief with exactly these 4 sections, each 2–4 sentences:
 
 Keep it under 350 words total. Use deal names and ARR figures. Be direct and actionable, not generic.`;
 
+  const job = await startJob({ key: jobKey, feature: 'one-on-one-narrative', userId });
   try {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     const response = await client.messages.create({
@@ -1057,11 +1079,13 @@ Keep it under 350 words total. Use deal names and ARR figures. Be direct and act
       `INSERT INTO ai_summary_cache (key, content, generated_at)
        VALUES ($1, $2, now())
        ON CONFLICT (key) DO UPDATE SET content = $2, generated_at = now()`,
-      [`one-on-one-narrative-${seId}`, content]
+      [jobKey, content]
     );
 
+    await completeJob(job.id);
     res.json(ok({ content, generated_at: new Date().toISOString() }));
   } catch (e: unknown) {
+    await failJob(job.id, e instanceof Error ? e.message : String(e));
     console.error('[one-on-one] narrative generation failed:', e);
     res.status(500).json(err('Failed to generate narrative'));
   }

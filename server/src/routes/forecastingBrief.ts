@@ -2,7 +2,8 @@ import Anthropic from '@anthropic-ai/sdk';
 import { Router, Request, Response } from 'express';
 import { query, queryOne } from '../db/index.js';
 import { requireAuth, requireManager } from '../middleware/auth.js';
-import { ok, err } from '../types/index.js';
+import { AuthenticatedRequest, ok, err } from '../types/index.js';
+import { startJob, completeJob, failJob } from '../services/aiJobs.js';
 
 const router = Router();
 const auth = requireAuth as unknown as (req: Request, res: Response, next: () => void) => void;
@@ -157,6 +158,7 @@ router.get('/', auth, mgr, async (req: Request, res: Response): Promise<void> =>
 router.post('/narrative/generate', auth, mgr, async (req: Request, res: Response): Promise<void> => {
   const fq = req.body.fiscal_period as string;
   if (!fq) { res.status(400).json(err('fiscal_period is required')); return; }
+  const userId = (req as AuthenticatedRequest).user?.userId ?? null;
 
   // Fetch pipeline data for the prompt
   const rows = await query(
@@ -218,6 +220,7 @@ Write a concise SE-perspective forecast narrative with exactly these 3 sections:
 
 BE CONCISE. Each section should be 2-4 sentences. Use deal names and dollar amounts. Focus on actionable SE insights, not generic observations. Total response should be under 300 words.`;
 
+  const job = await startJob({ key: `forecast-narrative-${fq}`, feature: 'forecast-narrative', userId });
   try {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     const response = await client.messages.create({
@@ -237,8 +240,10 @@ BE CONCISE. Each section should be 2-4 sentences. Use deal names and dollar amou
       [`forecast-narrative-${fq}`, content]
     );
 
+    await completeJob(job.id);
     res.json(ok({ content, generated_at: new Date().toISOString() }));
   } catch (e: unknown) {
+    await failJob(job.id, e instanceof Error ? e.message : String(e));
     console.error('[forecasting-brief] narrative generation failed:', e);
     res.status(500).json(err('Failed to generate forecast narrative'));
   }
@@ -260,10 +265,12 @@ router.post('/summaries/bulk-generate', auth, mgr, async (req: Request, res: Res
     return;
   }
 
+  const userId = (req as AuthenticatedRequest).user?.userId ?? null;
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   const results: { id: number; status: 'ok' | 'error'; error?: string }[] = [];
 
   for (const oppId of oppIds) {
+    const job = await startJob({ key: `summary-${oppId}`, feature: 'summary', opportunityId: oppId, userId });
     try {
       const opp = await queryOne<Record<string, unknown>>(
         `SELECT o.*, u.name AS se_owner_name
@@ -272,7 +279,7 @@ router.post('/summaries/bulk-generate', auth, mgr, async (req: Request, res: Res
          WHERE o.id = $1`,
         [oppId]
       );
-      if (!opp) { results.push({ id: oppId, status: 'error', error: 'Not found' }); continue; }
+      if (!opp) { await failJob(job.id, 'Not found'); results.push({ id: oppId, status: 'error', error: 'Not found' }); continue; }
 
       const tasks = await query(
         `SELECT t.title, t.status, t.due_date, t.is_next_step
@@ -345,8 +352,10 @@ ${noteLines}`;
         [`summary-${oppId}`, summary]
       );
 
+      await completeJob(job.id);
       results.push({ id: oppId, status: 'ok' });
     } catch (e: unknown) {
+      await failJob(job.id, e instanceof Error ? e.message : String(e));
       console.error(`[bulk-summary] Failed for opp ${oppId}:`, e);
       results.push({ id: oppId, status: 'error', error: String((e as Error).message || e) });
     }

@@ -6,6 +6,7 @@ import { requireAuth, requireManager } from '../middleware/auth.js';
 import { parseImportFile, reconcileImport, previewImport } from '../services/importService.js';
 import { AuthenticatedRequest, ok, err } from '../types/index.js';
 import { logAudit } from '../services/auditLog.js';
+import { runAiJob, startJob, completeJob, failJob } from '../services/aiJobs.js';
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
@@ -688,6 +689,7 @@ router.get('/:id/summary/cached', auth, async (req: Request, res: Response): Pro
 router.post('/:id/summary', auth, async (req: Request, res: Response): Promise<void> => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json(err('Invalid opportunity id')); return; }
+  const userId = (req as AuthenticatedRequest).user?.userId ?? null;
 
   const opp = await queryOne<Record<string, unknown>>(
     `SELECT o.*, u.name AS se_owner_name
@@ -753,23 +755,31 @@ ${taskLines}
 Recent Notes (oldest to newest):
 ${noteLines}`;
 
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-  const response = await client.messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 400,
-    messages: [{ role: 'user', content: prompt }],
+  const summary = await runAiJob({
+    key: `summary-${id}`,
+    feature: 'summary',
+    opportunityId: id,
+    userId,
+    work: async () => {
+      const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+      const response = await client.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 400,
+        messages: [{ role: 'user', content: prompt }],
+      });
+
+      const summaryBlock = response.content.find(b => b.type === 'text');
+      const summaryText = summaryBlock && summaryBlock.type === 'text' ? summaryBlock.text : '';
+
+      await query(
+        `INSERT INTO ai_summary_cache (key, content, generated_at)
+         VALUES ($1, $2, now())
+         ON CONFLICT (key) DO UPDATE SET content = $2, generated_at = now()`,
+        [`summary-${id}`, summaryText]
+      );
+      return summaryText;
+    },
   });
-
-  const summaryBlock = response.content.find(b => b.type === 'text');
-  const summary = summaryBlock && summaryBlock.type === 'text' ? summaryBlock.text : '';
-
-  // Cache the summary
-  await query(
-    `INSERT INTO ai_summary_cache (key, content, generated_at)
-     VALUES ($1, $2, now())
-     ON CONFLICT (key) DO UPDATE SET content = $2, generated_at = now()`,
-    [`summary-${id}`, summary]
-  );
 
   res.json(ok({ summary, generated_at: new Date().toISOString() }));
 });
@@ -811,6 +821,10 @@ router.get('/:id/meddpicc-coach/cached', auth, async (req: Request, res: Respons
 router.post('/:id/meddpicc-coach', auth, async (req: Request, res: Response): Promise<void> => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json(err('Invalid opportunity id')); return; }
+  const userId = (req as AuthenticatedRequest).user?.userId ?? null;
+  const jobKey = `meddpicc-coach-${id}`;
+
+  const job = await startJob({ key: jobKey, feature: 'meddpicc-coach', opportunityId: id, userId });
 
   try {
     const [opp, tasks, notes] = await Promise.all([
@@ -946,6 +960,7 @@ Include all 9 MEDDPICC elements in the elements array, in this order: metrics, e
       parsed = JSON.parse(cleaned);
     } catch (parseErr) {
       console.error(`[meddpicc-coach] JSON parse failed for opp ${id}:`, parseErr, '\nRaw:', raw.slice(0, 500));
+      await failJob(job.id, 'parse_failed');
       res.json(ok({ coach: null, raw, error: 'parse_failed' }));
       return;
     }
@@ -958,10 +973,12 @@ Include all 9 MEDDPICC elements in the elements array, in this order: metrics, e
       [`meddpicc-coach-${id}`, JSON.stringify(parsed)]
     );
 
+    await completeJob(job.id);
     console.log(`[meddpicc-coach] Success for opp ${id}, cached.`);
     res.json(ok({ coach: parsed, generated_at: new Date().toISOString() }));
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
+    await failJob(job.id, msg);
     console.error(`[meddpicc-coach] Error for opp ${id}:`, msg);
     res.status(500).json(err(`MEDDPICC Coach failed: ${msg}`));
   }
@@ -1720,6 +1737,8 @@ router.get('/:id/call-prep', auth, async (req: Request, res: Response): Promise<
 router.post('/:id/call-prep/generate', auth, async (req: Request, res: Response): Promise<void> => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json(err('Invalid opportunity id')); return; }
+  const userId = (req as AuthenticatedRequest).user?.userId ?? null;
+  const job = await startJob({ key: `call-prep-${id}`, feature: 'call-prep', opportunityId: id, userId });
 
   try {
     // Gather all deal context
@@ -1912,6 +1931,7 @@ CRITICAL RULES:
     try {
       parsed = JSON.parse(raw);
     } catch {
+      await failJob(job.id, 'parse_failed');
       res.status(500).json(err('Failed to parse AI response — try again'));
       return;
     }
@@ -1928,11 +1948,13 @@ CRITICAL RULES:
       [`call-prep-${id}`, JSON.stringify(parsed)]
     );
 
+    await completeJob(job.id);
     res.json(ok({
       brief: parsed,
       generated_at: new Date().toISOString(),
     }));
   } catch (e) {
+    await failJob(job.id, e instanceof Error ? e.message : String(e));
     console.error('[call-prep/generate] error:', e);
     res.status(500).json(err(e instanceof Error ? e.message : 'Failed to generate brief'));
   }
@@ -1974,6 +1996,8 @@ router.get('/:id/demo-prep', auth, async (req: Request, res: Response): Promise<
 router.post('/:id/demo-prep/generate', auth, async (req: Request, res: Response): Promise<void> => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json(err('Invalid opportunity id')); return; }
+  const userId = (req as AuthenticatedRequest).user?.userId ?? null;
+  const job = await startJob({ key: `demo-prep-${id}`, feature: 'demo-prep', opportunityId: id, userId });
 
   try {
     const [opp, tasks, notes] = await Promise.all([
@@ -2134,6 +2158,7 @@ Respond in this exact JSON format (no markdown fences, just raw JSON):
       parsed = JSON.parse(cleaned);
     } catch (parseErr) {
       console.error(`[demo-prep] JSON parse failed for opp ${id}:`, parseErr, '\nRaw:', raw.slice(0, 500));
+      await failJob(job.id, 'parse_failed');
       res.json(ok({ demo_prep: null, raw, error: 'parse_failed' }));
       return;
     }
@@ -2146,10 +2171,12 @@ Respond in this exact JSON format (no markdown fences, just raw JSON):
       [`demo-prep-${id}`, JSON.stringify(parsed)]
     );
 
+    await completeJob(job.id);
     console.log(`[demo-prep] Success for opp ${id}`);
     res.json(ok({ demo_prep: parsed, generated_at: new Date().toISOString() }));
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
+    await failJob(job.id, msg);
     console.error(`[demo-prep] Error for opp ${req.params.id}:`, msg);
     res.status(500).json(err(`Demo Prep failed: ${msg}`));
   }
