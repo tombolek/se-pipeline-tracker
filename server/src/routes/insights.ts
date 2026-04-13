@@ -605,6 +605,8 @@ router.get('/weekly-digest', auth, mgr, async (req: Request, res: Response): Pro
                 stage_date AS stage_changed_at
          FROM ranked
          WHERE stage_date >= CURRENT_DATE - ($1 || ' days')::interval
+           -- Exclude entries into Qualify; those are surfaced in "New Qualified Opportunities".
+           AND stage_name <> 'Qualify'
          ORDER BY stage_date DESC, id`,
         [days]
       ),
