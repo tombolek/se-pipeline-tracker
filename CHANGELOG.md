@@ -8,7 +8,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## 2026-04-13
 
 ### Added
-- **Closed Won by Territory (Insights)** — new manager-only report for SE bonus calculation. Aggregates Closed Won ARR (USD, `arr_converted`) by team → SE. Filterable by fiscal year (dropdown) and quarter (All YTD / Q1-Q4). New business only — New Logo + Upsell + Cross-Sell (Services + Renewal excluded). SE rows expand to show the underlying deals; clicking a deal opens the opp drawer. Cross-team SEs appear once per team they sold in. (Issue #94)
+- **Closed Won (Insights)** — new manager-only report for SE bonus calculation. Aggregates Closed Won ARR (USD, `arr_converted`) with a view toggle: **By Territory** (Team → SE) or **By SE** (SE → Team breakdown; SE totals are global across territories). Filterable by fiscal year (dropdown) and quarter (All YTD / Q1-Q4). New business only — New Logo + Upsell + Cross-Sell (Services + Renewal excluded). Rows expand to show the underlying deals; clicking a deal opens the opp drawer. (Issue #94)
 - **Shareable opportunity URLs** — opening an opp drawer now reflects in the URL as `?oppId=<sf_opportunity_id>`. Copy the URL and share it; opening it in a new tab auto-opens the drawer for that opp on whichever page you were on. Browser back closes the drawer. Works on Pipeline, Home, Closed Lost, Calendar, 1:1 Prep, Team Tasks, Deploy Mode, Missing Notes, PoC Board, RFx Board, and SE ↔ Deal Mapping. (Issue #99)
 
 ### Changed

@@ -10,7 +10,7 @@ import RfxBoardPage from './insights/RfxBoardPage';
 import DeployModePage from './insights/DeployModePage';
 import SeDealMappingPage from './insights/SeDealMappingPage';
 import ClosedLostStatsPage from './insights/ClosedLostStatsPage';
-import ClosedWonTerritoryPage from './insights/ClosedWonTerritoryPage';
+import ClosedWonPage from './insights/ClosedWonPage';
 import TechBlockersPage from './insights/TechBlockersPage';
 import AgenticQualPage from './insights/AgenticQualPage';
 import WeeklyDigestPage from './insights/WeeklyDigestPage';
@@ -90,12 +90,12 @@ export default function InsightsPage() {
       </div>
     );
   }
-  if (pathname.includes('closed-won-territory')) {
-    // No ScopeBar — this report is by territory by design; showing all teams is the point.
+  if (pathname.includes('closed-won')) {
+    // No ScopeBar — this report is by territory/SE by design; showing all teams is the point.
     return (
       <div className="flex-1 bg-[#F5F5F7] flex flex-col overflow-hidden">
         <div className="flex-1 overflow-y-auto px-8 py-6">
-          <ClosedWonTerritoryPage />
+          <ClosedWonPage />
         </div>
       </div>
     );

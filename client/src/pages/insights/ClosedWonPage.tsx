@@ -1,9 +1,10 @@
 /**
- * Closed Won by Territory (Issue #94)
+ * Closed Won (Issue #94)
  *
  * Manager-only report for SE bonus calculation.
- * Aggregates Closed Won ARR (USD, arr_converted) by team → SE, filterable by
- * fiscal year and quarter. New business only (New Logo + Upsell + Cross-Sell).
+ * Aggregates Closed Won ARR (USD, arr_converted), filterable by fiscal year
+ * and quarter. Two views: "By Territory" (Team → SE) and "By SE"
+ * (SE → Team breakdown). New business only (New Logo + Upsell + Cross-Sell).
  */
 import { Fragment, useState, useEffect, useMemo } from 'react';
 import api from '../../api/client';
@@ -46,7 +47,7 @@ function parseArr(s: string | null): number {
   return isNaN(n) ? 0 : n;
 }
 
-/** Extract "Q1" / "Q2" / "Q3" / "Q4" from a fiscal_period string like "FY2026-Q1" or "2026-Q1". */
+/** Extract "Q1" / "Q2" / "Q3" / "Q4" from a fiscal_period like "FY2026-Q1". */
 function quarterOf(fp: string | null): 'Q1' | 'Q2' | 'Q3' | 'Q4' | null {
   if (!fp) return null;
   const m = fp.match(/Q([1-4])/i);
@@ -55,12 +56,14 @@ function quarterOf(fp: string | null): 'Q1' | 'Q2' | 'Q3' | 'Q4' | null {
 }
 
 type QuarterFilter = 'ALL' | 'Q1' | 'Q2' | 'Q3' | 'Q4';
+type ViewMode = 'territory' | 'se';
 
-export default function ClosedWonTerritoryPage() {
+export default function ClosedWonPage() {
   const [allRows, setAllRows] = useState<WonDeal[]>([]);
   const [fiscalYears, setFiscalYears] = useState<string[]>([]);
   const [fiscalYear, setFiscalYear] = useState<string | null>(null);
   const [quarter, setQuarter] = useState<QuarterFilter>('ALL');
+  const [view, setView] = useState<ViewMode>('territory');
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [selectedOppId, setSelectedOppId] = useState<number | null>(null);
@@ -88,48 +91,93 @@ export default function ClosedWonTerritoryPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fiscalYear]);
 
-  // Quarter filter is client-side (cheap) so switching feels instant
+  // Collapse expansions when view/filter changes so stale keys don't leak between groupings
+  useEffect(() => { setExpanded(new Set()); }, [view, quarter, fiscalYear]);
+
+  // Quarter filter is client-side (cheap)
   const rows = useMemo(() => {
     if (quarter === 'ALL') return allRows;
     return allRows.filter(r => quarterOf(r.fiscal_period) === quarter);
   }, [allRows, quarter]);
 
-  // ── Aggregate: Team → SE → deals ───────────────────────────────────────────
-  type SeGroup = { seOwnerId: number | null; seOwnerName: string; deals: WonDeal[]; arrTotal: number };
-  type TeamGroup = { team: string; seGroups: SeGroup[]; dealCount: number; arrTotal: number };
+  // ── Headline totals (same for both views) ──────────────────────────────────
+  const { grandArr, grandDealCount, uniqueSes } = useMemo(() => {
+    const grandArr = rows.reduce((s, r) => s + parseArr(r.arr_converted), 0);
+    const uniqueSes = new Set(rows.map(r => r.se_owner_id ?? -1)).size;
+    return { grandArr, grandDealCount: rows.length, uniqueSes };
+  }, [rows]);
 
-  const { teamGroups, grandDealCount, grandArr, uniqueSes } = useMemo(() => {
-    const byTeam = new Map<string, Map<string, SeGroup>>();
+  // ── By Territory: Team → SE → deals ────────────────────────────────────────
+  type LeafGroup = {
+    label: string;
+    isUnassigned?: boolean;
+    deals: WonDeal[];
+    arrTotal: number;
+  };
+  type ParentGroup = {
+    label: string;
+    leafGroups: LeafGroup[];
+    dealCount: number;
+    arrTotal: number;
+    isUnassigned?: boolean;
+  };
+
+  const territoryGroups = useMemo<ParentGroup[]>(() => {
+    const byTeam = new Map<string, Map<string, LeafGroup>>();
     for (const d of rows) {
-      const t = d.team ?? NO_TEAM;
+      const team = d.team ?? NO_TEAM;
       const seName = d.se_owner_name ?? UNASSIGNED;
       const seKey = `${d.se_owner_id ?? 'unassigned'}|${seName}`;
-      let teamMap = byTeam.get(t);
-      if (!teamMap) { teamMap = new Map(); byTeam.set(t, teamMap); }
+      let teamMap = byTeam.get(team);
+      if (!teamMap) { teamMap = new Map(); byTeam.set(team, teamMap); }
       let se = teamMap.get(seKey);
       if (!se) {
-        se = { seOwnerId: d.se_owner_id, seOwnerName: seName, deals: [], arrTotal: 0 };
+        se = { label: seName, deals: [], arrTotal: 0, isUnassigned: d.se_owner_id === null };
         teamMap.set(seKey, se);
       }
       se.deals.push(d);
       se.arrTotal += parseArr(d.arr_converted);
     }
-
-    const teamGroups: TeamGroup[] = [];
+    const groups: ParentGroup[] = [];
     for (const [team, seMap] of byTeam) {
-      const seGroups = Array.from(seMap.values()).sort((a, b) => b.arrTotal - a.arrTotal);
-      const arrTotal = seGroups.reduce((s, g) => s + g.arrTotal, 0);
-      const dealCount = seGroups.reduce((s, g) => s + g.deals.length, 0);
-      teamGroups.push({ team, seGroups, arrTotal, dealCount });
+      const leafGroups = Array.from(seMap.values()).sort((a, b) => b.arrTotal - a.arrTotal);
+      const arrTotal = leafGroups.reduce((s, g) => s + g.arrTotal, 0);
+      const dealCount = leafGroups.reduce((s, g) => s + g.deals.length, 0);
+      groups.push({ label: team, leafGroups, arrTotal, dealCount, isUnassigned: team === NO_TEAM });
     }
-    teamGroups.sort((a, b) => b.arrTotal - a.arrTotal);
-
-    const grandArr = teamGroups.reduce((s, t) => s + t.arrTotal, 0);
-    const grandDealCount = teamGroups.reduce((s, t) => s + t.dealCount, 0);
-    const uniqueSes = new Set(rows.map(r => r.se_owner_id ?? -1)).size;
-
-    return { teamGroups, grandArr, grandDealCount, uniqueSes };
+    return groups.sort((a, b) => b.arrTotal - a.arrTotal);
   }, [rows]);
+
+  // ── By SE: SE → Team → deals (SE totals are GLOBAL across territories) ─────
+  const seGroups = useMemo<ParentGroup[]>(() => {
+    const bySe = new Map<string, Map<string, LeafGroup>>();
+    for (const d of rows) {
+      const seName = d.se_owner_name ?? UNASSIGNED;
+      const seKey = `${d.se_owner_id ?? 'unassigned'}|${seName}`;
+      const team = d.team ?? NO_TEAM;
+      let seMap = bySe.get(seKey);
+      if (!seMap) { seMap = new Map(); bySe.set(seKey, seMap); }
+      let teamLeaf = seMap.get(team);
+      if (!teamLeaf) {
+        teamLeaf = { label: team, deals: [], arrTotal: 0, isUnassigned: team === NO_TEAM };
+        seMap.set(team, teamLeaf);
+      }
+      teamLeaf.deals.push(d);
+      teamLeaf.arrTotal += parseArr(d.arr_converted);
+    }
+    const groups: ParentGroup[] = [];
+    for (const [seKey, teamMap] of bySe) {
+      const label = seKey.split('|').slice(1).join('|') || UNASSIGNED;
+      const leafGroups = Array.from(teamMap.values()).sort((a, b) => b.arrTotal - a.arrTotal);
+      const arrTotal = leafGroups.reduce((s, g) => s + g.arrTotal, 0);
+      const dealCount = leafGroups.reduce((s, g) => s + g.deals.length, 0);
+      groups.push({ label, leafGroups, arrTotal, dealCount, isUnassigned: label === UNASSIGNED });
+    }
+    return groups.sort((a, b) => b.arrTotal - a.arrTotal);
+  }, [rows]);
+
+  const parentGroups = view === 'territory' ? territoryGroups : seGroups;
+  const parentHeaderLabel = view === 'territory' ? 'Team / SE' : 'SE / Team';
 
   const toggleExpand = (key: string) => {
     setExpanded(prev => {
@@ -139,12 +187,14 @@ export default function ClosedWonTerritoryPage() {
     });
   };
 
-  const quarterBtn = (q: QuarterFilter, label: string) => (
+  const pillBtn = <T extends string>(
+    current: T, value: T, onClick: (v: T) => void, label: string
+  ) => (
     <button
-      key={q}
-      onClick={() => setQuarter(q)}
+      key={value}
+      onClick={() => onClick(value)}
       className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
-        quarter === q
+        current === value
           ? 'bg-brand-purple text-white border-brand-purple'
           : 'border-brand-navy-30 text-brand-navy-70 hover:border-brand-navy hover:text-brand-navy'
       }`}
@@ -157,10 +207,16 @@ export default function ClosedWonTerritoryPage() {
     <div>
       <div className="flex items-center gap-4 mb-6 flex-wrap">
         <PageHeader
-          title="Closed Won by Territory"
-          subtitle="Closed Won ARR (USD) by team and SE — new business only. For bonus calculation."
+          title="Closed Won"
+          subtitle="Closed Won ARR (USD) — new business only. For bonus calculation."
         />
-        <div className="ml-auto flex items-center gap-3">
+        <div className="ml-auto flex items-center gap-3 flex-wrap">
+          {/* View toggle */}
+          <div className="flex items-center gap-2">
+            {pillBtn(view, 'territory', setView, 'By Territory')}
+            {pillBtn(view, 'se', setView, 'By SE')}
+          </div>
+          <div className="h-5 w-px bg-brand-navy-30" />
           {fiscalYears.length > 0 && (
             <select
               value={fiscalYear ?? ''}
@@ -173,11 +229,11 @@ export default function ClosedWonTerritoryPage() {
             </select>
           )}
           <div className="flex items-center gap-2">
-            {quarterBtn('ALL', 'All YTD')}
-            {quarterBtn('Q1', 'Q1')}
-            {quarterBtn('Q2', 'Q2')}
-            {quarterBtn('Q3', 'Q3')}
-            {quarterBtn('Q4', 'Q4')}
+            {pillBtn(quarter, 'ALL', setQuarter, 'All YTD')}
+            {pillBtn(quarter, 'Q1', setQuarter, 'Q1')}
+            {pillBtn(quarter, 'Q2', setQuarter, 'Q2')}
+            {pillBtn(quarter, 'Q3', setQuarter, 'Q3')}
+            {pillBtn(quarter, 'Q4', setQuarter, 'Q4')}
           </div>
         </div>
       </div>
@@ -189,29 +245,33 @@ export default function ClosedWonTerritoryPage() {
         <StatCard label="Unique SEs" value={String(uniqueSes)} />
       </div>
 
-      {loading ? <Loading /> : teamGroups.length === 0 ? <Empty /> : (
+      {loading ? <Loading /> : parentGroups.length === 0 ? <Empty /> : (
         <div className="bg-white rounded-2xl border border-brand-navy-30/40 overflow-hidden">
           <table className="w-full">
             <thead className="border-b border-brand-navy-30/40 bg-gray-50/50">
               <tr>
-                <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide w-[40%]">Team / SE</th>
+                <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide w-[40%]">{parentHeaderLabel}</th>
                 <th className="px-4 py-2.5 text-right text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">Deals</th>
                 <th className="px-4 py-2.5 text-right text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">ARR (USD)</th>
                 <th className="px-4 py-2.5" />
               </tr>
             </thead>
             <tbody>
-              {teamGroups.map(tg => (
-                <Fragment key={`team-wrap-${tg.team}`}>
-                  {/* Team header row */}
+              {parentGroups.map((pg, pIdx) => (
+                <Fragment key={`parent-${view}-${pIdx}-${pg.label}`}>
+                  {/* Parent header row */}
                   <tr className="bg-brand-purple-30/30 border-t border-brand-navy-30/40">
-                    <td className="px-4 py-2 text-sm font-semibold text-brand-navy">{tg.team}</td>
-                    <td className="px-4 py-2 text-right text-sm font-semibold text-brand-navy">{tg.dealCount}</td>
-                    <td className="px-4 py-2 text-right text-sm font-semibold text-brand-navy">{formatARR(tg.arrTotal)}</td>
+                    <td className="px-4 py-2 text-sm font-semibold text-brand-navy">
+                      {pg.isUnassigned
+                        ? <span className="text-status-warning">{pg.label}</span>
+                        : pg.label}
+                    </td>
+                    <td className="px-4 py-2 text-right text-sm font-semibold text-brand-navy">{pg.dealCount}</td>
+                    <td className="px-4 py-2 text-right text-sm font-semibold text-brand-navy">{formatARR(pg.arrTotal)}</td>
                     <td className="px-4 py-2" />
                   </tr>
-                  {tg.seGroups.map(se => {
-                    const key = `${tg.team}::${se.seOwnerId ?? 'u'}::${se.seOwnerName}`;
+                  {pg.leafGroups.map((lg, lIdx) => {
+                    const key = `${view}::${pIdx}::${lIdx}::${lg.label}`;
                     const isExpanded = expanded.has(key);
                     return (
                       <Fragment key={key}>
@@ -224,16 +284,16 @@ export default function ClosedWonTerritoryPage() {
                               >
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                               </svg>
-                              {se.seOwnerName === UNASSIGNED
-                                ? <span className="text-status-warning">{UNASSIGNED}</span>
-                                : se.seOwnerName}
+                              {lg.isUnassigned
+                                ? <span className="text-status-warning">{lg.label}</span>
+                                : lg.label}
                             </div>
                           </td>
-                          <td className="px-4 py-2.5 text-right text-sm text-brand-navy">{se.deals.length}</td>
-                          <td className="px-4 py-2.5 text-right text-sm text-brand-navy">{formatARR(se.arrTotal)}</td>
+                          <td className="px-4 py-2.5 text-right text-sm text-brand-navy">{lg.deals.length}</td>
+                          <td className="px-4 py-2.5 text-right text-sm text-brand-navy">{formatARR(lg.arrTotal)}</td>
                           <td className="px-4 py-2.5" />
                         </tr>
-                        {isExpanded && se.deals.map(d => (
+                        {isExpanded && lg.deals.map(d => (
                           <tr
                             key={`deal-${d.id}`}
                             className="border-b border-brand-navy-30/10 bg-gray-50/50 hover:bg-gray-100 cursor-pointer"
