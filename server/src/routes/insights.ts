@@ -263,8 +263,12 @@ router.get('/closed-lost-stats', auth, mgr, async (req: Request, res: Response):
        o.arr, o.arr_currency,
        o.record_type,
        o.team,
+       o.account_segment,
+       o.account_industry,
+       o.engaged_competitors,
        o.ae_owner_name,
-       o.closed_at,
+       o.closed_at, o.first_seen_at,
+       EXTRACT(DAY FROM o.closed_at - o.first_seen_at)::integer AS days_in_pipeline,
        u.id   AS se_owner_id,
        u.name AS se_owner_name
      FROM opportunities o

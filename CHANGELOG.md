@@ -7,6 +7,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## 2026-04-13
 
+### Added
+- **Win/Loss Analysis** — promoted Closed Lost Stats to a first-class Insights page (`/insights/closed-lost-stats`), now visible by default. Adds three new dimensions (By Competitor, By Industry, By Segment), an Avg Days in Pipeline KPI (first-seen → closed-lost), and parses comma/semicolon/slash-delimited competitor lists into per-competitor slices. Existing cross-chart filtering, count/ARR toggle, and time-range filter still apply. (Issue #85)
+
 ### Changed
 - **Stage transitions now SF-authoritative everywhere** — Stage Movement, Weekly Digest "Stage Progressions", home-page recent activity, and the per-opportunity timeline now derive transitions from SF's per-stage date columns (`Stage Date: Build Value`, etc.). A deal that jumped multiple stages within the window now produces one row per move (not just the most recent). Pipeline list, opportunity detail, closed-lost list, and Forecasting Brief now report "in current stage since" using the SF stage date for the deal's current stage, falling back to the import-tracked timestamp only when SF data is missing. (Issue #87)
 

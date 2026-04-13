@@ -15,8 +15,13 @@ interface ClosedLostDeal {
   arr_currency: string;
   record_type: string | null;
   team: string | null;
+  account_segment: string | null;
+  account_industry: string | null;
+  engaged_competitors: string | null;
   ae_owner_name: string | null;
   closed_at: string | null;
+  first_seen_at: string | null;
+  days_in_pipeline: number | null;
   se_owner_id: number | null;
   se_owner_name: string | null;
 }
@@ -176,14 +181,22 @@ function ChartCard({
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function groupBy(deals: ClosedLostDeal[], key: keyof ClosedLostDeal): Slice[] {
+function groupBy(deals: ClosedLostDeal[], key: Dimension): Slice[] {
   const map = new Map<string, Slice>();
   for (const d of deals) {
-    const label = (d[key] as string | null) ?? 'Unknown';
-    const entry = map.get(label) ?? { label, count: 0, arr: 0 };
-    entry.count += 1;
-    entry.arr   += parseFloat(d.arr) || 0;
-    map.set(label, entry);
+    let labels: string[];
+    if (key === 'competitor') {
+      const parsed = parseCompetitors(d.engaged_competitors);
+      labels = parsed.length > 0 ? parsed : ['None listed'];
+    } else {
+      labels = [(d[key as keyof ClosedLostDeal] as string | null) ?? 'Unknown'];
+    }
+    for (const label of labels) {
+      const entry = map.get(label) ?? { label, count: 0, arr: 0 };
+      entry.count += 1;
+      entry.arr   += parseFloat(d.arr) || 0;
+      map.set(label, entry);
+    }
   }
   return Array.from(map.values()).sort((a, b) => b.count - a.count);
 }
@@ -196,14 +209,28 @@ const TIME_OPTIONS = [
   { label: 'All',   days: 0 },
 ];
 
-type Dimension = 'stage' | 'record_type' | 'team' | 'ae_owner_name';
+type Dimension = 'stage' | 'record_type' | 'team' | 'ae_owner_name' | 'account_industry' | 'account_segment' | 'competitor';
 
 const CHARTS: { key: Dimension; title: string }[] = [
-  { key: 'stage',         title: 'By Stage at Close' },
-  { key: 'record_type',   title: 'By Record Type' },
-  { key: 'team',          title: 'By Team' },
-  { key: 'ae_owner_name', title: 'By AE Owner' },
+  { key: 'stage',            title: 'By Stage at Close' },
+  { key: 'competitor',       title: 'By Competitor' },
+  { key: 'account_industry', title: 'By Industry' },
+  { key: 'account_segment',  title: 'By Segment' },
+  { key: 'record_type',      title: 'By Record Type' },
+  { key: 'team',             title: 'By Team' },
+  { key: 'ae_owner_name',    title: 'By AE Owner' },
 ];
+
+/** Parses free-text engaged_competitors into normalized names. Splits on common
+ *  delimiters (comma, semicolon, slash, pipe, " and ", " & "). Trims and dedupes. */
+function parseCompetitors(raw: string | null): string[] {
+  if (!raw) return [];
+  const parts = raw
+    .split(/[,;/|]| and | & /i)
+    .map(s => s.trim())
+    .filter(s => s.length > 0 && s.length < 60);
+  return Array.from(new Set(parts.map(s => s.replace(/\s+/g, ' '))));
+}
 
 export default function ClosedLostStatsPage() {
   const [deals,   setDeals]   = useState<ClosedLostDeal[]>([]);
@@ -237,11 +264,22 @@ export default function ClosedLostStatsPage() {
   const filteredDeals = scopedDeals.filter(d => {
     for (const [dim, active] of Object.entries(activeSlices) as [Dimension, string | null][]) {
       if (!active) continue;
-      const val = (d[dim] as string | null) ?? 'Unknown';
-      if (val !== active) return false;
+      if (dim === 'competitor') {
+        const parsed = parseCompetitors(d.engaged_competitors);
+        const labels = parsed.length > 0 ? parsed : ['None listed'];
+        if (!labels.includes(active)) return false;
+      } else {
+        const val = (d[dim as keyof ClosedLostDeal] as string | null) ?? 'Unknown';
+        if (val !== active) return false;
+      }
     }
     return true;
   });
+
+  const velocityDeals = filteredDeals.filter(d => d.days_in_pipeline != null && d.days_in_pipeline >= 0);
+  const avgVelocity = velocityDeals.length > 0
+    ? Math.round(velocityDeals.reduce((s, d) => s + (d.days_in_pipeline ?? 0), 0) / velocityDeals.length)
+    : null;
 
   return (
     <div className="flex flex-col h-full relative overflow-hidden">
@@ -249,8 +287,8 @@ export default function ClosedLostStatsPage() {
       <div className="flex-shrink-0 px-8 pt-6 pb-4">
         <div className="flex items-center gap-4 flex-wrap">
           <div>
-            <h1 className="text-xl font-semibold text-brand-navy">Closed Lost Stats</h1>
-            <p className="text-sm text-brand-navy-70 mt-0.5">Why are we losing deals?</p>
+            <h1 className="text-xl font-semibold text-brand-navy">Win/Loss Analysis</h1>
+            <p className="text-sm text-brand-navy-70 mt-0.5">Patterns in why deals are lost — by stage, competitor, segment, industry.</p>
           </div>
 
           <div className="ml-auto flex items-center gap-3">
@@ -320,6 +358,13 @@ export default function ClosedLostStatsPage() {
                     ? formatARR((filteredDeals.reduce((s, d) => s + (parseFloat(d.arr) || 0), 0) / filteredDeals.length).toString())
                     : '—'}
                 </p>
+              </div>
+              <div className="flex-1 min-w-[140px] bg-white rounded-2xl border border-brand-navy-30/40 p-4">
+                <p className="text-xs text-brand-navy-70 mb-1">Avg Days in Pipeline</p>
+                <p className="text-2xl font-bold text-brand-navy">
+                  {avgVelocity != null ? `${avgVelocity}d` : '—'}
+                </p>
+                <p className="text-[10px] text-brand-navy-30 mt-0.5">first seen → closed lost</p>
               </div>
               {Object.values(activeSlices).some(v => v !== null && v !== undefined) && (
                 <button
