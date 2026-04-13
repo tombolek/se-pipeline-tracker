@@ -488,34 +488,35 @@ router.get('/paginated', auth, async (req: Request, res: Response): Promise<void
 
   const whereClause = baseConditions.map(c => `(${c})`).join(' AND ');
 
-  // Sort allow-list. Value is the ORDER BY expression (computed expressions reference CTE aliases).
+  // Sort allow-list. Values are unprefixed because the outer ORDER BY runs over
+  // the `final` CTE (which flattens `o.*` into unqualified columns).
   const ORDER_MAP: Record<string, string> = {
-    close_date:                 'o.close_date',
-    close_month:                'o.close_month',
-    arr:                        'o.arr',
-    arr_converted:              'o.arr_converted',
-    stage:                      'o.stage',
-    name:                       'o.name',
-    account_name:               'o.account_name',
-    fiscal_period:              'o.fiscal_period',
-    team:                       'o.team',
-    record_type:                'o.record_type',
-    poc_start_date:             'o.poc_start_date',
-    poc_end_date:               'o.poc_end_date',
-    closed_at:                  'o.closed_at',
-    se_comments_updated_at:     'o.se_comments_updated_at',
-    manager_comments_updated_at:'o.manager_comments_updated_at',
-    last_note_at:               'o.last_note_at',
-    key_deal:                   'o.key_deal',
+    close_date:                 'close_date',
+    close_month:                'close_month',
+    arr:                        'arr',
+    arr_converted:              'arr_converted',
+    stage:                      'stage',
+    name:                       'name',
+    account_name:               'account_name',
+    fiscal_period:              'fiscal_period',
+    team:                       'team',
+    record_type:                'record_type',
+    poc_start_date:             'poc_start_date',
+    poc_end_date:               'poc_end_date',
+    closed_at:                  'closed_at',
+    se_comments_updated_at:     'se_comments_updated_at',
+    manager_comments_updated_at:'manager_comments_updated_at',
+    last_note_at:               'last_note_at',
+    key_deal:                   'key_deal',
     se_owner:                   'se_owner_name',
-    se_comments_freshness:      'o.se_comments_updated_at',
+    se_comments_freshness:      'se_comments_updated_at',
     health_score:               'health_score',
     meddpicc_score:             'meddpicc_strong_count',
     open_task_count:            'open_task_count',
   };
   const sortKey = q.sort && ORDER_MAP[q.sort] ? q.sort : 'close_date';
   const sortDir = q.dir === 'desc' ? 'DESC' : 'ASC';
-  const orderBy = `${ORDER_MAP[sortKey]} ${sortDir} NULLS LAST, o.id ASC`;
+  const orderBy = `${ORDER_MAP[sortKey]} ${sortDir} NULLS LAST, id ASC`;
 
   // Full query with CTE so computed columns are available to outer WHERE (at_risk, meddpicc_max) and ORDER BY.
   const sql = `
@@ -528,7 +529,8 @@ router.get('/paginated', auth, async (req: Request, res: Response): Promise<void
         o.lead_source, o.opportunity_source, o.channel_source, o.biz_dev,
         o.ae_owner_name, o.se_owner_id,
         o.se_comments, o.se_comments_updated_at,
-        o.manager_comments, o.next_step_sf, o.psm_comments, o.technical_blockers,
+        o.manager_comments, o.manager_comments_updated_at, o.closed_at,
+        o.next_step_sf, o.psm_comments, o.technical_blockers,
         o.engaged_competitors,
         o.budget, o.authority, o.need, o.timeline, o.metrics, o.economic_buyer,
         o.decision_criteria, o.decision_process, o.paper_process, o.implicate_pain,
