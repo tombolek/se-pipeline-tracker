@@ -78,6 +78,45 @@ const COLUMN_MAP: Record<string, string | null> = {
 // DB fields that are booleans in the opportunities table
 const BOOLEAN_FIELDS = new Set(['key_deal']);
 
+/**
+ * Normalize a SF-exported date string to ISO `YYYY-MM-DD`.
+ *
+ * SF exports dates as `M/D/YY` or `M/D/YYYY` (e.g. `11/20/26`). Postgres
+ * happily ingests these for DATE columns, but on readback we get
+ * `YYYY-MM-DD`. Without normalization, the field-history change detector
+ * sees `"11/20/26" !== "2026-11-20"` and records a phantom change on every
+ * import even when the underlying value is identical. Normalising both sides
+ * to ISO eliminates that.
+ *
+ * Returns null for empty/unparseable input.
+ */
+function normalizeDateToIso(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const s = String(raw).trim();
+  if (!s) return null;
+
+  // Already ISO YYYY-MM-DD or YYYY-MM-DDT...
+  const isoMatch = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (isoMatch) return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+
+  // M/D/YY or M/D/YYYY (SF's default export format)
+  const usMatch = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/);
+  if (usMatch) {
+    const m = usMatch[1].padStart(2, '0');
+    const d = usMatch[2].padStart(2, '0');
+    let y = usMatch[3];
+    if (y.length === 2) y = (parseInt(y, 10) >= 70 ? '19' : '20') + y;
+    return `${y}-${m}-${d}`;
+  }
+
+  // Last-resort: let Date parse it and reformat.
+  const parsed = new Date(s);
+  if (!isNaN(parsed.getTime())) {
+    return parsed.toISOString().slice(0, 10);
+  }
+  return null;
+}
+
 // DB fields that are DATE type
 const DATE_FIELDS = new Set([
   'close_date', 'close_month', 'poc_start_date', 'poc_end_date',
@@ -161,7 +200,9 @@ function buildParsedRows(matrix: string[][]): ParsedRow[] {
       if (BOOLEAN_FIELDS.has(dbField)) {
         dbFields[dbField] = trimmed.toLowerCase() === 'true' || trimmed === '1' || trimmed.toLowerCase() === 'yes';
       } else if (DATE_FIELDS.has(dbField)) {
-        dbFields[dbField] = trimmed || null;
+        // Normalise to ISO YYYY-MM-DD so it matches what Postgres returns on readback.
+        // Without this, change-detection sees "11/20/26" vs "2026-11-20" as different on every import.
+        dbFields[dbField] = normalizeDateToIso(trimmed);
       } else if (NUMERIC_FIELDS.has(dbField)) {
         const cleaned = trimmed.replace(/[^0-9.-]/g, '');
         dbFields[dbField] = cleaned ? parseFloat(cleaned) : null;
@@ -427,10 +468,11 @@ export async function reconcileImport(
           fieldHistoryEntries.push({ opportunity_id: existing.id, field_name: 'agentic_qual', old_value: existing.agentic_qual, new_value: newAgenticQual });
         }
 
-        // Track close_date history
-        const newCloseDate = row.dbFields['close_date'] as string | null;
+        // Track close_date history. Both sides are normalised to ISO YYYY-MM-DD
+        // so we don't record phantom changes when SF exports "11/20/26" but the
+        // DB returns "2026-11-20".
+        const incomingCloseDate = normalizeDateToIso(row.dbFields['close_date'] as string | null);
         const existingCloseDate = existing.close_date ? String(existing.close_date).split('T')[0] : null;
-        const incomingCloseDate = newCloseDate ? String(newCloseDate).split('T')[0] : null;
         if (incomingCloseDate !== existingCloseDate) {
           fieldHistoryEntries.push({ opportunity_id: existing.id, field_name: 'close_date', old_value: existingCloseDate, new_value: incomingCloseDate });
         }
