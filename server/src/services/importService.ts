@@ -417,17 +417,32 @@ export async function reconcileImport(
     }
   }
 
-  // ── Mark Closed Lost: active opps not in this import ───────────────────
+  // ── Mark Closed (Won or Lost): active opps not in this import ──────────
+  // Disappearance from SF = deal closed. If the last known stage was
+  // "Submitted for Booking", the booking went through → Closed Won.
+  // Anything else disappearing → Closed Lost.
   for (const [sfId, opp] of activeMap.entries()) {
     if (!seenSfIds.has(sfId)) {
-      await query(
-        `UPDATE opportunities
-         SET is_closed_lost = true, closed_at = now(), closed_lost_seen = false,
-             is_active = false, updated_at = now()
-         WHERE id = $1`,
-        [opp.id]
-      );
-      stats.closedLost++;
+      const won = (opp.stage as string | null) === 'Submitted for Booking';
+      if (won) {
+        await query(
+          `UPDATE opportunities
+           SET is_closed_won = true, closed_at = now(), closed_won_seen = false,
+               stage = 'Closed Won',
+               is_active = false, updated_at = now()
+           WHERE id = $1`,
+          [opp.id]
+        );
+      } else {
+        await query(
+          `UPDATE opportunities
+           SET is_closed_lost = true, closed_at = now(), closed_lost_seen = false,
+               is_active = false, updated_at = now()
+           WHERE id = $1`,
+          [opp.id]
+        );
+        stats.closedLost++;
+      }
     }
   }
 

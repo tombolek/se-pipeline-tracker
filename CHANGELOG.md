@@ -7,6 +7,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## 2026-04-13
 
+### Changed
+- **Closed-Won detection** — opportunities that disappear from the SF import while in *Submitted for Booking* stage are now classified as Closed Won, not Closed Lost. New `is_closed_won` / `closed_won_seen` columns; historical data backfilled (deals like VIG and Convex Lineage Upsell that were previously misclassified are now shown as Won).
+
 ### Added
 - **Win/Loss Analysis** — promoted Closed Lost Stats to a first-class Insights page (`/insights/closed-lost-stats`), now visible by default. Adds three new dimensions (By Competitor, By Industry, By Segment), an Avg Days in Pipeline KPI (first-seen → closed-lost), and parses comma/semicolon/slash-delimited competitor lists into per-competitor slices. Existing cross-chart filtering, count/ARR toggle, and time-range filter still apply. (Issue #85)
 
