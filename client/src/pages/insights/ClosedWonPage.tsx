@@ -63,7 +63,7 @@ export default function ClosedWonPage() {
   const [fiscalYears, setFiscalYears] = useState<string[]>([]);
   const [fiscalYear, setFiscalYear] = useState<string | null>(null);
   const [quarter, setQuarter] = useState<QuarterFilter>('ALL');
-  const [view, setView] = useState<ViewMode>('territory');
+  const [view, setView] = useState<ViewMode>('se');
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [selectedOppId, setSelectedOppId] = useState<number | null>(null);
