@@ -15,6 +15,7 @@ import AgenticQualPage from './insights/AgenticQualPage';
 import WeeklyDigestPage from './insights/WeeklyDigestPage';
 import TeamTasksPage from './insights/TeamTasksPage';
 import ForecastingBriefPage from './insights/ForecastingBriefPage';
+import OneOnOnePrepPage from './insights/OneOnOnePrepPage';
 
 function ScopeBar() {
   const { user } = useAuthStore();
@@ -110,7 +111,8 @@ export default function InsightsPage() {
   }
 
   let content;
-  if (pathname.includes('weekly-digest')) content = <WeeklyDigestPage />;
+  if (pathname.includes('one-on-one')) content = <OneOnOnePrepPage />;
+  else if (pathname.includes('weekly-digest')) content = <WeeklyDigestPage />;
   else if (pathname.includes('team-workload')) content = <TeamWorkloadPage />;
   else if (pathname.includes('overdue-tasks')) content = <OverdueTasksPage />;
   else if (pathname.includes('tech-blockers')) content = <TechBlockersPage />;

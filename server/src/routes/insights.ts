@@ -1,8 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { Router, Request, Response } from 'express';
-import { query } from '../db/index.js';
+import { query, queryOne } from '../db/index.js';
 import { requireAuth, requireManager } from '../middleware/auth.js';
-import { ok } from '../types/index.js';
+import { ok, err } from '../types/index.js';
 
 const router = Router();
 const auth = requireAuth as unknown as (req: Request, res: Response, next: () => void) => void;
@@ -828,6 +828,243 @@ router.get('/team-tasks', auth, mgr, async (_req: Request, res: Response): Promi
   );
 
   res.json(ok(rows));
+});
+
+// ── 1:1 Prep (Issue #69) ────────────────────────────────────────────────────
+// Manager-facing one-page summary for a specific SE, designed for pre-1:1 prep.
+// Aggregates: SE's open opps + health signals, their tasks, stale comments,
+// recent stage movements, deals with no next step.
+
+// Small fields subset needed for health score on the server side (mirrors client
+// computeHealthScore). We only need the raw fields; the client computes the
+// score so it stays in sync with the canonical algorithm.
+const ONE_ON_ONE_OPP_FIELDS = `
+  o.id, o.name, o.account_name, o.stage, o.arr, o.arr_currency, o.close_date,
+  o.record_type, o.key_deal, o.team, o.ae_owner_name, o.next_step_sf,
+  o.se_comments, o.se_comments_updated_at, o.last_note_at, o.stage_changed_at,
+  o.previous_stage, o.technical_blockers, o.engaged_competitors, o.poc_status,
+  o.poc_start_date, o.poc_end_date,
+  o.metrics, o.economic_buyer, o.decision_criteria, o.decision_process,
+  o.paper_process, o.implicate_pain, o.champion, o.authority, o.need,
+  (SELECT COUNT(*)::int FROM tasks t
+     WHERE t.opportunity_id = o.id AND t.is_deleted = false
+       AND t.status IN ('open','in_progress','blocked')) AS open_task_count,
+  (SELECT COUNT(*)::int FROM tasks t
+     WHERE t.opportunity_id = o.id AND t.is_deleted = false
+       AND t.status IN ('open','in_progress','blocked')
+       AND t.due_date IS NOT NULL AND t.due_date < CURRENT_DATE) AS overdue_task_count,
+  (SELECT COUNT(*)::int FROM tasks t
+     WHERE t.opportunity_id = o.id AND t.is_deleted = false
+       AND t.is_next_step = true
+       AND t.status IN ('open','in_progress')) AS next_step_count
+`;
+
+// GET /insights/one-on-one/:se_id
+router.get('/one-on-one/:se_id', auth, mgr, async (req: Request, res: Response): Promise<void> => {
+  const seId = parseInt(req.params.se_id);
+  if (!seId || isNaN(seId)) { res.status(400).json(err('Invalid se_id')); return; }
+
+  const seUser = await queryOne(
+    `SELECT id, name, email, role, teams, last_login_at
+     FROM users WHERE id = $1 AND is_active = true`,
+    [seId]
+  );
+  if (!seUser) { res.status(404).json(err('SE not found')); return; }
+
+  // Open opps owned by this SE
+  const opps = await query(
+    `SELECT ${ONE_ON_ONE_OPP_FIELDS}
+     FROM opportunities o
+     WHERE o.se_owner_id = $1
+       AND o.is_active = true
+       AND o.is_closed_lost = false
+       AND COALESCE(o.is_closed_won, false) = false
+     ORDER BY COALESCE(o.arr, 0) DESC NULLS LAST`,
+    [seId]
+  );
+
+  // Tasks assigned to this SE (or on their opps with no assignee), grouped
+  const tasks = await query(
+    `SELECT t.id, t.opportunity_id, t.title, t.description, t.status,
+            t.is_next_step, t.due_date, t.created_at, t.updated_at,
+            o.name AS opportunity_name, o.account_name, o.stage, o.arr, o.arr_currency,
+            CASE
+              WHEN t.due_date IS NULL THEN 'no_due_date'
+              WHEN t.due_date < CURRENT_DATE THEN 'overdue'
+              WHEN t.due_date <= CURRENT_DATE + INTERVAL '7 days' THEN 'due_soon'
+              ELSE 'later'
+            END AS bucket
+     FROM tasks t
+     JOIN opportunities o ON o.id = t.opportunity_id
+     WHERE t.is_deleted = false
+       AND t.status IN ('open','in_progress','blocked')
+       AND o.se_owner_id = $1
+       AND o.is_active = true
+       AND o.is_closed_lost = false
+       AND COALESCE(o.is_closed_won, false) = false
+     ORDER BY
+       CASE
+         WHEN t.due_date IS NULL THEN 3
+         WHEN t.due_date < CURRENT_DATE THEN 0
+         WHEN t.due_date <= CURRENT_DATE + INTERVAL '7 days' THEN 1
+         ELSE 2
+       END,
+       t.due_date ASC NULLS LAST`,
+    [seId]
+  );
+
+  // Recent stage movements (last 14 days) on their deals — reuse SF per-stage date fields
+  const stageMovements = await query(
+    `WITH stage_entries AS (
+       SELECT o.id, o.name, o.account_name, o.arr, o.arr_currency,
+              x.stage_name, x.stage_date
+       FROM opportunities o
+       CROSS JOIN LATERAL (VALUES
+         ('Qualify',               o.stage_date_qualify),
+         ('Develop Solution',      o.stage_date_develop_solution),
+         ('Build Value',           o.stage_date_build_value),
+         ('Proposal Sent',         o.stage_date_proposal_sent),
+         ('Submitted for Booking', o.stage_date_submitted_for_booking),
+         ('Negotiate',             o.stage_date_negotiate),
+         ('Closed Won',            o.stage_date_closed_won),
+         ('Closed Lost',           o.stage_date_closed_lost)
+       ) AS x(stage_name, stage_date)
+       WHERE o.se_owner_id = $1 AND x.stage_date IS NOT NULL
+     ),
+     ranked AS (
+       SELECT *,
+         LAG(stage_name) OVER (
+           PARTITION BY id
+           ORDER BY stage_date,
+             CASE stage_name
+               WHEN 'Qualify' THEN 1 WHEN 'Develop Solution' THEN 2
+               WHEN 'Build Value' THEN 3 WHEN 'Proposal Sent' THEN 4
+               WHEN 'Submitted for Booking' THEN 5 WHEN 'Negotiate' THEN 6
+               WHEN 'Closed Won' THEN 7 WHEN 'Closed Lost' THEN 8
+             END
+         ) AS previous_stage
+       FROM stage_entries
+     )
+     SELECT id, name, account_name, arr, arr_currency,
+            stage_name AS current_stage, previous_stage,
+            stage_date AS stage_changed_at
+     FROM ranked
+     WHERE stage_date >= CURRENT_DATE - INTERVAL '14 days'
+     ORDER BY stage_date DESC`,
+    [seId]
+  );
+
+  // Cached narrative
+  const narrativeRow = await queryOne(
+    `SELECT content, generated_at FROM ai_summary_cache WHERE key = $1`,
+    [`one-on-one-narrative-${seId}`]
+  );
+  const narrative = narrativeRow
+    ? { content: narrativeRow.content as string, generated_at: (narrativeRow.generated_at as Date).toISOString() }
+    : null;
+
+  res.json(ok({
+    se: seUser,
+    opportunities: opps,
+    tasks,
+    stage_movements: stageMovements,
+    narrative,
+  }));
+});
+
+// POST /insights/one-on-one/:se_id/narrative — AI-generated coaching brief
+router.post('/one-on-one/:se_id/narrative', auth, mgr, async (req: Request, res: Response): Promise<void> => {
+  const seId = parseInt(req.params.se_id);
+  if (!seId || isNaN(seId)) { res.status(400).json(err('Invalid se_id')); return; }
+
+  const seUser = await queryOne<{ id: number; name: string; email: string }>(
+    `SELECT id, name, email FROM users WHERE id = $1 AND is_active = true`,
+    [seId]
+  );
+  if (!seUser) { res.status(404).json(err('SE not found')); return; }
+
+  const opps = await query(
+    `SELECT ${ONE_ON_ONE_OPP_FIELDS}
+     FROM opportunities o
+     WHERE o.se_owner_id = $1
+       AND o.is_active = true
+       AND o.is_closed_lost = false
+       AND COALESCE(o.is_closed_won, false) = false
+     ORDER BY COALESCE(o.arr, 0) DESC NULLS LAST`,
+    [seId]
+  );
+
+  if (opps.length === 0) {
+    res.status(404).json(err('No open opportunities for this SE'));
+    return;
+  }
+
+  const MEDDPICC_KEYS = ['metrics','economic_buyer','decision_criteria','decision_process','paper_process','implicate_pain','champion','authority','need'] as const;
+
+  const dealLines = opps.map((r: Record<string, unknown>) => {
+    const arr = parseFloat(r.arr as string) || 0;
+    const meddpiccFilled = MEDDPICC_KEYS.filter(k => r[k]).length;
+    const seStale = r.se_comments_updated_at
+      ? Math.floor((Date.now() - new Date(r.se_comments_updated_at as string).getTime()) / 86_400_000)
+      : null;
+    const stageDays = r.stage_changed_at
+      ? Math.floor((Date.now() - new Date(r.stage_changed_at as string).getTime()) / 86_400_000)
+      : null;
+    return `- ${r.name} | ${r.account_name ?? ''} | $${Math.round(arr/1000)}K | ${r.stage} (${stageDays ?? '?'}d) | MEDDPICC ${meddpiccFilled}/9 | SE comments: ${seStale === null ? 'never' : seStale + 'd ago'} | Overdue tasks: ${r.overdue_task_count ?? 0} | Next step: ${r.next_step_sf || '—'} | Blockers: ${r.technical_blockers || 'None'} | PoC: ${r.poc_status || 'N/A'}`;
+  }).join('\n');
+
+  const totalArr = opps.reduce((s: number, r: Record<string, unknown>) => s + (parseFloat(r.arr as string) || 0), 0);
+  const overdueCount = opps.reduce((s: number, r: Record<string, unknown>) => s + ((r.overdue_task_count as number) || 0), 0);
+  const staleCount = opps.filter((r: Record<string, unknown>) => {
+    const upd = r.se_comments_updated_at as string | null;
+    if (!upd) return true;
+    const days = Math.floor((Date.now() - new Date(upd).getTime()) / 86_400_000);
+    return days > 21;
+  }).length;
+
+  const prompt = `You are an SE Manager preparing for a 1:1 with ${seUser.name}. Write a concise coaching brief to guide the conversation.
+
+SE: ${seUser.name}
+Open pipeline: $${Math.round(totalArr/1000)}K across ${opps.length} deals | ${overdueCount} overdue tasks | ${staleCount} deals with stale/missing SE comments
+
+Deals:
+${dealLines}
+
+Write a brief with exactly these 4 sections, each 2–4 sentences:
+
+**Wins & momentum** — deals progressing well, recent positive signals. Reference specific deal names and what's going right.
+
+**Coaching focus** — deals where the SE needs help (stale comments, low MEDDPICC, missing next steps, stuck in stage). Be specific: "On X deal, MEDDPICC is weak on Economic Buyer — dig into who signs."
+
+**Risks to flag** — technical blockers, competitive threats, slipping PoCs, deals at risk of going dark. Name the deals.
+
+**Suggested 1:1 agenda** — 3-5 concrete discussion prompts for the call, using deal names. Example: "Walk through plan for [Deal Name] — what's blocking stage progression?"
+
+Keep it under 350 words total. Use deal names and ARR figures. Be direct and actionable, not generic.`;
+
+  try {
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const response = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 900,
+      messages: [{ role: 'user', content: prompt }],
+    });
+
+    const textBlock = response.content.find(b => b.type === 'text');
+    const content = textBlock && textBlock.type === 'text' ? textBlock.text : '';
+
+    await query(
+      `INSERT INTO ai_summary_cache (key, content, generated_at)
+       VALUES ($1, $2, now())
+       ON CONFLICT (key) DO UPDATE SET content = $2, generated_at = now()`,
+      [`one-on-one-narrative-${seId}`, content]
+    );
+
+    res.json(ok({ content, generated_at: new Date().toISOString() }));
+  } catch (e: unknown) {
+    console.error('[one-on-one] narrative generation failed:', e);
+    res.status(500).json(err('Failed to generate narrative'));
+  }
 });
 
 export default router;

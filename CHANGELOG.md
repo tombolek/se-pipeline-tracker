@@ -7,6 +7,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## 2026-04-13
 
+### Added
+- **1:1 Prep view** — manager-only Insights page (`/insights/one-on-one`) that generates a one-page brief for a chosen SE: pipeline summary (count, ARR, RAG breakdown, overdue tasks, stale comments), overdue + due-this-week task list, deals missing SE notes, deals with no next step, recent stage movements (last 14 days), and a Claude-generated coaching narrative covering wins, coaching focus, risks to flag and a suggested 1:1 agenda. Narrative is cached and re-generatable; copy-to-clipboard supported. (Issue #69)
+
 ### Changed
 - **SE Deal Mapping filters** — removed *Close Period* and *Opportunity Record Type* filters; added *AE Owner* filter (multi-select) for quickly scoping coverage to a specific AE's book.
 

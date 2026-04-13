@@ -10,6 +10,7 @@ const STORAGE_KEY = 'insights_nav_config';
 
 export const DEFAULT_INSIGHTS_NAV: InsightsNavItem[] = [
   { id: 'forecasting-brief', label: 'Forecasting Brief', to: '/insights/forecasting-brief', icon: 'insight', visible: true },
+  { id: 'one-on-one', label: '1:1 Prep', to: '/insights/one-on-one', icon: 'insight', visible: true },
   { id: 'weekly-digest',  label: 'Weekly Digest',  to: '/insights/weekly-digest',  icon: 'insight', visible: true },
   { id: 'stage-movement', label: 'Stage Movement', to: '/insights/stage-movement', icon: 'insight', visible: true },
   { id: 'missing-notes',  label: 'Missing Notes',  to: '/insights/missing-notes',  icon: 'insight', visible: true },
