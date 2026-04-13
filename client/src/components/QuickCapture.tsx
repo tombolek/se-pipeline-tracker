@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { usePipelineStore } from '../store/pipeline';
-import { useAuthStore } from '../store/auth';
 import { listOpportunities } from '../api/opportunities';
 import { createNote } from '../api/notes';
 import { createTask } from '../api/tasks';
@@ -17,10 +16,8 @@ function defaultDueDate() {
 
 export default function QuickCapture() {
   const { quickCaptureOpen, closeQuickCapture } = usePipelineStore();
-  const { user } = useAuthStore();
-  const defaultType: CaptureType = user?.role === 'manager' ? 'task' : 'note';
 
-  const [type, setType] = useState<CaptureType>(defaultType);
+  const [type, setType] = useState<CaptureType>('note');
   const [text, setText] = useState('');
   const [dueDate, setDueDate] = useState(() => defaultDueDate());
   const [oppSearch, setOppSearch] = useState('');
@@ -40,7 +37,7 @@ export default function QuickCapture() {
   useEffect(() => {
     if (quickCaptureOpen) {
       setText('');
-      setType(defaultType);
+      setType('note');
       setDueDate(defaultDueDate());
       setOppSearch('');
       setOppResults([]);
