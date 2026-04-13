@@ -211,23 +211,37 @@ function RuleChip({ group }: { group: { rule_type: QuotaRuleType; rule_value: st
   return <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-brand-pink-30 text-[#33012A] max-w-full truncate">AE: {group.rule_value.join(', ')}</span>;
 }
 
-/** Combined month-over-month line chart. */
-function ComparisonChart({ groups, asOfMonthIdx }: { groups: GroupResult[]; asOfMonthIdx: number }) {
-  // viewBox 800 x 240; plot area x[50..754], y[20..210]
+/** Combined month-over-month line chart with hover tooltip + visibility toggles. */
+function ComparisonChart({
+  groups,
+  asOfMonthIdx,
+  visibleGroupIds,
+  groupColorById,
+}: {
+  groups: GroupResult[];
+  asOfMonthIdx: number;
+  visibleGroupIds: Set<number>;
+  groupColorById: Map<number, string>;
+}) {
   const xs = (m: number) => 50 + m * 64;
   const ys = (p: number) => 210 - Math.max(0, Math.min(120, p)) * 1.9;
   const yGrid = [0, 25, 50, 75, 100];
 
+  const [hover, setHover] = useState<{ groupId: number; monthIdx: number } | null>(null);
+
+  const visibleGroups = groups.filter(g => visibleGroupIds.has(g.id));
+  const hoveredGroup = hover ? groups.find(g => g.id === hover.groupId) : null;
+  const hoveredPct = hover && hoveredGroup ? (hoveredGroup.monthly_cumulative_pct[hover.monthIdx] ?? 0) : 0;
+  const hoveredArr = hover && hoveredGroup ? (hoveredGroup.monthly_cumulative_arr[hover.monthIdx] ?? 0) : 0;
+
   return (
     <svg viewBox="0 0 820 240" preserveAspectRatio="xMidYMid meet" className="w-full max-w-3xl mx-auto block" style={{ maxHeight: 280 }}>
-      {/* Y gridlines + labels */}
       {yGrid.map(p => (
         <Fragment key={p}>
           <line x1="50" y1={ys(p)} x2="770" y2={ys(p)} stroke="#CCC9D5" strokeWidth="1" opacity="0.4"/>
           <text x="42" y={ys(p) + 3} textAnchor="end" fontSize="10" fill="#665D81" fontWeight="500">{p}%</text>
         </Fragment>
       ))}
-      {/* X month labels */}
       {MONTH_NAMES.map((n, m) => (
         <text
           key={m}
@@ -236,15 +250,12 @@ function ComparisonChart({ groups, asOfMonthIdx }: { groups: GroupResult[]; asOf
           fontWeight={m === asOfMonthIdx ? 700 : 500}
         >{n}{m === asOfMonthIdx ? '*' : ''}</text>
       ))}
-      {/* Pace reference */}
       <line x1={xs(0)} y1={ys(0)} x2={xs(11)} y2={ys(100)} stroke="#665D81" strokeWidth="1.5" strokeDasharray="5 4" fill="none"/>
-      {/* "as-of" vertical marker */}
       <line x1={xs(asOfMonthIdx)} y1="20" x2={xs(asOfMonthIdx)} y2="210" stroke="#665D81" strokeWidth="1" strokeDasharray="2 3" opacity="0.4"/>
       <text x={xs(asOfMonthIdx)} y="14" textAnchor="middle" fontSize="9" fill="#665D81">as of</text>
 
-      {/* Group lines */}
-      {groups.map((g, gi) => {
-        const color = GROUP_COLORS[gi % GROUP_COLORS.length];
+      {visibleGroups.map(g => {
+        const color = groupColorById.get(g.id) ?? '#1A0C42';
         const pts: string[] = [];
         for (let m = 0; m <= asOfMonthIdx; m++) {
           pts.push(`${xs(m)},${ys(g.monthly_cumulative_pct[m] ?? 0)}`);
@@ -256,12 +267,54 @@ function ComparisonChart({ groups, asOfMonthIdx }: { groups: GroupResult[]; asOf
             <polyline points={pts.join(' ')} fill="none" stroke={color} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round"/>
             {pts.map((p, m) => {
               const [x, y] = p.split(',').map(Number);
-              return <circle key={m} cx={x} cy={y} r={m === asOfMonthIdx ? 4 : 3.5} fill={color} stroke="white" strokeWidth="2"/>;
+              const isHovered = hover && hover.groupId === g.id && hover.monthIdx === m;
+              return (
+                <circle
+                  key={m}
+                  cx={x}
+                  cy={y}
+                  r={isHovered ? 5.5 : (m === asOfMonthIdx ? 4 : 3.5)}
+                  fill={color}
+                  stroke="white"
+                  strokeWidth="2"
+                  onMouseEnter={() => setHover({ groupId: g.id, monthIdx: m })}
+                  onMouseLeave={() => setHover(null)}
+                  style={{ cursor: 'pointer' }}
+                />
+              );
             })}
-            <text x={lastX + 8} y={lastY + 3} fontSize="10" fontWeight="700" fill={color}>{Math.round(g.monthly_cumulative_pct[asOfMonthIdx] ?? 0)}%</text>
+            <text x={lastX + 8} y={lastY + 3} fontSize="10" fontWeight="700" fill={color} style={{ pointerEvents: 'none' }}>
+              {Math.round(g.monthly_cumulative_pct[asOfMonthIdx] ?? 0)}%
+            </text>
           </Fragment>
         );
       })}
+
+      {hover && hoveredGroup && (() => {
+        const color = groupColorById.get(hoveredGroup.id) ?? '#1A0C42';
+        const hx = xs(hover.monthIdx);
+        const hy = ys(hoveredPct);
+        const w = 150, h = 50;
+        const flipBelow = hy < 70;
+        const tx = Math.max(4, Math.min(820 - w - 4, hx - w / 2));
+        const ty = flipBelow ? hy + 12 : hy - h - 12;
+        return (
+          <g style={{ pointerEvents: 'none' }}>
+            <rect x={tx} y={ty} width={w} height={h} rx="5" fill="#1A0C42" opacity="0.96"/>
+            <text x={tx + 8} y={ty + 16} fontSize="10" fontWeight="700" fill={color}>
+              {hoveredGroup.name}
+              <tspan fill="#CCC9D5" fontWeight="500"> · {MONTH_NAMES[hover.monthIdx]}</tspan>
+            </text>
+            <text x={tx + 8} y={ty + 30} fontSize="11" fontWeight="700" fill="white">
+              {Math.round(hoveredPct)}%
+              <tspan fill="#CCC9D5" fontWeight="500"> to target</tspan>
+            </text>
+            <text x={tx + 8} y={ty + 44} fontSize="10" fontWeight="500" fill="#CCC9D5">
+              {formatARR(hoveredArr)} of {formatARR(hoveredGroup.target_amount)}
+            </text>
+          </g>
+        );
+      })()}
     </svg>
   );
 }
@@ -276,6 +329,33 @@ export default function PercentToTargetPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedOppId, setSelectedOppId] = useState<number | null>(null);
   const [drillGroup, setDrillGroup] = useState<GroupResult | null>(null);
+  const [hiddenGroupIds, setHiddenGroupIds] = useState<Set<number>>(new Set());
+  const [expandedBreakdown, setExpandedBreakdown] = useState<Set<number>>(new Set());
+
+  const groupColorById = useMemo(() => {
+    const m = new Map<number, string>();
+    groups.forEach((g, i) => m.set(g.id, GROUP_COLORS[i % GROUP_COLORS.length]));
+    return m;
+  }, [groups]);
+  const visibleGroupIds = useMemo(() => {
+    const s = new Set<number>();
+    for (const g of groups) if (!hiddenGroupIds.has(g.id)) s.add(g.id);
+    return s;
+  }, [groups, hiddenGroupIds]);
+  const toggleGroupVisible = (id: number) => {
+    setHiddenGroupIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+  const toggleBreakdownExpanded = (id: number) => {
+    setExpandedBreakdown(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
 
   // For URL sync: build flat list of {id, sf_opportunity_id} from all groups
   const allDeals = useMemo(() => {
@@ -407,13 +487,26 @@ export default function PercentToTargetPage() {
             <div className="px-5 py-3.5 border-b border-brand-navy-30/40 flex items-center gap-3 flex-wrap">
               <h2 className="text-sm font-semibold text-brand-navy">% to target — pacing by month</h2>
               <span className="text-xs text-brand-navy-70">Cumulative through end of each month. Dashed = linear FY pace.</span>
-              <div className="ml-auto flex items-center gap-4 text-[11px] flex-wrap">
-                {groups.map((g, gi) => (
-                  <span key={g.id} className="text-brand-navy-70 inline-flex items-center">
-                    <span className="inline-block w-2.5 h-2.5 rounded-sm mr-1.5" style={{ background: GROUP_COLORS[gi % GROUP_COLORS.length] }}></span>
-                    {g.name}
-                  </span>
-                ))}
+              <div className="ml-auto flex items-center gap-3 text-[11px] flex-wrap">
+                {groups.map(g => {
+                  const color = groupColorById.get(g.id) ?? '#1A0C42';
+                  const hidden = hiddenGroupIds.has(g.id);
+                  return (
+                    <button
+                      key={g.id}
+                      type="button"
+                      onClick={() => toggleGroupVisible(g.id)}
+                      title={hidden ? 'Show line' : 'Hide line'}
+                      className={`inline-flex items-center transition-opacity ${hidden ? 'opacity-40 line-through' : 'opacity-100'} hover:opacity-80`}
+                    >
+                      <span
+                        className="inline-block w-2.5 h-2.5 rounded-sm mr-1.5"
+                        style={{ background: hidden ? 'transparent' : color, border: `1.5px solid ${color}` }}
+                      />
+                      <span className="text-brand-navy-70">{g.name}</span>
+                    </button>
+                  );
+                })}
                 <span className="text-brand-navy-70 inline-flex items-center">
                   <span className="inline-block w-2.5 h-2.5 mr-1.5" style={{ background: 'repeating-linear-gradient(90deg,#665D81 0 4px,transparent 4px 8px)' }}></span>
                   FY pace
@@ -421,7 +514,12 @@ export default function PercentToTargetPage() {
               </div>
             </div>
             <div className="p-5">
-              <ComparisonChart groups={groups} asOfMonthIdx={asOfMonthIdx} />
+              <ComparisonChart
+                groups={groups}
+                asOfMonthIdx={asOfMonthIdx}
+                visibleGroupIds={visibleGroupIds}
+                groupColorById={groupColorById}
+              />
               {meta.today && (
                 <p className="text-[11px] text-brand-navy-70 mt-2">
                   As-of: {quarter === 'YTD' ? `today (${meta.today})` : `end of ${quarter}`}.
@@ -456,17 +554,82 @@ export default function PercentToTargetPage() {
                   const pct = g.monthly_cumulative_pct[asOfMonthIdx] ?? 0;
                   const gap = arr - g.target_amount;
                   const color = ragColor(pct, asOfMonthIdx);
+                  const isExpanded = expandedBreakdown.has(g.id);
                   return (
-                    <tr key={g.id} className="border-b border-brand-navy-30/20 last:border-0 hover:bg-gray-50">
-                      <td className="px-5 py-3 text-sm font-semibold text-brand-navy">{g.name}</td>
-                      <td className="px-5 py-3"><RuleChip group={g} /></td>
-                      <td className="px-5 py-3 text-right text-sm text-brand-navy">{formatARR(g.target_amount)}</td>
-                      <td className="px-5 py-3 text-right text-sm font-medium text-brand-navy">{formatARR(arr)}</td>
-                      <td className="px-5 py-3 text-right text-sm font-medium" style={{ color }}>{gap >= 0 ? '+' : '−'}{formatARR(Math.abs(gap))}</td>
-                      <td className="px-5 py-3 text-right text-sm text-brand-navy-70">{g.deal_count}</td>
-                      <td className="px-5 py-3 text-right text-sm font-semibold" style={{ color }}>{Math.round(pct)}%</td>
-                      <td className="px-5 py-3"><div className="h-1.5 bg-brand-navy-30/40 rounded"><div className="h-full rounded" style={{ width: `${Math.min(pct, 100)}%`, background: color }}></div></div></td>
-                    </tr>
+                    <Fragment key={g.id}>
+                      <tr
+                        className="border-b border-brand-navy-30/20 last:border-0 hover:bg-gray-50 cursor-pointer"
+                        onClick={() => toggleBreakdownExpanded(g.id)}
+                      >
+                        <td className="px-5 py-3 text-sm font-semibold text-brand-navy">
+                          <div className="flex items-center gap-2">
+                            <svg
+                              className={`w-3 h-3 text-brand-navy-70 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                              fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/>
+                            </svg>
+                            {g.name}
+                          </div>
+                        </td>
+                        <td className="px-5 py-3"><RuleChip group={g} /></td>
+                        <td className="px-5 py-3 text-right text-sm text-brand-navy">{formatARR(g.target_amount)}</td>
+                        <td className="px-5 py-3 text-right text-sm font-medium text-brand-navy">{formatARR(arr)}</td>
+                        <td className="px-5 py-3 text-right text-sm font-medium" style={{ color }}>{gap >= 0 ? '+' : '−'}{formatARR(Math.abs(gap))}</td>
+                        <td className="px-5 py-3 text-right text-sm text-brand-navy-70">{g.deal_count}</td>
+                        <td className="px-5 py-3 text-right text-sm font-semibold" style={{ color }}>{Math.round(pct)}%</td>
+                        <td className="px-5 py-3"><div className="h-1.5 bg-brand-navy-30/40 rounded"><div className="h-full rounded" style={{ width: `${Math.min(pct, 100)}%`, background: color }}></div></div></td>
+                      </tr>
+                      {isExpanded && (
+                        <tr className="bg-gray-50/60 border-b border-brand-navy-30/20">
+                          <td colSpan={8} className="px-8 py-4">
+                            <div className="text-[11px] font-semibold uppercase tracking-wide text-brand-navy-70 mb-2">
+                              Pacing by month — cumulative through end of each month
+                            </div>
+                            <table className="w-full">
+                              <thead>
+                                <tr className="border-b border-brand-navy-30/30">
+                                  <th className="px-3 py-1.5 text-left text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wide">Month</th>
+                                  <th className="px-3 py-1.5 text-right text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wide">%</th>
+                                  <th className="px-3 py-1.5 text-right text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wide">Cumulative ARR</th>
+                                  <th className="px-3 py-1.5 text-right text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wide">Month Δ</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {MONTH_NAMES.map((mn, mi) => {
+                                  const mPct = g.monthly_cumulative_pct[mi] ?? 0;
+                                  const mArr = g.monthly_cumulative_arr[mi] ?? 0;
+                                  const prev = mi === 0 ? 0 : (g.monthly_cumulative_arr[mi - 1] ?? 0);
+                                  const delta = mArr - prev;
+                                  const isCurrent = mi === asOfMonthIdx;
+                                  const future = mi > asOfMonthIdx;
+                                  const rowColor = future ? 'text-brand-navy-30' : isCurrent ? 'text-brand-navy font-semibold' : 'text-brand-navy';
+                                  return (
+                                    <tr key={mi} className={`border-b border-brand-navy-30/10 last:border-0`}>
+                                      <td className={`px-3 py-1.5 text-xs ${rowColor}`}>
+                                        {mn}{isCurrent ? ' *' : ''}
+                                      </td>
+                                      <td className={`px-3 py-1.5 text-right text-xs ${future ? 'text-brand-navy-30' : ''}`} style={!future ? { color: ragColor(mPct, mi) } : undefined}>
+                                        {future ? '—' : `${Math.round(mPct)}%`}
+                                      </td>
+                                      <td className={`px-3 py-1.5 text-right text-xs ${rowColor}`}>
+                                        {future ? '—' : formatARR(mArr)}
+                                      </td>
+                                      <td className={`px-3 py-1.5 text-right text-xs ${future ? 'text-brand-navy-30' : 'text-brand-navy-70'}`}>
+                                        {future ? '—' : (delta > 0 ? `+${formatARR(delta)}` : delta < 0 ? `−${formatARR(Math.abs(delta))}` : '—')}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                            <p className="text-[10px] text-brand-navy-70 mt-2">
+                              * Current month is partial (month-to-date). Future months show no data yet.
+                            </p>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
                   );
                 })}
               </tbody>
