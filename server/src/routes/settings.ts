@@ -218,4 +218,145 @@ router.post('/deal-info-config/reset', auth, async (req: Request, res: Response)
   }
 });
 
+// ── Quota Groups (Issue #94 — % to Target report) ───────────────────────────
+// Each group has a name, target (USD), and a rule that decides which Closed Won
+// deals count toward it. Groups can overlap (same deal in multiple groups).
+
+type QuotaRuleType = 'global' | 'teams' | 'ae_owners';
+
+interface QuotaGroupRow {
+  id: number;
+  name: string;
+  rule_type: QuotaRuleType;
+  rule_value: unknown;
+  target_amount: string;
+  sort_order: number;
+}
+
+function normalizeRuleValue(ruleType: QuotaRuleType, raw: unknown): string[] {
+  if (ruleType === 'global') return [];
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((v): v is string => typeof v === 'string' && v.trim().length > 0)
+    .map(v => v.trim());
+}
+
+function validateGroupBody(body: Record<string, unknown>): { ok: true; data: { name: string; rule_type: QuotaRuleType; rule_value: string[]; target_amount: number; sort_order?: number } } | { ok: false; msg: string } {
+  const name = typeof body.name === 'string' ? body.name.trim() : '';
+  if (!name) return { ok: false, msg: 'Name is required' };
+
+  const rule_type = body.rule_type as QuotaRuleType;
+  if (!['global', 'teams', 'ae_owners'].includes(rule_type)) {
+    return { ok: false, msg: 'rule_type must be one of: global, teams, ae_owners' };
+  }
+
+  const rule_value = normalizeRuleValue(rule_type, body.rule_value);
+  if (rule_type !== 'global' && rule_value.length === 0) {
+    return { ok: false, msg: 'rule_value must be a non-empty array of strings for teams/ae_owners' };
+  }
+
+  const targetRaw = body.target_amount;
+  const target_amount = typeof targetRaw === 'number' ? targetRaw : parseFloat(String(targetRaw));
+  if (!isFinite(target_amount) || target_amount < 0) {
+    return { ok: false, msg: 'target_amount must be a non-negative number' };
+  }
+
+  const sort_order = typeof body.sort_order === 'number' ? body.sort_order : undefined;
+  return { ok: true, data: { name, rule_type, rule_value, target_amount, sort_order } };
+}
+
+router.get('/quota-groups', auth, async (_req: Request, res: Response): Promise<void> => {
+  const rows = await query<QuotaGroupRow>(
+    `SELECT id, name, rule_type, rule_value, target_amount, sort_order
+     FROM quota_groups
+     ORDER BY sort_order ASC, id ASC`
+  );
+  res.json(ok(rows));
+});
+
+router.post('/quota-groups', auth, async (req: Request, res: Response): Promise<void> => {
+  const user = (req as AuthenticatedRequest).user;
+  if (user.role !== 'manager') { res.status(403).json(err('Manager role required')); return; }
+
+  const v = validateGroupBody(req.body as Record<string, unknown>);
+  if (!v.ok) { res.status(400).json(err(v.msg)); return; }
+
+  const nextOrderRow = await query<{ next_order: number }>(
+    `SELECT COALESCE(MAX(sort_order), 0) + 1 AS next_order FROM quota_groups`
+  );
+  const sort_order = v.data.sort_order ?? nextOrderRow[0]?.next_order ?? 1;
+
+  try {
+    const inserted = await query<QuotaGroupRow>(
+      `INSERT INTO quota_groups (name, rule_type, rule_value, target_amount, sort_order)
+       VALUES ($1, $2, $3::jsonb, $4, $5)
+       RETURNING id, name, rule_type, rule_value, target_amount, sort_order`,
+      [v.data.name, v.data.rule_type, JSON.stringify(v.data.rule_value), v.data.target_amount, sort_order]
+    );
+    res.json(ok(inserted[0]));
+  } catch (e) {
+    const msg = (e as Error).message || 'Failed to create quota group';
+    if (msg.includes('quota_groups_name_key')) {
+      res.status(409).json(err(`A quota group named "${v.data.name}" already exists`));
+      return;
+    }
+    res.status(500).json(err(msg));
+  }
+});
+
+router.patch('/quota-groups/:id', auth, async (req: Request, res: Response): Promise<void> => {
+  const user = (req as AuthenticatedRequest).user;
+  if (user.role !== 'manager') { res.status(403).json(err('Manager role required')); return; }
+
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) { res.status(400).json(err('Invalid id')); return; }
+
+  const existing = await query<QuotaGroupRow>(
+    `SELECT id, name, rule_type, rule_value, target_amount, sort_order FROM quota_groups WHERE id = $1`,
+    [id]
+  );
+  if (existing.length === 0) { res.status(404).json(err('Quota group not found')); return; }
+
+  // Merge body onto existing for partial update
+  const merged = {
+    name: req.body.name ?? existing[0].name,
+    rule_type: req.body.rule_type ?? existing[0].rule_type,
+    rule_value: req.body.rule_value ?? existing[0].rule_value,
+    target_amount: req.body.target_amount ?? existing[0].target_amount,
+    sort_order: req.body.sort_order ?? existing[0].sort_order,
+  };
+  const v = validateGroupBody(merged as Record<string, unknown>);
+  if (!v.ok) { res.status(400).json(err(v.msg)); return; }
+
+  try {
+    const updated = await query<QuotaGroupRow>(
+      `UPDATE quota_groups
+       SET name = $1, rule_type = $2, rule_value = $3::jsonb,
+           target_amount = $4, sort_order = $5, updated_at = now()
+       WHERE id = $6
+       RETURNING id, name, rule_type, rule_value, target_amount, sort_order`,
+      [v.data.name, v.data.rule_type, JSON.stringify(v.data.rule_value),
+       v.data.target_amount, merged.sort_order, id]
+    );
+    res.json(ok(updated[0]));
+  } catch (e) {
+    const msg = (e as Error).message || 'Failed to update quota group';
+    if (msg.includes('quota_groups_name_key')) {
+      res.status(409).json(err(`A quota group named "${v.data.name}" already exists`));
+      return;
+    }
+    res.status(500).json(err(msg));
+  }
+});
+
+router.delete('/quota-groups/:id', auth, async (req: Request, res: Response): Promise<void> => {
+  const user = (req as AuthenticatedRequest).user;
+  if (user.role !== 'manager') { res.status(403).json(err('Manager role required')); return; }
+
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) { res.status(400).json(err('Invalid id')); return; }
+
+  await query(`DELETE FROM quota_groups WHERE id = $1`, [id]);
+  res.json(ok({ deleted: id }));
+});
+
 export default router;

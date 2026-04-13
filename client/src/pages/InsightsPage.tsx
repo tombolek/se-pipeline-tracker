@@ -11,6 +11,7 @@ import DeployModePage from './insights/DeployModePage';
 import SeDealMappingPage from './insights/SeDealMappingPage';
 import ClosedLostStatsPage from './insights/ClosedLostStatsPage';
 import ClosedWonPage from './insights/ClosedWonPage';
+import PercentToTargetPage from './insights/PercentToTargetPage';
 import TechBlockersPage from './insights/TechBlockersPage';
 import AgenticQualPage from './insights/AgenticQualPage';
 import WeeklyDigestPage from './insights/WeeklyDigestPage';
@@ -86,6 +87,15 @@ export default function InsightsPage() {
         <ScopeBar />
         <div className="flex-1 overflow-hidden flex flex-col">
           <ClosedLostStatsPage />
+        </div>
+      </div>
+    );
+  }
+  if (pathname.includes('percent-to-target')) {
+    return (
+      <div className="flex-1 bg-[#F5F5F7] flex flex-col overflow-hidden">
+        <div className="flex-1 overflow-y-auto px-8 py-6">
+          <PercentToTargetPage />
         </div>
       </div>
     );

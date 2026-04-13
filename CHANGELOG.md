@@ -8,6 +8,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## 2026-04-13
 
 ### Added
+- **% to Target (Insights)** — new manager-only report showing Closed Won progress against quota targets. Each configured group renders as a donut + month-over-month sparkline; a combined chart compares all groups against the linear FY pace line. Filterable by FY and quarter (All YTD / Q1-Q4) — switching the quarter changes the "as of" point used by all charts so you can see where each group stood at the end of any quarter. New business only (New Logo + Upsell + Cross-Sell), USD via `arr_converted`. (Issue #94)
+- **Quotas (Settings)** — new manager-only settings page to configure quota groups for the % to Target report. Three rule types: All Closed Won (Global), By team(s), or By AE owner(s). The same deal can count toward multiple groups. Seeded with Global ($16M), NA ($11.4M, NA Enterprise + NA Strategic), INTL ($6.12M, EMEA + ANZ), and DACH ($1.5M, AE = Thomas Miebach).
+
+### Added
 - **Closed Won (Insights)** — new manager-only report for SE bonus calculation. Aggregates Closed Won ARR (USD, `arr_converted`) with a view toggle: **By Territory** (Team → SE) or **By SE** (SE → Team breakdown; SE totals are global across territories). Filterable by fiscal year (dropdown) and quarter (All YTD / Q1-Q4). New business only — New Logo + Upsell + Cross-Sell (Services + Renewal excluded). Rows expand to show the underlying deals; clicking a deal opens the opp drawer. (Issue #94)
 - **Shareable opportunity URLs** — opening an opp drawer now reflects in the URL as `?oppId=<sf_opportunity_id>`. Copy the URL and share it; opening it in a new tab auto-opens the drawer for that opp on whichever page you were on. Browser back closes the drawer. Works on Pipeline, Home, Closed Lost, Calendar, 1:1 Prep, Team Tasks, Deploy Mode, Missing Notes, PoC Board, RFx Board, and SE ↔ Deal Mapping. (Issue #99)
 

@@ -20,6 +20,7 @@ export const DEFAULT_INSIGHTS_NAV: InsightsNavItem[] = [
   { id: 'deploy-mode',         label: 'DeployMode',          to: '/insights/deploy-mode',         icon: 'insight', visible: true },
   { id: 'closed-lost-stats',   label: 'Loss Analysis',       to: '/insights/closed-lost-stats',   icon: 'insight', visible: true },
   { id: 'closed-won', label: 'Closed Won', to: '/insights/closed-won', icon: 'insight', visible: true },
+  { id: 'percent-to-target', label: '% to Target', to: '/insights/percent-to-target', icon: 'insight', visible: true },
   { id: 'tech-blockers',       label: 'Tech Blockers',       to: '/insights/tech-blockers',       icon: 'insight', visible: true },
   { id: 'agentic-qual',        label: 'Agentic Qual',        to: '/insights/agentic-qual',        icon: 'insight', visible: true },
 ];

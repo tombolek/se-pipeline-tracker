@@ -17,6 +17,7 @@ const SETTINGS_NAV = [
   { to: '/settings/backup',       label: 'Backup & Restore', icon: BackupIcon  },
   { to: '/settings/deploy',       label: 'Deploy',           icon: DeployIcon  },
   { to: '/settings/deal-info-layout', label: 'Deal Info Layout', icon: LayoutIcon },
+  { to: '/settings/quotas',       label: 'Quotas',           icon: QuotasIcon  },
 ];
 
 function MainNavIcon({ icon }: { icon: MainNavItem['icon'] }) {
@@ -358,6 +359,14 @@ function LayoutIcon() {
   return (
     <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+    </svg>
+  );
+}
+
+function QuotasIcon() {
+  return (
+    <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm0-6v4m0 12v4m10-10h-4M6 12H2m15.07-7.07l-2.83 2.83M9.76 14.24l-2.83 2.83m0-12.14l2.83 2.83m4.48 4.48l2.83 2.83" />
     </svg>
   );
 }

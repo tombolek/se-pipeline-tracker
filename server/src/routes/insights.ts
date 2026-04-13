@@ -340,6 +340,153 @@ router.get('/closed-won-by-territory', auth, mgr, async (req: Request, res: Resp
   }));
 });
 
+// ── % to Target (Issue #94) ──────────────────────────────────────────────────
+// GET /insights/percent-to-target?fiscal_year=FY2026
+//
+// Returns each quota group's progress: target, total Closed Won ARR (USD),
+// matching deals, and a 12-month cumulative % series for the pacing chart.
+// New business only (New Logo + Upsell + Cross-Sell), same as Closed Won page.
+router.get('/percent-to-target', auth, mgr, async (req: Request, res: Response): Promise<void> => {
+  const fiscalYear = (req.query.fiscal_year as string | undefined) || null;
+
+  type QuotaGroup = {
+    id: number; name: string; rule_type: 'global' | 'teams' | 'ae_owners';
+    rule_value: unknown; target_amount: string; sort_order: number;
+  };
+  const groups = await query<QuotaGroup>(
+    `SELECT id, name, rule_type, rule_value, target_amount, sort_order
+     FROM quota_groups
+     ORDER BY sort_order ASC, id ASC`
+  );
+
+  // Distinct fiscal years available for the FY dropdown
+  const fyRows = await query<{ fiscal_year: string }>(
+    `SELECT DISTINCT fiscal_year FROM opportunities
+     WHERE is_closed_won = true
+       AND record_type IN ('New Logo','Upsell','Cross-Sell')
+       AND fiscal_year IS NOT NULL AND fiscal_year != ''
+     ORDER BY fiscal_year DESC`
+  );
+
+  // Pull the deals once, filter per group in JS
+  const conditions: string[] = [
+    `o.is_closed_won = true`,
+    `o.record_type IN ('New Logo','Upsell','Cross-Sell')`,
+  ];
+  const params: unknown[] = [];
+  if (fiscalYear) {
+    params.push(fiscalYear);
+    conditions.push(`o.fiscal_year = $${params.length}`);
+  }
+
+  type Deal = {
+    id: number; sf_opportunity_id: string; name: string; account_name: string | null;
+    team: string | null; ae_owner_name: string | null; record_type: string | null;
+    arr_converted: string | null;
+    fiscal_year: string | null; fiscal_period: string | null;
+    close_date: string | null; closed_at: string | null;
+    se_owner_name: string | null;
+  };
+  const deals = await query<Deal>(
+    `SELECT o.id, o.sf_opportunity_id, o.name, o.account_name,
+            o.team, o.ae_owner_name, o.record_type,
+            o.arr_converted,
+            o.fiscal_year, o.fiscal_period,
+            o.close_date, o.closed_at,
+            u.name AS se_owner_name
+     FROM opportunities o
+     LEFT JOIN users u ON u.id = o.se_owner_id
+     WHERE ${conditions.join(' AND ')}`,
+    params
+  );
+
+  function ruleMatches(d: Deal, g: QuotaGroup): boolean {
+    if (g.rule_type === 'global') return true;
+    if (!Array.isArray(g.rule_value)) return false;
+    const list = g.rule_value as string[];
+    if (g.rule_type === 'teams') return d.team !== null && list.includes(d.team);
+    if (g.rule_type === 'ae_owners') return d.ae_owner_name !== null && list.includes(d.ae_owner_name);
+    return false;
+  }
+
+  function dealMonth(d: Deal): number | null {
+    const src = d.closed_at ?? d.close_date;
+    if (!src) return null;
+    const m = new Date(src).getUTCMonth();
+    return isNaN(m) ? null : m; // 0..11
+  }
+  function dealArr(d: Deal): number {
+    const n = parseFloat(d.arr_converted ?? '0');
+    return isFinite(n) ? n : 0;
+  }
+
+  const groupResults = groups.map(g => {
+    const matching = deals.filter(d => ruleMatches(d, g));
+    const monthlyArr = new Array(12).fill(0) as number[];
+    for (const d of matching) {
+      const mIdx = dealMonth(d);
+      if (mIdx === null) continue;
+      monthlyArr[mIdx] += dealArr(d);
+    }
+    const cumulativeArr: number[] = [];
+    let running = 0;
+    for (let m = 0; m < 12; m++) {
+      running += monthlyArr[m];
+      cumulativeArr.push(running);
+    }
+    const target = parseFloat(g.target_amount) || 0;
+    const cumulativePct = cumulativeArr.map(c => target > 0 ? (c / target) * 100 : 0);
+    const totalArr = cumulativeArr[11] ?? 0;
+    return {
+      id: g.id,
+      name: g.name,
+      rule_type: g.rule_type,
+      rule_value: g.rule_value,
+      target_amount: target,
+      sort_order: g.sort_order,
+      total_arr: totalArr,
+      deal_count: matching.length,
+      pct: target > 0 ? (totalArr / target) * 100 : 0,
+      monthly_cumulative_arr: cumulativeArr,
+      monthly_cumulative_pct: cumulativePct,
+      deals: matching.map(d => ({
+        id: d.id,
+        sf_opportunity_id: d.sf_opportunity_id,
+        name: d.name,
+        account_name: d.account_name,
+        team: d.team,
+        ae_owner_name: d.ae_owner_name,
+        se_owner_name: d.se_owner_name,
+        record_type: d.record_type,
+        arr_converted: d.arr_converted,
+        fiscal_period: d.fiscal_period,
+        close_date: d.close_date,
+        closed_at: d.closed_at,
+      })),
+    };
+  });
+
+  const today = new Date();
+  const currentMonthIdx = today.getUTCMonth(); // 0..11
+
+  res.json(ok({ groups: groupResults }, {
+    fiscal_years: fyRows.map(r => r.fiscal_year),
+    fiscal_year: fiscalYear,
+    today: today.toISOString().slice(0, 10),
+    current_month_index: currentMonthIdx,
+  }));
+});
+
+// GET /insights/ae-owners — distinct AE owners (for the quota group editor)
+router.get('/ae-owners', auth, mgr, async (_req: Request, res: Response): Promise<void> => {
+  const rows = await query<{ ae_owner_name: string }>(
+    `SELECT DISTINCT ae_owner_name FROM opportunities
+     WHERE ae_owner_name IS NOT NULL AND ae_owner_name != ''
+     ORDER BY ae_owner_name ASC`
+  );
+  res.json(ok(rows.map(r => r.ae_owner_name)));
+});
+
 // ── Technical Blockers ────────────────────────────────────────────────────────
 
 // GET /insights/tech-blockers  — all active opps that have technical_blockers content
