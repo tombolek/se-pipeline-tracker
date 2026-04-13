@@ -19,6 +19,8 @@ import { createTask } from '../api/tasks';
 import { renderOpportunityCell } from '../utils/renderOpportunityCell';
 import { sortRows, oppColType, getOppValue, type SortDir } from '../utils/sortRows';
 import { computeMeddpicc } from '../utils/meddpicc';
+import TeamScopeSelector from '../components/shared/TeamScopeSelector';
+import { useTeamScope } from '../hooks/useTeamScope';
 
 // Stage order per issue #16
 const STAGES = [
@@ -207,26 +209,24 @@ function FilterBar({
   fiscalPeriods, selectedFiscalPeriods, setFiscalPeriods,
   teams, teamOptions, setTeams,
   recordTypes, recordTypeOptions, setRecordTypes,
-  myDeals, setMyDeals,
   atRisk, setAtRisk,
   meddpiccMax, setMeddpiccMax,
   seFilterName, clearSeFilter,
   total,
   columnPicker,
-  hideMyDeals,
+  showTeamScope,
 }: {
   search: string; setSearch: (v: string) => void;
   stages: string[]; setStages: (v: string[]) => void;
   fiscalPeriods: string[]; selectedFiscalPeriods: string[]; setFiscalPeriods: (v: string[]) => void;
   teams: string[]; teamOptions: string[]; setTeams: (v: string[]) => void;
   recordTypes: string[]; recordTypeOptions: string[]; setRecordTypes: (v: string[]) => void;
-  myDeals: boolean; setMyDeals: (v: boolean) => void;
   atRisk: boolean; setAtRisk: (v: boolean) => void;
   meddpiccMax: number | null; setMeddpiccMax: (v: number | null) => void;
   seFilterName: string | null; clearSeFilter: () => void;
   total: number;
   columnPicker: React.ReactNode;
-  hideMyDeals?: boolean;
+  showTeamScope?: boolean;
 }) {
   return (
     <div className="flex items-center gap-3 px-5 py-3 border-b border-brand-navy-30/40 bg-white flex-wrap flex-shrink-0">
@@ -241,18 +241,7 @@ function FilterBar({
       <MultiSelectFilter options={fiscalPeriods} selected={selectedFiscalPeriods} onChange={setFiscalPeriods} placeholder="All periods" />
       <MultiSelectFilter options={teamOptions} selected={teams} onChange={setTeams} placeholder="All teams" />
       <MultiSelectFilter options={recordTypeOptions} selected={recordTypes} onChange={setRecordTypes} placeholder="All types" />
-      {!hideMyDeals && (
-        <button
-          onClick={() => setMyDeals(!myDeals)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
-            myDeals
-              ? 'bg-brand-purple/10 border-brand-purple text-brand-purple'
-              : 'border-brand-navy-30 text-brand-navy-70 hover:border-brand-navy hover:text-brand-navy'
-          }`}
-        >
-          My deals
-        </button>
-      )}
+      {showTeamScope && <TeamScopeSelector />}
       <button
         onClick={() => setAtRisk(!atRisk)}
         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
@@ -282,7 +271,7 @@ function FilterBar({
           ))}
         </select>
       </div>
-      {seFilterName && !hideMyDeals && (
+      {seFilterName && (
         <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-brand-purple/10 border border-brand-purple text-brand-purple">
           SE: {seFilterName}
           <button onClick={clearSeFilter} className="hover:text-brand-navy transition-colors" aria-label="Clear SE filter">
@@ -329,7 +318,6 @@ export default function PipelinePage({ myPipelineMode = false, favoritesMode = f
   const [visibleColumns, setVisibleColumns] = useState<string[]>(() =>
     getColumnsForPage('pipeline', user?.column_prefs ?? null)
   );
-  const [myDeals, setMyDeals] = useState(() => myPipelineMode || user?.role === 'se');
   const [atRisk, setAtRisk] = useState(false);
   const [meddpiccMax, setMeddpiccMax] = useState<number | null>(null);
   const [sortKey, setSortKey] = useState<string | null>(null);
@@ -367,7 +355,7 @@ export default function PipelinePage({ myPipelineMode = false, favoritesMode = f
     record_type: recordTypes.length ? recordTypes : undefined,
     fiscal_period: selectedFiscalPeriods.length ? selectedFiscalPeriods : undefined,
     se_owner: seIdParam ?? undefined,
-    my_deals: (!favoritesMode && (myPipelineMode || myDeals)) ? true : undefined,
+    my_deals: (!favoritesMode && myPipelineMode) ? true : undefined,
     at_risk: atRisk ? true : undefined,
     meddpicc_max: meddpiccMax !== null ? meddpiccMax : undefined,
     include_qualify: true,
@@ -375,7 +363,7 @@ export default function PipelinePage({ myPipelineMode = false, favoritesMode = f
     dir: sortDir,
   }), [
     debouncedSearch, stages, teams, recordTypes, selectedFiscalPeriods,
-    seIdParam, favoritesMode, myPipelineMode, myDeals, atRisk, meddpiccMax,
+    seIdParam, favoritesMode, myPipelineMode, atRisk, meddpiccMax,
     sortKey, sortDir,
   ]);
 
@@ -426,16 +414,27 @@ export default function PipelinePage({ myPipelineMode = false, favoritesMode = f
     return [];
   }, [user, users]);
 
-  // Set teams filter default once when effective teams become known
-  // Skip default when all_teams=1 param is present (e.g. cross-territory drill-through)
-  // Skip entirely in myPipelineMode — show all the user's deals regardless of territory
+  // Team scope (managers only). "My Team" → filter to manager's territories;
+  // "Full View" → no territory filter. For SEs and non-managers, isFiltered is
+  // always false and we keep the legacy behaviour of defaulting to their
+  // manager's territories on first load.
+  const { isFiltered, isManager } = useTeamScope();
+
+  // Managers: react to the scope selector — sync the teams multi-select to the
+  // active scope so server pagination lines up with what's shown.
+  // SEs: apply the one-time default to their manager's territories.
   useEffect(() => {
     if (myPipelineMode || favoritesMode || allTeamsParam) { defaultTeamsSet.current = true; return; }
+    if (isManager) {
+      setTeams(isFiltered ? effectiveTeams : []);
+      defaultTeamsSet.current = true;
+      return;
+    }
     if (!defaultTeamsSet.current && effectiveTeams.length > 0) {
       setTeams(effectiveTeams);
       defaultTeamsSet.current = true;
     }
-  }, [allTeamsParam, effectiveTeams]);
+  }, [allTeamsParam, effectiveTeams, isManager, isFiltered, myPipelineMode, favoritesMode]);
 
   // Filter-option lists. In favorites mode we derive from loaded data (small
   // set, no server endpoint needed). Otherwise use the distinct-values endpoint
@@ -536,12 +535,11 @@ export default function PipelinePage({ myPipelineMode = false, favoritesMode = f
         fiscalPeriods={fiscalPeriods} selectedFiscalPeriods={selectedFiscalPeriods} setFiscalPeriods={setFiscalPeriods}
         teams={teams} teamOptions={teamOptions} setTeams={setTeams}
         recordTypes={recordTypes} recordTypeOptions={recordTypeOptions} setRecordTypes={setRecordTypes}
-        myDeals={myDeals} setMyDeals={setMyDeals}
         atRisk={atRisk} setAtRisk={setAtRisk}
         meddpiccMax={meddpiccMax} setMeddpiccMax={setMeddpiccMax}
         seFilterName={seFilterName} clearSeFilter={clearSeFilter}
         total={favoritesMode ? displayed.length : total}
-        hideMyDeals={myPipelineMode || favoritesMode}
+        showTeamScope={!myPipelineMode && !favoritesMode}
         columnPicker={
           <ColumnPicker
             visibleColumns={visibleColumns}
