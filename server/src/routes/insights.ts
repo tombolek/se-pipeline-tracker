@@ -274,6 +274,8 @@ router.get('/closed-lost-stats', auth, mgr, async (req: Request, res: Response):
      FROM opportunities o
      LEFT JOIN users u ON u.id = o.se_owner_id
      WHERE o.is_closed_lost = true
+       -- Exclude deals lost in Qualify — they were never qualified pipeline.
+       AND (o.stage IS NULL OR o.stage <> 'Qualify')
        ${days > 0 ? 'AND o.closed_at >= now() - ($1 || \' days\')::interval' : ''}
      ORDER BY o.closed_at DESC NULLS LAST`,
     days > 0 ? [days] : []

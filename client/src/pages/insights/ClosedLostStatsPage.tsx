@@ -209,7 +209,7 @@ const TIME_OPTIONS = [
   { label: 'All',   days: 0 },
 ];
 
-type Dimension = 'stage' | 'record_type' | 'team' | 'ae_owner_name' | 'account_industry' | 'account_segment' | 'competitor';
+type Dimension = 'stage' | 'record_type' | 'team' | 'ae_owner_name' | 'se_owner_name' | 'account_industry' | 'account_segment' | 'competitor';
 
 const CHARTS: { key: Dimension; title: string }[] = [
   { key: 'stage',            title: 'By Stage at Close' },
@@ -218,6 +218,7 @@ const CHARTS: { key: Dimension; title: string }[] = [
   { key: 'account_segment',  title: 'By Segment' },
   { key: 'record_type',      title: 'By Record Type' },
   { key: 'team',             title: 'By Team' },
+  { key: 'se_owner_name',    title: 'By SE Owner' },
   { key: 'ae_owner_name',    title: 'By AE Owner' },
 ];
 
