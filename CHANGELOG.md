@@ -8,6 +8,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## 2026-04-13
 
 ### Changed
+- **Performance: server-side pagination + filtering on Pipeline** — the Pipeline, My Pipeline, and URL-drill-through views now filter, sort, and paginate on the server (`GET /opportunities/paginated` + new `/opportunities/filter-options`). First page is 100 rows; a "Load more" button at the bottom fetches the next page, keeping totals consistent with active filters. All 9 Pipeline filters (search, stage, fiscal period, team, record type, My Deals, At Risk, MEDDPICC below) — including the two computed ones — are evaluated in SQL, so Load More always stays in sync with the filter bar. Favorites keeps its instant client-side filtering. Minor consumers (HomePage AI picker, Deal Info Config preview, Quick Capture search) now pass `limit` so the full opportunity table never loads by accident. Phase 3 of Issue #102; resolves #102.
+
+### Changed
 - **1:1 Prep — AI Coaching Brief now collapsible** — the AI Coaching Brief on the 1:1 Prep page is now collapsed by default and shows a freshness indicator (green ≤3d, amber ≤14d, red >14d) next to the title, matching the AI Summary / MEDDPICC Coach pattern elsewhere. Regenerate and Copy controls live inside the expanded panel.
 
 ### Added

@@ -354,6 +354,266 @@ router.get('/teams', auth, async (_req: Request, res: Response): Promise<void> =
   res.json(ok(rows.map(r => r.team)));
 });
 
+// GET /opportunities/filter-options — distinct values for Pipeline filter dropdowns.
+// Scoped to open pipeline (is_active, not closed won/lost) because that's the
+// only view that uses these filters.
+router.get('/filter-options', auth, async (_req: Request, res: Response): Promise<void> => {
+  const rows = await query<{ col: string; val: string }>(
+    `WITH base AS (
+       SELECT fiscal_period, team, record_type, stage
+       FROM opportunities
+       WHERE is_active = true AND is_closed_lost = false AND COALESCE(is_closed_won, false) = false
+     )
+     SELECT 'fiscal_period' AS col, fiscal_period AS val FROM base WHERE fiscal_period IS NOT NULL AND fiscal_period != ''
+     UNION
+     SELECT 'team' AS col, team AS val FROM base WHERE team IS NOT NULL AND team != ''
+     UNION
+     SELECT 'record_type' AS col, record_type AS val FROM base WHERE record_type IS NOT NULL AND record_type != ''
+     UNION
+     SELECT 'stage' AS col, stage AS val FROM base WHERE stage IS NOT NULL AND stage != ''`
+  );
+  const options: Record<string, string[]> = { fiscal_period: [], team: [], record_type: [], stage: [] };
+  for (const r of rows) if (options[r.col]) options[r.col].push(r.val);
+  for (const k of Object.keys(options)) options[k].sort();
+  res.json(ok(options));
+});
+
+// GET /opportunities/paginated — server-side filter + sort + pagination for the
+// Pipeline view (Issue #102 phase 3). Supports multi-select filters and the
+// two computed filters (at_risk, meddpicc_max) evaluated in SQL so pagination
+// is consistent across Load More.
+router.get('/paginated', auth, async (req: Request, res: Response): Promise<void> => {
+  const user = (req as AuthenticatedRequest).user;
+  const q = req.query as Record<string, string | undefined>;
+
+  function csvArr(v: string | undefined): string[] {
+    if (!v) return [];
+    return v.split(',').map(s => s.trim()).filter(Boolean);
+  }
+  function parseIntSafe(v: string | undefined): number | null {
+    if (v === undefined || v === '') return null;
+    const n = parseInt(v, 10);
+    return isNaN(n) ? null : n;
+  }
+
+  const limit = Math.min(Math.max(parseIntSafe(q.limit) ?? 100, 1), 500);
+  const offset = Math.max(parseIntSafe(q.offset) ?? 0, 0);
+
+  // include_qualify: explicit param > user pref.
+  let showQualify = false;
+  if (q.include_qualify === 'true') showQualify = true;
+  else if (q.include_qualify !== 'false') {
+    const userRow = await queryOne<{ show_qualify: boolean }>(
+      'SELECT show_qualify FROM users WHERE id = $1', [user.userId]
+    );
+    showQualify = userRow?.show_qualify ?? false;
+  }
+
+  const params: unknown[] = [];
+  const baseConditions: string[] = ['o.is_active = true'];
+  if (q.include_closed !== 'true') {
+    baseConditions.push('o.is_closed_lost = false');
+    baseConditions.push('COALESCE(o.is_closed_won, false) = false');
+  }
+  if (!showQualify) baseConditions.push(`o.stage != 'Qualify'`);
+
+  const stages = csvArr(q.stage);
+  if (stages.length) {
+    params.push(stages);
+    baseConditions.push(`o.stage = ANY($${params.length}::text[])`);
+  }
+  const teams = csvArr(q.team);
+  if (teams.length) {
+    params.push(teams);
+    baseConditions.push(`o.team = ANY($${params.length}::text[])`);
+  }
+  const recordTypes = csvArr(q.record_type);
+  if (recordTypes.length) {
+    params.push(recordTypes);
+    baseConditions.push(`o.record_type = ANY($${params.length}::text[])`);
+  }
+  const fiscalPeriods = csvArr(q.fiscal_period);
+  if (fiscalPeriods.length) {
+    params.push(fiscalPeriods);
+    baseConditions.push(`o.fiscal_period = ANY($${params.length}::text[])`);
+  }
+  const seOwner = parseIntSafe(q.se_owner);
+  if (seOwner !== null) {
+    params.push(seOwner);
+    baseConditions.push(`o.se_owner_id = $${params.length}`);
+  }
+  if (q.my_deals === 'true') {
+    params.push(user.userId);
+    baseConditions.push(`o.se_owner_id = $${params.length}`);
+  }
+  if (q.key_deal === 'true') baseConditions.push(`o.key_deal = true`);
+  if (q.search) {
+    params.push(`%${q.search}%`);
+    baseConditions.push(`(o.name ILIKE $${params.length} OR o.account_name ILIKE $${params.length})`);
+  }
+
+  // Computed filters. SQL-equivalent of client-side computeMeddpicc / computeHealthScore.
+  const atRiskOnly = q.at_risk === 'true';
+  const meddpiccMax = parseIntSafe(q.meddpicc_max);
+
+  // MEDDPICC placeholder set — must mirror client utils/meddpicc.ts PLACEHOLDERS.
+  const PLACEHOLDERS = ['tbd','n/a','na','unknown','yes','no','-','--','---','none','tbc','todo','not applicable','not yet','pending','x'];
+  params.push(PLACEHOLDERS);
+  const phIdx = params.length;
+
+  // Build strong/filled count expressions over the 9 MEDDPICC fields.
+  const MEDDPICC_COLS = ['metrics','economic_buyer','decision_criteria','decision_process','paper_process','implicate_pain','champion','authority','need'];
+  const strongExpr = MEDDPICC_COLS.map(c =>
+    `CASE WHEN o.${c} IS NOT NULL AND LENGTH(TRIM(o.${c})) >= 30 AND LOWER(TRIM(o.${c})) <> ALL($${phIdx}::text[]) THEN 1 ELSE 0 END`
+  ).join(' + ');
+  const filledExpr = MEDDPICC_COLS.map(c =>
+    `CASE WHEN o.${c} IS NOT NULL AND TRIM(o.${c}) <> '' THEN 1 ELSE 0 END`
+  ).join(' + ');
+
+  // Effective stage_changed_at — matches existing route logic.
+  const stageChangedEffExpr = `COALESCE(
+       CASE o.stage
+         WHEN 'Qualify'                THEN o.stage_date_qualify
+         WHEN 'Develop Solution'       THEN o.stage_date_develop_solution
+         WHEN 'Build Value'            THEN o.stage_date_build_value
+         WHEN 'Proposal Sent'          THEN o.stage_date_proposal_sent
+         WHEN 'Submitted for Booking'  THEN o.stage_date_submitted_for_booking
+         WHEN 'Negotiate'              THEN o.stage_date_negotiate
+         WHEN 'Closed Won'             THEN o.stage_date_closed_won
+         WHEN 'Closed Lost'            THEN o.stage_date_closed_lost
+       END::timestamptz,
+       o.stage_changed_at
+     )`;
+
+  const whereClause = baseConditions.map(c => `(${c})`).join(' AND ');
+
+  // Sort allow-list. Value is the ORDER BY expression (computed expressions reference CTE aliases).
+  const ORDER_MAP: Record<string, string> = {
+    close_date:                 'o.close_date',
+    close_month:                'o.close_month',
+    arr:                        'o.arr',
+    arr_converted:              'o.arr_converted',
+    stage:                      'o.stage',
+    name:                       'o.name',
+    account_name:               'o.account_name',
+    fiscal_period:              'o.fiscal_period',
+    team:                       'o.team',
+    record_type:                'o.record_type',
+    poc_start_date:             'o.poc_start_date',
+    poc_end_date:               'o.poc_end_date',
+    closed_at:                  'o.closed_at',
+    se_comments_updated_at:     'o.se_comments_updated_at',
+    manager_comments_updated_at:'o.manager_comments_updated_at',
+    last_note_at:               'o.last_note_at',
+    key_deal:                   'o.key_deal',
+    se_owner:                   'se_owner_name',
+    se_comments_freshness:      'o.se_comments_updated_at',
+    health_score:               'health_score',
+    meddpicc_score:             'meddpicc_strong_count',
+    open_task_count:            'open_task_count',
+  };
+  const sortKey = q.sort && ORDER_MAP[q.sort] ? q.sort : 'close_date';
+  const sortDir = q.dir === 'desc' ? 'DESC' : 'ASC';
+  const orderBy = `${ORDER_MAP[sortKey]} ${sortDir} NULLS LAST, o.id ASC`;
+
+  // Full query with CTE so computed columns are available to outer WHERE (at_risk, meddpicc_max) and ORDER BY.
+  const sql = `
+    WITH filtered AS (
+      SELECT
+        o.id, o.sf_opportunity_id, o.name, o.account_name, o.account_segment, o.account_industry,
+        o.stage, o.record_type, o.key_deal, o.arr, o.arr_currency, o.arr_converted,
+        o.close_date, o.close_month, o.fiscal_period, o.fiscal_year,
+        o.team, o.deploy_mode, o.deploy_location, o.sales_plays,
+        o.lead_source, o.opportunity_source, o.channel_source, o.biz_dev,
+        o.ae_owner_name, o.se_owner_id,
+        o.se_comments, o.se_comments_updated_at,
+        o.manager_comments, o.next_step_sf, o.psm_comments, o.technical_blockers,
+        o.engaged_competitors,
+        o.budget, o.authority, o.need, o.timeline, o.metrics, o.economic_buyer,
+        o.decision_criteria, o.decision_process, o.paper_process, o.implicate_pain,
+        o.champion, o.agentic_qual,
+        o.poc_status, o.poc_start_date, o.poc_end_date, o.poc_type, o.poc_deploy_type,
+        o.rfx_status,
+        o.sourcing_partner, o.sourcing_partner_tier, o.influencing_partner, o.partner_manager,
+        ${stageChangedEffExpr} AS stage_changed_at,
+        o.last_note_at,
+        u.name  AS se_owner_name,
+        u.email AS se_owner_email,
+        COUNT(t.id) FILTER (WHERE t.is_deleted = false AND t.status != 'done') AS open_task_count,
+        COUNT(t.id) FILTER (WHERE t.is_deleted = false AND t.is_next_step = true AND t.status != 'done') AS next_step_count,
+        COUNT(t.id) FILTER (WHERE t.is_deleted = false AND t.status != 'done' AND t.due_date < CURRENT_DATE) AS overdue_task_count,
+        (${strongExpr}) AS meddpicc_strong_count,
+        (${filledExpr}) AS meddpicc_filled_count
+      FROM opportunities o
+      LEFT JOIN users u ON u.id = o.se_owner_id
+      LEFT JOIN tasks t ON t.opportunity_id = o.id
+      WHERE ${whereClause}
+      GROUP BY o.id, u.id
+    ),
+    scored AS (
+      SELECT
+        f.*,
+        GREATEST(0, 100 - (
+          ROUND((9 - meddpicc_filled_count) * (CASE WHEN LOWER(COALESCE(record_type,'')) = 'upsell' THEN 10.0 ELSE 30.0 END) / 9.0)::int
+          + CASE WHEN se_comments_updated_at IS NULL THEN 25
+                 WHEN se_comments_updated_at < NOW() - INTERVAL '21 days' THEN 20
+                 WHEN se_comments_updated_at < NOW() - INTERVAL '7 days'  THEN 10 ELSE 0 END
+          + CASE WHEN last_note_at IS NULL THEN 5
+                 WHEN last_note_at < NOW() - INTERVAL '60 days' THEN 3 ELSE 0 END
+          + LEAST(overdue_task_count * 10, 35)
+          + CASE WHEN stage_changed_at IS NULL THEN 0
+                 WHEN stage_changed_at < NOW() - INTERVAL '60 days' THEN 15
+                 WHEN stage_changed_at < NOW() - INTERVAL '30 days' THEN 10 ELSE 0 END
+        )) AS health_score
+      FROM filtered f
+    ),
+    final AS (
+      SELECT * FROM scored
+      WHERE 1 = 1
+        ${atRiskOnly ? 'AND health_score < 70' : ''}
+        ${meddpiccMax !== null ? `AND meddpicc_strong_count <= ${meddpiccMax}` : ''}
+    )
+    SELECT *, (SELECT COUNT(*) FROM final) AS total_count
+    FROM final
+    ORDER BY ${orderBy}
+    LIMIT ${limit} OFFSET ${offset}
+  `;
+
+  const rows = await query<Record<string, unknown>>(sql, params);
+  const total = rows.length > 0 ? Number(rows[0].total_count) : 0;
+
+  const data = rows.map(r => ({
+    id: r.id, sf_opportunity_id: r.sf_opportunity_id, name: r.name,
+    account_name: r.account_name, account_segment: r.account_segment, account_industry: r.account_industry,
+    stage: r.stage, record_type: r.record_type, key_deal: r.key_deal,
+    arr: r.arr, arr_currency: r.arr_currency, arr_converted: r.arr_converted,
+    close_date: r.close_date, close_month: r.close_month, fiscal_period: r.fiscal_period, fiscal_year: r.fiscal_year,
+    team: r.team, deploy_mode: r.deploy_mode, deploy_location: r.deploy_location,
+    sales_plays: r.sales_plays, lead_source: r.lead_source, opportunity_source: r.opportunity_source,
+    channel_source: r.channel_source, biz_dev: r.biz_dev, ae_owner_name: r.ae_owner_name,
+    se_owner: r.se_owner_id ? { id: r.se_owner_id, name: r.se_owner_name, email: r.se_owner_email } : null,
+    se_comments: r.se_comments, se_comments_updated_at: r.se_comments_updated_at,
+    manager_comments: r.manager_comments, next_step_sf: r.next_step_sf,
+    psm_comments: r.psm_comments, technical_blockers: r.technical_blockers,
+    engaged_competitors: r.engaged_competitors,
+    budget: r.budget, authority: r.authority, need: r.need, timeline: r.timeline,
+    metrics: r.metrics, economic_buyer: r.economic_buyer,
+    decision_criteria: r.decision_criteria, decision_process: r.decision_process,
+    paper_process: r.paper_process, implicate_pain: r.implicate_pain,
+    champion: r.champion, agentic_qual: r.agentic_qual,
+    poc_status: r.poc_status, poc_start_date: r.poc_start_date, poc_end_date: r.poc_end_date,
+    poc_type: r.poc_type, poc_deploy_type: r.poc_deploy_type, rfx_status: r.rfx_status,
+    sourcing_partner: r.sourcing_partner, sourcing_partner_tier: r.sourcing_partner_tier,
+    influencing_partner: r.influencing_partner, partner_manager: r.partner_manager,
+    open_task_count: Number(r.open_task_count),
+    next_step_count: Number(r.next_step_count),
+    overdue_task_count: Number(r.overdue_task_count),
+    stage_changed_at: r.stage_changed_at, last_note_at: r.last_note_at,
+  }));
+
+  res.json(ok(data, { total, limit, offset }));
+});
+
 // GET /opportunities/by-account?name=X — all opps for a given account (open + closed)
 router.get('/by-account', auth, async (req: Request, res: Response): Promise<void> => {
   const name = (req.query.name as string | undefined)?.trim();
@@ -710,7 +970,13 @@ Include all 9 MEDDPICC elements in the elements array, in this order: metrics, e
 // GET /opportunities  (list)
 router.get('/', auth, async (req: Request, res: Response): Promise<void> => {
   const user = (req as AuthenticatedRequest).user;
-  const { stage, se_owner, search, sort, include_qualify, include_closed } = req.query as Record<string, string>;
+  const { stage, se_owner, search, sort, include_qualify, include_closed, limit: limitParam } = req.query as Record<string, string>;
+  const limit = (() => {
+    if (!limitParam) return null;
+    const n = parseInt(limitParam, 10);
+    if (isNaN(n) || n <= 0) return null;
+    return Math.min(n, 2000);
+  })();
 
   let showQualify = false;
   if (include_qualify === 'true') {
@@ -798,7 +1064,8 @@ router.get('/', auth, async (req: Request, res: Response): Promise<void> => {
      LEFT JOIN tasks t ON t.opportunity_id = o.id
      WHERE ${whereClause}
      GROUP BY o.id, u.id
-     ORDER BY ${orderBy}`,
+     ORDER BY ${orderBy}
+     ${limit !== null ? `LIMIT ${limit}` : ''}`,
     params
   );
 

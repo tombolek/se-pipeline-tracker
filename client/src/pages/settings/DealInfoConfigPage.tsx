@@ -31,7 +31,7 @@ export default function DealInfoConfigPage() {
       .catch(() => setError('Failed to load configuration'))
       .finally(() => setLoading(false));
     // Load all opps for preview search
-    listOpportunities({ include_qualify: true })
+    listOpportunities({ include_qualify: true, limit: 2000 })
       .then(opps => {
         setAllOpps(opps);
         // Auto-select first opp with full detail

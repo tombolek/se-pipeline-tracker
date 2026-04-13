@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo, memo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { Opportunity, User } from '../types';
 import { computeHealthScore } from '../utils/healthScore';
-import { listOpportunities, listFavorites } from '../api/opportunities';
+import { listFavorites, listOpportunitiesPaginated, getFilterOptions } from '../api/opportunities';
 import { updateMyPreferences, listUsers } from '../api/users';
 import { useUsers } from '../hooks/useUsers';
 import { useAuthStore } from '../store/auth';
@@ -339,22 +339,79 @@ export default function PipelinePage({ myPipelineMode = false, favoritesMode = f
     else { setSortKey(null); setSortDir('asc'); }
   }
 
+  // Server-side pagination (Issue #102 phase 3).
+  // Pipeline/MyPipeline: filters+sort+paging go through the server.
+  // Favorites: still loads full set (small) and filters client-side to keep the
+  // local-first-class UX for starred deals.
+  const PAGE_SIZE = 100;
+  const [total, setTotal] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [filterOptions, setFilterOptionsState] = useState<{ fiscal_period: string[]; team: string[]; record_type: string[]; stage: string[] }>({ fiscal_period: [], team: [], record_type: [], stage: [] });
+
+  // Fetch distinct filter-option values once — used to populate dropdowns
+  // independently of the currently-loaded page of rows.
+  useEffect(() => {
+    if (favoritesMode) return;
+    getFilterOptions().then(setFilterOptionsState).catch(() => {});
+  }, [favoritesMode]);
+
+  // Serialized filter state → server params. A single string key is used for
+  // the useEffect dependency so equality is stable across re-renders.
+  const serverParams = useMemo(() => ({
+    limit: PAGE_SIZE,
+    search: debouncedSearch || undefined,
+    stage: stages.length ? stages : undefined,
+    team: teams.length ? teams : undefined,
+    record_type: recordTypes.length ? recordTypes : undefined,
+    fiscal_period: selectedFiscalPeriods.length ? selectedFiscalPeriods : undefined,
+    se_owner: seIdParam ?? undefined,
+    my_deals: (!favoritesMode && (myPipelineMode || myDeals)) ? true : undefined,
+    at_risk: atRisk ? true : undefined,
+    meddpicc_max: meddpiccMax !== null ? meddpiccMax : undefined,
+    include_qualify: true,
+    sort: sortKey ?? 'close_date',
+    dir: sortDir,
+  }), [
+    debouncedSearch, stages, teams, recordTypes, selectedFiscalPeriods,
+    seIdParam, favoritesMode, myPipelineMode, myDeals, atRisk, meddpiccMax,
+    sortKey, sortDir,
+  ]);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const opps = favoritesMode
-        ? await listFavorites()
-        : await listOpportunities({ include_qualify: true });
-      setAllOpps(opps);
+      if (favoritesMode) {
+        const opps = await listFavorites();
+        setAllOpps(opps);
+        setTotal(opps.length);
+      } else {
+        const r = await listOpportunitiesPaginated({ ...serverParams, offset: 0 });
+        setAllOpps(r.data);
+        setTotal(r.total);
+      }
     } catch {
       setError('Failed to load opportunities.');
     } finally {
       setLoading(false);
     }
-  }, [favoritesMode]);
+  }, [favoritesMode, serverParams]);
 
   useEffect(() => { load(); }, [load]);
+
+  async function loadMore() {
+    if (favoritesMode || loadingMore || allOpps.length >= total) return;
+    setLoadingMore(true);
+    try {
+      const r = await listOpportunitiesPaginated({ ...serverParams, offset: allOpps.length });
+      setAllOpps(prev => [...prev, ...r.data]);
+      setTotal(r.total);
+    } catch {
+      // non-fatal
+    } finally {
+      setLoadingMore(false);
+    }
+  }
 
   // Compute effective territory filter: manager's own teams, or SE's manager's teams
   const effectiveTeams = useMemo(() => {
@@ -378,19 +435,27 @@ export default function PipelinePage({ myPipelineMode = false, favoritesMode = f
     }
   }, [allTeamsParam, effectiveTeams]);
 
-  // Derive sorted fiscal periods from loaded data
+  // Filter-option lists. In favorites mode we derive from loaded data (small
+  // set, no server endpoint needed). Otherwise use the distinct-values endpoint
+  // so dropdowns don't shrink when filters are applied.
   const fiscalPeriods = useMemo(
-    () => [...new Set(allOpps.map(o => o.fiscal_period).filter(Boolean) as string[])].sort(sortFiscalPeriod),
-    [allOpps]
+    () => favoritesMode
+      ? [...new Set(allOpps.map(o => o.fiscal_period).filter(Boolean) as string[])].sort(sortFiscalPeriod)
+      : [...filterOptions.fiscal_period].sort(sortFiscalPeriod),
+    [favoritesMode, allOpps, filterOptions.fiscal_period]
   );
 
   const teamOptions = useMemo(
-    () => [...new Set(allOpps.map(o => o.team).filter(Boolean) as string[])].sort(),
-    [allOpps]
+    () => favoritesMode
+      ? [...new Set(allOpps.map(o => o.team).filter(Boolean) as string[])].sort()
+      : [...filterOptions.team].sort(),
+    [favoritesMode, allOpps, filterOptions.team]
   );
   const recordTypeOptions = useMemo(
-    () => [...new Set(allOpps.map(o => o.record_type).filter(Boolean) as string[])].sort(),
-    [allOpps]
+    () => favoritesMode
+      ? [...new Set(allOpps.map(o => o.record_type).filter(Boolean) as string[])].sort()
+      : [...filterOptions.record_type].sort(),
+    [favoritesMode, allOpps, filterOptions.record_type]
   );
 
   // Derive SE filter name from loaded data
@@ -405,12 +470,12 @@ export default function PipelinePage({ myPipelineMode = false, favoritesMode = f
     setSearchParams(p => { p.delete('se_id'); return p; });
   }
 
-  // Apply all filters client-side. Memoized so OppRow.memo can skip work when
-  // filters haven't actually changed identity. (Issue #102)
+  // Pipeline/MyPipeline rows come back already filtered+sorted from the server.
+  // Favorites mode still filters client-side so the starred list feels instant.
   const displayed = useMemo(() => {
+    if (!favoritesMode) return allOpps;
     const q = debouncedSearch.toLowerCase();
     const filtered = allOpps.filter(o => {
-      if (!favoritesMode && (myPipelineMode || myDeals) && o.se_owner?.id !== user?.id) return false;
       if (seIdParam && o.se_owner?.id !== seIdParam) return false;
       if (stages.length > 0 && !stages.includes(o.stage)) return false;
       if (selectedFiscalPeriods.length > 0 && !selectedFiscalPeriods.includes(o.fiscal_period ?? '')) return false;
@@ -425,7 +490,7 @@ export default function PipelinePage({ myPipelineMode = false, favoritesMode = f
     });
     return sortKey ? sortRows(filtered, sortKey, sortDir, oppColType, getOppValue) : filtered;
   }, [
-    allOpps, favoritesMode, myPipelineMode, myDeals, user?.id, seIdParam,
+    favoritesMode, allOpps, seIdParam,
     stages, selectedFiscalPeriods, teams, atRisk, meddpiccMax, recordTypes,
     debouncedSearch, sortKey, sortDir,
   ]);
@@ -473,7 +538,7 @@ export default function PipelinePage({ myPipelineMode = false, favoritesMode = f
         atRisk={atRisk} setAtRisk={setAtRisk}
         meddpiccMax={meddpiccMax} setMeddpiccMax={setMeddpiccMax}
         seFilterName={seFilterName} clearSeFilter={clearSeFilter}
-        total={displayed.length}
+        total={favoritesMode ? displayed.length : total}
         hideMyDeals={myPipelineMode || favoritesMode}
         columnPicker={
           <ColumnPicker
@@ -529,6 +594,21 @@ export default function PipelinePage({ myPipelineMode = false, favoritesMode = f
               ))}
             </tbody>
           </table>
+        )}
+        {/* Load more — paginated mode only, when there are more rows on the server. */}
+        {!loading && !favoritesMode && allOpps.length < total && (
+          <div className="flex items-center justify-center gap-2 py-4 border-t border-brand-navy-30/40 bg-white">
+            <span className="text-[11px] text-brand-navy-70">
+              Showing {allOpps.length} of {total}
+            </span>
+            <button
+              onClick={loadMore}
+              disabled={loadingMore}
+              className="text-xs font-medium text-brand-purple hover:text-brand-purple-70 transition-colors disabled:opacity-50"
+            >
+              {loadingMore ? 'Loading…' : 'Load more'}
+            </button>
+          </div>
         )}
       </div>
 

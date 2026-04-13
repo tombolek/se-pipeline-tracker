@@ -67,7 +67,7 @@ export default function QuickCapture() {
     if (!value.trim()) { setOppResults([]); setShowDropdown(false); return; }
     debounceRef.current = setTimeout(async () => {
       try {
-        const results = await listOpportunities({ search: value, include_qualify: true });
+        const results = await listOpportunities({ search: value, include_qualify: true, limit: 20 });
         setOppResults(results.slice(0, 8));
         setShowDropdown(results.length > 0);
       } catch { /* ignore */ }

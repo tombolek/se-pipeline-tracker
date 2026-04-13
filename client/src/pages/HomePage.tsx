@@ -150,7 +150,7 @@ export default function HomePage() {
       .then(r => setData(r.data.data))
       .catch(err => console.error('Digest load failed:', err))
       .finally(() => setLoading(false));
-    listOpportunities({ include_qualify: true })
+    listOpportunities({ include_qualify: true, limit: 2000 })
       .then(setAllOpps)
       .catch(() => {});
   }, []);
