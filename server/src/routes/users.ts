@@ -21,8 +21,9 @@ router.get('/', auth, mgr, async (_req: Request, res: Response): Promise<void> =
 
 // POST /users — create user (Manager only)
 router.post('/', auth, mgr, async (req: Request, res: Response): Promise<void> => {
-  const { name, email, role, password } = req.body as {
+  const { name, email, role, password, manager_id } = req.body as {
     name?: string; email?: string; role?: string; password?: string;
+    manager_id?: number | null;
   };
 
   if (!name?.trim() || !email?.trim() || !password?.trim()) {
@@ -40,18 +41,33 @@ router.post('/', auth, mgr, async (req: Request, res: Response): Promise<void> =
     return;
   }
 
+  // Validate manager_id if provided — must exist and be a manager.
+  // Only applied to SE role; managers don't have a manager_id of their own here.
+  let resolvedManagerId: number | null = null;
+  if (role === 'se' && manager_id !== undefined && manager_id !== null) {
+    const mgrRow = await queryOne<{ id: number }>(
+      `SELECT id FROM users WHERE id = $1 AND role = 'manager' AND is_deleted = false`,
+      [manager_id]
+    );
+    if (!mgrRow) {
+      res.status(400).json(err('manager_id must reference an existing manager'));
+      return;
+    }
+    resolvedManagerId = mgrRow.id;
+  }
+
   const password_hash = await bcrypt.hash(password, 10);
   const user = await queryOne<User>(
-    `INSERT INTO users (name, email, role, password_hash)
-     VALUES ($1, $2, $3, $4)
+    `INSERT INTO users (name, email, role, password_hash, manager_id)
+     VALUES ($1, $2, $3, $4, $5)
      RETURNING ${USER_COLS}`,
-    [name.trim(), email.toLowerCase().trim(), role, password_hash]
+    [name.trim(), email.toLowerCase().trim(), role, password_hash, resolvedManagerId]
   );
   res.status(201).json(ok(user));
   logAudit(req, {
     action: 'CREATE_USER', resourceType: 'user',
     resourceId: user!.id, resourceName: user!.name,
-    after: { email: user!.email, role },
+    after: { email: user!.email, role, manager_id: resolvedManagerId },
   });
 });
 

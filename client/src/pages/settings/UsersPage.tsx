@@ -26,11 +26,15 @@ function UserAvatar({ user, size = 8 }: { user: User; size?: number }) {
 
 // ── Add User Modal ─────────────────────────────────────────────────────────────
 
-function AddUserModal({ onClose, onCreated }: {
+function AddUserModal({ onClose, onCreated, managers }: {
   onClose: () => void;
   onCreated: (u: User) => void;
+  managers: User[];
 }) {
-  const [form, setForm] = useState({ name: '', email: '', role: 'se' as 'manager' | 'se', password: '' });
+  const [form, setForm] = useState({
+    name: '', email: '', role: 'se' as 'manager' | 'se', password: '',
+    manager_id: '' as number | '',
+  });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,7 +45,14 @@ function AddUserModal({ onClose, onCreated }: {
     }
     setSaving(true); setError(null);
     try {
-      const u = await createUser(form);
+      const u = await createUser({
+        name: form.name,
+        email: form.email,
+        role: form.role,
+        password: form.password,
+        // Only send manager_id for SE users and only when one was picked
+        manager_id: form.role === 'se' && form.manager_id !== '' ? form.manager_id : null,
+      });
       onCreated(u);
     } catch (err: unknown) {
       setError((err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? 'Failed to create user.');
@@ -73,6 +84,20 @@ function AddUserModal({ onClose, onCreated }: {
               <option value="manager">Manager</option>
             </select>
           </div>
+          {form.role === 'se' && (
+            <div>
+              <label className="block text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide mb-1">Manager</label>
+              <select
+                value={form.manager_id}
+                onChange={e => setForm(f => ({ ...f, manager_id: e.target.value === '' ? '' : parseInt(e.target.value) }))}
+                className="w-full px-3 py-2 rounded-lg border border-brand-navy-30 text-sm text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-purple bg-white">
+                <option value="">— No manager —</option>
+                {managers.map(m => (
+                  <option key={m.id} value={m.id}>{m.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
           <div>
             <label className="block text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide mb-1">Temporary Password</label>
             <input type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
@@ -574,6 +599,7 @@ function AccessManagementTab({ users, setUsers, currentUserId }: {
         <AddUserModal
           onClose={() => setShowAdd(false)}
           onCreated={u => { setUsers(prev => [...prev, u]); setShowAdd(false); }}
+          managers={users.filter(u => u.role === 'manager' && u.is_active)}
         />
       )}
       {roleConfirmTarget && (

@@ -16,6 +16,7 @@ export async function createUser(payload: {
   email: string;
   role: 'manager' | 'se';
   password: string;
+  manager_id?: number | null;
 }): Promise<User> {
   const { data } = await api.post<ApiResponse<User>>('/users', payload);
   return data.data;
