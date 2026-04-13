@@ -9,23 +9,56 @@ const auth = requireAuth as unknown as (req: Request, res: Response, next: () =>
 const mgr  = requireManager as unknown as (req: Request, res: Response, next: () => void) => void;
 
 // GET /insights/stage-movement?days=7|14|30
+// Uses the per-stage SF date fields (stage_date_*) to surface EVERY stage entered
+// within the window — not just the most recent transition. A deal that moved
+// Build Value → Proposal Sent → Negotiate in one week shows up as 3 rows.
 router.get('/stage-movement', auth, mgr, async (req: Request, res: Response): Promise<void> => {
   const days = parseInt((req.query.days as string) ?? '14') || 14;
 
   const rows = await query(
-    `SELECT
-       o.id, o.name, o.account_name, o.arr, o.arr_currency,
-       o.stage         AS current_stage,
-       o.previous_stage,
-       o.stage_changed_at,
-       o.ae_owner_name,
-       u.id   AS se_owner_id,
-       u.name AS se_owner_name
-     FROM opportunities o
-     LEFT JOIN users u ON u.id = o.se_owner_id
-     WHERE o.stage_changed_at >= now() - ($1 || ' days')::interval
-       AND o.stage_changed_at IS NOT NULL
-     ORDER BY o.stage_changed_at DESC`,
+    `WITH stage_entries AS (
+       SELECT o.id, o.name, o.account_name, o.arr, o.arr_currency, o.ae_owner_name,
+              o.se_owner_id,
+              u.id   AS u_id,
+              u.name AS u_name,
+              x.stage_name,
+              x.stage_date
+       FROM opportunities o
+       LEFT JOIN users u ON u.id = o.se_owner_id
+       CROSS JOIN LATERAL (VALUES
+         ('Qualify',               o.stage_date_qualify),
+         ('Develop Solution',      o.stage_date_develop_solution),
+         ('Build Value',           o.stage_date_build_value),
+         ('Proposal Sent',         o.stage_date_proposal_sent),
+         ('Submitted for Booking', o.stage_date_submitted_for_booking),
+         ('Negotiate',             o.stage_date_negotiate),
+         ('Closed Won',            o.stage_date_closed_won),
+         ('Closed Lost',           o.stage_date_closed_lost)
+       ) AS x(stage_name, stage_date)
+       WHERE x.stage_date IS NOT NULL
+     ),
+     ranked AS (
+       SELECT *,
+         LAG(stage_name) OVER (
+           PARTITION BY id
+           ORDER BY stage_date,
+             CASE stage_name
+               WHEN 'Qualify' THEN 1 WHEN 'Develop Solution' THEN 2
+               WHEN 'Build Value' THEN 3 WHEN 'Proposal Sent' THEN 4
+               WHEN 'Submitted for Booking' THEN 5 WHEN 'Negotiate' THEN 6
+               WHEN 'Closed Won' THEN 7 WHEN 'Closed Lost' THEN 8
+             END
+         ) AS previous_stage
+       FROM stage_entries
+     )
+     SELECT id, name, account_name, arr, arr_currency, ae_owner_name,
+            u_id AS se_owner_id, u_name AS se_owner_name,
+            stage_name AS current_stage,
+            previous_stage,
+            stage_date AS stage_changed_at
+     FROM ranked
+     WHERE stage_date >= CURRENT_DATE - ($1 || ' days')::interval
+     ORDER BY stage_date DESC, id`,
     [days]
   );
 
@@ -521,18 +554,54 @@ router.get('/weekly-digest', auth, mgr, async (req: Request, res: Response): Pro
         [days]
       ),
 
-      // Stage progressions within the window
+      // Stage progressions within the window — SF-authoritative.
+      // Unpivots the per-stage date fields so EVERY stage entered within the window
+      // produces a row (catches deals that jumped multiple stages within one week).
       query(
-        `SELECT o.id, o.name, o.account_name, o.arr, o.arr_currency,
-                o.stage AS current_stage, o.previous_stage, o.stage_changed_at,
-                o.ae_owner_name, o.team,
-                u.id AS se_owner_id, u.name AS se_owner_name
-         FROM opportunities o
-         LEFT JOIN users u ON u.id = o.se_owner_id
-         WHERE o.stage_changed_at >= now() - ($1 || ' days')::interval
-           AND o.stage_changed_at IS NOT NULL
-           AND o.is_active = true AND o.is_closed_lost = false
-         ORDER BY o.stage_changed_at DESC`,
+        `WITH stage_entries AS (
+           SELECT o.id, o.name, o.account_name, o.arr, o.arr_currency, o.ae_owner_name, o.team,
+                  o.se_owner_id,
+                  u.id   AS u_id,
+                  u.name AS u_name,
+                  x.stage_name,
+                  x.stage_date
+           FROM opportunities o
+           LEFT JOIN users u ON u.id = o.se_owner_id
+           CROSS JOIN LATERAL (VALUES
+             ('Qualify',               o.stage_date_qualify),
+             ('Develop Solution',      o.stage_date_develop_solution),
+             ('Build Value',           o.stage_date_build_value),
+             ('Proposal Sent',         o.stage_date_proposal_sent),
+             ('Submitted for Booking', o.stage_date_submitted_for_booking),
+             ('Negotiate',             o.stage_date_negotiate),
+             ('Closed Won',            o.stage_date_closed_won),
+             ('Closed Lost',           o.stage_date_closed_lost)
+           ) AS x(stage_name, stage_date)
+           WHERE x.stage_date IS NOT NULL
+             AND o.is_active = true AND o.is_closed_lost = false
+         ),
+         ranked AS (
+           SELECT *,
+             LAG(stage_name) OVER (
+               PARTITION BY id
+               ORDER BY stage_date,
+                 CASE stage_name
+                   WHEN 'Qualify' THEN 1 WHEN 'Develop Solution' THEN 2
+                   WHEN 'Build Value' THEN 3 WHEN 'Proposal Sent' THEN 4
+                   WHEN 'Submitted for Booking' THEN 5 WHEN 'Negotiate' THEN 6
+                   WHEN 'Closed Won' THEN 7 WHEN 'Closed Lost' THEN 8
+                 END
+             ) AS previous_stage
+           FROM stage_entries
+         )
+         SELECT id, name, account_name, arr, arr_currency, ae_owner_name, team,
+                u_id AS se_owner_id, u_name AS se_owner_name,
+                stage_name AS current_stage,
+                previous_stage,
+                stage_date AS stage_changed_at
+         FROM ranked
+         WHERE stage_date >= CURRENT_DATE - ($1 || ' days')::interval
+         ORDER BY stage_date DESC, id`,
         [days]
       ),
 

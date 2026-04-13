@@ -33,7 +33,23 @@ router.get('/', auth, mgr, async (req: Request, res: Response): Promise<void> =>
   const rows = await query(
     `SELECT
        o.id, o.name, o.account_name, o.account_industry,
-       o.arr, o.arr_currency, o.stage, o.stage_changed_at, o.close_date,
+       o.arr, o.arr_currency, o.stage,
+       -- Prefer the SF per-stage date for the deal's CURRENT stage
+       -- (more accurate than import-tracked stage_changed_at).
+       COALESCE(
+         CASE o.stage
+           WHEN 'Qualify'                THEN o.stage_date_qualify
+           WHEN 'Develop Solution'       THEN o.stage_date_develop_solution
+           WHEN 'Build Value'            THEN o.stage_date_build_value
+           WHEN 'Proposal Sent'          THEN o.stage_date_proposal_sent
+           WHEN 'Submitted for Booking'  THEN o.stage_date_submitted_for_booking
+           WHEN 'Negotiate'              THEN o.stage_date_negotiate
+           WHEN 'Closed Won'             THEN o.stage_date_closed_won
+           WHEN 'Closed Lost'            THEN o.stage_date_closed_lost
+         END::timestamptz,
+         o.stage_changed_at
+       ) AS stage_changed_at,
+       o.close_date,
        o.forecast_category, o.record_type, o.team, o.key_deal,
        o.se_owner_id,
        u.name AS se_owner_name,

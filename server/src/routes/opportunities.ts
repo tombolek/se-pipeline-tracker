@@ -136,7 +136,22 @@ router.get('/favorites', auth, async (req: Request, res: Response): Promise<void
   const rows = await query(
     `SELECT
        o.id, o.sf_opportunity_id, o.name, o.account_name, o.account_segment, o.account_industry,
-       o.stage, o.stage_changed_at, o.previous_stage, o.arr, o.arr_currency, o.close_date,
+       o.stage,
+       -- Prefer SF per-stage date for the deal's CURRENT stage
+       COALESCE(
+         CASE o.stage
+           WHEN 'Qualify'                THEN o.stage_date_qualify
+           WHEN 'Develop Solution'       THEN o.stage_date_develop_solution
+           WHEN 'Build Value'            THEN o.stage_date_build_value
+           WHEN 'Proposal Sent'          THEN o.stage_date_proposal_sent
+           WHEN 'Submitted for Booking'  THEN o.stage_date_submitted_for_booking
+           WHEN 'Negotiate'              THEN o.stage_date_negotiate
+           WHEN 'Closed Won'             THEN o.stage_date_closed_won
+           WHEN 'Closed Lost'            THEN o.stage_date_closed_lost
+         END::timestamptz,
+         o.stage_changed_at
+       ) AS stage_changed_at,
+       o.previous_stage, o.arr, o.arr_currency, o.close_date,
        o.record_type, o.team, o.deploy_mode, o.key_deal, o.fiscal_period,
        o.se_comments, o.se_comments_updated_at, o.next_step_sf, o.technical_blockers,
        o.forecast_category,
@@ -220,7 +235,21 @@ router.get('/closed-lost', auth, async (req: Request, res: Response): Promise<vo
        o.poc_status, o.poc_start_date, o.poc_end_date, o.poc_type, o.poc_deploy_type,
        o.rfx_status,
        o.sourcing_partner, o.sourcing_partner_tier, o.influencing_partner, o.partner_manager,
-       o.closed_at, o.closed_lost_seen, o.stage_changed_at, o.last_note_at,
+       o.closed_at, o.closed_lost_seen,
+       COALESCE(
+         CASE o.stage
+           WHEN 'Qualify'                THEN o.stage_date_qualify
+           WHEN 'Develop Solution'       THEN o.stage_date_develop_solution
+           WHEN 'Build Value'            THEN o.stage_date_build_value
+           WHEN 'Proposal Sent'          THEN o.stage_date_proposal_sent
+           WHEN 'Submitted for Booking'  THEN o.stage_date_submitted_for_booking
+           WHEN 'Negotiate'              THEN o.stage_date_negotiate
+           WHEN 'Closed Won'             THEN o.stage_date_closed_won
+           WHEN 'Closed Lost'            THEN o.stage_date_closed_lost
+         END::timestamptz,
+         o.stage_changed_at
+       ) AS stage_changed_at,
+       o.last_note_at,
        u.id AS se_owner_id, u.name AS se_owner_name, u.email AS se_owner_email
      FROM opportunities o
      LEFT JOIN users u ON u.id = o.se_owner_id
@@ -738,7 +767,20 @@ router.get('/', auth, async (req: Request, res: Response): Promise<void> => {
        o.poc_status, o.poc_start_date, o.poc_end_date, o.poc_type, o.poc_deploy_type,
        o.rfx_status,
        o.sourcing_partner, o.sourcing_partner_tier, o.influencing_partner, o.partner_manager,
-       o.stage_changed_at, o.last_note_at,
+       COALESCE(
+         CASE o.stage
+           WHEN 'Qualify'                THEN o.stage_date_qualify
+           WHEN 'Develop Solution'       THEN o.stage_date_develop_solution
+           WHEN 'Build Value'            THEN o.stage_date_build_value
+           WHEN 'Proposal Sent'          THEN o.stage_date_proposal_sent
+           WHEN 'Submitted for Booking'  THEN o.stage_date_submitted_for_booking
+           WHEN 'Negotiate'              THEN o.stage_date_negotiate
+           WHEN 'Closed Won'             THEN o.stage_date_closed_won
+           WHEN 'Closed Lost'            THEN o.stage_date_closed_lost
+         END::timestamptz,
+         o.stage_changed_at
+       ) AS stage_changed_at,
+       o.last_note_at,
        u.name  AS se_owner_name,
        u.email AS se_owner_email,
        COUNT(t.id) FILTER (WHERE t.is_deleted = false AND t.status != 'done') AS open_task_count,
@@ -1015,12 +1057,26 @@ router.get('/:id/timeline', auth, async (req: Request, res: Response): Promise<v
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json(err('Invalid opportunity id')); return; }
 
-  // Fetch the opp itself for stage-change event and first-seen event
+  // Fetch the opp itself for stage-change events and first-seen event.
+  // Stage transitions are derived from per-stage SF date columns so EVERY stage
+  // entered shows up in the timeline (not just the most recent).
   const opp = await queryOne<{
     stage: string; previous_stage: string | null; stage_changed_at: string | null;
     first_seen_at: string | null;
+    stage_date_qualify: string | null;
+    stage_date_develop_solution: string | null;
+    stage_date_build_value: string | null;
+    stage_date_proposal_sent: string | null;
+    stage_date_submitted_for_booking: string | null;
+    stage_date_negotiate: string | null;
+    stage_date_closed_won: string | null;
+    stage_date_closed_lost: string | null;
   }>(
-    `SELECT stage, previous_stage, stage_changed_at, first_seen_at FROM opportunities WHERE id = $1`,
+    `SELECT stage, previous_stage, stage_changed_at, first_seen_at,
+            stage_date_qualify, stage_date_develop_solution, stage_date_build_value,
+            stage_date_proposal_sent, stage_date_submitted_for_booking, stage_date_negotiate,
+            stage_date_closed_won, stage_date_closed_lost
+       FROM opportunities WHERE id = $1`,
     [id]
   );
   if (!opp) { res.status(404).json(err('Opportunity not found')); return; }
@@ -1077,8 +1133,36 @@ router.get('/:id/timeline', auth, async (req: Request, res: Response): Promise<v
     }
   }
 
-  // Stage change (single most-recent entry from opp record)
-  if (opp.stage_changed_at) {
+  // Stage transitions — one event per non-null SF stage_date_*, with previous
+  // stage derived from the prior dated stage in pipeline order.
+  const stageDateEntries: { stage: string; date: string; order: number }[] = [
+    { stage: 'Qualify',               date: opp.stage_date_qualify ?? '',               order: 1 },
+    { stage: 'Develop Solution',      date: opp.stage_date_develop_solution ?? '',      order: 2 },
+    { stage: 'Build Value',           date: opp.stage_date_build_value ?? '',           order: 3 },
+    { stage: 'Proposal Sent',         date: opp.stage_date_proposal_sent ?? '',         order: 4 },
+    { stage: 'Submitted for Booking', date: opp.stage_date_submitted_for_booking ?? '', order: 5 },
+    { stage: 'Negotiate',             date: opp.stage_date_negotiate ?? '',             order: 6 },
+    { stage: 'Closed Won',            date: opp.stage_date_closed_won ?? '',            order: 7 },
+    { stage: 'Closed Lost',           date: opp.stage_date_closed_lost ?? '',           order: 8 },
+  ].filter(e => e.date);
+
+  if (stageDateEntries.length > 0) {
+    // Sort by date, then pipeline order for tiebreaker
+    stageDateEntries.sort((a, b) =>
+      a.date === b.date ? a.order - b.order : (a.date < b.date ? -1 : 1)
+    );
+    for (let i = 0; i < stageDateEntries.length; i++) {
+      const cur = stageDateEntries[i];
+      const prev = i > 0 ? stageDateEntries[i - 1].stage : null;
+      events.push({
+        id: `stage-change-${cur.stage.replace(/\s+/g, '-').toLowerCase()}`,
+        type: 'stage_change',
+        timestamp: new Date(cur.date).toISOString(),
+        payload: { from: prev, to: cur.stage },
+      });
+    }
+  } else if (opp.stage_changed_at) {
+    // Fallback to import-tracked transition for older records with no SF stage dates.
     events.push({ id: 'stage-change', type: 'stage_change', timestamp: opp.stage_changed_at,
       payload: { from: opp.previous_stage, to: opp.stage } });
   }

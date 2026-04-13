@@ -70,18 +70,50 @@ router.get('/digest', auth, async (req: Request, res: Response): Promise<void> =
       )
       UNION ALL
       (
+        -- Stage change activity — driven by SF stage_date_* fields, so ALL stage moves
+        -- within the last 7 days appear (not just the most recent transition per deal).
+        WITH stage_entries AS (
+          SELECT o.id, o.name, o.se_owner_id, o.is_active,
+                 x.stage_name, x.stage_date
+          FROM opportunities o
+          CROSS JOIN LATERAL (VALUES
+            ('Qualify',               o.stage_date_qualify),
+            ('Develop Solution',      o.stage_date_develop_solution),
+            ('Build Value',           o.stage_date_build_value),
+            ('Proposal Sent',         o.stage_date_proposal_sent),
+            ('Submitted for Booking', o.stage_date_submitted_for_booking),
+            ('Negotiate',             o.stage_date_negotiate),
+            ('Closed Won',            o.stage_date_closed_won),
+            ('Closed Lost',           o.stage_date_closed_lost)
+          ) AS x(stage_name, stage_date)
+          WHERE x.stage_date IS NOT NULL
+        ),
+        ranked AS (
+          SELECT *,
+            LAG(stage_name) OVER (
+              PARTITION BY id
+              ORDER BY stage_date,
+                CASE stage_name
+                  WHEN 'Qualify' THEN 1 WHEN 'Develop Solution' THEN 2
+                  WHEN 'Build Value' THEN 3 WHEN 'Proposal Sent' THEN 4
+                  WHEN 'Submitted for Booking' THEN 5 WHEN 'Negotiate' THEN 6
+                  WHEN 'Closed Won' THEN 7 WHEN 'Closed Lost' THEN 8
+                END
+            ) AS previous_stage
+          FROM stage_entries
+        )
         SELECT 'stage_change' AS activity_type,
-               o.stage_changed_at AS activity_at,
+               r.stage_date::timestamptz AS activity_at,
                NULL AS actor_name,
-               o.id AS opportunity_id,
-               o.name AS opportunity_name,
-               o.stage AS detail,
-               o.previous_stage AS extra
-        FROM opportunities o
-        WHERE o.se_owner_id = $1
-          AND o.stage_changed_at >= now() - interval '7 days'
-          AND o.previous_stage IS NOT NULL
-          AND o.is_active = true
+               r.id AS opportunity_id,
+               r.name AS opportunity_name,
+               r.stage_name AS detail,
+               r.previous_stage AS extra
+        FROM ranked r
+        WHERE r.se_owner_id = $1
+          AND r.is_active = true
+          AND r.previous_stage IS NOT NULL
+          AND r.stage_date >= CURRENT_DATE - interval '7 days'
       )
       UNION ALL
       (

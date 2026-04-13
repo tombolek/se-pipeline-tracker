@@ -7,6 +7,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## 2026-04-13
 
+### Changed
+- **Stage transitions now SF-authoritative everywhere** — Stage Movement, Weekly Digest "Stage Progressions", home-page recent activity, and the per-opportunity timeline now derive transitions from SF's per-stage date columns (`Stage Date: Build Value`, etc.). A deal that jumped multiple stages within the window now produces one row per move (not just the most recent). Pipeline list, opportunity detail, closed-lost list, and Forecasting Brief now report "in current stage since" using the SF stage date for the deal's current stage, falling back to the import-tracked timestamp only when SF data is missing. (Issue #87)
+
 ### Added
 - **Demo Prep PDF export** — Demo Prep tab now has PDF download (formatted brief with all 6 questions, evidence, missing items, suggested commitments, coaching tips, overall assessment, and Before-You-Demo checklist) and a Slack send button (placeholder, mirroring Call Prep).
 - **Demo Prep on home page** — added Demo Prep as a 4th AI quick-action card on the home page so it can be launched directly from the dashboard.
