@@ -7,6 +7,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## 2026-04-13
 
+### Added
+- **SE Comments now create Notes automatically** — when an SF import detects a new SE Comments value on a deal, the new comment is also appended as a Note on the opportunity. Author shows as **SF Import**; the note's timestamp is taken from the date stamp parsed out of the comment text (e.g. `BM_26SEPT`) when available, falling back to import time. SE Comments behaviour everywhere else (freshness signal, Deal Info display, drives Stale list, etc.) is unchanged.
+
 ### Fixed
 - **Phantom "Close Date updated" rows on every import** — the field-history change detector was comparing the SF-export string (`11/20/26`) against the Postgres-readback string (`2026-11-20`), so the close date appeared to "change" on every import even when the underlying value was identical. Date strings are now normalised to ISO `YYYY-MM-DD` on both sides before comparison, and stored in ISO form so future field-history reads stay clean. Also backfilled — existing phantom rows were purged from `opportunity_field_history`.
 

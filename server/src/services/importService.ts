@@ -347,6 +347,21 @@ export async function reconcileImport(
   interface FieldHistoryEntry { opportunity_id: number; field_name: string; old_value: string | null; new_value: string | null; }
   const fieldHistoryEntries: FieldHistoryEntry[] = [];
 
+  // Notes auto-created when SE Comments changes between imports. The author is
+  // the synthetic "SF Import" user (migration 030); created_at is taken from
+  // the date stamp parsed out of the comment text when available, otherwise
+  // now(). Inserted in a single batch after the main reconciliation loop.
+  interface ImportNoteEntry { opportunity_id: number; content: string; created_at: Date | null; }
+  const importNotes: ImportNoteEntry[] = [];
+
+  // Look up the SF Import user once per import. Falls back to skipping note
+  // creation if migration 030 hasn't run yet (defensive — should never happen
+  // in prod).
+  const sfImportUser = await queryOne<{ id: number }>(
+    `SELECT id FROM users WHERE email = 'sf-import@system.local' LIMIT 1`
+  );
+  const sfImportUserId = sfImportUser?.id ?? null;
+
   // Load ALL existing opps keyed by sf_id so we can reconcile open AND closed
   // rows (the feed now includes Closed Won / Closed Lost directly).
   const existingOpps = await query<{
@@ -441,6 +456,17 @@ export async function reconcileImport(
             setClauses.push(`se_comments_updated_at = now()`);
           }
           fieldHistoryEntries.push({ opportunity_id: existing.id, field_name: 'se_comments', old_value: existing.se_comments, new_value: newSeComments });
+
+          // Also persist the new SE comment as a Note on the opportunity so it
+          // shows up in the Notes feed + Timeline. Only when there's actual
+          // content (a clearing of SE Comments shouldn't create an empty note).
+          if (newSeComments && newSeComments.trim() && sfImportUserId) {
+            importNotes.push({
+              opportunity_id: existing.id,
+              content: newSeComments.trim(),
+              created_at: parsedSe ? parsedSe.date : null,
+            });
+          }
         }
 
         // Track next_step_sf history
@@ -614,6 +640,35 @@ export async function reconcileImport(
         `INSERT INTO opportunity_field_history (opportunity_id, import_id, field_name, old_value, new_value)
          VALUES ($1, $2, $3, $4, $5)`,
         [entry.opportunity_id, importLog.id, entry.field_name, entry.old_value, entry.new_value]
+      );
+    }
+  }
+
+  // Insert auto-generated SE Comment notes (one per opportunity whose SE
+  // Comments value changed in this import).
+  if (sfImportUserId && importNotes.length > 0) {
+    const touchedOppIds = new Set<number>();
+    for (const note of importNotes) {
+      if (note.created_at) {
+        await query(
+          `INSERT INTO notes (opportunity_id, author_id, content, created_at)
+           VALUES ($1, $2, $3, $4)`,
+          [note.opportunity_id, sfImportUserId, note.content, note.created_at.toISOString()]
+        );
+      } else {
+        await query(
+          `INSERT INTO notes (opportunity_id, author_id, content)
+           VALUES ($1, $2, $3)`,
+          [note.opportunity_id, sfImportUserId, note.content]
+        );
+      }
+      touchedOppIds.add(note.opportunity_id);
+    }
+    // Bump last_note_at on each touched opp so freshness signals stay accurate.
+    for (const oppId of touchedOppIds) {
+      await query(
+        `UPDATE opportunities SET last_note_at = now() WHERE id = $1`,
+        [oppId]
       );
     }
   }
