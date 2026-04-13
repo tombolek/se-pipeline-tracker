@@ -710,7 +710,7 @@ Include all 9 MEDDPICC elements in the elements array, in this order: metrics, e
 // GET /opportunities  (list)
 router.get('/', auth, async (req: Request, res: Response): Promise<void> => {
   const user = (req as AuthenticatedRequest).user;
-  const { stage, se_owner, search, sort, include_qualify } = req.query as Record<string, string>;
+  const { stage, se_owner, search, sort, include_qualify, include_closed } = req.query as Record<string, string>;
 
   let showQualify = false;
   if (include_qualify === 'true') {
@@ -723,7 +723,14 @@ router.get('/', auth, async (req: Request, res: Response): Promise<void> => {
     showQualify = userRow?.show_qualify ?? false;
   }
 
-  const conditions: string[] = ['o.is_active = true', 'o.is_closed_lost = false'];
+  // Default: only open pipeline (active, not Closed Won, not Closed Lost).
+  // Pass include_closed=true to also include Closed Won + Closed Lost in the
+  // result (used by future combined views; current screens never set this).
+  const conditions: string[] = ['o.is_active = true'];
+  if (include_closed !== 'true') {
+    conditions.push('o.is_closed_lost = false');
+    conditions.push('COALESCE(o.is_closed_won, false) = false');
+  }
   const params: unknown[] = [];
 
   if (!showQualify) conditions.push(`o.stage != 'Qualify'`);

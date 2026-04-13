@@ -7,6 +7,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## 2026-04-13
 
+### Changed
+- **Performance: partial indexes on hot opportunity queries** — added partial indexes covering the dominant filter combos (active/open pipeline, closed-lost, closed-won, open tasks). Most pages query `is_active = true AND is_closed_lost = false`; sequential scans on this combo were the main cost past ~1k rows. Also added an explicit `is_closed_won = false` clause to the default `/opportunities` GET (with `include_closed=true` opt-in for future combined views) so Closed Won deals never leak into pipeline lists. Phase 1 of Issue #102.
+
 ### Added
 - **1:1 Prep view** — manager-only Insights page (`/insights/one-on-one`) that generates a one-page brief for a chosen SE: pipeline summary (count, ARR, RAG breakdown, overdue tasks, stale comments), overdue + due-this-week task list, deals missing SE notes, deals with no next step, recent stage movements (last 14 days), and a Claude-generated coaching narrative covering wins, coaching focus, risks to flag and a suggested 1:1 agenda. Narrative is cached and re-generatable; copy-to-clipboard supported. (Issue #69)
 
