@@ -339,12 +339,12 @@ export default function ForecastingBriefPage() {
     if (!data) return [];
     return data.opportunities
       .filter(o => regionFilter(o, region))
-      .filter(o => !filterFc || (o.forecast_category || '').toLowerCase() === filterFc.toLowerCase())
+      .filter(o => !filterFc || (o.forecast_status || '').toLowerCase() === filterFc.toLowerCase())
       .filter(o => !filterSe || (o.se_owner_name || '') === filterSe)
       .sort((a, b) => {
         // Primary: forecast category order
-        const fcA = FC_ORDER[(a.forecast_category || '').toLowerCase()] ?? 99;
-        const fcB = FC_ORDER[(b.forecast_category || '').toLowerCase()] ?? 99;
+        const fcA = FC_ORDER[(a.forecast_status || '').toLowerCase()] ?? 99;
+        const fcB = FC_ORDER[(b.forecast_status || '').toLowerCase()] ?? 99;
         if (fcA !== fcB) return fcA - fcB;
         // Secondary: stage order (further along = first)
         const stA = STAGE_ORDER[a.stage] ?? 99;
@@ -360,7 +360,7 @@ export default function ForecastingBriefPage() {
     const groups: { label: string; opps: ForecastOpp[] }[] = [];
     let currentGroup = '';
     for (const opp of filteredOpps) {
-      const group = getFcGroup(opp.forecast_category);
+      const group = getFcGroup(opp.forecast_status);
       if (group !== currentGroup) {
         groups.push({ label: group, opps: [] });
         currentGroup = group;
@@ -400,7 +400,7 @@ export default function ForecastingBriefPage() {
     for (const o of opps) {
       const arr = parseFloat(o.arr || '0') || 0;
       totalArr += arr;
-      const fc = (o.forecast_category || '').toLowerCase();
+      const fc = (o.forecast_status || '').toLowerCase();
       if (fc === 'commit') { commitArr += arr; commitCount++; }
       else if (fc === 'most likely') { mlArr += arr; mlCount++; }
       else if (fc === 'upside') { upsideArr += arr; }
@@ -1172,7 +1172,7 @@ function KeyDealCard({ opp, onOpenDetail }: { opp: ForecastOpp; onOpenDetail: ()
           <div className="flex items-center gap-2">
             <span className="font-semibold text-[13px] text-brand-navy">{opp.name}</span>
             <span className="text-[8px] font-semibold bg-yellow-100 text-yellow-700 px-1.5 py-px rounded-full">KEY</span>
-            <ForecastBadge category={opp.forecast_category} />
+            <ForecastBadge category={opp.forecast_status} />
             {hasBlocker && <span className="text-[8px] px-1.5 py-0.5 rounded bg-status-overdue/10 text-status-overdue font-bold border border-status-overdue/20">BLOCKER</span>}
             {!opp.se_owner_id && <span className="text-[8px] px-1.5 py-0.5 rounded bg-status-warning/10 text-status-warning font-bold border border-status-warning/20">NO SE</span>}
           </div>

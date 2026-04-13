@@ -50,7 +50,7 @@ router.get('/', auth, mgr, async (req: Request, res: Response): Promise<void> =>
          o.stage_changed_at
        ) AS stage_changed_at,
        o.close_date,
-       o.forecast_category, o.record_type, o.team, o.key_deal,
+       o.forecast_status, o.record_type, o.team, o.key_deal,
        o.se_owner_id,
        u.name AS se_owner_name,
        o.ae_owner_name,
@@ -77,7 +77,7 @@ router.get('/', auth, mgr, async (req: Request, res: Response): Promise<void> =>
      LEFT JOIN ai_summary_cache s ON s.key = 'summary-' || o.id::text
      WHERE o.is_active = true AND o.is_closed_lost = false AND o.fiscal_period = $1
      ORDER BY
-       CASE o.forecast_category
+       CASE o.forecast_status
          WHEN 'Commit' THEN 1
          WHEN 'Most Likely' THEN 2
          WHEN 'Upside' THEN 3
@@ -98,7 +98,7 @@ router.get('/', auth, mgr, async (req: Request, res: Response): Promise<void> =>
   for (const r of rows) {
     const arr = parseFloat(String(r.arr ?? '0')) || 0;
     totalArr += arr;
-    const fc = String(r.forecast_category || '').toLowerCase();
+    const fc = String(r.forecast_status || '').toLowerCase();
     if (fc === 'commit') { commitArr += arr; commitCount++; }
     else if (fc === 'most likely') { mlArr += arr; mlCount++; }
     else if (fc === 'upside') { upsideArr += arr; upsideCount++; }
@@ -161,7 +161,7 @@ router.post('/narrative/generate', auth, mgr, async (req: Request, res: Response
   // Fetch pipeline data for the prompt
   const rows = await query(
     `SELECT
-       o.name, o.account_name, o.arr, o.arr_currency, o.stage, o.forecast_category,
+       o.name, o.account_name, o.arr, o.arr_currency, o.stage, o.forecast_status,
        o.se_comments, o.se_comments_updated_at, o.technical_blockers, o.key_deal,
        o.poc_status, o.next_step_sf, o.engaged_competitors,
        o.metrics, o.economic_buyer, o.decision_criteria, o.decision_process,
@@ -186,7 +186,7 @@ router.post('/narrative/generate', auth, mgr, async (req: Request, res: Response
   // Build deal summaries for prompt
   const dealLines = rows.map((r: Record<string, unknown>) => {
     const arr = parseFloat(r.arr as string) || 0;
-    const fc = r.forecast_category || 'Unset';
+    const fc = r.forecast_status || 'Unset';
     const se = r.se_owner_name || 'Unassigned';
     const stale = r.se_comments_days_ago !== null ? `${r.se_comments_days_ago}d ago` : 'never';
     const meddpicc = computeMeddpiccScore(r);
@@ -195,9 +195,9 @@ router.post('/narrative/generate', auth, mgr, async (req: Request, res: Response
   }).join('\n');
 
   const totalArr = rows.reduce((s: number, r: Record<string, unknown>) => s + (parseFloat(r.arr as string) || 0), 0);
-  const commitArr = rows.filter((r: Record<string, unknown>) => (r.forecast_category as string || '').toLowerCase() === 'commit')
+  const commitArr = rows.filter((r: Record<string, unknown>) => (r.forecast_status as string || '').toLowerCase() === 'commit')
     .reduce((s: number, r: Record<string, unknown>) => s + (parseFloat(r.arr as string) || 0), 0);
-  const mlArr = rows.filter((r: Record<string, unknown>) => (r.forecast_category as string || '').toLowerCase() === 'most likely')
+  const mlArr = rows.filter((r: Record<string, unknown>) => (r.forecast_status as string || '').toLowerCase() === 'most likely')
     .reduce((s: number, r: Record<string, unknown>) => s + (parseFloat(r.arr as string) || 0), 0);
 
   const prompt = `You are an SE Manager preparing a forecasting brief for your leadership call.

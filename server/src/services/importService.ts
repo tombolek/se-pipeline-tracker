@@ -63,8 +63,8 @@ const COLUMN_MAP: Record<string, string | null> = {
   'poc deployment type':                'poc_deploy_type',
   'rfx status':                         'rfx_status',
   'technical blockers/risk':            'technical_blockers',
-  'forecast category':                  'forecast_category',
-  'forecast status':                    'forecast_category',
+  // 'forecast category' is intentionally NOT mapped — we only use Forecast Status.
+  'forecast status':                    'forecast_status',
   'stage date: qualify':                'stage_date_qualify',
   'stage date: build value':            'stage_date_build_value',
   'stage date: develop solution':       'stage_date_develop_solution',
@@ -101,8 +101,33 @@ export interface ImportStats {
   rowCount: number;
   added: number;
   updated: number;
-  closedLost: number;
+  closedLost: number;     // deals transitioning to Closed Lost in this import
+  closedWon: number;      // deals transitioning to Closed Won in this import
+  stale: number;          // previously-active deals missing from the feed (deleted/merged in SF)
   errors: string[];
+}
+
+// Stages that mean the opportunity is closed (SF now exports these directly).
+const CLOSED_LOST_STAGE = 'Closed Lost';
+const CLOSED_WON_STAGE  = 'Closed Won';
+
+/** Returns the authoritative closed-at date for a row, derived from SF
+ *  stage dates with a close_date fallback. Returns null if no date available.
+ *  Input values are date strings as they came from the SF export (ISO or
+ *  m/d/yyyy — Postgres accepts both via implicit cast when we feed it back). */
+function pickClosedAt(dbFields: Record<string, unknown>): string | null {
+  const stage = dbFields['stage'] as string | null;
+  if (stage === CLOSED_WON_STAGE) {
+    return (dbFields['stage_date_closed_won'] as string | null)
+        || (dbFields['close_date']            as string | null)
+        || null;
+  }
+  if (stage === CLOSED_LOST_STAGE) {
+    return (dbFields['stage_date_closed_lost'] as string | null)
+        || (dbFields['close_date']             as string | null)
+        || null;
+  }
+  return null;
 }
 
 // ── Build ParsedRow[] from a 2-D string matrix (shared by all parsers) ───────
@@ -264,30 +289,38 @@ export async function reconcileImport(
   rows: ParsedRow[],
   filename: string
 ): Promise<ImportStats> {
-  const stats: ImportStats = { rowCount: rows.length, added: 0, updated: 0, closedLost: 0, errors: [] };
+  const stats: ImportStats = {
+    rowCount: rows.length, added: 0, updated: 0,
+    closedLost: 0, closedWon: 0, stale: 0, errors: [],
+  };
 
-  // Snapshot all currently active opps BEFORE making any changes (for rollback)
+  // Snapshot all currently active (live, non-stale) opps BEFORE making any
+  // changes — used for rollback. Closed deals are left out because the
+  // import pipeline no longer mutates them implicitly.
   const snapshot = await query<Record<string, unknown>>(
-    `SELECT * FROM opportunities WHERE is_active = true AND is_closed_lost = false`
+    `SELECT * FROM opportunities
+      WHERE is_active = true AND is_closed_lost = false AND is_closed_won = false`
   );
   const addedIds: number[] = [];
 
   interface FieldHistoryEntry { opportunity_id: number; field_name: string; old_value: string | null; new_value: string | null; }
   const fieldHistoryEntries: FieldHistoryEntry[] = [];
 
-  // Get all currently active (non-closed) SF IDs
-  const activeOpps = await query<{
+  // Load ALL existing opps keyed by sf_id so we can reconcile open AND closed
+  // rows (the feed now includes Closed Won / Closed Lost directly).
+  const existingOpps = await query<{
     id: number; sf_opportunity_id: string; stage: string;
+    is_active: boolean; is_closed_lost: boolean; is_closed_won: boolean;
     se_comments: string | null; manager_comments: string | null;
     next_step_sf: string | null; technical_blockers: string | null;
     agentic_qual: string | null; close_date: string | null; poc_status: string | null;
   }>(
-    `SELECT id, sf_opportunity_id, stage, se_comments, manager_comments,
-            next_step_sf, technical_blockers, agentic_qual, close_date, poc_status
-     FROM opportunities
-     WHERE is_active = true AND is_closed_lost = false`
+    `SELECT id, sf_opportunity_id, stage, is_active, is_closed_lost, is_closed_won,
+            se_comments, manager_comments, next_step_sf, technical_blockers,
+            agentic_qual, close_date, poc_status
+       FROM opportunities`
   );
-  const activeMap = new Map(activeOpps.map(o => [o.sf_opportunity_id, o]));
+  const existingMap = new Map(existingOpps.map(o => [o.sf_opportunity_id, o]));
   const seenSfIds = new Set<string>();
 
   for (const row of rows) {
@@ -295,12 +328,57 @@ export async function reconcileImport(
     seenSfIds.add(sfId);
 
     try {
-      const existing = activeMap.get(sfId);
+      const existing = existingMap.get(sfId);
+
+      // Compute closed-state and authoritative closed_at from this row.
+      const rowStage      = row.dbFields['stage'] as string | null;
+      const rowIsLost     = rowStage === CLOSED_LOST_STAGE;
+      const rowIsWon      = rowStage === CLOSED_WON_STAGE;
+      const rowIsClosed   = rowIsLost || rowIsWon;
+      const rowClosedAt   = pickClosedAt(row.dbFields);
 
       if (existing) {
         // ── UPDATE existing opportunity ──────────────────────────────────
         const setClauses: string[] = ['updated_at = now()', 'sf_raw_fields = $1'];
         const params: unknown[] = [JSON.stringify(row.rawFields)];
+
+        // Closed-state transitions (all driven by the row's Stage value).
+        const wasClosedLost = existing.is_closed_lost;
+        const wasClosedWon  = existing.is_closed_won;
+        const transitioningToClosed =
+          (rowIsLost && !wasClosedLost) || (rowIsWon && !wasClosedWon);
+        const reopening =
+          (!rowIsClosed && (wasClosedLost || wasClosedWon));
+
+        // Always keep is_active / is_closed_lost / is_closed_won aligned with Stage.
+        setClauses.push(`is_closed_lost = ${rowIsLost}`);
+        setClauses.push(`is_closed_won  = ${rowIsWon}`);
+        setClauses.push(`is_active      = ${!rowIsClosed}`);
+        setClauses.push(`stale_since    = NULL`); // re-appearing → not stale
+
+        if (rowIsClosed) {
+          if (rowClosedAt) {
+            params.push(rowClosedAt);
+            setClauses.push(`closed_at = $${params.length}::timestamptz`);
+          } else if (transitioningToClosed) {
+            setClauses.push(`closed_at = now()`);
+          }
+          // Fire unread badge when the deal flips from open → closed in this import.
+          if (transitioningToClosed) {
+            if (rowIsLost) {
+              setClauses.push(`closed_lost_seen = false`);
+              stats.closedLost++;
+            }
+            if (rowIsWon) {
+              setClauses.push(`closed_won_seen = false`);
+              stats.closedWon++;
+            }
+          }
+        } else if (reopening) {
+          setClauses.push(`closed_at = NULL`);
+          setClauses.push(`closed_lost_seen = false`);
+          setClauses.push(`closed_won_seen  = false`);
+        }
 
         // Track stage change
         const newStage = row.dbFields['stage'] as string | null;
@@ -379,9 +457,26 @@ export async function reconcileImport(
         stats.updated++;
       } else {
         // ── INSERT new opportunity ──────────────────────────────────────
+        // New rows may arrive already closed (feed now includes Closed Won/Lost),
+        // so we seed is_active / is_closed_* / closed_at at insert time too.
         const fields = ['sf_raw_fields', 'first_seen_at', ...Object.keys(row.dbFields)];
         const placeholders = ['$1', 'now()', ...Object.keys(row.dbFields).map((_, i) => `$${i + 2}`)];
         const values = [JSON.stringify(row.rawFields), ...Object.values(row.dbFields)];
+
+        fields.push('is_closed_lost'); values.push(rowIsLost); placeholders.push(`$${values.length}`);
+        fields.push('is_closed_won');  values.push(rowIsWon);  placeholders.push(`$${values.length}`);
+        fields.push('is_active');      values.push(!rowIsClosed); placeholders.push(`$${values.length}`);
+
+        if (rowIsClosed && rowClosedAt) {
+          fields.push('closed_at');
+          values.push(rowClosedAt);
+          placeholders.push(`$${values.length}::timestamptz`);
+        } else if (rowIsClosed) {
+          fields.push('closed_at');
+          placeholders.push('now()');
+        }
+        if (rowIsLost) { fields.push('closed_lost_seen'); values.push(false); placeholders.push(`$${values.length}`); stats.closedLost++; }
+        if (rowIsWon)  { fields.push('closed_won_seen');  values.push(false); placeholders.push(`$${values.length}`); stats.closedWon++; }
 
         // Set freshness timestamps on insert when the field already has content
         // (the UPDATE path only fires these when values *change* between imports,
@@ -417,33 +512,25 @@ export async function reconcileImport(
     }
   }
 
-  // ── Mark Closed (Won or Lost): active opps not in this import ──────────
-  // Disappearance from SF = deal closed. If the last known stage was
-  // "Submitted for Booking", the booking went through → Closed Won.
-  // Anything else disappearing → Closed Lost.
-  for (const [sfId, opp] of activeMap.entries()) {
-    if (!seenSfIds.has(sfId)) {
-      const won = (opp.stage as string | null) === 'Submitted for Booking';
-      if (won) {
-        await query(
-          `UPDATE opportunities
-           SET is_closed_won = true, closed_at = now(), closed_won_seen = false,
-               stage = 'Closed Won',
-               is_active = false, updated_at = now()
-           WHERE id = $1`,
-          [opp.id]
-        );
-      } else {
-        await query(
-          `UPDATE opportunities
-           SET is_closed_lost = true, closed_at = now(), closed_lost_seen = false,
-               is_active = false, updated_at = now()
-           WHERE id = $1`,
-          [opp.id]
-        );
-        stats.closedLost++;
-      }
-    }
+  // ── Handle opps that disappeared from the feed ────────────────────────
+  // The SF export now includes Closed Won / Closed Lost deals directly, so
+  // closed state is driven by the Stage column (handled above). A previously-
+  // active opp that is missing from this import is assumed deleted or merged
+  // in SF and is soft-hidden via `stale_since` — NOT marked Closed Lost.
+  // Already-closed opps that are missing are left completely untouched.
+  for (const [sfId, opp] of existingMap.entries()) {
+    if (seenSfIds.has(sfId)) continue;
+    if (opp.is_closed_lost || opp.is_closed_won) continue; // leave closed history alone
+    if (!opp.is_active) continue; // already stale from a prior import
+    await query(
+      `UPDATE opportunities
+          SET is_active   = false,
+              stale_since = now(),
+              updated_at  = now()
+        WHERE id = $1`,
+      [opp.id]
+    );
+    stats.stale++;
   }
 
   // ── Derive products from opportunity names ─────────────────────────────
@@ -460,8 +547,9 @@ export async function reconcileImport(
   const importLog = await queryOne<{ id: number }>(
     `INSERT INTO imports
        (filename, row_count, opportunities_added, opportunities_updated,
-        opportunities_closed_lost, status, error_log, rollback_data)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        opportunities_closed_lost, opportunities_closed_won, opportunities_stale,
+        status, error_log, rollback_data)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
      RETURNING id`,
     [
       filename,
@@ -469,6 +557,8 @@ export async function reconcileImport(
       stats.added,
       stats.updated,
       stats.closedLost,
+      stats.closedWon,
+      stats.stale,
       status,
       stats.errors.length > 0 ? stats.errors.join('\n') : null,
       { opps: snapshot, added_ids: addedIds },
@@ -491,26 +581,38 @@ export async function reconcileImport(
 
 // ── Dry-run diff (no DB writes) ────────────────────────────────────────────
 export async function previewImport(rows: ParsedRow[]): Promise<ImportStats> {
-  const stats: ImportStats = { rowCount: rows.length, added: 0, updated: 0, closedLost: 0, errors: [] };
+  const stats: ImportStats = {
+    rowCount: rows.length, added: 0, updated: 0,
+    closedLost: 0, closedWon: 0, stale: 0, errors: [],
+  };
 
-  const activeOpps = await query<{ sf_opportunity_id: string }>(
-    `SELECT sf_opportunity_id FROM opportunities WHERE is_active = true AND is_closed_lost = false`
+  const existing = await query<{
+    sf_opportunity_id: string;
+    is_active: boolean; is_closed_lost: boolean; is_closed_won: boolean;
+  }>(
+    `SELECT sf_opportunity_id, is_active, is_closed_lost, is_closed_won FROM opportunities`
   );
-  const activeIds = new Set(activeOpps.map(o => o.sf_opportunity_id));
+  const existingMap = new Map(existing.map(o => [o.sf_opportunity_id, o]));
   const seenIds = new Set<string>();
 
   for (const row of rows) {
     const sfId = row.dbFields['sf_opportunity_id'] as string;
     seenIds.add(sfId);
-    if (activeIds.has(sfId)) {
-      stats.updated++;
-    } else {
-      stats.added++;
-    }
+    const rowStage    = row.dbFields['stage'] as string | null;
+    const rowIsLost   = rowStage === CLOSED_LOST_STAGE;
+    const rowIsWon    = rowStage === CLOSED_WON_STAGE;
+    const prev        = existingMap.get(sfId);
+    if (!prev) { stats.added++; }
+    else       { stats.updated++; }
+    if (prev && rowIsLost && !prev.is_closed_lost) stats.closedLost++;
+    if (prev && rowIsWon  && !prev.is_closed_won)  stats.closedWon++;
+    if (!prev && rowIsLost) stats.closedLost++;
+    if (!prev && rowIsWon)  stats.closedWon++;
   }
 
-  for (const sfId of activeIds) {
-    if (!seenIds.has(sfId)) stats.closedLost++;
+  for (const [sfId, opp] of existingMap.entries()) {
+    if (seenIds.has(sfId)) continue;
+    if (opp.is_active && !opp.is_closed_lost && !opp.is_closed_won) stats.stale++;
   }
 
   return stats;

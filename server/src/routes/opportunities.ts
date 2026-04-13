@@ -154,7 +154,7 @@ router.get('/favorites', auth, async (req: Request, res: Response): Promise<void
        o.previous_stage, o.arr, o.arr_currency, o.close_date,
        o.record_type, o.team, o.deploy_mode, o.key_deal, o.fiscal_period,
        o.se_comments, o.se_comments_updated_at, o.next_step_sf, o.technical_blockers,
-       o.forecast_category,
+       o.forecast_status,
        json_build_object('id', u.id, 'name', u.name, 'email', u.email) AS se_owner,
        o.ae_owner_name,
        COALESCE(

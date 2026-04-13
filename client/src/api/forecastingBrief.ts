@@ -27,7 +27,7 @@ export interface ForecastOpp {
   stage: string;
   stage_changed_at: string | null;
   close_date: string | null;
-  forecast_category: string | null;
+  forecast_status: string | null;
   se_owner_id: number | null;
   se_owner_name: string | null;
   ae_owner_name: string | null;

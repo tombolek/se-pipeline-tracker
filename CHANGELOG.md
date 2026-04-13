@@ -8,6 +8,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## 2026-04-13
 
 ### Changed
+- **Closed Won / Closed Lost detection is now stage-driven** — SF export filter now includes Closed Won and Closed Lost deals directly, so we no longer infer closed status from a deal disappearing from the feed. Closed status and `closed_at` are taken straight from SF's `Stage` + `Stage Date: Closed - Won/Lost` columns. Deals that vanish from the feed while open are soft-hidden as *stale* (treated as SF deletes/merges), not marked Closed Lost. Historical `closed_at` values were backfilled from SF stage dates.
+- **Forecast Status replaces Forecast Category** — the `forecast_category` DB column was historically populated with SF "Forecast Status" values due to an import-mapper collision. Renamed to `forecast_status` to match reality; Forecast Category is no longer imported. Forecasting Brief continues to use Commit / Most Likely / Upside / Pipeline / Omitted as before.
 - **Loss Analysis page renamed** — "Win/Loss Analysis" is now just "Loss Analysis" (page heading + sidebar label). The page continues to include Closed Lost deals only. (Closed Won deals live outside this page.)
 
 ### Added

@@ -58,7 +58,7 @@ The core hierarchy: **Opportunity** (from Salesforce) → **Tasks / Next Steps**
 ### Key design rules
 - `sf_opportunity_id` is the immutable reconciliation key for imports — never changes, never gets wiped
 - Imports update SF-owned fields only; tasks and notes are never touched by imports
-- The import always contains **Open opportunities only**. An SF ID absent from a new import = the deal closed (set `closed_at = now()`, `is_closed_lost = true`)
+- The import contains **Open + Closed Won + Closed Lost** opportunities. Closed status is taken directly from SF: `Stage = 'Closed Won'` / `'Closed Lost'` + `Stage Date: Closed - Won/Lost`. An SF ID absent from a new import does **not** mean Closed Lost — it is treated as stale (SF delete/merge) and the opp is soft-hidden via `is_active=false` + `stale_since=now()`
 - `stage_changed_at` is tracked on every import — powers the Stage Movement view
 - `last_note_at` is updated only when a user adds a note — powers the Missing Notes view
 - `first_seen_at` records when a Closed Lost opp disappeared from imports — powers the "newest closed" sort
@@ -228,9 +228,9 @@ error_log                   TEXT
 
 ## 5. Salesforce Import Pipeline
 
-Salesforce data comes in via export of a pre-built Opportunities report (currently `.xls` format — Salesforce exports as HTML-in-XLS, so the parser must use an HTML table reader, not a native XLS parser).
+Salesforce data comes in via export of a pre-built Opportunities report (currently `.xls` / `.csv` format — Salesforce exports as HTML-in-XLS, so the XLS parser uses an HTML table reader).
 
-**The import always contains Open opportunities only.** There is no "Closed" status in the feed — a deal is Closed Lost when its SF ID stops appearing.
+**The import contains Open + Closed Won + Closed Lost opportunities.** Closed status is authoritative from SF: a row with `Stage = 'Closed Won'` or `'Closed Lost'` and a populated `Stage Date: Closed - Won/Lost` marks the deal as closed with `closed_at` set from that SF date (not import time). A deal that disappears from the feed while still open is treated as a SF delete/merge — soft-hidden via `is_active=false` + `stale_since=now()`, **not** marked Closed Lost.
 
 ### Confirmed SF Export Columns (55 fields)
 All 55 columns must be ingested. Map them to the `opportunities` table as defined in Section 4. Store the full row as `sf_raw_fields` JSONB regardless, so future new columns are automatically preserved without a schema migration.
@@ -296,9 +296,9 @@ All 55 columns must be ingested. Map them to the `opportunities` table as define
 ### Reconciliation Logic
 1. Parse the file as HTML table (not XLS binary) — Salesforce exports use HTML-in-XLS format
 2. Match every incoming row on `sf_opportunity_id`
-3. **Match found:** update all SF-owned fields; if `stage` changed → set `stage_changed_at = now()`, `previous_stage = old_stage`; if `se_comments` value changed → set `se_comments_updated_at = now()`; if `manager_comments` changed → set `manager_comments_updated_at = now()`; never touch `se_owner_id`, `last_note_at`, tasks, or notes
-4. **New SF ID:** insert new opportunity record, set `first_seen_at = now()`
-5. **SF ID missing from import (was present before):** this deal is now Closed Lost → set `is_closed_lost = true`, `closed_at = now()`, `closed_lost_seen = false` (triggers "unread" badge), `is_active = false`
+3. **Match found:** update all SF-owned fields; if `stage` changed → set `stage_changed_at = now()`, `previous_stage = old_stage`; if `se_comments` value changed → set `se_comments_updated_at = now()`; if `manager_comments` changed → set `manager_comments_updated_at = now()`; derive `is_closed_won` / `is_closed_lost` + `closed_at` from the row's `Stage` and `Stage Date: Closed - Won/Lost`; when a deal transitions open→Closed Lost, set `closed_lost_seen = false` (unread badge); when a deal transitions open→Closed Won, set `closed_won_seen = false`; clear `stale_since` whenever an opp is seen; never touch `se_owner_id`, `last_note_at`, tasks, or notes
+4. **New SF ID:** insert new opportunity record, set `first_seen_at = now()`; if the row already arrives with `Stage = Closed Won/Lost`, seed the closed flags + `closed_at` from SF stage dates at insert time
+5. **SF ID missing from import (was present before and still open):** treated as a SF delete/merge — set `is_active = false`, `stale_since = now()`. Already-closed opps that stop appearing in the feed are left untouched. Stale opps are **not** marked Closed Lost.
 6. Store the complete raw row in `sf_raw_fields` JSONB on every import — this handles future new SF columns automatically
 7. Log everything to the `imports` table
 
