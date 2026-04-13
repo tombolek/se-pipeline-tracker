@@ -219,7 +219,7 @@ function ComparisonChart({ groups, asOfMonthIdx }: { groups: GroupResult[]; asOf
   const yGrid = [0, 25, 50, 75, 100];
 
   return (
-    <svg viewBox="0 0 820 240" preserveAspectRatio="xMidYMid meet" className="w-full">
+    <svg viewBox="0 0 820 240" preserveAspectRatio="xMidYMid meet" className="w-full max-w-3xl mx-auto block" style={{ maxHeight: 280 }}>
       {/* Y gridlines + labels */}
       {yGrid.map(p => (
         <Fragment key={p}>
