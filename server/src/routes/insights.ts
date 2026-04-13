@@ -285,6 +285,61 @@ router.get('/closed-lost-stats', auth, mgr, async (req: Request, res: Response):
   res.json(ok(rows, { days }));
 });
 
+// ── Closed Won by Territory (Issue #94) ──────────────────────────────────────
+// GET /insights/closed-won-by-territory?fiscal_year=FY2026&fiscal_period=FY2026-Q1
+//
+// Returns raw Closed Won deals (new-business record types only) so the client
+// can group/aggregate flexibly. `meta.fiscal_years` is the list of distinct
+// fiscal years present in new-business Closed Won data, for the FY dropdown.
+router.get('/closed-won-by-territory', auth, mgr, async (req: Request, res: Response): Promise<void> => {
+  const fiscalYear = (req.query.fiscal_year as string | undefined) || null;
+  const fiscalPeriod = (req.query.fiscal_period as string | undefined) || null;
+
+  const conditions: string[] = [
+    `o.is_closed_won = true`,
+    `o.record_type IN ('New Logo', 'Upsell', 'Cross-Sell')`,
+  ];
+  const params: unknown[] = [];
+  if (fiscalYear) {
+    params.push(fiscalYear);
+    conditions.push(`o.fiscal_year = $${params.length}`);
+  }
+  if (fiscalPeriod) {
+    params.push(fiscalPeriod);
+    conditions.push(`o.fiscal_period = $${params.length}`);
+  }
+
+  const rows = await query(
+    `SELECT o.id, o.sf_opportunity_id, o.name, o.account_name,
+            o.team, o.record_type,
+            o.arr, o.arr_converted, o.arr_currency,
+            o.fiscal_year, o.fiscal_period,
+            o.close_date, o.closed_at,
+            o.ae_owner_name,
+            u.id AS se_owner_id, u.name AS se_owner_name
+     FROM opportunities o
+     LEFT JOIN users u ON u.id = o.se_owner_id
+     WHERE ${conditions.join(' AND ')}
+     ORDER BY o.team ASC NULLS LAST, u.name ASC NULLS LAST, o.arr_converted DESC NULLS LAST`,
+    params
+  );
+
+  // Distinct fiscal years available (new-business Closed Won only)
+  const fyRows = await query<{ fiscal_year: string }>(
+    `SELECT DISTINCT fiscal_year
+     FROM opportunities
+     WHERE is_closed_won = true
+       AND record_type IN ('New Logo', 'Upsell', 'Cross-Sell')
+       AND fiscal_year IS NOT NULL AND fiscal_year != ''
+     ORDER BY fiscal_year DESC`
+  );
+
+  res.json(ok(rows, {
+    fiscal_years: fyRows.map(r => r.fiscal_year),
+    filters: { fiscal_year: fiscalYear, fiscal_period: fiscalPeriod },
+  }));
+});
+
 // ── Technical Blockers ────────────────────────────────────────────────────────
 
 // GET /insights/tech-blockers  — all active opps that have technical_blockers content

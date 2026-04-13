@@ -19,6 +19,7 @@ export const DEFAULT_INSIGHTS_NAV: InsightsNavItem[] = [
   { id: 'team-tasks',    label: 'Team Tasks',    to: '/insights/team-tasks',    icon: 'insight', visible: true },
   { id: 'deploy-mode',         label: 'DeployMode',          to: '/insights/deploy-mode',         icon: 'insight', visible: true },
   { id: 'closed-lost-stats',   label: 'Loss Analysis',       to: '/insights/closed-lost-stats',   icon: 'insight', visible: true },
+  { id: 'closed-won-territory', label: 'Closed Won by Territory', to: '/insights/closed-won-territory', icon: 'insight', visible: true },
   { id: 'tech-blockers',       label: 'Tech Blockers',       to: '/insights/tech-blockers',       icon: 'insight', visible: true },
   { id: 'agentic-qual',        label: 'Agentic Qual',        to: '/insights/agentic-qual',        icon: 'insight', visible: true },
 ];

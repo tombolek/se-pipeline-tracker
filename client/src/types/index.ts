@@ -59,8 +59,10 @@ export interface Opportunity {
   partner_manager: string | null;
   products: string[];
   is_closed_lost: boolean;
+  is_closed_won: boolean;
   closed_at: string | null;
   closed_lost_seen: boolean;
+  closed_won_seen: boolean;
   last_note_at: string | null;
   stage_changed_at: string | null;
   previous_stage: string | null;
