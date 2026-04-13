@@ -6,7 +6,7 @@
  * recent stage movements, deals missing SE notes, deals with no next step,
  * and an AI-generated coaching narrative.
  */
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { listUsers } from '../../api/users';
 import { getOneOnOneData, generateOneOnOneNarrative } from '../../api/oneOnOnePrep';
@@ -83,6 +83,80 @@ function StatCard({ label, value, tone }: {
       <p className="text-[10px] text-brand-navy-70 uppercase tracking-wide mt-0.5">{label}</p>
     </div>
   );
+}
+
+// Render inline **bold** markers within a line.
+function renderInline(text: string): React.ReactNode {
+  const parts = text.split(/\*\*(.+?)\*\*/g);
+  return parts.map((part, i) =>
+    i % 2 === 1
+      ? <strong key={i} className="font-semibold text-brand-navy">{part}</strong>
+      : <span key={i}>{part}</span>
+  );
+}
+
+// Render the AI coaching brief's lightweight markdown: ## headings, **bold**,
+// blank-line paragraphs, and leading "1." / "-" list markers.
+function renderBrief(content: string): React.ReactNode {
+  const blocks = content.trim().split(/\n{2,}/);
+  return blocks.map((block, bi) => {
+    const lines = block.split('\n');
+
+    // ## Heading
+    if (lines[0].startsWith('## ')) {
+      const heading = lines[0].replace(/^##\s+/, '');
+      const rest = lines.slice(1).join('\n');
+      return (
+        <div key={bi} className={bi > 0 ? 'mt-4' : ''}>
+          <h3 className="text-base font-semibold text-brand-navy mb-1">{renderInline(heading)}</h3>
+          {rest && <p className="text-sm text-brand-navy leading-relaxed">{renderInline(rest)}</p>}
+        </div>
+      );
+    }
+
+    // Section label pattern: first line is entirely **Bold** → treat as mini-heading.
+    const labelMatch = lines[0].match(/^\*\*(.+?)\*\*$/);
+    if (labelMatch) {
+      const body = lines.slice(1);
+      return (
+        <div key={bi} className={bi > 0 ? 'mt-3' : ''}>
+          <p className="text-xs font-semibold uppercase tracking-wide text-brand-purple mb-1">{labelMatch[1]}</p>
+          {body.map((ln, i) => {
+            const numbered = ln.match(/^(\d+)\.\s+(.*)$/);
+            if (numbered) {
+              return (
+                <p key={i} className="text-sm text-brand-navy leading-relaxed ml-4 -indent-4 mb-0.5">
+                  <span className="text-brand-navy-70">{numbered[1]}.</span> {renderInline(numbered[2])}
+                </p>
+              );
+            }
+            if (ln.startsWith('- ')) {
+              return (
+                <p key={i} className="text-sm text-brand-navy leading-relaxed ml-4 -indent-4 mb-0.5">
+                  <span className="text-brand-navy-70">•</span> {renderInline(ln.slice(2))}
+                </p>
+              );
+            }
+            return (
+              <p key={i} className="text-sm text-brand-navy leading-relaxed">{renderInline(ln)}</p>
+            );
+          })}
+        </div>
+      );
+    }
+
+    // Plain paragraph.
+    return (
+      <p key={bi} className={`text-sm text-brand-navy leading-relaxed ${bi > 0 ? 'mt-2' : ''}`}>
+        {lines.map((ln, i) => (
+          <span key={i}>
+            {renderInline(ln)}
+            {i < lines.length - 1 && <br />}
+          </span>
+        ))}
+      </p>
+    );
+  });
 }
 
 // ── Main page ──────────────────────────────────────────────────────────────
@@ -281,7 +355,7 @@ export default function OneOnOnePrepPage() {
             {!narrativeCollapsed && (
               <div className="px-4 pb-3 text-sm text-brand-navy leading-relaxed">
                 {data.narrative ? (
-                  <div className="whitespace-pre-wrap">{data.narrative.content}</div>
+                  <div>{renderBrief(data.narrative.content)}</div>
                 ) : (
                   <p className="text-sm text-brand-navy-70 mb-1">
                     Generate a Claude-powered brief covering wins, coaching focus, risks to flag, and a suggested agenda for your 1:1 with {selectedSe?.name ?? 'this SE'}.
