@@ -7,6 +7,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## 2026-04-13
 
+### Changed
+- **1:1 Prep — AI Coaching Brief now collapsible** — the AI Coaching Brief on the 1:1 Prep page is now collapsed by default and shows a freshness indicator (green ≤3d, amber ≤14d, red >14d) next to the title, matching the AI Summary / MEDDPICC Coach pattern elsewhere. Regenerate and Copy controls live inside the expanded panel.
+
 ### Added
 - **Pick a manager when creating an SE user** — the Add User dialog in Settings → Users now shows a Manager dropdown (active managers only) whenever the role is set to SE, so a new SE can be assigned to their manager without a follow-up edit. Managers still have no manager of their own. The dropdown defaults to "— No manager —" for cases where you want to assign later.
 - **SE Comments now create Notes automatically** — when an SF import detects a new SE Comments value on a deal, the new comment is also appended as a Note on the opportunity. Author shows as **SF Import**; the note's timestamp is taken from the date stamp parsed out of the comment text (e.g. `BM_26SEPT`) when available, falling back to import time. SE Comments behaviour everywhere else (freshness signal, Deal Info display, drives Stale list, etc.) is unchanged.

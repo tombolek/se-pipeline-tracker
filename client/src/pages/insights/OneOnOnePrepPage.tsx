@@ -98,6 +98,8 @@ export default function OneOnOnePrepPage() {
   const [narrativeLoading, setNarrativeLoading] = useState(false);
   const [narrativeError, setNarrativeError] = useState<string | null>(null);
   const [selectedOppId, setSelectedOppId] = useState<number | null>(null);
+  // AI Coaching Brief collapsed by default (mirrors AI Summary / MEDDPICC Coach UX).
+  const [narrativeCollapsed, setNarrativeCollapsed] = useState(true);
 
   const handleOpenOpp = useCallback((id: number) => setSelectedOppId(id), []);
   const handleCloseDrawer = useCallback(() => setSelectedOppId(null), []);
@@ -247,41 +249,67 @@ export default function OneOnOnePrepPage() {
             <StatCard label="Stale comments" value={String(summary.staleCount)} tone={summary.staleCount > 0 ? 'warn' : undefined} />
           </div>
 
-          {/* AI narrative */}
-          <Section
-            title="AI Coaching Brief"
-            subtitle={data.narrative ? `Generated ${formatDate(data.narrative.generated_at)}` : 'Not generated yet'}
-          >
-            {data.narrative ? (
-              <div className="text-sm text-brand-navy whitespace-pre-wrap leading-relaxed">
-                {data.narrative.content}
+          {/* AI Coaching Brief — collapsible, collapsed by default, with freshness indicator */}
+          <div className="mb-4 bg-brand-purple-30 border border-brand-purple/20 rounded-xl overflow-hidden">
+            {/* Header — always visible, clickable to collapse */}
+            <button
+              onClick={() => setNarrativeCollapsed(c => !c)}
+              className="w-full flex items-center gap-1.5 px-4 py-2.5 text-left"
+            >
+              <svg className="w-3.5 h-3.5 text-brand-purple flex-shrink-0" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="#6A2CF5"/>
+              </svg>
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-brand-purple">AI Coaching Brief</span>
+              {data.narrative ? (() => {
+                const days = Math.floor((Date.now() - new Date(data.narrative.generated_at).getTime()) / 86400000);
+                const color = days <= 3 ? 'text-status-success' : days <= 14 ? 'text-status-warning' : 'text-status-overdue';
+                return (
+                  <span className={`text-[10px] font-medium ${color} ml-1`}>
+                    {days === 0 ? 'today' : `${days}d ago`}
+                  </span>
+                );
+              })() : (
+                <span className="text-[10px] font-medium text-brand-navy-70 ml-1">Not generated yet</span>
+              )}
+              <div className="ml-auto flex items-center gap-1">
+                <svg className={`w-3 h-3 text-brand-navy-70 transition-transform ${narrativeCollapsed ? '' : 'rotate-180'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
               </div>
-            ) : (
-              <p className="text-sm text-brand-navy-70 mb-3">
-                Generate a Claude-powered brief covering wins, coaching focus, risks to flag, and a suggested agenda for your 1:1 with {selectedSe?.name ?? 'this SE'}.
-              </p>
+            </button>
+            {/* Body — collapsible */}
+            {!narrativeCollapsed && (
+              <div className="px-4 pb-3 text-sm text-brand-navy leading-relaxed">
+                {data.narrative ? (
+                  <div className="whitespace-pre-wrap">{data.narrative.content}</div>
+                ) : (
+                  <p className="text-sm text-brand-navy-70 mb-1">
+                    Generate a Claude-powered brief covering wins, coaching focus, risks to flag, and a suggested agenda for your 1:1 with {selectedSe?.name ?? 'this SE'}.
+                  </p>
+                )}
+                <div className="flex items-center gap-3 mt-3">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleGenerateNarrative(); }}
+                    disabled={narrativeLoading}
+                    className="text-[10px] font-medium text-brand-purple hover:text-brand-purple-70 transition-colors disabled:opacity-50"
+                  >
+                    {narrativeLoading ? 'Regenerating…' : data.narrative ? 'Regenerate' : 'Generate coaching brief'}
+                  </button>
+                  {data.narrative && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(data.narrative!.content); }}
+                      className="text-[10px] font-medium text-brand-navy-70 hover:text-brand-navy transition-colors"
+                    >
+                      Copy
+                    </button>
+                  )}
+                  {narrativeError && (
+                    <span className="text-[10px] text-status-overdue">{narrativeError}</span>
+                  )}
+                </div>
+              </div>
             )}
-            <div className="flex items-center gap-3 mt-3">
-              <button
-                onClick={handleGenerateNarrative}
-                disabled={narrativeLoading}
-                className="px-3 py-1.5 rounded-lg bg-brand-purple text-white text-xs font-medium hover:bg-brand-purple-70 disabled:opacity-50"
-              >
-                {narrativeLoading ? 'Generating…' : data.narrative ? 'Regenerate' : 'Generate coaching brief'}
-              </button>
-              {data.narrative && (
-                <button
-                  onClick={() => navigator.clipboard.writeText(data.narrative!.content)}
-                  className="px-3 py-1.5 rounded-lg border border-brand-navy-30 text-brand-navy text-xs font-medium hover:border-brand-navy"
-                >
-                  Copy
-                </button>
-              )}
-              {narrativeError && (
-                <span className="text-xs text-status-overdue">{narrativeError}</span>
-              )}
-            </div>
-          </Section>
+          </div>
 
           {/* Overdue tasks */}
           {overdueTasks.length > 0 && (
