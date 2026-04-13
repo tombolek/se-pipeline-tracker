@@ -7,6 +7,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## 2026-04-13
 
+### Changed
+- **Loss Analysis page renamed** — "Win/Loss Analysis" is now just "Loss Analysis" (page heading + sidebar label). The page continues to include Closed Lost deals only. (Closed Won deals live outside this page.)
+
 ### Added
 - **Edit SE Owner on closed deals** — Win/Loss Analysis now shows the Filtered Deals table at all times (not only when filters are active) and adds an SE Owner column. Manager users can reassign SE ownership on Closed Won / Closed Lost deals inline via a dropdown; SE users see the name read-only. The Filtered Deals table header notes "Manager: SE Owner is editable" when applicable.
 

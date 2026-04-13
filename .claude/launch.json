@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "previews",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "-p", "4999", "previews"],
+      "port": 4999
+    }
+  ]
+}

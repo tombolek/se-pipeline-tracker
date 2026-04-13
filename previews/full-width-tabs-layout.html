@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Full-Width Tabs Layout — Preview</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      fontFamily: { poppins: ['Poppins', 'system-ui', 'sans-serif'] },
+      colors: {
+        'brand-navy':   { DEFAULT: '#1A0C42', 30: '#CCC9D5', 70: '#665D81' },
+        'brand-purple': { DEFAULT: '#6A2CF5', 30: '#DED0FD', 70: '#9C72F8' },
+        'brand-pink':   { DEFAULT: '#F10090', 30: '#FCC6E6' },
+        'status-overdue':  '#FF464C',
+        'status-warning':  '#FFAB00',
+        'status-success':  '#00E5B6',
+        'status-info':     '#00DDFF',
+      }
+    }
+  }
+}
+</script>
+<style>
+  body { font-family: 'Poppins', system-ui, sans-serif; }
+  .tab-active { background: #6A2CF5; color: white; box-shadow: 0 1px 3px rgba(106,44,245,0.3); }
+  .tab-inactive { color: #665D81; }
+  .tab-inactive:hover { color: #1A0C42; background: rgba(106,44,245,0.05); }
+</style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+
+<!-- Context banner -->
+<div class="max-w-[1100px] mx-auto mt-4 mb-4 px-4">
+  <div class="bg-brand-purple-30/40 border border-brand-purple/20 rounded-lg px-4 py-2 text-xs text-brand-navy-70">
+    <strong>Preview:</strong> Full-width tab layout. SF data becomes the 4th tab ("Deal Info"). Content area uses the full width. Header pills are clickable to navigate to Deal Info sections.
+  </div>
+</div>
+
+<!-- ═══════ MAIN LAYOUT ═══════ -->
+<div class="max-w-[1100px] mx-auto bg-[#F5F5F7] rounded-xl border border-brand-navy-30/40 shadow-sm overflow-hidden" style="height: 720px;">
+  <div class="flex flex-col h-full">
+
+    <!-- ── HEADER (always visible) ── -->
+    <div class="px-5 pt-4 pb-3 bg-white border-b border-brand-navy-30/30 flex-shrink-0">
+      <!-- Row 1: title + badges + actions -->
+      <div class="flex items-center gap-2 flex-wrap">
+        <h2 class="text-lg font-semibold text-brand-navy truncate">[RS] Telekom Srbija - DQ/DG via Deloitte</h2>
+        <span class="px-1.5 py-0.5 text-[9px] font-semibold bg-yellow-100 text-yellow-700 rounded uppercase tracking-wider">Key Deal</span>
+        <div class="ml-auto flex items-center gap-2">
+          <button class="px-2.5 py-1.5 text-[11px] font-medium bg-brand-purple text-white rounded-lg">Assign to me</button>
+          <button class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-brand-navy-30 hover:border-brand-purple transition-colors">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="url(#sg)"/><defs><linearGradient id="sg" x1="2" y1="2" x2="22" y2="22"><stop stop-color="#F10090"/><stop offset="1" stop-color="#6A2CF5"/></linearGradient></defs></svg>
+            <span class="text-[11px] font-medium text-brand-navy-70">Summarize</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Row 2: metadata pills -->
+      <div class="flex items-center gap-2 mt-2.5 flex-wrap text-[12px]">
+        <button class="text-brand-purple font-medium hover:underline">Telekom Srbija</button>
+        <span class="text-brand-navy-30">|</span>
+        <!-- Clickable stage pill → navigates to Deal Info tab -->
+        <button onclick="switchTab('deal-info')" class="hover:text-brand-purple transition-colors" title="View in Deal Info">
+          <span class="text-brand-navy-70">Develop Solution</span>
+        </button>
+        <span class="text-brand-navy-30">|</span>
+        <span class="font-medium text-brand-navy">$250K</span>
+        <span class="text-brand-navy-30">|</span>
+        <span class="text-brand-navy-70">Close Apr 30, 26</span>
+        <span class="text-brand-navy-30">|</span>
+        <!-- Clickable health score → Deal Info -->
+        <button onclick="switchTab('deal-info')" class="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 text-[11px] font-medium hover:bg-green-200 transition-colors" title="View Deal Info">
+          <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+          67
+        </button>
+        <!-- Clickable MEDDPICC pill → Deal Info > MEDDPICC section -->
+        <button onclick="switchTab('deal-info', 'meddpicc')" class="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[11px] font-medium hover:bg-brand-purple-30/60 transition-colors" style="background: rgba(222,208,253,0.4);" title="View MEDDPICC details">
+          <span class="text-brand-purple">4</span><span class="text-brand-navy-30">/</span><span class="text-brand-navy-70">9</span>
+          <svg class="w-3 h-3 text-brand-navy-30" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+
+      <!-- ── TAB BAR (more pronounced) ── -->
+      <div class="flex mt-4 border-b border-brand-navy-30/30 -mx-5 px-5">
+        <button onclick="switchTab('work')" id="tab-work" class="tab-btn tab-active px-5 py-2.5 text-[13px] font-medium rounded-t-lg relative -mb-px border-b-2 border-transparent transition-all">
+          Work
+        </button>
+        <button onclick="switchTab('timeline')" id="tab-timeline" class="tab-btn tab-inactive px-5 py-2.5 text-[13px] font-medium rounded-t-lg relative -mb-px border-b-2 border-transparent transition-all">
+          Timeline
+        </button>
+        <button onclick="switchTab('call-prep')" id="tab-call-prep" class="tab-btn tab-inactive px-5 py-2.5 text-[13px] font-medium rounded-t-lg relative -mb-px border-b-2 border-transparent transition-all flex items-center gap-1">
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z"/></svg>
+          Call Prep
+        </button>
+        <button onclick="switchTab('deal-info')" id="tab-deal-info" class="tab-btn tab-inactive px-5 py-2.5 text-[13px] font-medium rounded-t-lg relative -mb-px border-b-2 border-transparent transition-all flex items-center gap-1">
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          Deal Info
+        </button>
+      </div>
+    </div>
+
+    <!-- ── TAB CONTENT (full width!) ── -->
+    <div class="flex-1 overflow-y-auto">
+
+      <!-- WORK TAB -->
+      <div id="content-work" class="tab-content px-5 py-5 space-y-6">
+        <!-- Next Steps -->
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2">
+              <h3 class="text-sm font-semibold text-brand-navy">Next Steps</h3>
+              <span class="text-[10px] bg-brand-purple-30 text-brand-purple px-2 py-0.5 rounded-full font-medium">2</span>
+            </div>
+          </div>
+          <div class="space-y-2">
+            <div class="flex items-center gap-3 p-3 bg-white rounded-lg border border-brand-navy-30/40">
+              <input type="checkbox" class="w-4 h-4 rounded border-brand-navy-30 text-brand-purple">
+              <div class="flex-1">
+                <span class="text-[13px] text-brand-navy">Schedule PoC kickoff with Deloitte team</span>
+                <span class="ml-2 text-[10px] text-status-overdue font-medium">3d overdue</span>
+              </div>
+              <span class="text-[11px] text-brand-navy-70">Apr 7</span>
+            </div>
+            <div class="flex items-center gap-3 p-3 bg-white rounded-lg border border-brand-navy-30/40">
+              <input type="checkbox" class="w-4 h-4 rounded border-brand-navy-30 text-brand-purple">
+              <div class="flex-1">
+                <span class="text-[13px] text-brand-navy">Send technical architecture doc</span>
+                <span class="ml-2 text-[10px] text-status-overdue font-medium">5d overdue</span>
+              </div>
+              <span class="text-[11px] text-brand-navy-70">Apr 5</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tasks -->
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2">
+              <h3 class="text-sm font-semibold text-brand-navy">Tasks</h3>
+              <span class="text-[10px] bg-brand-purple-30 text-brand-purple px-2 py-0.5 rounded-full font-medium">4</span>
+            </div>
+            <button class="text-[11px] text-brand-purple hover:text-brand-purple/80 font-medium">+ Add task</button>
+          </div>
+          <div class="space-y-2">
+            <div class="flex items-center gap-3 p-3 bg-white rounded-lg border border-brand-navy-30/40">
+              <input type="checkbox" class="w-4 h-4 rounded border-brand-navy-30">
+              <span class="text-[13px] text-brand-navy flex-1">Prepare Informatica competitive battlecard for demo</span>
+              <span class="text-[10px] bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded">in_progress</span>
+            </div>
+            <div class="flex items-center gap-3 p-3 bg-white rounded-lg border border-brand-navy-30/40">
+              <input type="checkbox" class="w-4 h-4 rounded border-brand-navy-30">
+              <span class="text-[13px] text-brand-navy flex-1">Map DQ rules migration path from Excel</span>
+              <span class="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">open</span>
+            </div>
+            <div class="flex items-center gap-3 p-3 bg-white rounded-lg border border-brand-navy-30/40">
+              <input type="checkbox" class="w-4 h-4 rounded border-brand-navy-30">
+              <span class="text-[13px] text-brand-navy flex-1">Draft AWS S3 integration architecture</span>
+              <span class="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">open</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2">
+              <h3 class="text-sm font-semibold text-brand-navy">Notes</h3>
+              <span class="text-[10px] bg-brand-purple-30 text-brand-purple px-2 py-0.5 rounded-full font-medium">3</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <button class="text-[11px] text-brand-purple hover:text-brand-purple/80 font-medium">+ Add note</button>
+              <button class="flex items-center gap-1 text-[11px] text-brand-navy-70 hover:text-brand-purple border border-brand-navy-30 rounded-lg px-2 py-1">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="url(#sg2)"/><defs><linearGradient id="sg2" x1="2" y1="2" x2="22" y2="22"><stop stop-color="#F10090"/><stop offset="1" stop-color="#6A2CF5"/></linearGradient></defs></svg>
+                Import with Claude
+              </button>
+            </div>
+          </div>
+          <div class="space-y-3">
+            <div class="bg-white rounded-lg border border-brand-navy-30/40 p-3">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="text-[12px] font-medium text-brand-navy">Tomas Bolek</span>
+                <span class="text-[10px] text-brand-navy-70">Apr 8, 2026</span>
+              </div>
+              <p class="text-[13px] text-brand-navy-70 leading-relaxed">PZR0206 - Agentic demo done by partner, proposal for paid POC that'd be handled by Deloitte. Customer impressed with the agentic DQ capabilities but needs to see AWS S3 integration in the PoC.</p>
+            </div>
+            <div class="bg-white rounded-lg border border-brand-navy-30/40 p-3">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="text-[12px] font-medium text-brand-navy">Tomas Bolek</span>
+                <span class="text-[10px] text-brand-navy-70">Mar 25, 2026</span>
+              </div>
+              <p class="text-[13px] text-brand-navy-70 leading-relaxed">Initial discovery call with Telekom Srbija IT team. Currently using Excel-based DQ rules with no governance framework. Informatica evaluated previously but too complex/expensive.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DEAL INFO TAB -->
+      <div id="content-deal-info" class="tab-content hidden">
+        <div class="max-w-[700px] mx-auto px-5 py-5 space-y-5">
+
+          <!-- Open in SF -->
+          <a href="#" class="inline-flex items-center gap-2 text-[12px] text-brand-navy-70 hover:text-brand-purple border border-brand-navy-30 rounded-lg px-3 py-1.5 transition-colors">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="#00A1E0"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/></svg>
+            Open in Salesforce
+            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+          </a>
+
+          <!-- Deal Info grid -->
+          <div>
+            <h3 class="text-[10px] font-semibold uppercase tracking-widest text-brand-navy-70 mb-3">Deal Info</h3>
+            <div class="bg-white rounded-lg border border-brand-navy-30/40 divide-y divide-brand-navy-30/20">
+              <div class="flex px-4 py-2.5"><span class="w-32 text-[12px] text-brand-navy-70 flex-shrink-0">Stage</span><span class="text-[12px] text-brand-navy font-medium">Develop Solution</span></div>
+              <div class="flex px-4 py-2.5"><span class="w-32 text-[12px] text-brand-navy-70 flex-shrink-0">ARR</span><span class="text-[12px] text-brand-navy font-medium">$250,000</span></div>
+              <div class="flex px-4 py-2.5"><span class="w-32 text-[12px] text-brand-navy-70 flex-shrink-0">Close Date</span><span class="text-[12px] text-brand-navy">Apr 30, 2026</span></div>
+              <div class="flex px-4 py-2.5"><span class="w-32 text-[12px] text-brand-navy-70 flex-shrink-0">AE Owner</span><span class="text-[12px] text-brand-navy">Filip Cibulec</span></div>
+              <div class="flex px-4 py-2.5"><span class="w-32 text-[12px] text-brand-navy-70 flex-shrink-0">SE Owner</span><span class="text-[12px] text-brand-purple font-medium">Unassigned</span></div>
+              <div class="flex px-4 py-2.5"><span class="w-32 text-[12px] text-brand-navy-70 flex-shrink-0">Team</span><span class="text-[12px] text-brand-navy">EMEA</span></div>
+              <div class="flex px-4 py-2.5"><span class="w-32 text-[12px] text-brand-navy-70 flex-shrink-0">Record Type</span><span class="text-[12px] text-brand-navy">New Logo</span></div>
+              <div class="flex px-4 py-2.5"><span class="w-32 text-[12px] text-brand-navy-70 flex-shrink-0">Deploy</span><span class="text-[12px] text-brand-navy">PaaS</span></div>
+              <div class="flex px-4 py-2.5"><span class="w-32 text-[12px] text-brand-navy-70 flex-shrink-0">PoC Status</span><span class="text-[12px] text-brand-navy">Identified</span></div>
+              <div class="flex px-4 py-2.5"><span class="w-32 text-[12px] text-brand-navy-70 flex-shrink-0">Competitors</span><span class="text-[12px] text-brand-navy">Informatica</span></div>
+              <div class="flex px-4 py-2.5">
+                <span class="w-32 text-[12px] text-brand-navy-70 flex-shrink-0">Products</span>
+                <div class="flex gap-1">
+                  <span class="text-[10px] bg-brand-purple-30 text-brand-purple px-1.5 py-0.5 rounded font-medium">DQ</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SF Next Step -->
+          <details open class="group">
+            <summary class="flex items-center gap-2 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+              <svg class="w-3.5 h-3.5 text-brand-navy-70 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M9 5l7 7-7 7"/></svg>
+              <h3 class="text-[10px] font-semibold uppercase tracking-widest text-brand-navy-70">SF Next Step</h3>
+            </summary>
+            <div class="mt-2 bg-white rounded-lg border border-brand-navy-30/40 p-3">
+              <p class="text-[13px] text-brand-navy whitespace-pre-wrap">03/02 - Infa PoC prolonged, not looking good</p>
+              <button class="text-[10px] text-brand-navy-70 hover:text-brand-purple mt-2">Show history</button>
+            </div>
+          </details>
+
+          <!-- SE Comments -->
+          <details open class="group">
+            <summary class="flex items-center gap-2 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+              <svg class="w-3.5 h-3.5 text-brand-navy-70 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M9 5l7 7-7 7"/></svg>
+              <h3 class="text-[10px] font-semibold uppercase tracking-widest text-brand-navy-70">SE Comments</h3>
+              <span class="text-[10px] bg-status-warning/10 text-status-warning px-1.5 py-0.5 rounded font-medium">63d ago</span>
+            </summary>
+            <div class="mt-2 bg-white rounded-lg border border-brand-navy-30/40 p-3">
+              <p class="text-[13px] text-brand-navy whitespace-pre-wrap">PZR0206 - Agentic demo done by partner, proposal for paid POC that'd be handled by Deloitte</p>
+              <button class="text-[10px] text-brand-navy-70 hover:text-brand-purple mt-2">Show history</button>
+            </div>
+          </details>
+
+          <!-- Manager Comments -->
+          <details class="group">
+            <summary class="flex items-center gap-2 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+              <svg class="w-3.5 h-3.5 text-brand-navy-70 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M9 5l7 7-7 7"/></svg>
+              <h3 class="text-[10px] font-semibold uppercase tracking-widest text-brand-navy-70">Manager Comments</h3>
+            </summary>
+            <div class="mt-2 bg-white rounded-lg border border-brand-navy-30/40 p-3">
+              <p class="text-[13px] text-brand-navy-70 italic">No comments yet</p>
+            </div>
+          </details>
+
+          <!-- Stage History -->
+          <details class="group">
+            <summary class="flex items-center gap-2 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+              <svg class="w-3.5 h-3.5 text-brand-navy-70 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M9 5l7 7-7 7"/></svg>
+              <h3 class="text-[10px] font-semibold uppercase tracking-widest text-brand-navy-70">Stage History</h3>
+            </summary>
+            <div class="mt-2 bg-white rounded-lg border border-brand-navy-30/40 p-3 text-[12px] text-brand-navy-70">
+              <div class="flex gap-3"><span class="w-24">Previous</span><span class="text-brand-navy">Qualify</span></div>
+              <div class="flex gap-3 mt-1"><span class="w-24">Changed</span><span class="text-brand-navy">Mar 15, 2026</span></div>
+            </div>
+          </details>
+
+          <!-- MEDDPICC (scrolls here when pill clicked) -->
+          <details open id="meddpicc-section" class="group">
+            <summary class="flex items-center gap-2 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+              <svg class="w-3.5 h-3.5 text-brand-navy-70 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M9 5l7 7-7 7"/></svg>
+              <h3 class="text-[10px] font-semibold uppercase tracking-widest text-brand-navy-70">MEDDPICC</h3>
+              <span class="text-[10px] bg-brand-purple-30/50 text-brand-purple px-1.5 py-0.5 rounded font-medium">4/9</span>
+            </summary>
+            <div class="mt-2 bg-white rounded-lg border border-brand-navy-30/40 divide-y divide-brand-navy-30/20">
+              <div class="flex items-start gap-3 px-4 py-2.5">
+                <span class="w-2 h-2 rounded-full bg-green-500 mt-1.5 flex-shrink-0"></span>
+                <div class="flex-1"><span class="text-[11px] text-brand-navy-70 block">Metrics</span><span class="text-[12px] text-brand-navy">DQ rule coverage, time-to-remediation, regulatory compliance rate</span></div>
+              </div>
+              <div class="flex items-start gap-3 px-4 py-2.5">
+                <span class="w-2 h-2 rounded-full bg-red-500 mt-1.5 flex-shrink-0"></span>
+                <div class="flex-1"><span class="text-[11px] text-brand-navy-70 block">Economic Buyer</span><span class="text-[12px] text-brand-navy-70 italic">Not identified</span></div>
+              </div>
+              <div class="flex items-start gap-3 px-4 py-2.5">
+                <span class="w-2 h-2 rounded-full bg-yellow-500 mt-1.5 flex-shrink-0"></span>
+                <div class="flex-1"><span class="text-[11px] text-brand-navy-70 block">Decision Criteria</span><span class="text-[12px] text-brand-navy">AWS compatibility, Informatica replacement path, TCO</span></div>
+              </div>
+              <div class="flex items-start gap-3 px-4 py-2.5">
+                <span class="w-2 h-2 rounded-full bg-red-500 mt-1.5 flex-shrink-0"></span>
+                <div class="flex-1"><span class="text-[11px] text-brand-navy-70 block">Decision Process</span><span class="text-[12px] text-brand-navy-70 italic">Not identified</span></div>
+              </div>
+              <div class="flex items-start gap-3 px-4 py-2.5">
+                <span class="w-2 h-2 rounded-full bg-red-500 mt-1.5 flex-shrink-0"></span>
+                <div class="flex-1"><span class="text-[11px] text-brand-navy-70 block">Paper Process</span><span class="text-[12px] text-brand-navy-70 italic">Not identified</span></div>
+              </div>
+              <div class="flex items-start gap-3 px-4 py-2.5">
+                <span class="w-2 h-2 rounded-full bg-green-500 mt-1.5 flex-shrink-0"></span>
+                <div class="flex-1"><span class="text-[11px] text-brand-navy-70 block">Implicate Pain</span><span class="text-[12px] text-brand-navy">Excel-based rules, no governance, Informatica too expensive</span></div>
+              </div>
+              <div class="flex items-start gap-3 px-4 py-2.5">
+                <span class="w-2 h-2 rounded-full bg-yellow-500 mt-1.5 flex-shrink-0"></span>
+                <div class="flex-1"><span class="text-[11px] text-brand-navy-70 block">Champion</span><span class="text-[12px] text-brand-navy">Head of Data Quality (via Deloitte intro)</span></div>
+              </div>
+              <div class="flex items-start gap-3 px-4 py-2.5">
+                <span class="w-2 h-2 rounded-full bg-red-500 mt-1.5 flex-shrink-0"></span>
+                <div class="flex-1"><span class="text-[11px] text-brand-navy-70 block">Authority</span><span class="text-[12px] text-brand-navy-70 italic">Not identified</span></div>
+              </div>
+              <div class="flex items-start gap-3 px-4 py-2.5">
+                <span class="w-2 h-2 rounded-full bg-green-500 mt-1.5 flex-shrink-0"></span>
+                <div class="flex-1"><span class="text-[11px] text-brand-navy-70 block">Need</span><span class="text-[12px] text-brand-navy">Replace manual DQ, build governance program, AWS-native</span></div>
+              </div>
+            </div>
+          </details>
+
+          <!-- See all fields -->
+          <details class="group">
+            <summary class="flex items-center gap-2 cursor-pointer list-none [&::-webkit-details-marker]:hidden text-[11px] text-brand-navy-70 hover:text-brand-purple">
+              <svg class="w-3.5 h-3.5 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
+              See all fields
+            </summary>
+            <div class="mt-2 bg-white rounded-lg border border-brand-navy-30/40 p-3 text-[11px] text-brand-navy-70">
+              <p class="italic">All 55 SF fields from sf_raw_fields JSONB...</p>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <!-- TIMELINE TAB (placeholder) -->
+      <div id="content-timeline" class="tab-content hidden px-5 py-8 text-center text-brand-navy-70 text-sm">
+        Timeline content here...
+      </div>
+
+      <!-- CALL PREP TAB (placeholder) -->
+      <div id="content-call-prep" class="tab-content hidden px-5 py-8 text-center text-brand-navy-70 text-sm">
+        Call Prep content here (same as current, now full-width)...
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ COMPARISON NOTE ═══════ -->
+<div class="max-w-[1100px] mx-auto mt-6 mb-8 px-4">
+  <div class="bg-white rounded-xl border border-brand-navy-30/40 shadow-sm p-5">
+    <h3 class="text-sm font-semibold text-brand-navy mb-3">What changed</h3>
+    <div class="grid grid-cols-2 gap-6 text-[12px]">
+      <div>
+        <h4 class="font-semibold text-brand-navy mb-2 flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-gray-400"></span> Before
+        </h4>
+        <ul class="space-y-1.5 text-brand-navy-70">
+          <li>55/45 split layout — content cramped on left, SF data always visible on right</li>
+          <li>SF data takes ~45% of screen but is only reference info</li>
+          <li>Tab bar: small pill buttons inside rounded container</li>
+          <li>MEDDPICC pill is hover-only, no click action</li>
+        </ul>
+      </div>
+      <div>
+        <h4 class="font-semibold text-brand-navy mb-2 flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-brand-purple"></span> After
+        </h4>
+        <ul class="space-y-1.5 text-brand-navy">
+          <li><strong>Full-width content area</strong> — all tabs use 100% width</li>
+          <li><strong>SF data → "Deal Info" tab</strong> — always one click away, not wasting space</li>
+          <li><strong>Tab bar: proper top-border tabs</strong> anchored to the header bottom, more pronounced</li>
+          <li><strong>Header pills are clickable:</strong> MEDDPICC 4/9 → jumps to Deal Info > MEDDPICC section</li>
+          <li><strong>Deal Info is centered</strong> at max-width 700px for comfortable reading</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function switchTab(tabName, scrollTo) {
+  // Hide all content
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+  // Deactivate all tabs
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.remove('tab-active');
+    btn.classList.add('tab-inactive');
+  });
+  // Show selected content
+  document.getElementById('content-' + tabName).classList.remove('hidden');
+  // Activate selected tab
+  document.getElementById('tab-' + tabName).classList.remove('tab-inactive');
+  document.getElementById('tab-' + tabName).classList.add('tab-active');
+
+  // Scroll to section if specified
+  if (scrollTo) {
+    setTimeout(() => {
+      const section = document.getElementById(scrollTo + '-section');
+      if (section) {
+        section.setAttribute('open', '');
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
+  }
+}
+</script>
+
+</body>
+</html>

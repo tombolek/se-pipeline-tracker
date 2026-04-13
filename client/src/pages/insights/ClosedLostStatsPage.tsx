@@ -317,7 +317,7 @@ export default function ClosedLostStatsPage() {
       <div className="flex-shrink-0 px-8 pt-6 pb-4">
         <div className="flex items-center gap-4 flex-wrap">
           <div>
-            <h1 className="text-xl font-semibold text-brand-navy">Win/Loss Analysis</h1>
+            <h1 className="text-xl font-semibold text-brand-navy">Loss Analysis</h1>
             <p className="text-sm text-brand-navy-70 mt-0.5">Patterns in why deals are lost — by stage, competitor, segment, industry.</p>
           </div>
 
