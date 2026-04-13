@@ -46,11 +46,51 @@ function colorFor(index: number) {
   return SLICE_COLORS[index % SLICE_COLORS.length];
 }
 
+// Reserved colour for the synthetic "Other" bucket
+const OTHER_LABEL = 'Other';
+const OTHER_COLOR = '#CCC9D5'; // navy-30 — visually muted, distinct from the palette
+
 // ── SVG Pie chart ─────────────────────────────────────────────────────────────
 interface Slice {
   label: string;
   count: number;
   arr: number;
+}
+
+/**
+ * If there are more than 6 slices, fold slices that account for <5% of the
+ * active metric into a synthetic "Other" bucket. Returns both the visible
+ * slices (with "Other" appended at the end if any were folded) and the list
+ * of hidden slices that make up "Other" (for the expandable legend).
+ */
+function foldSmallSlices(
+  slices: Slice[],
+  metric: 'count' | 'arr'
+): { visible: Slice[]; hidden: Slice[] } {
+  if (slices.length <= 6) return { visible: slices, hidden: [] };
+
+  const total = slices.reduce((s, sl) => s + (metric === 'count' ? sl.count : sl.arr), 0);
+  if (total === 0) return { visible: slices, hidden: [] };
+
+  const keep: Slice[] = [];
+  const fold: Slice[] = [];
+  for (const sl of slices) {
+    const v = metric === 'count' ? sl.count : sl.arr;
+    const pct = (v / total) * 100;
+    if (pct < 5) fold.push(sl); else keep.push(sl);
+  }
+  // Guard: if folding would leave no "Other" slice (all >= 5%), keep as-is.
+  if (fold.length === 0) return { visible: slices, hidden: [] };
+  // Guard: if folding leaves fewer than 2 items in "Other", not worth it —
+  // rendering one item under "Other" just hides it pointlessly.
+  if (fold.length < 2) return { visible: slices, hidden: [] };
+
+  const other: Slice = {
+    label: OTHER_LABEL,
+    count: fold.reduce((s, sl) => s + sl.count, 0),
+    arr:   fold.reduce((s, sl) => s + sl.arr,   0),
+  };
+  return { visible: [...keep, other], hidden: fold };
 }
 
 function polarToCartesian(cx: number, cy: number, r: number, angle: number) {
@@ -99,7 +139,7 @@ function PieChart({
     const start   = angle;
     const end     = angle + sweep;
     angle         = end;
-    const color   = colorFor(i);
+    const color   = sl.label === OTHER_LABEL ? OTHER_COLOR : colorFor(i);
     const isActive = activeSlice === null || activeSlice === sl.label;
     return (
       <path
@@ -136,7 +176,21 @@ function ChartCard({
   activeSlice: string | null;
   onSliceClick: (label: string) => void;
 }) {
+  const { visible, hidden } = useMemo(() => foldSmallSlices(slices, metric), [slices, metric]);
+  const [showOther, setShowOther] = useState(false);
+
+  // Auto-expand "Other" when the active filter is one of its children
+  useEffect(() => {
+    if (activeSlice && hidden.some(h => h.label === activeSlice)) setShowOther(true);
+  }, [activeSlice, hidden]);
+
+  // Total uses the original slices so percentages always add to 100%
   const total = slices.reduce((s, sl) => s + (metric === 'count' ? sl.count : sl.arr), 0);
+
+  function handlePieClick(label: string) {
+    if (label === OTHER_LABEL) { setShowOther(v => !v); return; }
+    onSliceClick(label);
+  }
 
   return (
     <div className="bg-white rounded-2xl border border-brand-navy-30/40 p-5 flex flex-col gap-4">
@@ -145,35 +199,73 @@ function ChartCard({
         {/* Pie */}
         <div className="flex-shrink-0">
           <PieChart
-            slices={slices}
+            slices={visible}
             metric={metric}
             activeSlice={activeSlice}
-            onSliceClick={onSliceClick}
+            onSliceClick={handlePieClick}
           />
         </div>
 
         {/* Legend */}
-        <div className="flex-1 min-w-0 space-y-1.5 overflow-y-auto max-h-[140px]">
-          {slices.map((sl, i) => {
+        <div className="flex-1 min-w-0 space-y-1.5 overflow-y-auto max-h-[160px]">
+          {visible.map((sl, i) => {
             const value = metric === 'count' ? sl.count : sl.arr;
             const pct   = total > 0 ? Math.round((value / total) * 100) : 0;
+            const isOther = sl.label === OTHER_LABEL;
             const isActive = activeSlice === null || activeSlice === sl.label;
+            const color = isOther ? OTHER_COLOR : colorFor(i);
             return (
-              <button
-                key={sl.label}
-                onClick={() => onSliceClick(sl.label)}
-                className={`w-full flex items-center gap-2 text-left transition-opacity ${isActive ? 'opacity-100' : 'opacity-30'}`}
-              >
-                <span
-                  className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: colorFor(i) }}
-                />
-                <span className="text-xs text-brand-navy truncate flex-1">{sl.label}</span>
-                <span className="text-xs font-medium text-brand-navy-70 flex-shrink-0">
-                  {metric === 'count' ? sl.count : formatARR(sl.arr.toString())}
-                </span>
-                <span className="text-[10px] text-brand-navy-30 flex-shrink-0 w-8 text-right">{pct}%</span>
-              </button>
+              <div key={sl.label}>
+                <button
+                  onClick={() => (isOther ? setShowOther(v => !v) : onSliceClick(sl.label))}
+                  className={`w-full flex items-center gap-2 text-left transition-opacity ${isActive ? 'opacity-100' : 'opacity-30'}`}
+                >
+                  {isOther ? (
+                    <svg
+                      className={`w-3 h-3 text-brand-navy-70 transition-transform flex-shrink-0 ${showOther ? 'rotate-90' : ''}`}
+                      fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/>
+                    </svg>
+                  ) : (
+                    <span
+                      className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: color }}
+                    />
+                  )}
+                  <span className={`text-xs truncate flex-1 ${isOther ? 'text-brand-navy-70 italic' : 'text-brand-navy'}`}>
+                    {isOther ? `Other (${hidden.length})` : sl.label}
+                  </span>
+                  <span className="text-xs font-medium text-brand-navy-70 flex-shrink-0">
+                    {metric === 'count' ? sl.count : formatARR(sl.arr.toString())}
+                  </span>
+                  <span className="text-[10px] text-brand-navy-30 flex-shrink-0 w-8 text-right">{pct}%</span>
+                </button>
+                {isOther && showOther && (
+                  <div className="pl-5 mt-1.5 space-y-1 border-l border-brand-navy-30/40 ml-1">
+                    {hidden.map(h => {
+                      const v = metric === 'count' ? h.count : h.arr;
+                      const p = total > 0 ? ((v / total) * 100) : 0;
+                      const pStr = p < 1 ? '<1%' : `${Math.round(p)}%`;
+                      const childActive = activeSlice === null || activeSlice === h.label;
+                      return (
+                        <button
+                          key={h.label}
+                          onClick={() => onSliceClick(h.label)}
+                          className={`w-full flex items-center gap-2 text-left transition-opacity ${childActive ? 'opacity-100' : 'opacity-30'}`}
+                        >
+                          <span className="w-1.5 h-1.5 rounded-full bg-brand-navy-30 flex-shrink-0"/>
+                          <span className="text-[11px] text-brand-navy-70 truncate flex-1">{h.label}</span>
+                          <span className="text-[11px] font-medium text-brand-navy-70 flex-shrink-0">
+                            {metric === 'count' ? h.count : formatARR(h.arr.toString())}
+                          </span>
+                          <span className="text-[10px] text-brand-navy-30 flex-shrink-0 w-8 text-right">{pStr}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>
