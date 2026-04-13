@@ -65,9 +65,99 @@ const CONFIDENCE_CONFIG = {
   missing: { label: 'Missing', badge: 'bg-status-overdue/10 text-red-700 border-status-overdue/30',     iconBg: 'bg-status-overdue/15', iconColor: 'text-status-overdue' },
 };
 
+/* ── PDF Export ── */
+function exportDemoPrepPdf(dp: DemoPrepData, oppName: string, generatedAt: string | null) {
+  const stripBold = (t: string) => t.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  const now = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
+  const questionsHtml = dp.questions.map(q => {
+    const evHtml = q.evidence.length
+      ? `<div class="block"><div class="block-label">${q.confidence === 'partial' ? 'What we know' : 'Evidence'}</div><ul>${q.evidence.map(e => `<li><strong>${e.source}:</strong> ${stripBold(e.text)}</li>`).join('')}</ul></div>`
+      : '';
+    const missHtml = q.missing && q.missing.length
+      ? `<div class="block"><div class="block-label">What's missing</div><ul>${q.missing.map(m => `<li><strong>${m.category}:</strong> ${stripBold(m.detail)}</li>`).join('')}</ul></div>`
+      : '';
+    const commitHtml = q.suggested_commitments && q.suggested_commitments.length
+      ? `<div class="block"><div class="block-label">Suggested commitments</div><ul>${q.suggested_commitments.map(c => `<li>${stripBold(c)}</li>`).join('')}</ul></div>`
+      : '';
+    return `
+      <div class="card">
+        <div class="card-header">
+          <span class="qnum">Q${q.question_number}</span>
+          <strong class="qtext">${q.question}</strong>
+          <span class="conf conf-${q.confidence}">${q.confidence.toUpperCase()}</span>
+        </div>
+        <div class="block"><div class="block-label">${q.confidence === 'missing' ? 'Assessment' : 'Answer'}</div><p>${stripBold(q.answer)}</p></div>
+        ${evHtml}
+        ${missHtml}
+        ${commitHtml}
+        <div class="tip tip-${q.confidence}"><strong>Demo tip:</strong> ${stripBold(q.coaching_tip)}</div>
+      </div>
+    `;
+  }).join('');
+
+  const beforeHtml = dp.before_you_demo.length
+    ? `<div class="section"><h2>Before You Demo</h2><ul class="checklist">${dp.before_you_demo.map(b => `<li>${b.done ? '☑' : '☐'} ${stripBold(b.text)}</li>`).join('')}</ul></div>`
+    : '';
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+<title>Demo Prep — ${oppName}</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; font-size: 11pt; color: #1a0c42; line-height: 1.5; padding: 40px; max-width: 800px; margin: 0 auto; }
+  h1 { font-size: 18pt; margin-bottom: 4px; }
+  .subtitle { font-size: 10pt; color: #665d81; margin-bottom: 16px; }
+  .level-banner { display: inline-block; padding: 6px 14px; border-radius: 6px; color: white; font-weight: 600; font-size: 11pt; margin-bottom: 6px; background: #6a2cf5; }
+  .level-banner.D1 { background: #f59e0b; }
+  .level-banner.D2 { background: #f43f5e; }
+  .level-banner.D3 { background: #06b6d4; }
+  .level-banner.D4 { background: #10b981; }
+  .reasoning { font-size: 10pt; color: #665d81; font-style: italic; margin-bottom: 18px; }
+  .readiness { font-size: 10pt; color: #1a0c42; margin-bottom: 24px; }
+  h2 { font-size: 12pt; color: #6a2cf5; border-bottom: 1px solid #ded0fd; padding-bottom: 4px; margin-bottom: 10px; margin-top: 20px; }
+  .section { margin-bottom: 16px; }
+  .card { border: 1px solid #ccc9d5; border-radius: 6px; padding: 10px 12px; margin-bottom: 10px; page-break-inside: avoid; }
+  .card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .qnum { font-size: 9pt; font-weight: 700; color: #ccc9d5; }
+  .qtext { flex: 1; font-size: 11pt; color: #1a0c42; }
+  .conf { font-size: 8pt; font-weight: 700; padding: 2px 6px; border-radius: 3px; }
+  .conf-strong  { background: #d1fae5; color: #065f46; }
+  .conf-partial { background: #fef3c7; color: #92400e; }
+  .conf-missing { background: #fee2e2; color: #991b1b; }
+  .block { margin-top: 6px; }
+  .block-label { font-size: 9pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #665d81; margin-bottom: 3px; }
+  ul, ol { margin-left: 18px; }
+  li { margin-bottom: 3px; font-size: 10pt; }
+  .tip { margin-top: 8px; padding: 6px 10px; border-radius: 4px; font-size: 10pt; }
+  .tip-strong  { background: #ede9fe; color: #1a0c42; }
+  .tip-partial { background: #fffbeb; color: #78350f; }
+  .tip-missing { background: #fef2f2; color: #7f1d1d; }
+  .checklist { list-style: none; margin-left: 0; }
+  .checklist li { font-size: 10pt; margin-bottom: 4px; }
+  strong { font-weight: 600; }
+  @media print { body { padding: 20px; } .card { page-break-inside: avoid; } }
+</style></head><body>
+<h1>Demo Prep</h1>
+<div class="subtitle">${oppName} — Generated ${now}</div>
+<div><span class="level-banner ${dp.demo_level}">${dp.demo_level} ${dp.demo_level_label}</span></div>
+<div class="reasoning">${stripBold(dp.demo_level_reasoning)}</div>
+<div class="readiness"><strong>Demo Readiness:</strong> ${dp.questions_answered} of ${dp.total_questions} questions answered with sufficient evidence.${generatedAt ? ' (Last refreshed ' + new Date(generatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ')' : ''}</div>
+
+<div class="section"><h2>6-Question Demo Check</h2>${questionsHtml}</div>
+
+<div class="section"><h2>Overall Assessment</h2><p>${stripBold(dp.overall_assessment)}</p></div>
+
+${beforeHtml}
+
+<script>window.onload = function() { window.print(); }</script>
+</body></html>`;
+
+  const win = window.open('', '_blank');
+  if (win) { win.document.write(html); win.document.close(); }
+}
+
 /* ── Component ── */
-export default function DemoPrepTab({ oppId, oppName: _oppName }: { oppId: number; oppName?: string }) {
-  // _oppName reserved for future use (e.g. PDF export header)
+export default function DemoPrepTab({ oppId, oppName }: { oppId: number; oppName?: string }) {
   const [data, setData] = useState<DemoPrepResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -203,10 +293,26 @@ export default function DemoPrepTab({ oppId, oppName: _oppName }: { oppId: numbe
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3 flex-shrink-0">
+          <div className="flex items-center gap-2 flex-shrink-0">
             {data.generated_at && (
               <span className="text-[10px] text-brand-navy-30">{timeAgo(data.generated_at)}</span>
             )}
+            <button
+              onClick={() => exportDemoPrepPdf(dp, oppName ?? `Opportunity #${oppId}`, data.generated_at)}
+              className="text-[11px] text-brand-navy-70 hover:text-brand-purple flex items-center gap-1 px-2 py-1.5 rounded hover:bg-white/70 transition-colors"
+              title="Download as PDF"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+              PDF
+            </button>
+            <button
+              onClick={() => alert('Slack integration coming soon!')}
+              className="text-[11px] text-brand-navy-70 hover:text-brand-purple flex items-center gap-1 px-2 py-1.5 rounded hover:bg-white/70 transition-colors"
+              title="Send to Slack (coming soon)"
+            >
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M5.042 15.165a2.528 2.528 0 01-2.52 2.523A2.528 2.528 0 010 15.165a2.527 2.527 0 012.522-2.52h2.52v2.52zm1.271 0a2.527 2.527 0 012.521-2.52 2.527 2.527 0 012.521 2.52v6.313A2.528 2.528 0 018.834 24a2.528 2.528 0 01-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 01-2.521-2.52A2.528 2.528 0 018.834 0a2.528 2.528 0 012.521 2.522v2.52H8.834zm0 1.271a2.528 2.528 0 012.521 2.521 2.528 2.528 0 01-2.521 2.521H2.522A2.528 2.528 0 010 8.834a2.528 2.528 0 012.522-2.521h6.312zm10.122 2.521a2.528 2.528 0 012.522-2.521A2.528 2.528 0 0124 8.834a2.528 2.528 0 01-2.522 2.521h-2.522V8.834zm-1.268 0a2.528 2.528 0 01-2.523 2.521 2.527 2.527 0 01-2.52-2.521V2.522A2.527 2.527 0 0115.165 0a2.528 2.528 0 012.523 2.522v6.312zm-2.523 10.122a2.528 2.528 0 012.523 2.522A2.528 2.528 0 0115.165 24a2.527 2.527 0 01-2.52-2.522v-2.522h2.52zm0-1.268a2.527 2.527 0 01-2.52-2.523 2.526 2.526 0 012.52-2.52h6.313A2.527 2.527 0 0124 15.165a2.528 2.528 0 01-2.522 2.523h-6.313z"/></svg>
+              Slack
+            </button>
             <button
               onClick={generate}
               disabled={generating}

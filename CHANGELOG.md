@@ -5,6 +5,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ---
 
+## 2026-04-13
+
+### Added
+- **Demo Prep PDF export** — Demo Prep tab now has PDF download (formatted brief with all 6 questions, evidence, missing items, suggested commitments, coaching tips, overall assessment, and Before-You-Demo checklist) and a Slack send button (placeholder, mirroring Call Prep).
+- **Demo Prep on home page** — added Demo Prep as a 4th AI quick-action card on the home page so it can be launched directly from the dashboard.
+
 ## 2026-04-12
 
 ### Added
