@@ -8,7 +8,7 @@ import { getColumnsForPage, DEFAULT_COLUMNS, COLUMN_BY_KEY } from '../../constan
 import ColumnPicker from '../../components/shared/ColumnPicker';
 import MultiSelectFilter from '../../components/shared/MultiSelectFilter';
 import { renderOpportunityCell } from '../../utils/renderOpportunityCell';
-import { sortFiscalPeriod, formatDate } from '../../utils/formatters';
+import { formatDate } from '../../utils/formatters';
 import Drawer from '../../components/Drawer';
 import OpportunityDetail from '../../components/OpportunityDetail';
 import { useAuthStore } from '../../store/auth';
@@ -262,9 +262,8 @@ export default function SeDealMappingPage() {
     currentUser?.role === 'se' && currentUser.id ? currentUser.id : 'all';
   const [filterSe, setFilterSe] = useState<number | 'unassigned' | 'all'>(defaultFilter);
   const [filterStages, setFilterStages] = useState<string[]>([]);
-  const [filterFiscalPeriods, setFilterFiscalPeriods] = useState<string[]>([]);
   const [filterTeams, setFilterTeams] = useState<string[]>(['EMEA', 'NA Enterprise', 'NA Strategic', 'ANZ']);
-  const [filterRecordTypes, setFilterRecordTypes] = useState<string[]>([]);
+  const [filterAeOwners, setFilterAeOwners] = useState<string[]>([]);
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [view, setView] = useState<'table' | 'kanban'>('table');
@@ -362,9 +361,8 @@ export default function SeDealMappingPage() {
     [ses, seIds, teamNames]
   );
 
-  const fiscalPeriods = [...new Set(scopedOpps.map(o => o.fiscal_period).filter(Boolean) as string[])].sort(sortFiscalPeriod);
   const teamOptions = [...new Set(scopedOpps.map(o => o.team).filter(Boolean) as string[])].sort();
-  const recordTypeOptions = [...new Set(scopedOpps.map(o => o.record_type).filter(Boolean) as string[])].sort();
+  const aeOwnerOptions = [...new Set(scopedOpps.map(o => o.ae_owner_name).filter(Boolean) as string[])].sort();
   const unassignedCount = scopedOpps.filter(o => !o.se_owner).length;
 
   const searchLower = search.trim().toLowerCase();
@@ -372,9 +370,8 @@ export default function SeDealMappingPage() {
     if (filterSe === 'unassigned' && o.se_owner) return false;
     if (typeof filterSe === 'number' && o.se_owner?.id !== filterSe) return false;
     if (filterStages.length > 0 && !filterStages.includes(o.stage)) return false;
-    if (filterFiscalPeriods.length > 0 && !filterFiscalPeriods.includes(o.fiscal_period ?? '')) return false;
     if (filterTeams.length > 0 && !filterTeams.includes(o.team ?? '')) return false;
-    if (filterRecordTypes.length > 0 && !filterRecordTypes.includes(o.record_type ?? '')) return false;
+    if (filterAeOwners.length > 0 && !filterAeOwners.includes(o.ae_owner_name ?? '')) return false;
     if (searchLower && !o.name.toLowerCase().includes(searchLower) && !(o.account_name ?? '').toLowerCase().includes(searchLower)) return false;
     return true;
   });
@@ -452,9 +449,8 @@ export default function SeDealMappingPage() {
               />
             </div>
             <MultiSelectFilter options={STAGES} selected={filterStages} onChange={setFilterStages} placeholder="All stages" />
-            <MultiSelectFilter options={fiscalPeriods} selected={filterFiscalPeriods} onChange={setFilterFiscalPeriods} placeholder="All periods" />
             <MultiSelectFilter options={teamOptions} selected={filterTeams} onChange={setFilterTeams} placeholder="All teams" />
-            <MultiSelectFilter options={recordTypeOptions} selected={filterRecordTypes} onChange={setFilterRecordTypes} placeholder="All types" />
+            <MultiSelectFilter options={aeOwnerOptions} selected={filterAeOwners} onChange={setFilterAeOwners} placeholder="All AE owners" />
             <button
               onClick={() => setFilterSe('all')}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
