@@ -84,16 +84,6 @@ function ragColor(pct: number, asOfMonthIdx: number): string {
   return '#FF464C';                          // overdue — behind by >25%
 }
 
-function StatCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
-  return (
-    <div className="bg-white rounded-2xl border border-brand-navy-30/40 px-5 py-4">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-brand-navy-70 mb-1">{label}</p>
-      <p className="text-2xl font-bold text-brand-navy">{value}</p>
-      {sub && <p className="text-[11px] text-brand-navy-70 mt-0.5">{sub}</p>}
-    </div>
-  );
-}
-
 function pillBtn<T extends string>(current: T, value: T, onClick: (v: T) => void, label: string) {
   return (
     <button
