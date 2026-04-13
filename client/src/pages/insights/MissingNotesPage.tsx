@@ -19,6 +19,7 @@ interface MissingNotesRow {
   account_name: string;
   stage: string;
   arr: string;
+  team: string | null;
   se_comments_updated_at: string | null;
   days_since_update: number | null;
   se_owner_id: number | null;

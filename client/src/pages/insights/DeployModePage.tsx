@@ -21,6 +21,7 @@ interface DeployDeal {
   deploy_mode: string | null;
   close_date: string | null;
   fiscal_period: string | null;
+  team: string | null;
   se_comments: string | null;
   agentic_qual: string | null;
   technical_blockers: string | null;

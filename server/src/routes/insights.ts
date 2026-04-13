@@ -19,6 +19,7 @@ router.get('/stage-movement', auth, mgr, async (req: Request, res: Response): Pr
   const rows = await query(
     `WITH stage_entries AS (
        SELECT o.id, o.name, o.account_name, o.arr, o.arr_currency, o.ae_owner_name,
+              o.team,
               o.se_owner_id,
               u.id   AS u_id,
               u.name AS u_name,
@@ -53,6 +54,7 @@ router.get('/stage-movement', auth, mgr, async (req: Request, res: Response): Pr
        FROM stage_entries
      )
      SELECT id, name, account_name, arr, arr_currency, ae_owner_name,
+            team,
             u_id AS se_owner_id, u_name AS se_owner_name,
             stage_name AS current_stage,
             previous_stage,
@@ -77,6 +79,7 @@ router.get('/missing-notes', auth, mgr, async (req: Request, res: Response): Pro
   const rows = await query(
     `SELECT
        o.id, o.name, o.account_name, o.stage, o.arr, o.arr_currency,
+       o.team,
        o.se_comments_updated_at,
        CASE
          WHEN o.se_comments_updated_at IS NULL THEN NULL
@@ -240,6 +243,7 @@ router.get('/deploy-mode', auth, mgr, async (_req: Request, res: Response): Prom
        o.id, o.name, o.account_name, o.stage, o.arr, o.arr_currency,
        o.deploy_mode, o.deploy_location,
        o.close_date, o.fiscal_period,
+       o.team,
        o.se_comments, o.se_comments_updated_at,
        o.agentic_qual,
        o.technical_blockers,

@@ -16,6 +16,7 @@ interface StageMovementRow {
   previous_stage: string;
   stage_changed_at: string;
   ae_owner_name: string;
+  team: string | null;
   se_owner_id: number | null;
   se_owner_name: string | null;
 }
