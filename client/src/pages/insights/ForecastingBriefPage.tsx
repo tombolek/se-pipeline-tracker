@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { getForecastingBrief, generateNarrative, bulkGenerateSummaries } from '../../api/forecastingBrief';
+import { useAiJobAttach } from '../../hooks/useAiJob';
 import type { ForecastingBriefData, ForecastOpp } from '../../api/forecastingBrief';
 import { formatARR, formatDate } from '../../utils/formatters';
 import { useTeamScope } from '../../hooks/useTeamScope';
@@ -314,6 +315,26 @@ export default function ForecastingBriefPage() {
   }, [activeFQ]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Re-attach to in-flight forecast narrative generation if user navigates back mid-run.
+  useAiJobAttach({
+    key: data?.fiscal_period ? `forecast-narrative-${data.fiscal_period}` : '',
+    enabled: !!data?.fiscal_period,
+    currentGeneratedAt: data?.narrative?.generated_at ?? null,
+    fetchCached: async () => {
+      if (!data?.fiscal_period) return { generatedAt: null };
+      const fresh = await getForecastingBrief(data.fiscal_period);
+      return { generatedAt: fresh.narrative?.generated_at ?? null };
+    },
+    onRunning: () => setNarrativeLoading(true),
+    onFresh: async () => {
+      if (!data?.fiscal_period) return;
+      const fresh = await getForecastingBrief(data.fiscal_period);
+      setData(fresh);
+      setNarrativeLoading(false);
+    },
+    onTimeout: () => setNarrativeLoading(false),
+  });
 
   // ── Auto-generate narrative on Friday if stale ──────────────────────────
   useEffect(() => {

@@ -10,6 +10,7 @@ import { listUsers } from '../api/users';
 import { useAuthStore } from '../store/auth';
 import api from '../api/client';
 import type { ApiResponse } from '../types';
+import { useAiJobAttach } from '../hooks/useAiJob';
 import { formatDate, formatARR, daysSince } from '../utils/formatters';
 import { TaskRow, AddTaskForm } from './opportunity/TaskSection';
 import { NoteItem, AddNoteForm } from './opportunity/NoteSection';
@@ -307,6 +308,55 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
       })
       .catch(e => console.warn('Failed to load cached coach:', e));
   }, [oppId]);
+
+  // Re-attach to in-flight AI Summary generation if user navigates back mid-run.
+  useAiJobAttach({
+    key: `summary-${oppId}`,
+    currentGeneratedAt: summaryGeneratedAt,
+    fetchCached: async () => {
+      const r = await api.get<ApiResponse<{ summary: string; generated_at: string } | null>>(
+        `/opportunities/${oppId}/summary/cached`
+      );
+      return { generatedAt: r.data.data?.generated_at ?? null };
+    },
+    onRunning: () => { setSummaryLoading(true); setSummaryCollapsed(false); },
+    onFresh: async () => {
+      const r = await api.get<ApiResponse<{ summary: string; generated_at: string } | null>>(
+        `/opportunities/${oppId}/summary/cached`
+      );
+      if (r.data.data) {
+        setSummary(r.data.data.summary);
+        setSummaryGeneratedAt(r.data.data.generated_at);
+      }
+      setSummaryLoading(false);
+    },
+    onTimeout: () => setSummaryLoading(false),
+  });
+
+  // Re-attach to in-flight MEDDPICC Coach generation if user navigates back mid-run.
+  useAiJobAttach({
+    key: `meddpicc-coach-${oppId}`,
+    currentGeneratedAt: coachGeneratedAt,
+    fetchCached: async () => {
+      const r = await api.get<ApiResponse<{ coach: CoachResult; generated_at: string } | null>>(
+        `/opportunities/${oppId}/meddpicc-coach/cached`
+      );
+      return { generatedAt: r.data.data?.generated_at ?? null };
+    },
+    onRunning: () => setCoachLoading(true),
+    onFresh: async () => {
+      const r = await api.get<ApiResponse<{ coach: CoachResult; generated_at: string } | null>>(
+        `/opportunities/${oppId}/meddpicc-coach/cached`
+      );
+      if (r.data.data?.coach) {
+        setCoachResult(r.data.data.coach);
+        setCoachGeneratedAt(r.data.data.generated_at);
+        setCoachCollapsed(false);
+      }
+      setCoachLoading(false);
+    },
+    onTimeout: () => setCoachLoading(false),
+  });
 
   async function handleGetCoach() {
     setCoachLoading(true);

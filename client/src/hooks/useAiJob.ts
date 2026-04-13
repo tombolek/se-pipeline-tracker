@@ -1,132 +1,95 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef } from 'react';
 import { getAiJobByKey } from '../api/aiJobs';
 
 /**
- * useAiJob — generic hook for AI generations that may outlive the user's
- * presence on a panel. Pattern:
+ * Minimal re-attach helper for AI generations that may outlive a panel visit.
  *
- * 1. On mount, check `/ai-jobs/by-key/:key`. If a job is already running
- *    (e.g. the user kicked it off from another tab, or on a previous visit),
- *    we flip into polling mode and call `fetchCached` every 3s until the
- *    cached result updates or 5 min elapses.
- * 2. `generate()` fires the POST but does NOT await it — the server runs
- *    the AI call to completion regardless of client connection. The hook
- *    immediately flips into polling mode and waits for the cache to update.
+ * Mechanism: on mount / key change, checks `/ai-jobs/by-key/:key`. If a
+ * generation is already in flight (e.g. the user hit Regenerate then navigated
+ * away and came back), invokes `onRunning()` so the panel can flip into its
+ * loading state, then polls `fetchCached` every 3s until either the cached
+ * result's `generated_at` changes (→ `onFresh(freshGeneratedAt)`) or 5 min
+ * elapses (→ `onTimeout()`).
  *
- * The panel owns `fetchCached` (shape of cached result is panel-specific)
- * and receives the result plus flags: isGenerating, isPolling, lastGeneratedAt.
+ * The panel is responsible for its own initial cache load + state — this hook
+ * only handles the "job is still running, attach and wait" edge case.
+ *
+ * Pass `currentGeneratedAt` so the hook knows when the cache has actually been
+ * updated (vs. returning the same stale value). If null/undefined, any fetched
+ * `generated_at` counts as fresh.
  */
-export function useAiJob<TCached>(params: {
+export function useAiJobAttach(params: {
   key: string;
-  fetchCached: () => Promise<{ content: TCached | null; generatedAt: string | null }>;
-  triggerGenerate: () => Promise<void>;
   enabled?: boolean;
+  currentGeneratedAt: string | null | undefined;
+  fetchCached: () => Promise<{ generatedAt: string | null }>;
+  onRunning: () => void;
+  onFresh: () => void;
+  onTimeout?: () => void;
   pollIntervalMs?: number;
   maxPollMs?: number;
 }) {
   const {
     key,
-    fetchCached,
-    triggerGenerate,
     enabled = true,
+    currentGeneratedAt,
+    fetchCached,
+    onRunning,
+    onFresh,
+    onTimeout,
     pollIntervalMs = 3000,
     maxPollMs = 5 * 60 * 1000,
   } = params;
 
-  const [content, setContent] = useState<TCached | null>(null);
-  const [generatedAt, setGeneratedAt] = useState<string | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // Refs so callbacks / currentGeneratedAt changes don't restart polling.
+  const baselineRef = useRef<string | null | undefined>(currentGeneratedAt);
+  const onRunningRef = useRef(onRunning);
+  const onFreshRef = useRef(onFresh);
+  const onTimeoutRef = useRef(onTimeout);
+  useEffect(() => { baselineRef.current = currentGeneratedAt; }, [currentGeneratedAt]);
+  useEffect(() => { onRunningRef.current = onRunning; }, [onRunning]);
+  useEffect(() => { onFreshRef.current = onFresh; }, [onFresh]);
+  useEffect(() => { onTimeoutRef.current = onTimeout; }, [onTimeout]);
 
-  const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pollStart = useRef<number>(0);
-  const lastSeenGeneratedAt = useRef<string | null>(null);
-
-  const clearPoll = useCallback(() => {
-    if (pollTimer.current) { clearTimeout(pollTimer.current); pollTimer.current = null; }
-  }, []);
-
-  const tick = useCallback(async () => {
-    try {
-      const { content: c, generatedAt: g } = await fetchCached();
-      if (g && g !== lastSeenGeneratedAt.current) {
-        // Fresh result landed
-        setContent(c);
-        setGeneratedAt(g);
-        lastSeenGeneratedAt.current = g;
-        setIsGenerating(false);
-        clearPoll();
-        return;
-      }
-    } catch {
-      /* ignore transient errors during polling */
-    }
-    if (Date.now() - pollStart.current > maxPollMs) {
-      setIsGenerating(false);
-      setError('Generation is taking longer than expected — try refreshing.');
-      clearPoll();
-      return;
-    }
-    pollTimer.current = setTimeout(tick, pollIntervalMs);
-  }, [fetchCached, clearPoll, maxPollMs, pollIntervalMs]);
-
-  const startPolling = useCallback(() => {
-    clearPoll();
-    pollStart.current = Date.now();
-    setIsGenerating(true);
-    setError(null);
-    pollTimer.current = setTimeout(tick, pollIntervalMs);
-  }, [tick, clearPoll, pollIntervalMs]);
-
-  // On mount / key change: load cached + detect running job
   useEffect(() => {
     if (!enabled) return;
     let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const start = Date.now();
+
+    const poll = async () => {
+      if (cancelled) return;
+      try {
+        const { generatedAt } = await fetchCached();
+        if (cancelled) return;
+        if (generatedAt && generatedAt !== baselineRef.current) {
+          baselineRef.current = generatedAt;
+          onFreshRef.current();
+          return;
+        }
+      } catch { /* transient — keep polling */ }
+      if (Date.now() - start > maxPollMs) {
+        onTimeoutRef.current?.();
+        return;
+      }
+      timer = setTimeout(poll, pollIntervalMs);
+    };
 
     (async () => {
       try {
-        const [cached, jobStatus] = await Promise.all([
-          fetchCached(),
-          getAiJobByKey(key).catch(() => ({ running: false, job: null })),
-        ]);
+        const status = await getAiJobByKey(key);
         if (cancelled) return;
-
-        setContent(cached.content);
-        setGeneratedAt(cached.generatedAt);
-        lastSeenGeneratedAt.current = cached.generatedAt;
-
-        if (jobStatus.running) {
-          // Another generation is in flight — attach and poll for the result.
-          startPolling();
+        if (status.running) {
+          onRunningRef.current();
+          timer = setTimeout(poll, pollIntervalMs);
         }
-      } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load');
-      }
+      } catch { /* ignore — assume no job running */ }
     })();
 
-    return () => { cancelled = true; clearPoll(); };
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, enabled]);
-
-  const generate = useCallback(async () => {
-    setError(null);
-    setIsGenerating(true);
-    // Start polling immediately — do NOT await triggerGenerate. The server
-    // continues to completion regardless of client disconnect, so if the user
-    // navigates away before the POST resolves, the result still lands in
-    // ai_summary_cache and the next page visit will pick it up.
-    startPolling();
-    try {
-      await triggerGenerate();
-      // POST returned — the result should already be in cache. Fetch once
-      // more to avoid waiting for the next poll tick.
-      void tick();
-    } catch (e) {
-      setIsGenerating(false);
-      clearPoll();
-      setError(e instanceof Error ? e.message : 'Failed to generate');
-    }
-  }, [triggerGenerate, startPolling, tick, clearPoll]);
-
-  return { content, generatedAt, isGenerating, error, generate };
 }

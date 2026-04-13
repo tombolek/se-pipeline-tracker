@@ -10,6 +10,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { listUsers } from '../../api/users';
 import { getOneOnOneData, generateOneOnOneNarrative } from '../../api/oneOnOnePrep';
+import { useAiJobAttach } from '../../hooks/useAiJob';
 import type { OneOnOneData, OneOnOneTask, OneOnOneStageMovement } from '../../api/oneOnOnePrep';
 import type { User, Opportunity } from '../../types';
 import { computeHealthScore } from '../../utils/healthScore';
@@ -199,6 +200,26 @@ export default function OneOnOnePrepPage() {
       .then(setData)
       .finally(() => setLoading(false));
   }, [seId]);
+
+  // Re-attach to in-flight 1:1 narrative generation if user navigates back mid-run.
+  useAiJobAttach({
+    key: seId ? `one-on-one-narrative-${seId}` : '',
+    enabled: !!seId,
+    currentGeneratedAt: data?.narrative?.generated_at ?? null,
+    fetchCached: async () => {
+      if (!seId) return { generatedAt: null };
+      const fresh = await getOneOnOneData(seId);
+      return { generatedAt: fresh.narrative?.generated_at ?? null };
+    },
+    onRunning: () => setNarrativeLoading(true),
+    onFresh: async () => {
+      if (!seId) return;
+      const fresh = await getOneOnOneData(seId);
+      setData(prev => prev ? { ...prev, narrative: fresh.narrative } : fresh);
+      setNarrativeLoading(false);
+    },
+    onTimeout: () => setNarrativeLoading(false),
+  });
 
   const handleSelectSe = useCallback((id: number) => {
     setSeId(id);

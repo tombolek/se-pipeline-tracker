@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '../api/client';
 import type { ApiResponse } from '../types';
+import { useAiJobAttach } from '../hooks/useAiJob';
 
 /* ── Types ── */
 interface ProofPointHighlight {
@@ -259,6 +260,23 @@ export default function CallPrepTab({ oppId, oppName }: { oppId: number; oppName
   }, [oppId]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Re-attach to in-flight call-prep generation if user navigates back mid-run.
+  useAiJobAttach({
+    key: `call-prep-${oppId}`,
+    currentGeneratedAt: data?.generated_at ?? null,
+    fetchCached: async () => {
+      const r = await api.get<ApiResponse<CallPrepResponse>>(`/opportunities/${oppId}/call-prep`);
+      return { generatedAt: r.data.data.generated_at ?? null };
+    },
+    onRunning: () => setGenerating(true),
+    onFresh: async () => {
+      const r = await api.get<ApiResponse<CallPrepResponse>>(`/opportunities/${oppId}/call-prep`);
+      setData(r.data.data);
+      setGenerating(false);
+    },
+    onTimeout: () => setGenerating(false),
+  });
 
   // Auto-generate if brief is missing or stale
   useEffect(() => {

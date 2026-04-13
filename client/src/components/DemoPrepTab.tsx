@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '../api/client';
 import type { ApiResponse } from '../types';
+import { useAiJobAttach } from '../hooks/useAiJob';
 
 /* ── Types ── */
 interface DemoQuestion {
@@ -178,6 +179,23 @@ export default function DemoPrepTab({ oppId, oppName }: { oppId: number; oppName
   }, [oppId]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Re-attach to in-flight demo-prep generation if user navigates back mid-run.
+  useAiJobAttach({
+    key: `demo-prep-${oppId}`,
+    currentGeneratedAt: data?.generated_at ?? null,
+    fetchCached: async () => {
+      const r = await api.get<ApiResponse<DemoPrepResponse>>(`/opportunities/${oppId}/demo-prep`);
+      return { generatedAt: r.data.data.generated_at ?? null };
+    },
+    onRunning: () => setGenerating(true),
+    onFresh: async () => {
+      const r = await api.get<ApiResponse<DemoPrepResponse>>(`/opportunities/${oppId}/demo-prep`);
+      setData(r.data.data);
+      setGenerating(false);
+    },
+    onTimeout: () => setGenerating(false),
+  });
 
   // Auto-generate if missing or stale
   useEffect(() => {

@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import api from '../../api/client';
 import type { ApiResponse } from '../../types';
 import { useTeamScope } from '../../hooks/useTeamScope';
+import { useAiJobAttach } from '../../hooks/useAiJob';
 import StageBadge from '../../components/shared/StageBadge';
 import MultiSelectFilter from '../../components/shared/MultiSelectFilter';
 import { formatDate } from '../../utils/formatters';
@@ -150,6 +151,30 @@ export default function AgenticQualPage() {
       .then(r => setRecentRows(r.data.data))
       .finally(() => setLoadingRecent(false));
   }, [tab, days]);
+
+  // Re-attach to in-flight AI summary generation if user navigates back mid-generation.
+  useAiJobAttach({
+    key: 'agentic-qual',
+    currentGeneratedAt: summaryGeneratedAt,
+    fetchCached: async () => {
+      const r = await api.get<ApiResponse<{ summary: string; generated_at: string } | null>>(
+        '/insights/agentic-qual/ai-summary/cached'
+      );
+      return { generatedAt: r.data.data?.generated_at ?? null };
+    },
+    onRunning: () => setGeneratingSummary(true),
+    onFresh: async () => {
+      const r = await api.get<ApiResponse<{ summary: string; generated_at: string } | null>>(
+        '/insights/agentic-qual/ai-summary/cached'
+      );
+      if (r.data.data) {
+        setSummary(r.data.data.summary);
+        setSummaryGeneratedAt(r.data.data.generated_at);
+      }
+      setGeneratingSummary(false);
+    },
+    onTimeout: () => setGeneratingSummary(false),
+  });
 
   function generateSummary() {
     setGeneratingSummary(true);
