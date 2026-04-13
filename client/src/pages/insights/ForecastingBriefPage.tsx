@@ -300,36 +300,37 @@ export default function ForecastingBriefPage() {
   const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number } | null>(null);
   const [bulkResult, setBulkResult] = useState<{ succeeded: number; failed: number } | null>(null);
 
-  // ── Load data ───────────────────────────────────────────────────────────
+  // ── Load data (region-aware so we pull the matching narrative) ──────────
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const result = await getForecastingBrief(activeFQ);
+      const result = await getForecastingBrief(activeFQ, region);
       setData(result);
     } catch {
       setError('Failed to load forecasting brief');
     } finally {
       setLoading(false);
     }
-  }, [activeFQ]);
+  }, [activeFQ, region]);
 
   useEffect(() => { load(); }, [load]);
 
   // Re-attach to in-flight forecast narrative generation if user navigates back mid-run.
+  // Narrative is region-scoped, so the job key includes the region.
   useAiJobAttach({
-    key: data?.fiscal_period ? `forecast-narrative-${data.fiscal_period}` : '',
+    key: data?.fiscal_period ? `forecast-narrative-${data.fiscal_period}-${region}` : '',
     enabled: !!data?.fiscal_period,
     currentGeneratedAt: data?.narrative?.generated_at ?? null,
     fetchCached: async () => {
       if (!data?.fiscal_period) return { generatedAt: null };
-      const fresh = await getForecastingBrief(data.fiscal_period);
+      const fresh = await getForecastingBrief(data.fiscal_period, region);
       return { generatedAt: fresh.narrative?.generated_at ?? null };
     },
     onRunning: () => setNarrativeLoading(true),
     onFresh: async () => {
       if (!data?.fiscal_period) return;
-      const fresh = await getForecastingBrief(data.fiscal_period);
+      const fresh = await getForecastingBrief(data.fiscal_period, region);
       setData(fresh);
       setNarrativeLoading(false);
     },
@@ -348,12 +349,12 @@ export default function ForecastingBriefPage() {
     (async () => {
       setNarrativeLoading(true);
       try {
-        const result = await generateNarrative(data.fiscal_period);
+        const result = await generateNarrative(data.fiscal_period, region);
         setData(prev => prev ? { ...prev, narrative: result } : prev);
       } catch { /* silently fail */ }
       setNarrativeLoading(false);
     })();
-  }, [data?.fiscal_period, data?.narrative?.generated_at]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [data?.fiscal_period, data?.narrative?.generated_at, region]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Filtered + sorted opportunities ─────────────────────────────────────
   const filteredOpps = useMemo(() => {
@@ -457,7 +458,7 @@ export default function ForecastingBriefPage() {
     if (!data) return;
     setNarrativeLoading(true);
     try {
-      const result = await generateNarrative(data.fiscal_period);
+      const result = await generateNarrative(data.fiscal_period, region);
       setData(prev => prev ? { ...prev, narrative: result } : prev);
     } catch { /* silently fail */ }
     setNarrativeLoading(false);
@@ -623,7 +624,7 @@ export default function ForecastingBriefPage() {
                   <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="url(#sg-fb)"/>
                   <defs><linearGradient id="sg-fb" x1="2" y1="2" x2="22" y2="22"><stop stopColor="#F10090"/><stop offset="1" stopColor="#6A2CF5"/></linearGradient></defs>
                 </svg>
-                <h3 className="text-[12px] font-semibold text-brand-navy">AI Forecast Narrative — SE Perspective</h3>
+                <h3 className="text-[12px] font-semibold text-brand-navy">AI Forecast Narrative — SE Perspective <span className="text-brand-navy-70 font-medium">· {region}</span></h3>
                 {narrative && (
                   <span className="text-[9px] text-brand-navy-30 ml-2">
                     Generated {new Date(narrative.generated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}

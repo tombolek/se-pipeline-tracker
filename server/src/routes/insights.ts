@@ -232,7 +232,8 @@ router.get('/poc', auth, mgr, async (_req: Request, res: Response): Promise<void
   res.json(ok(rows));
 });
 
-// GET /insights/deploy-mode — all active opps grouped by deploy mode
+// GET /insights/deploy-mode — currently open opps grouped by deploy mode
+// (excludes Closed Won and Closed Lost)
 router.get('/deploy-mode', auth, mgr, async (_req: Request, res: Response): Promise<void> => {
   const rows = await query(
     `SELECT
@@ -247,7 +248,7 @@ router.get('/deploy-mode', auth, mgr, async (_req: Request, res: Response): Prom
        u.name AS se_owner_name
      FROM opportunities o
      LEFT JOIN users u ON u.id = o.se_owner_id
-     WHERE o.is_active = true AND o.is_closed_lost = false
+     WHERE o.is_active = true AND o.is_closed_lost = false AND o.is_closed_won = false
      ORDER BY o.deploy_mode ASC NULLS LAST, o.arr DESC NULLS LAST`
   );
   res.json(ok(rows));
@@ -643,7 +644,8 @@ A numbered list of the 2-3 highest-leverage actions the SE manager should take, 
 
 // ── Agentic Qualification ──────────────────────────────────────────────────────
 
-// GET /insights/agentic-qual  — all active opps that have agentic_qual content
+// GET /insights/agentic-qual  — currently open opps that have agentic_qual content
+// (excludes Closed Won and Closed Lost)
 router.get('/agentic-qual', auth, mgr, async (_req: Request, res: Response): Promise<void> => {
   const rows = await query(
     `SELECT o.id, o.name, o.account_name, o.stage, o.arr, o.arr_currency,
@@ -651,7 +653,7 @@ router.get('/agentic-qual', auth, mgr, async (_req: Request, res: Response): Pro
             u.id AS se_owner_id, u.name AS se_owner_name
      FROM opportunities o
      LEFT JOIN users u ON o.se_owner_id = u.id
-     WHERE o.is_active = true AND o.is_closed_lost = false
+     WHERE o.is_active = true AND o.is_closed_lost = false AND o.is_closed_won = false
        AND o.agentic_qual IS NOT NULL AND length(o.agentic_qual) > 0
      ORDER BY u.name NULLS LAST, o.name`
   );
@@ -670,7 +672,7 @@ router.get('/agentic-qual/recent', auth, mgr, async (req: Request, res: Response
      LEFT JOIN users u ON o.se_owner_id = u.id
      WHERE h.field_name = 'agentic_qual'
        AND h.changed_at > now() - (interval '1 day' * $1)
-       AND o.is_active = true AND o.is_closed_lost = false
+       AND o.is_active = true AND o.is_closed_lost = false AND o.is_closed_won = false
      ORDER BY h.changed_at DESC`,
     [days]
   );
@@ -699,7 +701,7 @@ router.post('/agentic-qual/ai-summary', auth, mgr, async (req: Request, res: Res
             u.name AS se_owner_name
      FROM opportunities o
      LEFT JOIN users u ON o.se_owner_id = u.id
-     WHERE o.is_active = true AND o.is_closed_lost = false
+     WHERE o.is_active = true AND o.is_closed_lost = false AND o.is_closed_won = false
        AND o.agentic_qual IS NOT NULL AND length(o.agentic_qual) > 0
      ORDER BY u.name NULLS LAST, o.name`
   );

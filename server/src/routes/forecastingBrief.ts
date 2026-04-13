@@ -19,9 +19,29 @@ function computeMeddpiccScore(row: Record<string, unknown>): number {
   return MEDDPICC_FIELDS.filter(f => row[f] && String(row[f]).trim().length > 0).length;
 }
 
+// ── Region → team mapping (mirrors the FE) ───────────────────────────────────
+const NA_TEAMS   = ['NA Enterprise', 'NA Strategic'];
+const INTL_TEAMS = ['EMEA', 'ANZ'];
+type ForecastRegion = 'NA' | 'INTL';
+
+function isRegion(v: unknown): v is ForecastRegion {
+  return v === 'NA' || v === 'INTL';
+}
+
+function teamsForRegion(region: ForecastRegion): string[] {
+  return region === 'NA' ? NA_TEAMS : INTL_TEAMS;
+}
+
+function narrativeCacheKey(fq: string, region: ForecastRegion | null): string {
+  // Separate cache per region. Legacy (unscoped) keys remain for ad-hoc read.
+  return region ? `forecast-narrative-${fq}-${region}` : `forecast-narrative-${fq}`;
+}
+
 // ── GET /forecasting-brief?fq=Q2-2026 ──────────────────────────────────────
 router.get('/', auth, mgr, async (req: Request, res: Response): Promise<void> => {
   let fq = req.query.fq as string | undefined;
+  const regionParam = req.query.region as string | undefined;
+  const region: ForecastRegion | null = isRegion(regionParam) ? regionParam : null;
 
   // Default to the current fiscal quarter based on today's date
   if (!fq) {
@@ -137,10 +157,10 @@ router.get('/', auth, mgr, async (req: Request, res: Response): Promise<void> =>
       : 0,
   };
 
-  // Fetch cached narrative
+  // Fetch cached narrative for the requested region (separate per NA / INTL)
   const narrativeRow = await queryOne(
     `SELECT content, generated_at FROM ai_summary_cache WHERE key = $1`,
-    [`forecast-narrative-${fq}`]
+    [narrativeCacheKey(fq, region)]
   );
   const narrative = narrativeRow
     ? { content: narrativeRow.content as string, generated_at: (narrativeRow.generated_at as Date).toISOString() }
@@ -148,6 +168,7 @@ router.get('/', auth, mgr, async (req: Request, res: Response): Promise<void> =>
 
   res.json(ok({
     fiscal_period: fq,
+    region,
     kpi,
     opportunities: rows,
     narrative,
@@ -158,9 +179,19 @@ router.get('/', auth, mgr, async (req: Request, res: Response): Promise<void> =>
 router.post('/narrative/generate', auth, mgr, async (req: Request, res: Response): Promise<void> => {
   const fq = req.body.fiscal_period as string;
   if (!fq) { res.status(400).json(err('fiscal_period is required')); return; }
+  const regionBody = req.body.region as string | undefined;
+  const region: ForecastRegion | null = isRegion(regionBody) ? regionBody : null;
   const userId = (req as AuthenticatedRequest).user?.userId ?? null;
 
-  // Fetch pipeline data for the prompt
+  // Fetch pipeline data for the prompt — filtered by region's teams when region is set
+  const params: unknown[] = [fq];
+  let teamFilter = '';
+  if (region) {
+    const teams = teamsForRegion(region);
+    const placeholders = teams.map((_, i) => `$${i + 2}`).join(', ');
+    params.push(...teams);
+    teamFilter = `AND o.team IN (${placeholders})`;
+  }
   const rows = await query(
     `SELECT
        o.name, o.account_name, o.arr, o.arr_currency, o.stage, o.forecast_status,
@@ -175,13 +206,13 @@ router.post('/narrative/generate', auth, mgr, async (req: Request, res: Response
        END AS se_comments_days_ago
      FROM opportunities o
      LEFT JOIN users u ON u.id = o.se_owner_id
-     WHERE o.is_active = true AND o.is_closed_lost = false AND o.fiscal_period = $1
+     WHERE o.is_active = true AND o.is_closed_lost = false AND o.fiscal_period = $1 ${teamFilter}
      ORDER BY o.arr DESC NULLS LAST`,
-    [fq]
+    params
   );
 
   if (rows.length === 0) {
-    res.status(404).json(err('No opportunities found for this fiscal period'));
+    res.status(404).json(err(`No opportunities found for ${fq}${region ? ` in ${region}` : ''}`));
     return;
   }
 
@@ -202,9 +233,14 @@ router.post('/narrative/generate', auth, mgr, async (req: Request, res: Response
   const mlArr = rows.filter((r: Record<string, unknown>) => (r.forecast_status as string || '').toLowerCase() === 'most likely')
     .reduce((s: number, r: Record<string, unknown>) => s + (parseFloat(r.arr as string) || 0), 0);
 
+  const regionLabel = region === 'NA' ? 'NA (NA Enterprise + NA Strategic)'
+                    : region === 'INTL' ? 'INTL (EMEA + ANZ)'
+                    : 'All regions';
+
   const prompt = `You are an SE Manager preparing a forecasting brief for your leadership call.
 
 Fiscal Quarter: ${fq}
+Region scope: ${regionLabel}
 Pipeline: $${Math.round(totalArr / 1000)}K total | $${Math.round(commitArr / 1000)}K Commit | $${Math.round(mlArr / 1000)}K Most Likely | ${rows.length} deals
 
 Deals:
@@ -220,7 +256,8 @@ Write a concise SE-perspective forecast narrative with exactly these 3 sections:
 
 BE CONCISE. Each section should be 2-4 sentences. Use deal names and dollar amounts. Focus on actionable SE insights, not generic observations. Total response should be under 300 words.`;
 
-  const job = await startJob({ key: `forecast-narrative-${fq}`, feature: 'forecast-narrative', userId });
+  const cacheKey = narrativeCacheKey(fq, region);
+  const job = await startJob({ key: cacheKey, feature: 'forecast-narrative', userId });
   try {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     const response = await client.messages.create({
@@ -232,12 +269,12 @@ BE CONCISE. Each section should be 2-4 sentences. Use deal names and dollar amou
     const textBlock = response.content.find(b => b.type === 'text');
     const content = textBlock && textBlock.type === 'text' ? textBlock.text : '';
 
-    // Cache the narrative
+    // Cache the narrative under the region-scoped key
     await query(
       `INSERT INTO ai_summary_cache (key, content, generated_at)
        VALUES ($1, $2, now())
        ON CONFLICT (key) DO UPDATE SET content = $2, generated_at = now()`,
-      [`forecast-narrative-${fq}`, content]
+      [cacheKey, content]
     );
 
     await completeJob(job.id);

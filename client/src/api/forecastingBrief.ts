@@ -65,21 +65,28 @@ export interface ForecastNarrative {
   generated_at: string;
 }
 
+export type ForecastRegion = 'NA' | 'INTL';
+
 export interface ForecastingBriefData {
   fiscal_period: string;
+  region?: ForecastRegion | null;
   kpi: ForecastingBriefKPI;
   opportunities: ForecastOpp[];
   narrative: ForecastNarrative | null;
 }
 
-export async function getForecastingBrief(fq?: string): Promise<ForecastingBriefData> {
-  const params = fq ? { fq } : {};
+export async function getForecastingBrief(fq?: string, region?: ForecastRegion | null): Promise<ForecastingBriefData> {
+  const params: Record<string, string> = {};
+  if (fq) params.fq = fq;
+  if (region) params.region = region;
   const { data } = await api.get<ApiResponse<ForecastingBriefData>>('/forecasting-brief', { params });
   return data.data;
 }
 
-export async function generateNarrative(fiscalPeriod: string): Promise<ForecastNarrative> {
-  const { data } = await api.post<ApiResponse<ForecastNarrative>>('/forecasting-brief/narrative/generate', { fiscal_period: fiscalPeriod });
+export async function generateNarrative(fiscalPeriod: string, region?: ForecastRegion | null): Promise<ForecastNarrative> {
+  const body: Record<string, string> = { fiscal_period: fiscalPeriod };
+  if (region) body.region = region;
+  const { data } = await api.post<ApiResponse<ForecastNarrative>>('/forecasting-brief/narrative/generate', body);
   return data.data;
 }
 
