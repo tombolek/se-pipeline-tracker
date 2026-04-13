@@ -242,35 +242,40 @@ function FilterBar({
       <MultiSelectFilter options={teamOptions} selected={teams} onChange={setTeams} placeholder="All teams" />
       <MultiSelectFilter options={recordTypeOptions} selected={recordTypes} onChange={setRecordTypes} placeholder="All types" />
       {showTeamScope && <TeamScopeSelector />}
-      <button
-        onClick={() => setAtRisk(!atRisk)}
-        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
-          atRisk
-            ? 'bg-status-overdue/10 border-status-overdue text-status-overdue'
-            : 'border-brand-navy-30 text-brand-navy-70 hover:border-brand-navy hover:text-brand-navy'
-        }`}
-      >
-        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${atRisk ? 'bg-status-overdue' : 'bg-brand-navy-30'}`} />
-        At-risk only
-      </button>
-      <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
-        meddpiccMax !== null
-          ? 'bg-amber-50 border-status-warning text-status-warning'
-          : 'border-brand-navy-30 text-brand-navy-70'
-      }`}>
-        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${meddpiccMax !== null ? 'bg-status-warning' : 'bg-brand-navy-30'}`} />
-        MEDDPICC below
-        <select
-          value={meddpiccMax ?? ''}
-          onChange={e => setMeddpiccMax(e.target.value === '' ? null : Number(e.target.value))}
-          className="bg-transparent border-none outline-none font-semibold cursor-pointer text-xs"
+      {/* At-risk and MEDDPICC-below filters temporarily hidden — keep state + props wired so we can re-enable without refactoring. */}
+      {false && (
+        <button
+          onClick={() => setAtRisk(!atRisk)}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
+            atRisk
+              ? 'bg-status-overdue/10 border-status-overdue text-status-overdue'
+              : 'border-brand-navy-30 text-brand-navy-70 hover:border-brand-navy hover:text-brand-navy'
+          }`}
         >
-          <option value="">—</option>
-          {[4, 5, 6, 7].map(n => (
-            <option key={n} value={n}>{n}/9</option>
-          ))}
-        </select>
-      </div>
+          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${atRisk ? 'bg-status-overdue' : 'bg-brand-navy-30'}`} />
+          At-risk only
+        </button>
+      )}
+      {false && (
+        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
+          meddpiccMax !== null
+            ? 'bg-amber-50 border-status-warning text-status-warning'
+            : 'border-brand-navy-30 text-brand-navy-70'
+        }`}>
+          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${meddpiccMax !== null ? 'bg-status-warning' : 'bg-brand-navy-30'}`} />
+          MEDDPICC below
+          <select
+            value={meddpiccMax ?? ''}
+            onChange={e => setMeddpiccMax(e.target.value === '' ? null : Number(e.target.value))}
+            className="bg-transparent border-none outline-none font-semibold cursor-pointer text-xs"
+          >
+            <option value="">—</option>
+            {[4, 5, 6, 7].map(n => (
+              <option key={n} value={n}>{n}/9</option>
+            ))}
+          </select>
+        </div>
+      )}
       {seFilterName && (
         <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-brand-purple/10 border border-brand-purple text-brand-purple">
           SE: {seFilterName}
