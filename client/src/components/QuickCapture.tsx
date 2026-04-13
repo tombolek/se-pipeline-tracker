@@ -27,6 +27,7 @@ export default function QuickCapture() {
   const [oppResults, setOppResults] = useState<Opportunity[]>([]);
   const [selectedOpp, setSelectedOpp] = useState<Opportunity | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [highlightIdx, setHighlightIdx] = useState(0);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -34,7 +35,8 @@ export default function QuickCapture() {
   const searchRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Reset state on open
+  // Reset state on open — focus the opportunity search first so the typical
+  // flow is: Ctrl-K → type → ↓ → Enter (selects opp + jumps to textarea) → type note.
   useEffect(() => {
     if (quickCaptureOpen) {
       setText('');
@@ -44,8 +46,9 @@ export default function QuickCapture() {
       setOppResults([]);
       setSelectedOpp(null);
       setShowDropdown(false);
+      setHighlightIdx(0);
       setSaved(false);
-      setTimeout(() => textareaRef.current?.focus(), 50);
+      setTimeout(() => searchRef.current?.focus(), 50);
     }
   }, [quickCaptureOpen]);
 
@@ -63,6 +66,7 @@ export default function QuickCapture() {
   const handleOppSearchChange = useCallback((value: string) => {
     setOppSearch(value);
     setSelectedOpp(null);
+    setHighlightIdx(0);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (!value.trim()) { setOppResults([]); setShowDropdown(false); return; }
     debounceRef.current = setTimeout(async () => {
@@ -70,6 +74,7 @@ export default function QuickCapture() {
         const results = await listOpportunities({ search: value, include_qualify: true, limit: 20 });
         setOppResults(results.slice(0, 8));
         setShowDropdown(results.length > 0);
+        setHighlightIdx(0);
       } catch { /* ignore */ }
     }, 300);
   }, []);
@@ -79,6 +84,23 @@ export default function QuickCapture() {
     setOppSearch('');
     setOppResults([]);
     setShowDropdown(false);
+    // Auto-jump to the note/task text so the user can start typing immediately.
+    setTimeout(() => textareaRef.current?.focus(), 50);
+  }
+
+  function handleSearchKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (!showDropdown || oppResults.length === 0) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setHighlightIdx(i => Math.min(i + 1, oppResults.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHighlightIdx(i => Math.max(i - 1, 0));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      const opp = oppResults[highlightIdx];
+      if (opp) selectOpp(opp);
+    }
   }
 
   function clearOpp() {
@@ -156,6 +178,59 @@ export default function QuickCapture() {
               ))}
             </div>
 
+            {/* Opportunity link — first field, focused on open */}
+            <div>
+              <p className="text-[11px] text-brand-navy-70 font-medium mb-1.5">
+                Link to opportunity <span className="font-normal">(optional — Tab to skip)</span>
+              </p>
+
+              {selectedOpp ? (
+                <div className="flex items-center gap-2 px-3 py-2 bg-brand-purple-30/40 rounded-lg border border-brand-purple/20">
+                  <svg className="w-3.5 h-3.5 text-brand-purple flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                  </svg>
+                  <span className="text-xs font-medium text-brand-navy flex-1 min-w-0 truncate">{selectedOpp.name}</span>
+                  <button type="button" onClick={clearOpp} className="text-brand-navy-70 hover:text-brand-navy">
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              ) : (
+                <div className="relative">
+                  <input
+                    ref={searchRef}
+                    type="text"
+                    value={oppSearch}
+                    onChange={e => handleOppSearchChange(e.target.value)}
+                    onKeyDown={handleSearchKeyDown}
+                    onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
+                    onFocus={() => oppResults.length > 0 && setShowDropdown(true)}
+                    placeholder="Search opportunities… (↓ then Enter to pick)"
+                    className="w-full px-3 py-2 rounded-lg border border-brand-navy-30 text-sm text-brand-navy placeholder:text-brand-navy-70 focus:outline-none focus:ring-[3px] focus:ring-brand-purple/15 focus:border-brand-purple"
+                  />
+                  {showDropdown && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-brand-navy-30 rounded-lg shadow-lg overflow-hidden">
+                      {oppResults.map((opp, i) => (
+                        <button
+                          key={opp.id}
+                          type="button"
+                          onMouseDown={() => selectOpp(opp)}
+                          onMouseEnter={() => setHighlightIdx(i)}
+                          className={`w-full text-left px-3 py-2.5 transition-colors border-b border-brand-navy-30/30 last:border-0 ${
+                            i === highlightIdx ? 'bg-brand-purple-30/50' : 'hover:bg-brand-purple-30/30'
+                          }`}
+                        >
+                          <p className="text-sm font-medium text-brand-navy truncate">{opp.name}</p>
+                          <p className="text-xs text-brand-navy-70 truncate">{opp.account_name ?? ''}</p>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             {/* Text area */}
             <textarea
               ref={textareaRef}
@@ -184,55 +259,6 @@ export default function QuickCapture() {
                 />
               </div>
             )}
-
-            {/* Opportunity link */}
-            <div>
-              <p className="text-[11px] text-brand-navy-70 font-medium mb-1.5">
-                Link to opportunity <span className="font-normal">(optional)</span>
-              </p>
-
-              {selectedOpp ? (
-                <div className="flex items-center gap-2 px-3 py-2 bg-brand-purple-30/40 rounded-lg border border-brand-purple/20">
-                  <svg className="w-3.5 h-3.5 text-brand-purple flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                  </svg>
-                  <span className="text-xs font-medium text-brand-navy flex-1 min-w-0 truncate">{selectedOpp.name}</span>
-                  <button type="button" onClick={clearOpp} className="text-brand-navy-70 hover:text-brand-navy">
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-              ) : (
-                <div className="relative">
-                  <input
-                    ref={searchRef}
-                    type="text"
-                    value={oppSearch}
-                    onChange={e => handleOppSearchChange(e.target.value)}
-                    onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
-                    onFocus={() => oppResults.length > 0 && setShowDropdown(true)}
-                    placeholder="Search opportunities…"
-                    className="w-full px-3 py-2 rounded-lg border border-brand-navy-30 text-sm text-brand-navy placeholder:text-brand-navy-70 focus:outline-none focus:ring-[3px] focus:ring-brand-purple/15 focus:border-brand-purple"
-                  />
-                  {showDropdown && (
-                    <div className="absolute z-10 w-full mt-1 bg-white border border-brand-navy-30 rounded-lg shadow-lg overflow-hidden">
-                      {oppResults.map(opp => (
-                        <button
-                          key={opp.id}
-                          type="button"
-                          onMouseDown={() => selectOpp(opp)}
-                          className="w-full text-left px-3 py-2.5 hover:bg-brand-purple-30/30 transition-colors border-b border-brand-navy-30/30 last:border-0"
-                        >
-                          <p className="text-sm font-medium text-brand-navy truncate">{opp.name}</p>
-                          <p className="text-xs text-brand-navy-70 truncate">{opp.account_name ?? ''}</p>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
 
             {/* Footer */}
             <div className="flex items-center justify-between pt-1">

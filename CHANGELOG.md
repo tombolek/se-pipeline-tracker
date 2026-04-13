@@ -7,6 +7,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## 2026-04-13
 
+### Changed
+- **Quick Capture — opportunity search is now the first field** — opening Quick Capture (Ctrl/Cmd-K) now focuses the opportunity search box first, with arrow-key navigation (↑/↓) and Enter to select a result. Selecting an opp auto-jumps focus to the note/task text area. Optimised for the rapid-add flow on 1:1 prep: Ctrl-K → type → ↓ → Enter → type note → Cmd-Enter.
+
 ### Added
 - **AI generations now survive page navigation** — the 10 AI-powered endpoints (Deal Summary, MEDDPICC Coach, Call Prep, Demo Prep, 1:1 Narrative, Tech Blockers, Agentic Qual, Forecast Narrative, bulk summaries) now track in-progress runs in a new `ai_jobs` table. Server-side generations always persist their result to `ai_summary_cache` on completion, so navigating away mid-generation no longer loses the result — the next visit picks it up from cache. A new `GET /ai-jobs/by-key/:key` lets the client detect a running job and poll for the result without kicking off a duplicate request. Phase 1 of Issue #101 — server-side tracking + client hook (`useAiJob`) + API helper (`api/aiJobs.ts`) are in place; panel-by-panel adoption of the hook to follow.
 - **AI panels auto-reattach to in-flight generations** — all 8 AI panels (AI Summary, MEDDPICC Coach, Call Prep, Demo Prep, 1:1 Narrative, Tech Blockers, Agentic Qual, Forecast Narrative) now use `useAiJobAttach` to detect a job already running for their key on mount. If a generation is in flight when you return to a panel, the panel flips to its loading state and polls every 3s until the cached result lands — no duplicate POST is sent. Phase 2 of Issue #101.
