@@ -8,6 +8,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## 2026-04-13
 
 ### Changed
+- **Performance: faster Pipeline rendering with 1000+ rows** — wrapped pipeline rows in `React.memo`, memoized the filter/sort pipeline + derived filter options, added a 200ms debounce on the search input. Typing in search no longer re-renders every row per keystroke. Phase 2 of Issue #102.
 - **Performance: partial indexes on hot opportunity queries** — added partial indexes covering the dominant filter combos (active/open pipeline, closed-lost, closed-won, open tasks). Most pages query `is_active = true AND is_closed_lost = false`; sequential scans on this combo were the main cost past ~1k rows. Also added an explicit `is_closed_won = false` clause to the default `/opportunities` GET (with `include_closed=true` opt-in for future combined views) so Closed Won deals never leak into pipeline lists. Phase 1 of Issue #102.
 
 ### Added

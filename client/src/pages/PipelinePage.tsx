@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo, memo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { Opportunity, User } from '../types';
 import { computeHealthScore } from '../utils/healthScore';
@@ -162,16 +162,20 @@ function NameCellWithCapture({ opp, onSaved }: { opp: Opportunity; onSaved?: () 
 }
 
 // ── Opportunity row ───────────────────────────────────────────────────────────
-function OppRow({ opp, selected, onClick, onRefreshList, visibleColumns }: {
+// Memoized: skips re-render unless the opp object, selection, or column set
+// changes. Critical with 1000+ rows — without this, every keystroke in the
+// search box re-rendered every row. (Issue #102)
+const OppRow = memo(function OppRow({ opp, selected, onSelect, onRefreshList, visibleColumns }: {
   opp: Opportunity;
   selected: boolean;
-  onClick: () => void;
+  onSelect: (id: number) => void;
   onRefreshList?: () => void;
   visibleColumns: string[];
 }) {
+  const handleClick = useCallback(() => onSelect(opp.id), [onSelect, opp.id]);
   return (
     <tr
-      onClick={onClick}
+      onClick={handleClick}
       className={`group border-b border-brand-navy-30/30 cursor-pointer transition-colors ${
         selected
           ? 'bg-brand-purple/[0.04] border-l-2 border-l-brand-purple-70'
@@ -192,7 +196,7 @@ function OppRow({ opp, selected, onClick, onRefreshList, visibleColumns }: {
       </td>
     </tr>
   );
-}
+});
 
 
 // ── Filter bar ────────────────────────────────────────────────────────────────
@@ -305,6 +309,13 @@ export default function PipelinePage({ myPipelineMode = false, favoritesMode = f
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [search, setSearch] = useState('');
+  // Debounced copy of `search` — actual filtering uses this so typing each char
+  // doesn't re-filter 1000+ rows per keystroke. (Issue #102)
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 200);
+    return () => clearTimeout(t);
+  }, [search]);
   const [stages, setStages] = useState<string[]>([]);
   const [selectedFiscalPeriods, setFiscalPeriods] = useState<string[]>([]);
   const [teams, setTeams] = useState<string[]>([]);
@@ -368,41 +379,59 @@ export default function PipelinePage({ myPipelineMode = false, favoritesMode = f
   }, [allTeamsParam, effectiveTeams]);
 
   // Derive sorted fiscal periods from loaded data
-  const fiscalPeriods = [...new Set(
-    allOpps.map(o => o.fiscal_period).filter(Boolean) as string[]
-  )].sort(sortFiscalPeriod);
+  const fiscalPeriods = useMemo(
+    () => [...new Set(allOpps.map(o => o.fiscal_period).filter(Boolean) as string[])].sort(sortFiscalPeriod),
+    [allOpps]
+  );
 
-  const teamOptions = [...new Set(allOpps.map(o => o.team).filter(Boolean) as string[])].sort();
-  const recordTypeOptions = [...new Set(allOpps.map(o => o.record_type).filter(Boolean) as string[])].sort();
+  const teamOptions = useMemo(
+    () => [...new Set(allOpps.map(o => o.team).filter(Boolean) as string[])].sort(),
+    [allOpps]
+  );
+  const recordTypeOptions = useMemo(
+    () => [...new Set(allOpps.map(o => o.record_type).filter(Boolean) as string[])].sort(),
+    [allOpps]
+  );
 
   // Derive SE filter name from loaded data
-  const seFilterName = seIdParam
-    ? (allOpps.find(o => o.se_owner?.id === seIdParam)?.se_owner?.name ?? `SE #${seIdParam}`)
-    : null;
+  const seFilterName = useMemo(
+    () => seIdParam
+      ? (allOpps.find(o => o.se_owner?.id === seIdParam)?.se_owner?.name ?? `SE #${seIdParam}`)
+      : null,
+    [allOpps, seIdParam]
+  );
 
   function clearSeFilter() {
     setSearchParams(p => { p.delete('se_id'); return p; });
   }
 
-  // Apply all filters client-side
-  const filtered = allOpps.filter(o => {
-    if (!favoritesMode && (myPipelineMode || myDeals) && o.se_owner?.id !== user?.id) return false;
-    if (seIdParam && o.se_owner?.id !== seIdParam) return false;
-    if (stages.length > 0 && !stages.includes(o.stage)) return false;
-    if (selectedFiscalPeriods.length > 0 && !selectedFiscalPeriods.includes(o.fiscal_period ?? '')) return false;
-    if (teams.length > 0 && !teams.includes(o.team ?? '')) return false;
-    if (atRisk && computeHealthScore(o).rag === 'green') return false;
-    if (meddpiccMax !== null && computeMeddpicc(o).strong > meddpiccMax) return false;
-    if (recordTypes.length > 0 && !recordTypes.includes(o.record_type ?? '')) return false;
-    if (search) {
-      const q = search.toLowerCase();
-      if (!o.name.toLowerCase().includes(q) && !(o.account_name ?? '').toLowerCase().includes(q)) return false;
-    }
-    return true;
-  });
-  const displayed = sortKey
-    ? sortRows(filtered, sortKey, sortDir, oppColType, getOppValue)
-    : filtered;
+  // Apply all filters client-side. Memoized so OppRow.memo can skip work when
+  // filters haven't actually changed identity. (Issue #102)
+  const displayed = useMemo(() => {
+    const q = debouncedSearch.toLowerCase();
+    const filtered = allOpps.filter(o => {
+      if (!favoritesMode && (myPipelineMode || myDeals) && o.se_owner?.id !== user?.id) return false;
+      if (seIdParam && o.se_owner?.id !== seIdParam) return false;
+      if (stages.length > 0 && !stages.includes(o.stage)) return false;
+      if (selectedFiscalPeriods.length > 0 && !selectedFiscalPeriods.includes(o.fiscal_period ?? '')) return false;
+      if (teams.length > 0 && !teams.includes(o.team ?? '')) return false;
+      if (atRisk && computeHealthScore(o).rag === 'green') return false;
+      if (meddpiccMax !== null && computeMeddpicc(o).strong > meddpiccMax) return false;
+      if (recordTypes.length > 0 && !recordTypes.includes(o.record_type ?? '')) return false;
+      if (q) {
+        if (!o.name.toLowerCase().includes(q) && !(o.account_name ?? '').toLowerCase().includes(q)) return false;
+      }
+      return true;
+    });
+    return sortKey ? sortRows(filtered, sortKey, sortDir, oppColType, getOppValue) : filtered;
+  }, [
+    allOpps, favoritesMode, myPipelineMode, myDeals, user?.id, seIdParam,
+    stages, selectedFiscalPeriods, teams, atRisk, meddpiccMax, recordTypes,
+    debouncedSearch, sortKey, sortDir,
+  ]);
+
+  // Stable callback so memoized OppRow doesn't re-render on parent state churn.
+  const handleSelectId = useCallback((id: number) => setSelectedId(id), []);
 
   async function handleColumnsChange(cols: string[]) {
     setVisibleColumns(cols);
@@ -493,7 +522,7 @@ export default function PipelinePage({ myPipelineMode = false, favoritesMode = f
                   key={opp.id}
                   opp={opp}
                   selected={selectedId === opp.id}
-                  onClick={() => setSelectedId(opp.id)}
+                  onSelect={handleSelectId}
                   onRefreshList={load}
                   visibleColumns={visibleColumns}
                 />
