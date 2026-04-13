@@ -8,6 +8,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## 2026-04-13
 
 ### Changed
+- **Weekly Digest — long sections preview 5 rows instead of fully collapsing** — sections with more than 5 items now always show the first 5 rows with a "Show N more" / "Show less" toggle at the bottom, instead of the previous collapse-to-header behavior. Makes the page scannable without having to expand each section. (Issue #89)
 - **Forecasting Brief — AI Forecast Narrative is now per region** — the narrative is generated, cached, and shown separately for NA (NA Enterprise + NA Strategic) and INTL (EMEA + ANZ). Switching the region toggle loads the matching narrative. Each region has its own generation job, so regenerating one doesn't invalidate the other. The panel header now shows the active region alongside the title.
 - **Deploy Mode + Agentic Qualification — open deals only** — both pages now exclude Closed Won and Closed Lost opportunities (previously only Closed Lost was excluded). Matches the intent of "currently open deals".
 
