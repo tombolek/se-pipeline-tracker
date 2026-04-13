@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import api from '../../api/client';
-import type { ApiResponse } from '../../types';
+import type { ApiResponse, User } from '../../types';
+import { useAuthStore } from '../../store/auth';
+import { listUsers } from '../../api/users';
 import { useTeamScope } from '../../hooks/useTeamScope';
 import { formatARR, formatDate } from '../../utils/formatters';
 import { Loading } from './shared';
@@ -239,6 +241,33 @@ export default function ClosedLostStatsPage() {
   const [days,    setDays]    = useState(0);
   const [metric,  setMetric]  = useState<'count' | 'arr'>('count');
 
+  const currentUser = useAuthStore(s => s.user);
+  const isManager = currentUser?.role === 'manager';
+  const [seUsers, setSeUsers] = useState<User[]>([]);
+  const [savingSeId, setSavingSeId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!isManager) return;
+    listUsers()
+      .then(users => setSeUsers(users.filter(u => u.role === 'se' && u.is_active)))
+      .catch(() => setSeUsers([]));
+  }, [isManager]);
+
+  async function updateSeOwner(oppId: number, newSeOwnerId: number | null) {
+    setSavingSeId(oppId);
+    try {
+      await api.patch(`/opportunities/${oppId}`, { se_owner_id: newSeOwnerId });
+      const newOwner = newSeOwnerId != null ? seUsers.find(u => u.id === newSeOwnerId) ?? null : null;
+      setDeals(prev => prev.map(d => d.id === oppId
+        ? { ...d, se_owner_id: newSeOwnerId, se_owner_name: newOwner?.name ?? null }
+        : d));
+    } catch (e) {
+      alert('Failed to update SE Owner');
+    } finally {
+      setSavingSeId(null);
+    }
+  }
+
   // Per-chart active slice (null = all shown)
   const [activeSlices, setActiveSlices] = useState<Partial<Record<Dimension, string | null>>>({});
 
@@ -401,13 +430,18 @@ export default function ClosedLostStatsPage() {
             )}
 
             {/* Deal table */}
-            {filteredDeals.length > 0 && filteredDeals.length < deals.length && (
+            {filteredDeals.length > 0 && (
               <div className="mt-6 bg-white rounded-2xl border border-brand-navy-30/40 overflow-hidden">
                 <div className="px-4 py-3 border-b border-brand-navy-30/40 flex items-center gap-2">
-                  <span className="text-sm font-semibold text-brand-navy">Filtered Deals</span>
+                  <span className="text-sm font-semibold text-brand-navy">
+                    {filteredDeals.length < deals.length ? 'Filtered Deals' : 'All Closed Lost Deals'}
+                  </span>
                   <span className="text-[10px] bg-brand-navy-30/60 text-brand-navy-70 rounded-full px-1.5 py-px font-medium">
                     {filteredDeals.length}
                   </span>
+                  {isManager && (
+                    <span className="ml-auto text-[10px] text-brand-navy-30">Manager: SE Owner is editable</span>
+                  )}
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full">
@@ -419,6 +453,7 @@ export default function ClosedLostStatsPage() {
                         <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">Record Type</th>
                         <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">Team</th>
                         <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">AE</th>
+                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">SE Owner</th>
                         <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">Closed</th>
                       </tr>
                     </thead>
@@ -434,6 +469,27 @@ export default function ClosedLostStatsPage() {
                           <td className="px-3 py-3 text-xs text-brand-navy-70 whitespace-nowrap">{deal.record_type ?? '—'}</td>
                           <td className="px-3 py-3 text-xs text-brand-navy-70 whitespace-nowrap">{deal.team ?? '—'}</td>
                           <td className="px-3 py-3 text-xs text-brand-navy-70 whitespace-nowrap">{deal.ae_owner_name ?? '—'}</td>
+                          <td className="px-3 py-3 text-xs text-brand-navy-70 whitespace-nowrap">
+                            {isManager ? (
+                              <select
+                                value={deal.se_owner_id ?? ''}
+                                disabled={savingSeId === deal.id}
+                                onChange={(e) => {
+                                  const val = e.target.value === '' ? null : parseInt(e.target.value);
+                                  updateSeOwner(deal.id, val);
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                                className="text-xs border border-brand-navy-30 rounded px-1.5 py-0.5 bg-white hover:border-brand-purple focus:outline-none focus:ring-1 focus:ring-brand-purple disabled:opacity-50 max-w-[140px]"
+                              >
+                                <option value="">— unassigned —</option>
+                                {seUsers.map(u => (
+                                  <option key={u.id} value={u.id}>{u.name}</option>
+                                ))}
+                              </select>
+                            ) : (
+                              deal.se_owner_name ?? '—'
+                            )}
+                          </td>
                           <td className="px-3 py-3 text-xs text-brand-navy-70 whitespace-nowrap">{formatDate(deal.closed_at)}</td>
                         </tr>
                       ))}

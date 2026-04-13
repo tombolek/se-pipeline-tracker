@@ -7,6 +7,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## 2026-04-13
 
+### Added
+- **Edit SE Owner on closed deals** — Win/Loss Analysis now shows the Filtered Deals table at all times (not only when filters are active) and adds an SE Owner column. Manager users can reassign SE ownership on Closed Won / Closed Lost deals inline via a dropdown; SE users see the name read-only. The Filtered Deals table header notes "Manager: SE Owner is editable" when applicable.
+
 ### Changed
 - **Closed-Won detection** — opportunities that disappear from the SF import while in *Submitted for Booking* stage are now classified as Closed Won, not Closed Lost. New `is_closed_won` / `closed_won_seen` columns; historical data backfilled (deals like VIG and Convex Lineage Upsell that were previously misclassified are now shown as Won).
 
