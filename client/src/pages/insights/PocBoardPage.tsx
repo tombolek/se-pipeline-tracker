@@ -7,6 +7,7 @@ import TeamScopeSelector from '../../components/shared/TeamScopeSelector';
 import { formatDate, formatARR } from '../../utils/formatters';
 import Drawer from '../../components/Drawer';
 import OpportunityDetail from '../../components/OpportunityDetail';
+import { useOppUrlSync } from '../../hooks/useOppUrlSync';
 
 interface PocOpp {
   id: number;
@@ -229,6 +230,7 @@ export default function PocBoardPage() {
   const [error, setError]     = useState<string | null>(null);
   const { filterOppUnion, isOutOfTerritory, teamNames } = useTeamScope();
   const [selectedId, setSelectedId]   = useState<number | null>(null);
+  useOppUrlSync(selectedId, setSelectedId);
   const [hideEmpty, setHideEmpty]     = useState(true);   // default ON
   const [compact, setCompact]         = useState(false);
   const [expandedCards, setExpandedCards] = useState<Set<number>>(new Set());

@@ -8,6 +8,7 @@ import { formatARR, formatDate } from '../../utils/formatters';
 import { Loading } from './shared';
 import Drawer from '../../components/Drawer';
 import OpportunityDetail from '../../components/OpportunityDetail';
+import { useOppUrlSync } from '../../hooks/useOppUrlSync';
 import { sortRows, type SortDir, type ColType } from '../../utils/sortRows';
 
 interface DeployDeal {
@@ -163,6 +164,7 @@ export default function DeployModePage() {
   const [selectedQuarters, setSelectedQuarters] = useState<string[]>([]);
   const [quarterDropdownOpen, setQuarterDropdownOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  useOppUrlSync(selectedId, setSelectedId);
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const quarterDropdownRef = useRef<HTMLDivElement>(null);

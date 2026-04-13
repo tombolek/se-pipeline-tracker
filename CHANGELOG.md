@@ -7,6 +7,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## 2026-04-13
 
+### Added
+- **Shareable opportunity URLs** — opening an opp drawer now reflects in the URL as `?oppId=<sf_opportunity_id>`. Copy the URL and share it; opening it in a new tab auto-opens the drawer for that opp on whichever page you were on. Browser back closes the drawer. Works on Pipeline, Home, Closed Lost, Calendar, 1:1 Prep, Team Tasks, Deploy Mode, Missing Notes, PoC Board, RFx Board, and SE ↔ Deal Mapping. (Issue #99)
+
 ### Changed
 - **Quick Capture — opportunity search is now the first field** — opening Quick Capture (Ctrl/Cmd-K) now focuses the opportunity search box first, with arrow-key navigation (↑/↓) and Enter to select a result. Selecting an opp auto-jumps focus to the note/task text area. Optimised for the rapid-add flow on 1:1 prep: Ctrl-K → type → ↓ → Enter → type note → Cmd-Enter.
 

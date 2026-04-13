@@ -7,6 +7,7 @@ import TeamScopeSelector from '../../components/shared/TeamScopeSelector';
 import { formatARR } from '../../utils/formatters';
 import Drawer from '../../components/Drawer';
 import OpportunityDetail from '../../components/OpportunityDetail';
+import { useOppUrlSync } from '../../hooks/useOppUrlSync';
 import StageBadge from '../../components/shared/StageBadge';
 import SortableHeader from '../../components/shared/SortableHeader';
 import MultiSelectFilter from '../../components/shared/MultiSelectFilter';
@@ -155,6 +156,7 @@ export default function RfxBoardPage() {
   const [error, setError]     = useState<string | null>(null);
   const { filterOppUnion, isOutOfTerritory, teamNames } = useTeamScope();
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  useOppUrlSync(selectedId, setSelectedId);
   const [view, setView]       = useState<'kanban' | 'list'>('kanban');
 
   // List filters

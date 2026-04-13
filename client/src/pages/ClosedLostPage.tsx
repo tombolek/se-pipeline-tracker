@@ -7,6 +7,7 @@ import { usePipelineStore } from '../store/pipeline';
 import { getColumnsForPage, DEFAULT_COLUMNS, COLUMN_BY_KEY } from '../constants/columnDefs';
 import OpportunityDetail from '../components/OpportunityDetail';
 import Drawer from '../components/Drawer';
+import { useOppUrlSync } from '../hooks/useOppUrlSync';
 import ColumnPicker from '../components/shared/ColumnPicker';
 import SortableHeader from '../components/shared/SortableHeader';
 import { renderOpportunityCell } from '../utils/renderOpportunityCell';
@@ -55,6 +56,7 @@ export default function ClosedLostPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  useOppUrlSync(selectedId, setSelectedId, items);
   const setClosedLostUnread = usePipelineStore((s) => s.setClosedLostUnread);
   const [visibleColumns, setVisibleColumns] = useState<string[]>(() =>
     getColumnsForPage('closed_lost', user?.column_prefs ?? null)

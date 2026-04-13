@@ -12,6 +12,7 @@ import { formatDate } from '../../utils/formatters';
 import Drawer from '../../components/Drawer';
 import OpportunityDetail from '../../components/OpportunityDetail';
 import { useAuthStore } from '../../store/auth';
+import { useOppUrlSync } from '../../hooks/useOppUrlSync';
 
 // se_owner is pinned as an interactive select — exclude it from the picker
 const SE_OWNER_KEY = 'se_owner';
@@ -266,6 +267,7 @@ export default function SeDealMappingPage() {
   const [filterAeOwners, setFilterAeOwners] = useState<string[]>([]);
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  useOppUrlSync(selectedId, setSelectedId, opps);
   const [view, setView] = useState<'table' | 'kanban'>('table');
   const [draggingOppId, setDraggingOppId] = useState<number | null>(null);
   const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {

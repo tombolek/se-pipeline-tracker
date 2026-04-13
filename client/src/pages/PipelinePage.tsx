@@ -5,6 +5,7 @@ import { computeHealthScore } from '../utils/healthScore';
 import { listFavorites, listOpportunitiesPaginated, getFilterOptions } from '../api/opportunities';
 import { updateMyPreferences, listUsers } from '../api/users';
 import { useUsers } from '../hooks/useUsers';
+import { useOppUrlSync } from '../hooks/useOppUrlSync';
 import { useAuthStore } from '../store/auth';
 import { getColumnsForPage, DEFAULT_COLUMNS, COLUMN_BY_KEY } from '../constants/columnDefs';
 import OpportunityDetail from '../components/OpportunityDetail';
@@ -308,6 +309,7 @@ export default function PipelinePage({ myPipelineMode = false, favoritesMode = f
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  useOppUrlSync(selectedId, setSelectedId, allOpps);
   const [search, setSearch] = useState('');
   // Debounced copy of `search` — actual filtering uses this so typing each char
   // doesn't re-filter 1000+ rows per keystroke. (Issue #102)

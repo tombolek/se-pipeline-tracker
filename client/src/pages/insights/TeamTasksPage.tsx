@@ -9,6 +9,7 @@ import MultiSelectFilter from '../../components/shared/MultiSelectFilter';
 import { sortRows, type SortDir } from '../../utils/sortRows';
 import Drawer from '../../components/Drawer';
 import OpportunityDetail from '../../components/OpportunityDetail';
+import { useOppUrlSync } from '../../hooks/useOppUrlSync';
 
 interface TeamTask {
   id: number;
@@ -72,6 +73,7 @@ export default function TeamTasksPage() {
   const [sortKey, setSortKey] = useState('due_date');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [selectedOppId, setSelectedOppId] = useState<number | null>(null);
+  useOppUrlSync(selectedOppId, setSelectedOppId);
 
   useEffect(() => {
     api.get<ApiResponse<TeamTask[]>>('/insights/team-tasks')

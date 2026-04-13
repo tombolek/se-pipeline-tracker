@@ -18,6 +18,7 @@ import HealthScoreBadge from '../../components/shared/HealthScoreBadge';
 import StageBadge from '../../components/shared/StageBadge';
 import { formatARR, formatDate } from '../../utils/formatters';
 import { Loading } from './shared';
+import { useOppUrlSync } from '../../hooks/useOppUrlSync';
 import Drawer from '../../components/Drawer';
 import OpportunityDetail from '../../components/OpportunityDetail';
 
@@ -247,6 +248,8 @@ export default function OneOnOnePrepPage() {
   const rawStageMovements = data?.stage_movements ?? [];
 
   const opps = useMemo(() => [...rawOpps].sort(byStageDesc), [rawOpps]);
+
+  useOppUrlSync(selectedOppId, setSelectedOppId, opps);
 
   const overdueTasks = useMemo(
     () => tasks.filter(t => t.bucket === 'overdue').sort(byStageDesc),

@@ -1177,19 +1177,21 @@ router.get('/:id/field-history', auth, async (req: Request, res: Response): Prom
   res.json(ok(rows));
 });
 
-// GET /opportunities/:id
+// GET /opportunities/:id  — accepts numeric id OR sf_opportunity_id (for shareable URLs)
 router.get('/:id', auth, async (req: Request, res: Response): Promise<void> => {
-  const id = parseInt(req.params.id);
-  if (isNaN(id)) { res.status(400).json(err('Invalid opportunity id')); return; }
+  const rawId = req.params.id;
+  const isNumeric = /^\d+$/.test(rawId);
 
   const opp = await queryOne<Record<string, unknown>>(
     `SELECT o.*, u.name AS se_owner_name, u.email AS se_owner_email
      FROM opportunities o
      LEFT JOIN users u ON u.id = o.se_owner_id
-     WHERE o.id = $1`,
-    [id]
+     WHERE ${isNumeric ? 'o.id' : 'o.sf_opportunity_id'} = $1`,
+    [isNumeric ? parseInt(rawId) : rawId]
   );
   if (!opp) { res.status(404).json(err('Opportunity not found')); return; }
+
+  const id = opp.id as number;
 
   const tasks = await query(
     `SELECT t.*, u.name AS assigned_to_name

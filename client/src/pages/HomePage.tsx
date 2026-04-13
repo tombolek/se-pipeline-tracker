@@ -7,6 +7,7 @@ import { formatARR } from '../utils/formatters';
 import { listOpportunities } from '../api/opportunities';
 import Drawer from '../components/Drawer';
 import OpportunityDetail from '../components/OpportunityDetail';
+import { useOppUrlSync } from '../hooks/useOppUrlSync';
 
 interface DigestTask {
   id: number; title: string; status: string; due_date: string | null;
@@ -141,6 +142,7 @@ export default function HomePage() {
 
   // AI quick links state
   const [allOpps, setAllOpps] = useState<Opportunity[]>([]);
+  useOppUrlSync(selectedOppId, setSelectedOppId, allOpps);
   const [aiPickerOpen, setAiPickerOpen] = useState<'call-prep' | 'notes-processor' | 'summary' | 'demo-prep' | null>(null);
   const [aiSearch, setAiSearch] = useState('');
   const aiPickerRef = useRef<HTMLDivElement>(null);

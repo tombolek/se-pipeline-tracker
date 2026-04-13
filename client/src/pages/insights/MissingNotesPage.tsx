@@ -9,6 +9,7 @@ import { Empty, Loading } from './shared';
 import RowCapture from '../../components/RowCapture';
 import Drawer from '../../components/Drawer';
 import OpportunityDetail from '../../components/OpportunityDetail';
+import { useOppUrlSync } from '../../hooks/useOppUrlSync';
 import { sortRows, type SortDir, type ColType } from '../../utils/sortRows';
 import { useTeamScope } from '../../hooks/useTeamScope';
 
@@ -37,6 +38,7 @@ export default function MissingNotesPage() {
   const [rows, setRows] = useState<MissingNotesRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  useOppUrlSync(selectedId, setSelectedId);
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [searchParams] = useSearchParams();

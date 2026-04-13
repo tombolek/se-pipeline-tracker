@@ -79,8 +79,8 @@ export async function getFilterOptions(): Promise<{
   return data.data;
 }
 
-export async function getOpportunity(id: number): Promise<Opportunity> {
-  const { data } = await api.get<ApiResponse<Opportunity>>(`/opportunities/${id}`);
+export async function getOpportunity(idOrSfId: number | string): Promise<Opportunity> {
+  const { data } = await api.get<ApiResponse<Opportunity>>(`/opportunities/${idOrSfId}`);
   return data.data;
 }
 

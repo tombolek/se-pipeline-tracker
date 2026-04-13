@@ -6,6 +6,7 @@ import OutOfTerritoryBanner from '../components/shared/OutOfTerritoryBanner';
 import TeamScopeSelector from '../components/shared/TeamScopeSelector';
 import Drawer from '../components/Drawer';
 import OpportunityDetail from '../components/OpportunityDetail';
+import { useOppUrlSync } from '../hooks/useOppUrlSync';
 
 // ── Raw API types ─────────────────────────────────────────────────────────────
 
@@ -518,6 +519,7 @@ export default function CalendarPage() {
   const [viewMode, setViewMode]     = useState<ViewMode>('1m');
   const [popover, setPopover]       = useState<{ date: Date; events: CalEvent[] } | null>(null);
   const [selectedOppId, setSelectedOppId] = useState<number | null>(null);
+  useOppUrlSync(selectedOppId, setSelectedOppId);
   const [draggingTaskId, setDraggingTaskId] = useState<number | null>(null);
 
   const { filterOppUnion, isOutOfTerritory, teamNames } = useTeamScope();
