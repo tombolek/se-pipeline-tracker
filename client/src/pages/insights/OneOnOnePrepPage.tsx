@@ -7,7 +7,7 @@
  * and an AI-generated coaching narrative.
  */
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { listUsers } from '../../api/users';
 import { getOneOnOneData, generateOneOnOneNarrative } from '../../api/oneOnOnePrep';
 import type { OneOnOneData, OneOnOneTask, OneOnOneStageMovement } from '../../api/oneOnOnePrep';
@@ -17,6 +17,25 @@ import HealthScoreBadge from '../../components/shared/HealthScoreBadge';
 import StageBadge from '../../components/shared/StageBadge';
 import { formatARR, formatDate } from '../../utils/formatters';
 import { Loading } from './shared';
+import Drawer from '../../components/Drawer';
+import OpportunityDetail from '../../components/OpportunityDetail';
+
+// Pipeline stage order, latest → earliest. Used to sort opps and tasks so the
+// most progressed deals surface at the top of every section.
+const STAGE_RANK: Record<string, number> = {
+  'Negotiate':             0,
+  'Submitted for Booking': 1,
+  'Proposal Sent':         2,
+  'Build Value':           3,
+  'Develop Solution':      4,
+  'Qualify':               5,
+};
+function stageRank(s: string | null | undefined): number {
+  return s != null && STAGE_RANK[s] !== undefined ? STAGE_RANK[s] : 99;
+}
+function byStageDesc<T extends { stage?: string | null }>(a: T, b: T): number {
+  return stageRank(a.stage) - stageRank(b.stage);
+}
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -78,6 +97,10 @@ export default function OneOnOnePrepPage() {
   const [loading, setLoading] = useState(false);
   const [narrativeLoading, setNarrativeLoading] = useState(false);
   const [narrativeError, setNarrativeError] = useState<string | null>(null);
+  const [selectedOppId, setSelectedOppId] = useState<number | null>(null);
+
+  const handleOpenOpp = useCallback((id: number) => setSelectedOppId(id), []);
+  const handleCloseDrawer = useCallback(() => setSelectedOppId(null), []);
 
   // Load SEs list once
   useEffect(() => {
@@ -120,29 +143,41 @@ export default function OneOnOnePrepPage() {
     }
   }, [seId]);
 
-  // Derived slices
-  const opps = data?.opportunities ?? [];
+  // Derived slices — all sorted latest stage → earliest stage so the most
+  // progressed deals surface at the top, earlier-stage deals sink to the bottom.
+  const rawOpps = data?.opportunities ?? [];
   const tasks = data?.tasks ?? [];
-  const stageMovements = data?.stage_movements ?? [];
+  const rawStageMovements = data?.stage_movements ?? [];
 
-  const overdueTasks = useMemo(() => tasks.filter(t => t.bucket === 'overdue'), [tasks]);
-  const dueSoonTasks = useMemo(() => tasks.filter(t => t.bucket === 'due_soon'), [tasks]);
+  const opps = useMemo(() => [...rawOpps].sort(byStageDesc), [rawOpps]);
 
-  const staleOpps = useMemo(() =>
-    opps.filter(o => {
+  const overdueTasks = useMemo(
+    () => tasks.filter(t => t.bucket === 'overdue').sort(byStageDesc),
+    [tasks]
+  );
+  const dueSoonTasks = useMemo(
+    () => tasks.filter(t => t.bucket === 'due_soon').sort(byStageDesc),
+    [tasks]
+  );
+
+  const staleOpps = useMemo(
+    () => opps.filter(o => {
       const d = daysSince(o.se_comments_updated_at);
       return d === null || d > 21;
-    }).sort((a, b) => {
-      const aD = daysSince(a.se_comments_updated_at) ?? 9999;
-      const bD = daysSince(b.se_comments_updated_at) ?? 9999;
-      return bD - aD;
     }),
     [opps]
   );
 
-  const noNextStepOpps = useMemo(() =>
-    opps.filter(o => !o.next_step_sf && (o.next_step_count ?? 0) === 0),
+  const noNextStepOpps = useMemo(
+    () => opps.filter(o => !o.next_step_sf && (o.next_step_count ?? 0) === 0),
     [opps]
+  );
+
+  const stageMovements = useMemo(
+    () => [...rawStageMovements].sort(
+      (a, b) => stageRank(a.current_stage) - stageRank(b.current_stage)
+    ),
+    [rawStageMovements]
   );
 
   const summary = useMemo(() => {
@@ -251,14 +286,14 @@ export default function OneOnOnePrepPage() {
           {/* Overdue tasks */}
           {overdueTasks.length > 0 && (
             <Section title="Overdue tasks" count={overdueTasks.length}>
-              <TaskList tasks={overdueTasks} tone="danger" />
+              <TaskList tasks={overdueTasks} tone="danger" onOpenOpp={handleOpenOpp} />
             </Section>
           )}
 
           {/* Due soon tasks */}
           {dueSoonTasks.length > 0 && (
             <Section title="Due this week" count={dueSoonTasks.length}>
-              <TaskList tasks={dueSoonTasks} tone="warn" />
+              <TaskList tasks={dueSoonTasks} tone="warn" onOpenOpp={handleOpenOpp} />
             </Section>
           )}
 
@@ -269,7 +304,7 @@ export default function OneOnOnePrepPage() {
               subtitle="(SE comments older than 21 days or never updated)"
               count={staleOpps.length}
             >
-              <OppTable opps={staleOpps} showComments />
+              <OppTable opps={staleOpps} showComments onOpenOpp={handleOpenOpp} />
             </Section>
           )}
 
@@ -280,7 +315,7 @@ export default function OneOnOnePrepPage() {
               subtitle="(no SF next step + no open 'next step' task)"
               count={noNextStepOpps.length}
             >
-              <OppTable opps={noNextStepOpps} />
+              <OppTable opps={noNextStepOpps} onOpenOpp={handleOpenOpp} />
             </Section>
           )}
 
@@ -291,23 +326,32 @@ export default function OneOnOnePrepPage() {
               subtitle="(last 14 days)"
               count={stageMovements.length}
             >
-              <StageMovementList moves={stageMovements} />
+              <StageMovementList moves={stageMovements} onOpenOpp={handleOpenOpp} />
             </Section>
           )}
 
           {/* All open opps */}
           <Section title="All open opportunities" count={opps.length}>
-            <OppTable opps={opps} />
+            <OppTable opps={opps} onOpenOpp={handleOpenOpp} />
           </Section>
         </>
       )}
+
+      {/* Opportunity drawer */}
+      <Drawer open={selectedOppId !== null} onClose={handleCloseDrawer}>
+        {selectedOppId !== null && (
+          <OpportunityDetail key={selectedOppId} oppId={selectedOppId} />
+        )}
+      </Drawer>
     </div>
   );
 }
 
 // ── Sub-components ─────────────────────────────────────────────────────────
 
-function TaskList({ tasks, tone }: { tasks: OneOnOneTask[]; tone: 'danger' | 'warn' }) {
+function TaskList({ tasks, tone, onOpenOpp }: {
+  tasks: OneOnOneTask[]; tone: 'danger' | 'warn'; onOpenOpp: (id: number) => void;
+}) {
   const dueClass = tone === 'danger' ? 'text-status-overdue' : 'text-status-warning';
   return (
     <ul className="divide-y divide-brand-navy-30/50">
@@ -318,13 +362,14 @@ function TaskList({ tasks, tone }: { tasks: OneOnOneTask[]; tone: 'danger' | 'wa
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-brand-navy font-medium">{t.title}</div>
-            <Link
-              to={`/pipeline?opp=${t.opportunity_id}`}
-              className="text-xs text-brand-navy-70 hover:text-brand-purple"
+            <button
+              type="button"
+              onClick={() => onOpenOpp(t.opportunity_id)}
+              className="text-xs text-brand-navy-70 hover:text-brand-purple text-left"
             >
               {t.opportunity_name}
               {t.account_name && <> · {t.account_name}</>}
-            </Link>
+            </button>
           </div>
           <StageBadge stage={t.stage} />
         </li>
@@ -333,7 +378,9 @@ function TaskList({ tasks, tone }: { tasks: OneOnOneTask[]; tone: 'danger' | 'wa
   );
 }
 
-function OppTable({ opps, showComments }: { opps: Opportunity[]; showComments?: boolean }) {
+function OppTable({ opps, showComments, onOpenOpp }: {
+  opps: Opportunity[]; showComments?: boolean; onOpenOpp: (id: number) => void;
+}) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
@@ -356,9 +403,13 @@ function OppTable({ opps, showComments }: { opps: Opportunity[]; showComments?: 
                 <HealthScoreBadge opp={o} />
               </td>
               <td className="py-2 pr-3">
-                <Link to={`/pipeline?opp=${o.id}`} className="text-brand-navy hover:text-brand-purple font-medium">
+                <button
+                  type="button"
+                  onClick={() => onOpenOpp(o.id)}
+                  className="text-brand-navy hover:text-brand-purple font-medium text-left"
+                >
                   {o.name}
-                </Link>
+                </button>
               </td>
               <td className="py-2 pr-3 text-brand-navy-70">{o.account_name ?? '—'}</td>
               <td className="py-2 pr-3"><StageBadge stage={o.stage} /></td>
@@ -378,15 +429,21 @@ function OppTable({ opps, showComments }: { opps: Opportunity[]; showComments?: 
   );
 }
 
-function StageMovementList({ moves }: { moves: OneOnOneStageMovement[] }) {
+function StageMovementList({ moves, onOpenOpp }: {
+  moves: OneOnOneStageMovement[]; onOpenOpp: (id: number) => void;
+}) {
   return (
     <ul className="divide-y divide-brand-navy-30/50">
       {moves.map((m, i) => (
         <li key={`${m.id}-${m.current_stage}-${i}`} className="py-2 flex items-center gap-3 text-sm">
           <div className="text-xs text-brand-navy-70 w-20 flex-shrink-0">{formatDate(m.stage_changed_at)}</div>
-          <Link to={`/pipeline?opp=${m.id}`} className="flex-1 text-brand-navy hover:text-brand-purple font-medium truncate">
+          <button
+            type="button"
+            onClick={() => onOpenOpp(m.id)}
+            className="flex-1 text-brand-navy hover:text-brand-purple font-medium truncate text-left"
+          >
             {m.name}
-          </Link>
+          </button>
           <div className="flex items-center gap-1.5 text-xs">
             {m.previous_stage && (
               <>
