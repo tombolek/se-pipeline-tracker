@@ -39,8 +39,10 @@ export function useOppUrlSync(
   // Effect A: URL → state
   useEffect(() => {
     if (!urlOppId) {
-      // Param removed (e.g. user edited URL or hit back) — close drawer if open
-      if (selectedOppId !== null) {
+      // Param removed (e.g. user edited URL or hit back) — close drawer if open.
+      // Only clear if we previously wrote the URL param (lastSyncedSfIdRef is set).
+      // This avoids a race where Effect A clears state before Effect B can set the URL.
+      if (selectedOppId !== null && lastSyncedSfIdRef.current !== null) {
         lastSyncedSfIdRef.current = null;
         setSelectedOppId(null);
       }

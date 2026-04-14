@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import type { ReactNode } from 'react';
 
 interface Props {
@@ -18,7 +19,8 @@ export default function Drawer({ open, onClose, children }: Props) {
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
-  return (
+  // Portal to body so overflow:hidden ancestors don't clip the fixed drawer
+  return createPortal(
     <>
       {/* Backdrop */}
       <div
@@ -50,6 +52,7 @@ export default function Drawer({ open, onClose, children }: Props) {
           {children}
         </div>
       </div>
-    </>
+    </>,
+    document.body
   );
 }
