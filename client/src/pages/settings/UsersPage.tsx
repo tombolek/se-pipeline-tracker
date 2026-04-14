@@ -579,6 +579,48 @@ function AdminBadge({ user, onToggle, disabled }: { user: User; onToggle: () => 
   );
 }
 
+function ConfirmAdminModal({ user, onClose, onConfirm }: {
+  user: User;
+  onClose: () => void;
+  onConfirm: () => Promise<void>;
+}) {
+  const [saving, setSaving] = useState(false);
+  const granting = !user.is_admin;
+
+  async function handleConfirm() {
+    setSaving(true);
+    try { await onConfirm(); }
+    finally { setSaving(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="bg-white rounded-lg shadow-lg border border-brand-navy-30/40 w-full max-w-sm mx-4 p-6">
+        <h2 className="text-base font-semibold text-brand-navy mb-1">
+          {granting ? 'Grant admin access?' : 'Revoke admin access?'}
+        </h2>
+        <p className="text-sm text-brand-navy-70 mb-6">
+          {granting
+            ? <><span className="font-medium text-brand-navy">{user.name}</span> will be able to access Administration pages, manage users, configure role access, and change system settings.</>
+            : <><span className="font-medium text-brand-navy">{user.name}</span> will lose access to all Administration pages and settings.</>
+          }
+        </p>
+        <div className="flex justify-end gap-2">
+          <button onClick={onClose} className="px-4 py-2 rounded-lg border border-brand-navy-30 text-sm text-brand-navy-70 hover:text-brand-navy transition-colors">
+            Cancel
+          </button>
+          <button onClick={handleConfirm} disabled={saving}
+            className={`px-4 py-2 rounded-lg text-white text-sm font-semibold disabled:opacity-50 transition-colors ${
+              granting ? 'bg-brand-purple hover:bg-brand-purple-70' : 'bg-status-overdue/80 hover:bg-status-overdue'
+            }`}>
+            {saving ? 'Saving…' : granting ? 'Grant Admin' : 'Revoke Admin'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AccessManagementTab({ users, setUsers, currentUserId }: {
   users: User[];
   setUsers: React.Dispatch<React.SetStateAction<User[]>>;
@@ -592,6 +634,7 @@ function AccessManagementTab({ users, setUsers, currentUserId }: {
   const [reassignTarget, setReassignTarget] = useState<User | null>(null);
   const [deactivateTarget, setDeactivateTarget] = useState<User | null>(null);
   const [roleConfirmTarget, setRoleConfirmTarget] = useState<User | null>(null);
+  const [adminConfirmTarget, setAdminConfirmTarget] = useState<User | null>(null);
 
   async function handleToggleAdmin(u: User) {
     setUpdatingId(u.id);
@@ -639,6 +682,16 @@ function AccessManagementTab({ users, setUsers, currentUserId }: {
           onConfirm={async () => {
             await handleToggleRole(roleConfirmTarget);
             setRoleConfirmTarget(null);
+          }}
+        />
+      )}
+      {adminConfirmTarget && (
+        <ConfirmAdminModal
+          user={adminConfirmTarget}
+          onClose={() => setAdminConfirmTarget(null)}
+          onConfirm={async () => {
+            await handleToggleAdmin(adminConfirmTarget);
+            setAdminConfirmTarget(null);
           }}
         />
       )}
@@ -715,7 +768,7 @@ function AccessManagementTab({ users, setUsers, currentUserId }: {
                       <RoleBadge role={u.role} />
                       <AdminBadge
                         user={u}
-                        onToggle={() => handleToggleAdmin(u)}
+                        onToggle={() => setAdminConfirmTarget(u)}
                         disabled={isUpdating || !currentUser?.is_admin || u.id === currentUserId}
                       />
                     </div>
