@@ -478,6 +478,14 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
               <span className="text-brand-navy-30">|</span>
               <span className="text-[11px] text-brand-navy-70">Close {formatDate(opp.close_date)}</span>
             </>}
+            <span className="text-brand-navy-30">|</span>
+            <span className={`text-[11px] font-medium ${opp.poc_status ? 'text-brand-navy' : 'text-brand-navy-30'}`}>
+              PoC {opp.poc_status ?? 'N/A'}
+            </span>
+            <span className="text-brand-navy-30">|</span>
+            <span className={`text-[11px] font-medium ${opp.rfx_status ? 'text-brand-navy' : 'text-brand-navy-30'}`}>
+              RFx {opp.rfx_status ?? 'N/A'}
+            </span>
 
             {/* Score pills — compact, hover for details */}
             <div className="ml-auto flex items-center gap-2">

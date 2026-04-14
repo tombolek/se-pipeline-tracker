@@ -27,11 +27,10 @@ const DEFAULT_CONFIG: DealInfoConfig = {
         { key: 'team', label: 'Team', source: 'column' },
         { key: 'record_type', label: 'Record Type', source: 'column' },
         { key: 'deploy_mode', label: 'Deploy', source: 'column' },
-        { key: 'poc_status', label: 'PoC Status', source: 'column' },
-        { key: 'rfx_status', label: 'RFx Status', source: 'column' },
         { key: 'engaged_competitors', label: 'Competitors', source: 'column' },
         { key: 'products', label: 'Products', source: 'column', format: 'products' },
       ] },
+    { id: 'poc-rfx', label: 'PoC & RFx', type: 'computed', defaultOpen: true },
     { id: 'sf-next-step', label: 'SF Next Step', type: 'collapsible', defaultOpen: true,
       fields: [{ key: 'next_step_sf', label: 'Next Step', source: 'column' }],
       extras: ['field_history:next_step_sf'] },
@@ -404,6 +403,50 @@ function MeddpiccSection({ opp, coachResult }: { opp: Opportunity; coachResult?:
   );
 }
 
+function PocRfxSection({ opp }: { opp: Opportunity }) {
+  const pocFields: { label: string; key: string; format?: string }[] = [
+    { label: 'PoC Status', key: 'poc_status' },
+    { label: 'PoC Start Date', key: 'poc_start_date', format: 'date' },
+    { label: 'PoC End Date', key: 'poc_end_date', format: 'date' },
+    { label: 'PoC Type', key: 'poc_type' },
+    { label: 'PoC Deploy Type', key: 'poc_deploy_type' },
+  ];
+  const rfxFields: { label: string; key: string; format?: string }[] = [
+    { label: 'RFx Status', key: 'rfx_status' },
+    { label: 'RFx Received', key: 'rfx_received_date', format: 'date' },
+    { label: 'RFx Deadline', key: 'rfx_submission_date', format: 'date' },
+  ];
+
+  function val(key: string, format?: string): string {
+    const v = (opp as unknown as Record<string, unknown>)[key] as string | null | undefined;
+    if (!v) return '—';
+    if (format === 'date') return formatDate(v);
+    return v;
+  }
+
+  return (
+    <div className="bg-white rounded-xl border border-brand-navy-30 px-5 py-4">
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-navy-70 mb-3">PoC &amp; RFx</p>
+      <div className="grid grid-cols-2 gap-x-10">
+        {/* PoC column */}
+        <div>
+          <p className="text-[10px] font-semibold text-brand-purple mb-1.5">PoC</p>
+          {pocFields.map(f => (
+            <FieldRow key={f.key} label={f.label} value={val(f.key, f.format)} />
+          ))}
+        </div>
+        {/* RFx column */}
+        <div>
+          <p className="text-[10px] font-semibold text-brand-purple mb-1.5">RFx</p>
+          {rfxFields.map(f => (
+            <FieldRow key={f.key} label={f.label} value={val(f.key, f.format)} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function SeeAllFieldsSection({ opp }: { opp: Opportunity }) {
   const [open, setOpen] = useState(false);
   const sfRaw = (opp as unknown as Record<string, unknown>).sf_raw_fields as Record<string, unknown> | undefined;
@@ -525,6 +568,7 @@ export default function DealInfoTab({ opp, oppId, readOnly, onUpdate, scrollToSe
             return <CollapsibleSection key={section.id} section={section} opp={opp} oppId={oppId} />;
           case 'computed':
             switch (section.id) {
+              case 'poc-rfx': return <PocRfxSection key={section.id} opp={opp} />;
               case 'health-breakdown': return <HealthBreakdownSection key={section.id} opp={opp} />;
               case 'meddpicc': return <MeddpiccSection key={section.id} opp={opp} coachResult={coachResult} />;
               case 'see-all-fields': return <SeeAllFieldsSection key={section.id} opp={opp} />;
