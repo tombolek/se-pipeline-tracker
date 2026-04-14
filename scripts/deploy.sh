@@ -99,27 +99,10 @@ fi
 
 # ── Frontend ──────────────────────────────────────────────────────────────────
 if [ "$DEPLOY_FRONTEND" = true ]; then
-  echo "=== Syncing client source to EC2 ==="
-  $SSH "sudo rm -rf /app/client && mkdir -p /app/client"
-  scp -i "$KEY_FILE" -o StrictHostKeyChecking=no -r \
-    client/src client/public client/index.html client/package.json client/package-lock.json \
-    client/tsconfig.json client/tsconfig.app.json client/tsconfig.node.json \
-    client/vite.config.ts client/eslint.config.js \
-    ec2-user@$INSTANCE_IP:/app/client/
-  # Copy production env (sets VITE_API_URL=/api/v1)
-  if [ -f client/.env.production ]; then
-    scp -i "$KEY_FILE" -o StrictHostKeyChecking=no \
-      client/.env.production ec2-user@$INSTANCE_IP:/app/client/.env.production
-  fi
-
-  echo "=== Building frontend on EC2 (Docker) ==="
-  $SSH "docker run --rm -v /app/client:/app -w /app --user \$(id -u):\$(id -g) node:20-alpine \
-    sh -c 'npm ci --silent && npm run build'"
-
-  echo "=== Downloading built dist from EC2 ==="
-  rm -rf client/dist
-  scp -i "$KEY_FILE" -o StrictHostKeyChecking=no -r \
-    ec2-user@$INSTANCE_IP:/app/client/dist client/dist
+  echo "=== Building frontend locally ==="
+  cd client
+  npm run build
+  cd ..
 
   echo "=== Uploading frontend to S3 ==="
   aws s3 sync client/dist/ "s3://$FRONTEND_BUCKET/" \

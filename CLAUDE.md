@@ -720,12 +720,10 @@ wsl -e bash -ic 'export PATH="$HOME/bin:$PATH" && cd /mnt/c/claude/buddy/se-pipe
 ### What the script does
 
 **Frontend path** (`--frontend-only` or full):
-1. Reads CloudFormation outputs (bucket name, CloudFront distribution ID, EC2 IP) via `aws cloudformation describe-stacks`
-2. SCPs `client/src` + config files to EC2 (`/app/client/`)
-3. Runs `npm ci && npm run build` inside a `node:20-alpine` Docker container on EC2 (avoids WSL/Windows node_modules platform mismatch)
-4. Downloads the built `dist/` back to the local machine
-5. Syncs `dist/` to the S3 frontend bucket with `--delete`
-6. Submits a CloudFront `/*` cache invalidation
+1. Reads CloudFormation outputs (bucket name, CloudFront distribution ID) via `aws cloudformation describe-stacks`
+2. Builds the frontend locally in WSL (`npm run build` in `client/`) — fast and reliable, no EC2 OOM risk
+3. Syncs `dist/` to the S3 frontend bucket with `--delete`
+4. Submits a CloudFront `/*` cache invalidation
 
 **Server path** (`--server-only` or full):
 1. SCPs `server/src`, `server/migrations`, `package*.json`, `tsconfig.json`, `Dockerfile` to EC2 (`/app/server/`)
