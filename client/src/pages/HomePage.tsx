@@ -594,12 +594,14 @@ export default function HomePage() {
             </SectionCard>
 
             {/* Needs Attention — SE Data Hygiene */}
-            {data.hygiene.length > 0 && (
-              <SectionCard
-                icon={<svg className="w-4 h-4 text-status-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>}
-                title="Needs Attention"
-                badge={<span className="text-[10px] font-semibold bg-status-warning/10 text-status-warning px-1.5 py-0.5 rounded-full">{data.hygiene.length} {data.hygiene.length === 1 ? 'deal' : 'deals'}</span>}
-              >
+            <SectionCard
+              icon={<svg className="w-4 h-4 text-status-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>}
+              title="Needs Attention"
+              badge={data.hygiene.length > 0 ? <span className="text-[10px] font-semibold bg-status-warning/10 text-status-warning px-1.5 py-0.5 rounded-full">{data.hygiene.length} {data.hygiene.length === 1 ? 'deal' : 'deals'}</span> : <span className="text-[10px] text-brand-navy-70">SE data hygiene</span>}
+            >
+              {data.hygiene.length === 0 ? (
+                <AllClear text="All clear — no SE data hygiene issues found" />
+              ) : (
                 <div className="divide-y divide-brand-navy-30/15">
                   {data.hygiene.slice(0, 6).map(h => (
                     <div key={h.id} onClick={() => openOpp(h.id)} className="px-5 py-3 hover:bg-brand-purple-30/20 cursor-pointer transition-colors">
@@ -626,8 +628,8 @@ export default function HomePage() {
                     </div>
                   ))}
                 </div>
-              </SectionCard>
-            )}
+              )}
+            </SectionCard>
           </div>
         </div>
       </div>

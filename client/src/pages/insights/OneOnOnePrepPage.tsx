@@ -72,18 +72,26 @@ function Section({ title, subtitle, count, children }: {
   );
 }
 
-function StatCard({ label, value, tone }: {
-  label: string; value: string; tone?: 'warn' | 'danger' | 'success';
+function StatCard({ label, value, tone, icon }: {
+  label: string; value: string; tone?: 'warn' | 'danger' | 'success'; icon?: React.ReactNode;
 }) {
   const color =
     tone === 'danger' ? 'text-status-overdue' :
     tone === 'warn' ? 'text-status-warning' :
     tone === 'success' ? 'text-status-success' :
     'text-brand-navy';
+  const iconBg =
+    tone === 'danger' ? 'bg-status-overdue/10' :
+    tone === 'warn' ? 'bg-status-warning/10' :
+    tone === 'success' ? 'bg-status-success/10' :
+    'bg-brand-purple/10';
   return (
-    <div className="bg-[#F5F5F7] rounded-xl p-3 text-center">
-      <p className={`text-xl font-semibold ${color}`}>{value}</p>
-      <p className="text-[10px] text-brand-navy-70 uppercase tracking-wide mt-0.5">{label}</p>
+    <div className="bg-white rounded-2xl border border-brand-navy-30/40 p-4 flex items-center gap-3">
+      {icon && <div className={`w-10 h-10 rounded-xl ${iconBg} flex items-center justify-center flex-shrink-0`}>{icon}</div>}
+      <div>
+        <p className={`text-2xl font-semibold ${value === '0' || value === '$0' ? 'text-brand-navy-30' : color}`}>{value}</p>
+        <p className="text-[10px] text-brand-navy-70 uppercase tracking-wide">{label}</p>
+      </div>
     </div>
   );
 }
@@ -348,15 +356,28 @@ export default function OneOnOnePrepPage() {
       {data && !loading && (
         <>
           {/* Summary stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-5">
-            <StatCard label="Open Opps" value={String(summary.oppCount)} />
-            <StatCard label="Total ARR" value={formatARR(summary.totalArr)} />
-            <StatCard label="Red" value={String(summary.red)} tone={summary.red > 0 ? 'danger' : undefined} />
-            <StatCard label="Amber" value={String(summary.amber)} tone={summary.amber > 0 ? 'warn' : undefined} />
-            <StatCard label="Green" value={String(summary.green)} tone="success" />
-            <StatCard label="Overdue tasks" value={String(summary.overdueCount)} tone={summary.overdueCount > 0 ? 'danger' : undefined} />
-            <StatCard label="Stale comments" value={String(summary.staleCount)} tone={summary.staleCount > 0 ? 'warn' : undefined} />
-            <StatCard label="Hygiene issues" value={String(summary.hygieneCount)} tone={summary.hygieneCount > 0 ? 'warn' : undefined} />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
+            <StatCard label="Open Opps" value={String(summary.oppCount)}
+              icon={<svg className="w-5 h-5 text-brand-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>} />
+            <StatCard label="Total ARR" value={formatARR(summary.totalArr)}
+              icon={<svg className="w-5 h-5 text-brand-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>} />
+            <StatCard label="Overdue Tasks" value={String(summary.overdueCount)} tone={summary.overdueCount > 0 ? 'danger' : undefined}
+              icon={<svg className={`w-5 h-5 ${summary.overdueCount > 0 ? 'text-status-overdue' : 'text-brand-purple'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>} />
+            <StatCard label="Hygiene Issues" value={String(summary.hygieneCount)} tone={summary.hygieneCount > 0 ? 'warn' : undefined}
+              icon={<svg className={`w-5 h-5 ${summary.hygieneCount > 0 ? 'text-status-warning' : 'text-brand-purple'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>} />
+          </div>
+          {/* Health + comments row */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-5">
+            <StatCard label="Red" value={String(summary.red)} tone={summary.red > 0 ? 'danger' : undefined}
+              icon={<svg className={`w-5 h-5 ${summary.red > 0 ? 'text-status-overdue' : 'text-brand-navy-30'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9.303 3.376c.866 1.5-.217 3.374-1.948 3.374H4.645c-1.73 0-2.813-1.874-1.948-3.374L10.051 3.378c.866-1.5 3.032-1.5 3.898 0l8.354 12.748z"/></svg>} />
+            <StatCard label="Amber" value={String(summary.amber)} tone={summary.amber > 0 ? 'warn' : undefined}
+              icon={<svg className={`w-5 h-5 ${summary.amber > 0 ? 'text-status-warning' : 'text-brand-navy-30'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9.303 3.376c.866 1.5-.217 3.374-1.948 3.374H4.645c-1.73 0-2.813-1.874-1.948-3.374L10.051 3.378c.866-1.5 3.032-1.5 3.898 0l8.354 12.748z"/></svg>} />
+            <StatCard label="Green" value={String(summary.green)} tone="success"
+              icon={<svg className="w-5 h-5 text-status-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>} />
+            <StatCard label="Stale Comments" value={String(summary.staleCount)} tone={summary.staleCount > 0 ? 'warn' : undefined}
+              icon={<svg className={`w-5 h-5 ${summary.staleCount > 0 ? 'text-status-warning' : 'text-brand-navy-30'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>} />
+            <StatCard label="No Next Step" value={String(summary.noNextStep)} tone={summary.noNextStep > 0 ? 'warn' : undefined}
+              icon={<svg className={`w-5 h-5 ${summary.noNextStep > 0 ? 'text-status-warning' : 'text-brand-navy-30'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>} />
           </div>
 
           {/* AI Coaching Brief — collapsible, collapsed by default, with freshness indicator */}
