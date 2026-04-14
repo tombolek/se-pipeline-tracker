@@ -7,6 +7,9 @@ import { formatARR, formatDate } from '../../utils/formatters';
 import { computeHealthScore } from '../../utils/healthScore';
 import { PageHeader, Empty, Loading } from './shared';
 import { useTeamScope } from '../../hooks/useTeamScope';
+import Drawer from '../../components/Drawer';
+import OpportunityDetail from '../../components/OpportunityDetail';
+import { useOppUrlSync } from '../../hooks/useOppUrlSync';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -146,10 +149,13 @@ function TR({ children }: { children: React.ReactNode }) {
   );
 }
 
-function OppCell({ name, account }: { name: string; account: string | null }) {
+function OppCell({ name, account, onClick }: { name: string; account: string | null; onClick?: () => void }) {
   return (
     <td className="px-4 py-3">
-      <p className="text-sm font-medium text-brand-navy">{name}</p>
+      {onClick
+        ? <button onClick={onClick} className="text-sm font-medium text-brand-navy hover:text-brand-purple hover:underline text-left">{name}</button>
+        : <p className="text-sm font-medium text-brand-navy">{name}</p>
+      }
       {account && <p className="text-xs text-brand-navy-70">{account}</p>}
     </td>
   );
@@ -189,6 +195,8 @@ export default function WeeklyDigestPage() {
   const [days, setDays] = useState(7);
   const [data, setData] = useState<DigestData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedOppId, setSelectedOppId] = useState<number | null>(null);
+  useOppUrlSync(selectedOppId, setSelectedOppId);
   const { filterOpp } = useTeamScope();
 
   useEffect(() => {
@@ -284,7 +292,7 @@ export default function WeeklyDigestPage() {
                     <div className="flex items-start gap-2">
                       <span className="mt-1 w-1.5 h-1.5 rounded-full bg-brand-purple flex-shrink-0" />
                       <div>
-                        <p className="text-sm font-medium text-brand-navy">{r.name}</p>
+                        <button onClick={() => setSelectedOppId(r.id)} className="text-sm font-medium text-brand-navy hover:text-brand-purple hover:underline text-left">{r.name}</button>
                         {r.account_name && <p className="text-xs text-brand-navy-70">{r.account_name}</p>}
                       </div>
                     </div>
@@ -316,7 +324,7 @@ export default function WeeklyDigestPage() {
             <tbody>
               {rows.map(r => (
                 <TR key={r.id}>
-                  <OppCell name={r.name} account={r.account_name} />
+                  <OppCell name={r.name} account={r.account_name} onClick={() => setSelectedOppId(r.id)} />
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="text-xs text-brand-navy-70">{r.previous_stage ?? '—'}</span>
@@ -352,7 +360,7 @@ export default function WeeklyDigestPage() {
             <tbody>
               {rows.map(r => (
                 <TR key={r.id}>
-                  <OppCell name={r.name} account={r.account_name} />
+                  <OppCell name={r.name} account={r.account_name} onClick={() => setSelectedOppId(r.id)} />
                   <td className="px-4 py-3"><StageBadge stage={r.stage} /></td>
                   <ArrCell arr={r.arr} />
                   <td className="px-4 py-3">
@@ -380,7 +388,7 @@ export default function WeeklyDigestPage() {
           renderItems={rows => <>{rows.map(r => (
             <div key={r.id} className="px-5 py-3 border-b border-brand-navy-30/20 last:border-0">
               <div className="flex items-center gap-2">
-                <p className="text-sm font-medium text-brand-navy truncate">{r.name}</p>
+                <button onClick={() => setSelectedOppId(r.id)} className="text-sm font-medium text-brand-navy truncate hover:text-brand-purple hover:underline text-left">{r.name}</button>
                 {r.poc_type && (
                   <span className="text-[10px] font-semibold text-status-info bg-sky-50 px-1.5 py-0.5 rounded uppercase tracking-wide flex-shrink-0">
                     {r.poc_type}
@@ -407,7 +415,7 @@ export default function WeeklyDigestPage() {
           renderItems={rows => <>{rows.map(r => (
             <div key={r.id} className="px-5 py-3 border-b border-brand-navy-30/20 last:border-0">
               <div className="flex items-center gap-2">
-                <p className="text-sm font-medium text-brand-navy truncate">{r.name}</p>
+                <button onClick={() => setSelectedOppId(r.id)} className="text-sm font-medium text-brand-navy truncate hover:text-brand-purple hover:underline text-left">{r.name}</button>
                 <span className="text-[10px] font-semibold text-status-success bg-emerald-50 px-1.5 py-0.5 rounded uppercase tracking-wide flex-shrink-0">
                   {r.poc_status ?? 'Ended'}
                 </span>
@@ -442,7 +450,7 @@ export default function WeeklyDigestPage() {
                 const topFactor = hs.factors.sort((a, b) => b.deduction - a.deduction)[0];
                 return (
                   <TR key={r.id}>
-                    <OppCell name={r.name} account={r.account_name} />
+                    <OppCell name={r.name} account={r.account_name} onClick={() => setSelectedOppId(r.id)} />
                     <td className="px-4 py-3"><StageBadge stage={r.stage} /></td>
                     <ArrCell arr={r.arr} />
                     <td className="px-4 py-3">
@@ -479,7 +487,7 @@ export default function WeeklyDigestPage() {
             <tbody>
               {rows.map(r => (
                 <tr key={r.id} className="border-b border-brand-navy-30/20 last:border-0 hover:bg-gray-50 border-l-2 border-l-status-overdue">
-                  <OppCell name={r.name} account={r.account_name} />
+                  <OppCell name={r.name} account={r.account_name} onClick={() => setSelectedOppId(r.id)} />
                   <td className="px-4 py-3"><StageBadge stage={r.stage} /></td>
                   <td className="px-4 py-3 text-sm font-medium text-status-overdue">{formatARR(r.arr)}</td>
                   <MutedCell>{formatDate(r.closed_at)}</MutedCell>
@@ -490,6 +498,10 @@ export default function WeeklyDigestPage() {
           </table>
         )}
       />
+
+      <Drawer open={selectedOppId !== null} onClose={() => setSelectedOppId(null)}>
+        {selectedOppId !== null && <OpportunityDetail key={selectedOppId} oppId={selectedOppId} />}
+      </Drawer>
     </div>
   );
 }

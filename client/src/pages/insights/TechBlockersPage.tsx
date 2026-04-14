@@ -7,6 +7,9 @@ import StageBadge from '../../components/shared/StageBadge';
 import MultiSelectFilter from '../../components/shared/MultiSelectFilter';
 import { formatDate } from '../../utils/formatters';
 import { PageHeader, Empty, Loading } from './shared';
+import Drawer from '../../components/Drawer';
+import OpportunityDetail from '../../components/OpportunityDetail';
+import { useOppUrlSync } from '../../hooks/useOppUrlSync';
 
 type BlockerStatus = 'red' | 'orange' | 'yellow' | 'green' | 'none';
 
@@ -133,6 +136,8 @@ export default function TechBlockersPage() {
   const [days, setDays] = useState(30);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('active');
   const [summaryOpen, setSummaryOpen] = useState(false);
+  const [selectedOppId, setSelectedOppId] = useState<number | null>(null);
+  useOppUrlSync(selectedOppId, setSelectedOppId);
 
   const [allRows, setAllRows] = useState<BlockerRow[]>([]);
   const [recentRows, setRecentRows] = useState<RecentRow[]>([]);
@@ -484,7 +489,7 @@ export default function TechBlockersPage() {
                       <StatusBadge status={r.blocker_status} />
                     </td>
                     <td className="px-4 py-3 min-w-[160px]">
-                      <p className="text-sm font-medium text-brand-navy">{r.name}</p>
+                      <button onClick={() => setSelectedOppId(r.id)} className="text-sm font-medium text-brand-navy hover:text-brand-purple hover:underline text-left">{r.name}</button>
                       <p className="text-xs text-brand-navy-70">{r.account_name}</p>
                     </td>
                     <td className="px-4 py-3"><StageBadge stage={r.stage} /></td>
@@ -528,7 +533,7 @@ export default function TechBlockersPage() {
                 {recentRows.map((r, i) => (
                   <tr key={i} className="border-b border-brand-navy-30/20 last:border-0 hover:bg-gray-50 align-top">
                     <td className="px-4 py-3 min-w-[160px]">
-                      <p className="text-sm font-medium text-brand-navy">{r.name}</p>
+                      <button onClick={() => setSelectedOppId(r.id)} className="text-sm font-medium text-brand-navy hover:text-brand-purple hover:underline text-left">{r.name}</button>
                       <p className="text-xs text-brand-navy-70">{r.account_name}</p>
                     </td>
                     <td className="px-4 py-3"><StageBadge stage={r.stage} /></td>
@@ -558,6 +563,10 @@ export default function TechBlockersPage() {
           </div>
         )
       )}
+
+      <Drawer open={selectedOppId !== null} onClose={() => setSelectedOppId(null)}>
+        {selectedOppId !== null && <OpportunityDetail key={selectedOppId} oppId={selectedOppId} />}
+      </Drawer>
     </div>
   );
 }
