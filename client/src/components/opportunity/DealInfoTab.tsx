@@ -491,6 +491,24 @@ function shouldShowSection(section: DealInfoSection, opp: Opportunity, userRole:
   return true;
 }
 
+/* ── Ensure computed sections always present ── */
+function ensureComputedSections(cfg: DealInfoConfig): DealInfoConfig {
+  const sections = [...cfg.sections];
+  // Inject poc-rfx if missing — after deal-info-grid
+  if (!sections.some(s => s.id === 'poc-rfx')) {
+    const gridIdx = sections.findIndex(s => s.id === 'deal-info-grid');
+    sections.splice(gridIdx + 1, 0, { id: 'poc-rfx', label: 'PoC & RFx', type: 'computed', defaultOpen: true });
+  }
+  // Strip poc_status / rfx_status from deal-info grid (now in their own section)
+  return {
+    sections: sections.map(s =>
+      s.id === 'deal-info-grid' && s.fields
+        ? { ...s, fields: s.fields.filter(f => f.key !== 'poc_status' && f.key !== 'rfx_status') }
+        : s
+    ),
+  };
+}
+
 /* ── Main component ── */
 
 interface DealInfoTabProps {
@@ -506,12 +524,12 @@ interface DealInfoTabProps {
 
 export default function DealInfoTab({ opp, oppId, readOnly, onUpdate, scrollToSection, onScrollDone, configOverride, coachResult }: DealInfoTabProps) {
   const { user } = useAuthStore();
-  const [config, setConfig] = useState<DealInfoConfig>(configOverride ?? cachedConfig ?? DEFAULT_CONFIG);
+  const [config, setConfig] = useState<DealInfoConfig>(ensureComputedSections(configOverride ?? cachedConfig ?? DEFAULT_CONFIG));
   const didFetch = useRef(false);
 
   // Use configOverride when provided (settings preview mode)
   useEffect(() => {
-    if (configOverride) { setConfig(configOverride); return; }
+    if (configOverride) { setConfig(ensureComputedSections(configOverride)); return; }
   }, [configOverride]);
 
   useEffect(() => {
@@ -522,7 +540,7 @@ export default function DealInfoTab({ opp, oppId, readOnly, onUpdate, scrollToSe
       .then(resp => {
         cachedConfig = resp.config;
         cacheTimestamp = Date.now();
-        setConfig(resp.config);
+        setConfig(ensureComputedSections(resp.config));
       })
       .catch(() => { /* use default */ });
   }, [configOverride]);
