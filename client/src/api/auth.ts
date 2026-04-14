@@ -10,8 +10,8 @@ export async function logout(): Promise<void> {
   await api.post('/auth/logout');
 }
 
-export async function getMe(): Promise<User> {
-  const { data } = await api.get<ApiResponse<User>>('/auth/me');
+export async function getMe(): Promise<User & { token?: string }> {
+  const { data } = await api.get<ApiResponse<User & { token?: string }>>('/auth/me');
   return data.data;
 }
 

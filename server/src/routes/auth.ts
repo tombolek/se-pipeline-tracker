@@ -3,8 +3,13 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { queryOne } from '../db/index.js';
 import { requireAuth } from '../middleware/auth.js';
-import { AuthenticatedRequest, User, ok, err } from '../types/index.js';
+import { AuthenticatedRequest, User, JwtPayload, ok, err } from '../types/index.js';
 import { logAudit } from '../services/auditLog.js';
+
+function signToken(user: { id: number; email: string; role: string; is_admin: boolean }): string {
+  const payload: JwtPayload = { userId: user.id, email: user.email, role: user.role as JwtPayload['role'], isAdmin: !!user.is_admin };
+  return jwt.sign(payload, process.env.JWT_SECRET!, { expiresIn: process.env.JWT_EXPIRES_IN ?? '7d' } as jwt.SignOptions);
+}
 
 const router = Router();
 
@@ -18,7 +23,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
   }
 
   const user = await queryOne<User & { password_hash: string }>(
-    `SELECT id, email, name, role, is_active, show_qualify, force_password_change, column_prefs, teams,
+    `SELECT id, email, name, role, is_admin, is_active, show_qualify, force_password_change, column_prefs, teams,
             created_at, last_login_at, password_hash
      FROM users WHERE email = $1 AND is_active = true AND is_deleted = false`,
     [email.toLowerCase().trim()]
@@ -40,10 +45,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
     [user.id]
   );
 
-  const payload = { userId: user.id, email: user.email, role: user.role };
-  const token = jwt.sign(payload, process.env.JWT_SECRET!, {
-    expiresIn: process.env.JWT_EXPIRES_IN ?? '7d',
-  } as jwt.SignOptions);
+  const token = signToken(user);
 
   const { password_hash: _, ...safeUser } = user;
   res.json(ok({ token, user: safeUser }));
@@ -65,7 +67,7 @@ router.post('/logout', (req: Request, res: Response): void => {
 router.get('/me', requireAuth as unknown as (req: Request, res: Response, next: () => void) => void, async (req: Request, res: Response): Promise<void> => {
   const { userId } = (req as AuthenticatedRequest).user;
   const user = await queryOne<User>(
-    `SELECT id, email, name, role, is_active, show_qualify, force_password_change, column_prefs, teams,
+    `SELECT id, email, name, role, is_admin, is_active, show_qualify, force_password_change, column_prefs, teams,
             created_at, last_login_at
      FROM users WHERE id = $1`,
     [userId]
@@ -74,7 +76,9 @@ router.get('/me', requireAuth as unknown as (req: Request, res: Response, next: 
     res.status(404).json(err('User not found'));
     return;
   }
-  res.json(ok(user));
+  // Return a fresh token so existing sessions pick up is_admin without re-login
+  const freshToken = signToken(user);
+  res.json(ok({ ...user, token: freshToken }));
 });
 
 // POST /auth/change-password — for force_password_change flow
@@ -91,7 +95,7 @@ router.post('/change-password', requireAuth as unknown as (req: Request, res: Re
   const user = await queryOne<User>(
     `UPDATE users SET password_hash = $1, force_password_change = false
      WHERE id = $2
-     RETURNING id, email, name, role, is_active, show_qualify, force_password_change, column_prefs, teams, created_at, last_login_at`,
+     RETURNING id, email, name, role, is_admin, is_active, show_qualify, force_password_change, column_prefs, teams, created_at, last_login_at`,
     [password_hash, userId]
   );
   if (!user) { res.status(404).json(err('User not found')); return; }

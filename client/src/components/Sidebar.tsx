@@ -18,6 +18,7 @@ const SETTINGS_NAV = [
   { to: '/settings/deploy',       label: 'Deploy',           icon: DeployIcon  },
   { to: '/settings/deal-info-layout', label: 'Deal Info Layout', icon: LayoutIcon },
   { to: '/settings/quotas',       label: 'Quotas',           icon: QuotasIcon  },
+  { to: '/settings/role-access',  label: 'Role Access',      icon: RoleAccessIcon },
 ];
 
 function MainNavIcon({ icon }: { icon: MainNavItem['icon'] }) {
@@ -41,7 +42,7 @@ function MainNavIcon({ icon }: { icon: MainNavItem['icon'] }) {
 }
 
 export default function Sidebar() {
-  const { user, logout } = useAuthStore();
+  const { user, logout, allowedPages } = useAuthStore();
   const { setClosedLostUnread, inboxCount, setInboxCount, openQuickCapture } = usePipelineStore();
   const [insightsOpen, setInsightsOpen] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -97,7 +98,11 @@ export default function Sidebar() {
           <span className="flex-1">Home</span>
         </NavLink>
 
-        {mainNav.filter(i => i.visible).map(({ to, label, icon }) => (
+        {mainNav.filter(i => {
+          if (!i.visible) return false;
+          if (allowedPages.length === 0) return true; // fallback: show all if not loaded yet
+          return allowedPages.includes(i.to.replace(/^\//, ''));
+        }).map(({ to, label, icon }) => (
           <NavLink
             key={to}
             to={to}
@@ -117,9 +122,9 @@ export default function Sidebar() {
           </NavLink>
         ))}
 
-        {user?.role === 'manager' && (
+        {/* Insights — show if user has any insights page access */}
+        {(allowedPages.length === 0 ? user?.role === 'manager' : allowedPages.some(p => p.startsWith('insights/') && !['insights/se-mapping', 'insights/poc-board', 'insights/rfx-board'].includes(p))) && (
           <>
-            {/* Insights — collapsible */}
             <button
               onClick={() => setInsightsOpen(o => !o)}
               className="flex items-center gap-1 pt-4 pb-1 px-3 w-full text-left group"
@@ -129,7 +134,11 @@ export default function Sidebar() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
               </svg>
             </button>
-            {insightsOpen && insightsNav.filter(i => i.visible).map(({ to, label, icon }) => {
+            {insightsOpen && insightsNav.filter(i => {
+              if (!i.visible) return false;
+              if (allowedPages.length === 0) return true;
+              return allowedPages.includes(i.to.replace(/^\//, ''));
+            }).map(({ to, label, icon }) => {
               const Icon = icon === 'poc' ? PocIcon : InsightIcon;
               return (
                 <NavLink
@@ -146,8 +155,12 @@ export default function Sidebar() {
                 </NavLink>
               );
             })}
+          </>
+        )}
 
-            {/* Administration — collapsible (Settings + Audit) */}
+        {/* Administration — show only for admins */}
+        {!!user?.is_admin && (
+          <>
             <button
               onClick={() => setSettingsOpen(o => !o)}
               className="flex items-center gap-1 pt-4 pb-1 px-3 w-full text-left group"
@@ -359,6 +372,14 @@ function LayoutIcon() {
   return (
     <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+    </svg>
+  );
+}
+
+function RoleAccessIcon() {
+  return (
+    <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
     </svg>
   );
 }

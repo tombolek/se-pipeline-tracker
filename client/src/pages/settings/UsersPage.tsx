@@ -9,10 +9,10 @@ import { formatDate } from '../../utils/formatters';
 
 // ── Shared atoms ──────────────────────────────────────────────────────────────
 
-function RoleBadge({ role }: { role: 'manager' | 'se' }) {
-  return role === 'manager'
-    ? <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-brand-purple/10 text-brand-purple">Manager</span>
-    : <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-brand-navy-30/50 text-brand-navy-70">SE</span>;
+function RoleBadge({ role }: { role: 'manager' | 'se' | 'read-only' }) {
+  if (role === 'manager') return <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-brand-purple/10 text-brand-purple">Manager</span>;
+  if (role === 'read-only') return <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-brand-navy-30/50 text-brand-navy-70">Read-only</span>;
+  return <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-brand-navy-30/50 text-brand-navy-70">SE</span>;
 }
 
 function UserAvatar({ user, size = 8 }: { user: User; size?: number }) {
@@ -32,7 +32,7 @@ function AddUserModal({ onClose, onCreated, managers }: {
   managers: User[];
 }) {
   const [form, setForm] = useState({
-    name: '', email: '', role: 'se' as 'manager' | 'se', password: '',
+    name: '', email: '', role: 'se' as 'manager' | 'se' | 'read-only', password: '',
     manager_id: '' as number | '',
   });
   const [saving, setSaving] = useState(false);
@@ -78,10 +78,11 @@ function AddUserModal({ onClose, onCreated, managers }: {
           </div>
           <div>
             <label className="block text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide mb-1">Role</label>
-            <select value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value as 'manager' | 'se' }))}
+            <select value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value as 'manager' | 'se' | 'read-only' }))}
               className="w-full px-3 py-2 rounded-lg border border-brand-navy-30 text-sm text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-purple bg-white">
               <option value="se">SE</option>
               <option value="manager">Manager</option>
+              <option value="read-only">Read-only</option>
             </select>
           </div>
           {form.role === 'se' && (

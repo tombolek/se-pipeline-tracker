@@ -8,6 +8,7 @@ import BackupPage from './settings/BackupPage';
 import DeployPage from './settings/DeployPage';
 import DealInfoConfigPage from './settings/DealInfoConfigPage';
 import QuotaSettingsPage from './settings/QuotaSettingsPage';
+import RoleAccessPage from './settings/RoleAccessPage';
 
 export default function SettingsPage() {
   const { pathname } = useLocation();
@@ -20,8 +21,9 @@ export default function SettingsPage() {
   else if (pathname.includes('backup'))     content = <BackupPage />;
   else if (pathname.includes('deploy'))     content = <DeployPage />;
   else if (pathname.includes('deal-info-layout')) content = <DealInfoConfigPage />;
-  else if (pathname.includes('quotas'))     content = <QuotaSettingsPage />;
-  else                                      content = <UsersPage />;
+  else if (pathname.includes('quotas'))       content = <QuotaSettingsPage />;
+  else if (pathname.includes('role-access')) content = <RoleAccessPage />;
+  else                                       content = <UsersPage />;
 
   return (
     <div className="flex-1 overflow-y-auto bg-[#F5F5F7] px-8 py-6">

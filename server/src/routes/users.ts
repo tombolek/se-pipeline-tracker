@@ -5,7 +5,7 @@ import { requireAuth, requireManager } from '../middleware/auth.js';
 import { AuthenticatedRequest, ColumnPrefs, User, ok, err } from '../types/index.js';
 import { logAudit } from '../services/auditLog.js';
 
-const USER_COLS = `id, email, name, role, is_active, show_qualify, force_password_change, manager_id, column_prefs, teams, created_at, last_login_at`;
+const USER_COLS = `id, email, name, role, is_admin, is_active, show_qualify, force_password_change, manager_id, column_prefs, teams, created_at, last_login_at`;
 
 const router = Router();
 const auth = requireAuth as unknown as (req: Request, res: Response, next: () => void) => void;
@@ -21,19 +21,22 @@ router.get('/', auth, mgr, async (_req: Request, res: Response): Promise<void> =
 
 // POST /users — create user (Manager only)
 router.post('/', auth, mgr, async (req: Request, res: Response): Promise<void> => {
-  const { name, email, role, password, manager_id } = req.body as {
+  const { name, email, role, password, manager_id, is_admin: reqIsAdmin } = req.body as {
     name?: string; email?: string; role?: string; password?: string;
-    manager_id?: number | null;
+    manager_id?: number | null; is_admin?: boolean;
   };
 
   if (!name?.trim() || !email?.trim() || !password?.trim()) {
     res.status(400).json(err('name, email and password are required'));
     return;
   }
-  if (role !== 'manager' && role !== 'se') {
-    res.status(400).json(err('role must be manager or se'));
+  if (role !== 'manager' && role !== 'se' && role !== 'read-only') {
+    res.status(400).json(err('role must be manager, se, or read-only'));
     return;
   }
+
+  // Only admins can set is_admin flag
+  const setAdmin = reqIsAdmin && (req as AuthenticatedRequest).user?.isAdmin ? true : false;
 
   const existing = await queryOne('SELECT id FROM users WHERE email = $1', [email.toLowerCase().trim()]);
   if (existing) {
@@ -58,10 +61,10 @@ router.post('/', auth, mgr, async (req: Request, res: Response): Promise<void> =
 
   const password_hash = await bcrypt.hash(password, 10);
   const user = await queryOne<User>(
-    `INSERT INTO users (name, email, role, password_hash, manager_id)
-     VALUES ($1, $2, $3, $4, $5)
+    `INSERT INTO users (name, email, role, password_hash, manager_id, is_admin)
+     VALUES ($1, $2, $3, $4, $5, $6)
      RETURNING ${USER_COLS}`,
-    [name.trim(), email.toLowerCase().trim(), role, password_hash, resolvedManagerId]
+    [name.trim(), email.toLowerCase().trim(), role, password_hash, resolvedManagerId, setAdmin]
   );
   res.status(201).json(ok(user));
   logAudit(req, {
@@ -126,8 +129,8 @@ router.patch('/:id', auth, mgr, async (req: Request, res: Response): Promise<voi
     name: string; email: string; role: string; is_active: boolean; manager_id: number | null; teams: string[];
   }>;
 
-  if (role !== undefined && role !== 'manager' && role !== 'se') {
-    res.status(400).json(err('role must be manager or se'));
+  if (role !== undefined && role !== 'manager' && role !== 'se' && role !== 'read-only') {
+    res.status(400).json(err('role must be manager, se, or read-only'));
     return;
   }
 
@@ -142,6 +145,10 @@ router.patch('/:id', auth, mgr, async (req: Request, res: Response): Promise<voi
   if (is_active !== undefined) addField('is_active', is_active);
   if ('manager_id' in body) addField('manager_id', typeof manager_id === 'number' ? manager_id : null);
   if ('teams' in body) addField('teams', Array.isArray(teams) ? teams : []);
+  // Only admins can toggle is_admin
+  if ('is_admin' in body && (req as AuthenticatedRequest).user?.isAdmin) {
+    addField('is_admin', !!body.is_admin);
+  }
 
   if (setClauses.length === 0) { res.status(400).json(err('No fields to update')); return; }
 

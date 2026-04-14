@@ -59,3 +59,24 @@ export async function updateQuotaGroup(id: number, input: Partial<QuotaGroupInpu
 export async function deleteQuotaGroup(id: number): Promise<void> {
   await api.delete(`/settings/quota-groups/${id}`);
 }
+
+// ── Role-based page access ──────────────────────────────────────────────────
+
+export interface RolePageMapping {
+  page_key: string;
+  role: string;
+}
+
+export async function getRoleAccessMappings(): Promise<RolePageMapping[]> {
+  const r = await api.get<ApiResponse<RolePageMapping[]>>('/settings/role-access');
+  return r.data.data;
+}
+
+export async function updateRoleAccessMappings(mappings: RolePageMapping[]): Promise<void> {
+  await api.put('/settings/role-access', { mappings });
+}
+
+export async function getMyRoleAccess(): Promise<string[]> {
+  const r = await api.get<ApiResponse<string[]>>('/settings/role-access/me');
+  return r.data.data;
+}

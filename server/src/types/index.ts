@@ -10,7 +10,8 @@ export interface User {
   id: number;
   email: string;
   name: string;
-  role: 'manager' | 'se';
+  role: 'manager' | 'se' | 'read-only';
+  is_admin: boolean;
   is_active: boolean;
   show_qualify: boolean;
   force_password_change: boolean;
@@ -23,7 +24,8 @@ export interface User {
 export interface JwtPayload {
   userId: number;
   email: string;
-  role: 'manager' | 'se';
+  role: 'manager' | 'se' | 'read-only';
+  isAdmin: boolean;
 }
 
 export interface AuthenticatedRequest extends Request {

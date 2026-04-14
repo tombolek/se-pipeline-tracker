@@ -1,10 +1,11 @@
 import { Router, Request, Response } from 'express';
 import { query } from '../db/index.js';
-import { requireAuth } from '../middleware/auth.js';
+import { requireAuth, requireAdmin } from '../middleware/auth.js';
 import { AuthenticatedRequest, ok, err } from '../types/index.js';
 
 const router = Router();
 const auth = requireAuth as unknown as (req: Request, res: Response, next: () => void) => void;
+const admin = requireAdmin as unknown as (req: Request, res: Response, next: () => void) => void;
 
 /* ── Default config (matches migration seed) ── */
 const DEFAULT_CONFIG = {
@@ -356,6 +357,59 @@ router.delete('/quota-groups/:id', auth, async (req: Request, res: Response): Pr
 
   await query(`DELETE FROM quota_groups WHERE id = $1`, [id]);
   res.json(ok({ deleted: id }));
+});
+
+// ── Role-based page access ──────────────────────────────────────────────────
+
+const VALID_ROLES = ['manager', 'se', 'read-only'] as const;
+
+/* GET /settings/role-access — admin only: return all mappings */
+router.get('/role-access', auth, admin, async (_req: Request, res: Response): Promise<void> => {
+  const rows = await query<{ page_key: string; role: string }>(
+    `SELECT page_key, role FROM role_page_access ORDER BY page_key, role`
+  );
+  res.json(ok(rows));
+});
+
+/* PUT /settings/role-access — admin only: bulk replace all mappings */
+router.put('/role-access', auth, admin, async (req: Request, res: Response): Promise<void> => {
+  const { mappings } = req.body as { mappings?: { page_key: string; role: string }[] };
+  if (!Array.isArray(mappings)) {
+    res.status(400).json(err('mappings must be an array of { page_key, role }'));
+    return;
+  }
+
+  for (const m of mappings) {
+    if (!m.page_key || !VALID_ROLES.includes(m.role as typeof VALID_ROLES[number])) {
+      res.status(400).json(err(`Invalid mapping: page_key="${m.page_key}" role="${m.role}"`));
+      return;
+    }
+  }
+
+  try {
+    await query('BEGIN');
+    await query('DELETE FROM role_page_access');
+    if (mappings.length > 0) {
+      const values = mappings.map((_, i) => `($${i * 2 + 1}, $${i * 2 + 2})`).join(', ');
+      const params = mappings.flatMap(m => [m.page_key, m.role]);
+      await query(`INSERT INTO role_page_access (page_key, role) VALUES ${values} ON CONFLICT DO NOTHING`, params);
+    }
+    await query('COMMIT');
+    res.json(ok({ updated: mappings.length }));
+  } catch (e) {
+    await query('ROLLBACK').catch(() => {});
+    res.status(500).json(err((e as Error).message || 'Failed to update role access'));
+  }
+});
+
+/* GET /settings/role-access/me — authenticated: return page_keys for current user's role */
+router.get('/role-access/me', auth, async (req: Request, res: Response): Promise<void> => {
+  const { role } = (req as AuthenticatedRequest).user;
+  const rows = await query<{ page_key: string }>(
+    `SELECT page_key FROM role_page_access WHERE role = $1 ORDER BY page_key`,
+    [role]
+  );
+  res.json(ok(rows.map(r => r.page_key)));
 });
 
 export default router;

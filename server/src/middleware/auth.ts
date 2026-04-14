@@ -34,3 +34,15 @@ export function requireManager(
   }
   next();
 }
+
+export function requireAdmin(
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): void {
+  if (!req.user?.isAdmin) {
+    res.status(403).json(err('Admin access required'));
+    return;
+  }
+  next();
+}
