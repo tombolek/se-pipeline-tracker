@@ -7,6 +7,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## 2026-04-13
 
+### Fixed
+- **Closed Won page aligned with % to Target** — quarter filtering now uses the same `closed_at`-based month bucketing as the % to Target page (previously used the `fiscal_period` string from Salesforce, which could disagree with the actual close date). Renamed "All YTD" to "All" since it shows the full fiscal year. Fixed a double-fetch flash on initial load where all-FY data briefly rendered before the FY filter kicked in. (Issue #106)
+
 ### Changed
 - **Pipeline — "My Team" / "Full View" scope toggle replaces "My deals"** — the Pipeline page filter bar now shows the same `Scope: My Team | Full View` toggle used on the RFx and PoC boards (managers only). Switching to "My Team" sets the teams filter to the manager's territories; "Full View" clears it and shows everything. The old "My deals" button is removed — use the dedicated **My Pipeline** page for an SE-owner-only view. SE users default to their manager's territories as before.
 - **Weekly Digest — long sections preview 5 rows instead of fully collapsing** — sections with more than 5 items now always show the first 5 rows with a "Show N more" / "Show less" toggle at the bottom, instead of the previous collapse-to-header behavior. Makes the page scannable without having to expand each section. (Issue #89)

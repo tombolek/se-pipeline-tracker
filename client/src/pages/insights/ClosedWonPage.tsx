@@ -1,10 +1,13 @@
 /**
- * Closed Won (Issue #94)
+ * Closed Won (Issue #94, fixed #106)
  *
  * Manager-only report for SE bonus calculation.
  * Aggregates Closed Won ARR (USD, arr_converted), filterable by fiscal year
  * and quarter. Two views: "By Territory" (Team → SE) and "By SE"
  * (SE → Team breakdown). New business only (New Logo + Upsell + Cross-Sell).
+ *
+ * Quarter filtering uses the same closed_at-based month bucketing as the
+ * % to Target page so both pages always show identical totals.
  */
 import { Fragment, useState, useEffect, useMemo } from 'react';
 import api from '../../api/client';
@@ -47,12 +50,25 @@ function parseArr(s: string | null): number {
   return isNaN(n) ? 0 : n;
 }
 
-/** Extract "Q1" / "Q2" / "Q3" / "Q4" from a fiscal_period like "FY2026-Q1". */
-function quarterOf(fp: string | null): 'Q1' | 'Q2' | 'Q3' | 'Q4' | null {
-  if (!fp) return null;
-  const m = fp.match(/Q([1-4])/i);
-  if (!m) return null;
-  return ('Q' + m[1]) as 'Q1' | 'Q2' | 'Q3' | 'Q4';
+/**
+ * Calendar month (0-11) of a deal's close, using the same logic as the
+ * % to Target page: closed_at ?? close_date → getUTCMonth().
+ */
+function dealMonth(d: WonDeal): number | null {
+  const src = d.closed_at ?? d.close_date;
+  if (!src) return null;
+  const m = new Date(src).getUTCMonth();
+  return isNaN(m) ? null : m;
+}
+
+/** Quarter end month index (0-based) — same mapping as % to Target. */
+function quarterEndMonth(q: 'Q1' | 'Q2' | 'Q3' | 'Q4'): number {
+  switch (q) {
+    case 'Q1': return 2;
+    case 'Q2': return 5;
+    case 'Q3': return 8;
+    case 'Q4': return 11;
+  }
 }
 
 type QuarterFilter = 'ALL' | 'Q1' | 'Q2' | 'Q3' | 'Q4';
@@ -74,40 +90,49 @@ export default function ClosedWonPage() {
   );
   useOppUrlSync(selectedOppId, setSelectedOppId, oppRefsForUrlSync);
 
-  // First load — fetch with no FY filter so we can learn the FY list, then lock to most recent
+  // Fetch deals. On first load fiscalYear is null → fetch all so we learn the
+  // FY list, then lock to the most recent year and re-fetch filtered.
   useEffect(() => {
     setLoading(true);
     const params = fiscalYear ? `?fiscal_year=${encodeURIComponent(fiscalYear)}` : '';
     api.get<ApiResponse<WonDeal[]> & { meta?: Meta }>(`/insights/closed-won-by-territory${params}`)
       .then(r => {
-        setAllRows(r.data.data);
         const years = r.data.meta?.fiscal_years ?? [];
         setFiscalYears(years);
         if (fiscalYear === null && years.length > 0) {
-          setFiscalYear(years[0]); // most recent (API sorts DESC)
+          // Don't set rows yet — the re-fetch with a FY filter will do it.
+          setFiscalYear(years[0]);
+        } else {
+          setAllRows(r.data.data);
+          setLoading(false);
         }
       })
-      .finally(() => setLoading(false));
+      .catch(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fiscalYear]);
 
-  // Collapse expansions when view/filter changes so stale keys don't leak between groupings
+  // Collapse expansions when view/filter changes
   useEffect(() => { setExpanded(new Set()); }, [view, quarter, fiscalYear]);
 
-  // Quarter filter is client-side (cheap)
+  // ── Quarter filter — uses closed_at month (same as % to Target) ───────────
   const rows = useMemo(() => {
     if (quarter === 'ALL') return allRows;
-    return allRows.filter(r => quarterOf(r.fiscal_period) === quarter);
+    const startMonth = quarterEndMonth(quarter) - 2; // Q1→0, Q2→3, Q3→6, Q4→9
+    const endMonth = quarterEndMonth(quarter);        // Q1→2, Q2→5, Q3→8, Q4→11
+    return allRows.filter(d => {
+      const m = dealMonth(d);
+      return m !== null && m >= startMonth && m <= endMonth;
+    });
   }, [allRows, quarter]);
 
-  // ── Headline totals (same for both views) ──────────────────────────────────
+  // ── Headline totals ───────────────────────────────────────────────────────
   const { grandArr, grandDealCount, uniqueSes } = useMemo(() => {
     const grandArr = rows.reduce((s, r) => s + parseArr(r.arr_converted), 0);
     const uniqueSes = new Set(rows.map(r => r.se_owner_id ?? -1)).size;
     return { grandArr, grandDealCount: rows.length, uniqueSes };
   }, [rows]);
 
-  // ── By Territory: Team → SE → deals ────────────────────────────────────────
+  // ── By Territory: Team → SE → deals ───────────────────────────────────────
   type LeafGroup = {
     label: string;
     isUnassigned?: boolean;
@@ -148,7 +173,7 @@ export default function ClosedWonPage() {
     return groups.sort((a, b) => b.arrTotal - a.arrTotal);
   }, [rows]);
 
-  // ── By SE: SE → Team → deals (SE totals are GLOBAL across territories) ─────
+  // ── By SE: SE → Team → deals ──────────────────────────────────────────────
   const seGroups = useMemo<ParentGroup[]>(() => {
     const bySe = new Map<string, Map<string, LeafGroup>>();
     for (const d of rows) {
@@ -229,7 +254,7 @@ export default function ClosedWonPage() {
             </select>
           )}
           <div className="flex items-center gap-2">
-            {pillBtn(quarter, 'ALL', setQuarter, 'All YTD')}
+            {pillBtn(quarter, 'ALL', setQuarter, 'All')}
             {pillBtn(quarter, 'Q1', setQuarter, 'Q1')}
             {pillBtn(quarter, 'Q2', setQuarter, 'Q2')}
             {pillBtn(quarter, 'Q3', setQuarter, 'Q3')}
