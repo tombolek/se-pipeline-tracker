@@ -234,34 +234,6 @@ function CompetitorCard({
   );
 }
 
-// ── Summary Cards ────────────────────────────────────────────────────────────
-
-function SummaryCards({ summary, topThreat }: {
-  summary: CompetitiveData['summary'];
-  topThreat: Competitor | null;
-}) {
-  const cards = [
-    { label: 'Unique Competitors', value: String(summary.unique_competitors), sub: 'across open pipeline' },
-    { label: 'Deals with Competitors', value: String(summary.total_open_deals_with_competitors), sub: formatARR(summary.total_open_arr) + ' ARR' },
-    { label: 'Top Threat', value: topThreat?.name ?? '—', sub: topThreat ? `${topThreat.open_count} deals · ${formatARR(topThreat.open_arr)}` : '' },
-    { label: 'Highest ARR at Risk', value: topThreat ? formatARR(
-      Math.max(...(topThreat ? [topThreat] : []).map(c => c.open_arr), 0)
-    ) : '—', sub: topThreat?.name ?? '' },
-  ];
-
-  return (
-    <div className="grid grid-cols-4 gap-4 mb-6">
-      {cards.map(c => (
-        <div key={c.label} className="bg-white rounded-2xl border border-brand-navy-30/40 p-5">
-          <p className="text-[11px] font-medium text-brand-navy-70 uppercase tracking-wide">{c.label}</p>
-          <p className="text-2xl font-bold text-brand-navy mt-1 truncate">{c.value}</p>
-          <p className="text-xs text-brand-navy-70 mt-0.5">{c.sub}</p>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 // ── Main Page ────────────────────────────────────────────────────────────────
 
 export default function CompetitiveIntelPage() {
@@ -373,7 +345,7 @@ export default function CompetitiveIntelPage() {
 
       {/* Opportunity Drawer */}
       <Drawer open={selectedOppId !== null} onClose={() => setSelectedOppId(null)}>
-        {selectedOppId !== null && <OpportunityDetail opportunityId={selectedOppId} isDrawer />}
+        {selectedOppId !== null && <OpportunityDetail oppId={selectedOppId} />}
       </Drawer>
     </div>
   );
