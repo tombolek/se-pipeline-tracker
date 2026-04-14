@@ -559,11 +559,32 @@ function OrgChartTab({ users, setUsers, availableTeams, currentUserId }: {
 
 // ── Tab: Access Management ─────────────────────────────────────────────────────
 
+function AdminBadge({ user, onToggle, disabled }: { user: User; onToggle: () => void; disabled: boolean }) {
+  return (
+    <button
+      onClick={onToggle}
+      disabled={disabled}
+      title={user.is_admin ? `${user.name} is an admin — click to revoke` : `Grant admin access to ${user.name}`}
+      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+        user.is_admin
+          ? 'bg-brand-purple/10 text-brand-purple hover:bg-brand-purple/20'
+          : 'bg-transparent text-brand-navy-30 hover:text-brand-purple hover:bg-brand-purple/5'
+      }`}
+    >
+      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+      </svg>
+      {user.is_admin ? 'Admin' : 'Admin'}
+    </button>
+  );
+}
+
 function AccessManagementTab({ users, setUsers, currentUserId }: {
   users: User[];
   setUsers: React.Dispatch<React.SetStateAction<User[]>>;
   currentUserId: number | undefined;
 }) {
+  const { user: currentUser } = useAuthStore();
   const [search, setSearch] = useState('');
   const [updatingId, setUpdatingId] = useState<number | null>(null);
   const [showAdd, setShowAdd] = useState(false);
@@ -571,6 +592,14 @@ function AccessManagementTab({ users, setUsers, currentUserId }: {
   const [reassignTarget, setReassignTarget] = useState<User | null>(null);
   const [deactivateTarget, setDeactivateTarget] = useState<User | null>(null);
   const [roleConfirmTarget, setRoleConfirmTarget] = useState<User | null>(null);
+
+  async function handleToggleAdmin(u: User) {
+    setUpdatingId(u.id);
+    try {
+      const updated = await updateUser(u.id, { is_admin: !u.is_admin });
+      setUsers(prev => prev.map(x => x.id === updated.id ? updated : x));
+    } finally { setUpdatingId(null); }
+  }
 
   const activeUsers = users.filter(u => u.is_active);
   const q = search.toLowerCase();
@@ -681,7 +710,16 @@ function AccessManagementTab({ users, setUsers, currentUserId }: {
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-3"><RoleBadge role={u.role} /></td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-1.5">
+                      <RoleBadge role={u.role} />
+                      <AdminBadge
+                        user={u}
+                        onToggle={() => handleToggleAdmin(u)}
+                        disabled={isUpdating || !currentUser?.is_admin || u.id === currentUserId}
+                      />
+                    </div>
+                  </td>
                   <td className="px-4 py-3">
                     {u.is_active
                       ? <span className="flex items-center gap-1.5 text-xs text-status-success font-medium"><span className="w-1.5 h-1.5 rounded-full bg-status-success inline-block" />Active</span>
