@@ -111,7 +111,7 @@ export interface User {
   id: number;
   email: string;
   name: string;
-  role: 'manager' | 'se' | 'read-only';
+  role: 'manager' | 'se' | 'viewer';
   is_admin: boolean;
   is_active: boolean;
   show_qualify: boolean;

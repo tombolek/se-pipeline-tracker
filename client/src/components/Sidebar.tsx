@@ -206,6 +206,7 @@ export default function Sidebar() {
       {/* User footer */}
       <div className="px-3 pt-3 pb-4 border-t border-white/10">
         {/* Quick Capture */}
+        {user?.role !== 'viewer' && (
         <button
           onClick={openQuickCapture}
           className="flex items-center gap-1.5 w-full px-2 py-1.5 rounded-lg text-xs text-white/50 hover:text-white/80 hover:bg-white/10 transition-colors mb-0.5"
@@ -216,6 +217,7 @@ export default function Sidebar() {
           <span>Quick note or task</span>
           <span className="text-[10px] text-white/30 ml-auto">{isMac ? '⌘K' : 'Ctrl+K'}</span>
         </button>
+        )}
         {/* How To — full-width, visually distinct */}
         <NavLink
           to="/settings/how-to"

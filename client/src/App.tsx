@@ -19,18 +19,20 @@ import { usePageTracking } from './hooks/useTracking';
 
 function AppShell({ children }: { children: React.ReactNode }) {
   const openQuickCapture = usePipelineStore((s) => s.openQuickCapture);
+  const user = useAuthStore((s) => s.user);
   usePageTracking();
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+        if (user?.role === 'viewer') return;
         e.preventDefault();
         openQuickCapture();
       }
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [openQuickCapture]);
+  }, [openQuickCapture, user]);
 
   return (
     <div className="flex h-screen overflow-hidden">

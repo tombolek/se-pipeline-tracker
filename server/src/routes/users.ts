@@ -30,8 +30,8 @@ router.post('/', auth, mgr, async (req: Request, res: Response): Promise<void> =
     res.status(400).json(err('name, email and password are required'));
     return;
   }
-  if (role !== 'manager' && role !== 'se' && role !== 'read-only') {
-    res.status(400).json(err('role must be manager, se, or read-only'));
+  if (role !== 'manager' && role !== 'se' && role !== 'viewer') {
+    res.status(400).json(err('role must be manager, se, or viewer'));
     return;
   }
 
@@ -129,8 +129,8 @@ router.patch('/:id', auth, mgr, async (req: Request, res: Response): Promise<voi
     name: string; email: string; role: string; is_active: boolean; manager_id: number | null; teams: string[];
   }>;
 
-  if (role !== undefined && role !== 'manager' && role !== 'se' && role !== 'read-only') {
-    res.status(400).json(err('role must be manager, se, or read-only'));
+  if (role !== undefined && role !== 'manager' && role !== 'se' && role !== 'viewer') {
+    res.status(400).json(err('role must be manager, se, or viewer'));
     return;
   }
 

@@ -1,11 +1,12 @@
 import { Router, Request, Response } from 'express';
 import { query, queryOne } from '../db/index.js';
-import { requireAuth } from '../middleware/auth.js';
+import { requireAuth, requireWriteAccess } from '../middleware/auth.js';
 import { AuthenticatedRequest, ok, err } from '../types/index.js';
 import { logAudit } from '../services/auditLog.js';
 
 const router = Router({ mergeParams: true });
 const auth = requireAuth as unknown as (req: Request, res: Response, next: () => void) => void;
+const write = requireWriteAccess as unknown as (req: Request, res: Response, next: () => void) => void;
 
 // GET /opportunities/:id/notes
 router.get('/', auth, async (req: Request, res: Response): Promise<void> => {
@@ -25,7 +26,7 @@ router.get('/', auth, async (req: Request, res: Response): Promise<void> => {
 });
 
 // POST /opportunities/:id/notes  (append-only)
-router.post('/', auth, async (req: Request, res: Response): Promise<void> => {
+router.post('/', auth, write, async (req: Request, res: Response): Promise<void> => {
   const { userId, role } = (req as AuthenticatedRequest).user;
   const oppId = parseInt(req.params.id);
   if (isNaN(oppId)) { res.status(400).json(err('Invalid opportunity id')); return; }

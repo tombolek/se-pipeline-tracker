@@ -9,9 +9,9 @@ import { formatDate } from '../../utils/formatters';
 
 // ── Shared atoms ──────────────────────────────────────────────────────────────
 
-function RoleBadge({ role }: { role: 'manager' | 'se' | 'read-only' }) {
+function RoleBadge({ role }: { role: 'manager' | 'se' | 'viewer' }) {
   if (role === 'manager') return <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-brand-purple/10 text-brand-purple">Manager</span>;
-  if (role === 'read-only') return <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-brand-navy-30/50 text-brand-navy-70">Read-only</span>;
+  if (role === 'viewer') return <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-brand-navy-30/50 text-brand-navy-70">Viewer</span>;
   return <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-brand-navy-30/50 text-brand-navy-70">SE</span>;
 }
 
@@ -32,7 +32,7 @@ function AddUserModal({ onClose, onCreated, managers }: {
   managers: User[];
 }) {
   const [form, setForm] = useState({
-    name: '', email: '', role: 'se' as 'manager' | 'se' | 'read-only', password: '',
+    name: '', email: '', role: 'se' as 'manager' | 'se' | 'viewer', password: '',
     manager_id: '' as number | '',
   });
   const [saving, setSaving] = useState(false);
@@ -78,11 +78,11 @@ function AddUserModal({ onClose, onCreated, managers }: {
           </div>
           <div>
             <label className="block text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide mb-1">Role</label>
-            <select value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value as 'manager' | 'se' | 'read-only' }))}
+            <select value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value as 'manager' | 'se' | 'viewer' }))}
               className="w-full px-3 py-2 rounded-lg border border-brand-navy-30 text-sm text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-purple bg-white">
               <option value="se">SE</option>
               <option value="manager">Manager</option>
-              <option value="read-only">Read-only</option>
+              <option value="viewer">Viewer</option>
             </select>
           </div>
           {form.role === 'se' && (

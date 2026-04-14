@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import multer from 'multer';
 import Anthropic from '@anthropic-ai/sdk';
 import { query, queryOne } from '../db/index.js';
-import { requireAuth, requireManager } from '../middleware/auth.js';
+import { requireAuth, requireManager, requireWriteAccess } from '../middleware/auth.js';
 import { parseImportFile, reconcileImport, previewImport } from '../services/importService.js';
 import { AuthenticatedRequest, ok, err } from '../types/index.js';
 import { logAudit } from '../services/auditLog.js';
@@ -14,6 +14,7 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 
 // Middleware adapters for TypeScript
 const auth = requireAuth as unknown as (req: Request, res: Response, next: () => void) => void;
 const mgr  = requireManager as unknown as (req: Request, res: Response, next: () => void) => void;
+const write = requireWriteAccess as unknown as (req: Request, res: Response, next: () => void) => void;
 
 // ── IMPORTANT: static routes MUST come before /:id ─────────────────────────
 
@@ -192,7 +193,7 @@ router.get('/favorites/ids', auth, async (req: Request, res: Response): Promise<
 });
 
 // POST /opportunities/:id/favorite — add to favorites
-router.post('/:id/favorite', auth, async (req: Request, res: Response): Promise<void> => {
+router.post('/:id/favorite', auth, write, async (req: Request, res: Response): Promise<void> => {
   const user = (req as AuthenticatedRequest).user;
   const oppId = parseInt(req.params.id);
   if (isNaN(oppId)) { res.status(400).json(err('Invalid opportunity id')); return; }
@@ -204,7 +205,7 @@ router.post('/:id/favorite', auth, async (req: Request, res: Response): Promise<
 });
 
 // DELETE /opportunities/:id/favorite — remove from favorites
-router.delete('/:id/favorite', auth, async (req: Request, res: Response): Promise<void> => {
+router.delete('/:id/favorite', auth, write, async (req: Request, res: Response): Promise<void> => {
   const user = (req as AuthenticatedRequest).user;
   const oppId = parseInt(req.params.id);
   if (isNaN(oppId)) { res.status(400).json(err('Invalid opportunity id')); return; }
@@ -331,7 +332,7 @@ router.get('/closed-lost', auth, async (req: Request, res: Response): Promise<vo
 });
 
 // POST /opportunities/closed-lost/mark-read
-router.post('/closed-lost/mark-read', auth, async (req: Request, res: Response): Promise<void> => {
+router.post('/closed-lost/mark-read', auth, write, async (req: Request, res: Response): Promise<void> => {
   const { ids } = req.body as { ids?: number[] };
 
   if (!Array.isArray(ids) || ids.length === 0) {
@@ -642,7 +643,7 @@ router.get('/by-account', auth, async (req: Request, res: Response): Promise<voi
 });
 
 // POST /opportunities/:id/tasks
-router.post('/:id/tasks', auth, async (req: Request, res: Response): Promise<void> => {
+router.post('/:id/tasks', auth, write, async (req: Request, res: Response): Promise<void> => {
   const { userId } = (req as AuthenticatedRequest).user;
   const oppId = parseInt(req.params.id);
   if (isNaN(oppId)) { res.status(400).json(err('Invalid opportunity id')); return; }
@@ -1221,7 +1222,7 @@ router.get('/:id', auth, async (req: Request, res: Response): Promise<void> => {
 // Manager: can assign anyone with role=se
 // SE: can assign themselves if they don't own the opp;
 //     can assign any SE (or unassign) if they currently own it
-router.patch('/:id', auth, async (req: Request, res: Response): Promise<void> => {
+router.patch('/:id', auth, write, async (req: Request, res: Response): Promise<void> => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json(err('Invalid opportunity id')); return; }
 
@@ -1505,7 +1506,7 @@ const PATCHABLE_FIELDS = new Set([
   'products',
 ]);
 
-router.patch('/:id/fields', auth, async (req: Request, res: Response): Promise<void> => {
+router.patch('/:id/fields', auth, write, async (req: Request, res: Response): Promise<void> => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json(err('Invalid opportunity id')); return; }
 
@@ -1528,7 +1529,7 @@ router.patch('/:id/fields', auth, async (req: Request, res: Response): Promise<v
 // POST /opportunities/:id/process-notes
 // Accepts raw call notes, auto-saves them as a note, then calls Claude to extract
 // tasks, MEDDPICC updates, a draft SE comment, tech blockers, and a next step.
-router.post('/:id/process-notes', auth, async (req: Request, res: Response): Promise<void> => {
+router.post('/:id/process-notes', auth, write, async (req: Request, res: Response): Promise<void> => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json(err('Invalid opportunity id')); return; }
 

@@ -361,7 +361,7 @@ router.delete('/quota-groups/:id', auth, async (req: Request, res: Response): Pr
 
 // ── Role-based page access ──────────────────────────────────────────────────
 
-const VALID_ROLES = ['manager', 'se', 'read-only'] as const;
+const VALID_ROLES = ['manager', 'se', 'viewer'] as const;
 
 /* GET /settings/role-access — admin only: return all mappings */
 router.get('/role-access', auth, admin, async (_req: Request, res: Response): Promise<void> => {

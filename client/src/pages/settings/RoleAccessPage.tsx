@@ -6,8 +6,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { getRoleAccessMappings, updateRoleAccessMappings, type RolePageMapping } from '../../api/settings';
 import { useAuthStore } from '../../store/auth';
 
-const ROLES = ['manager', 'se', 'read-only'] as const;
-const ROLE_LABELS: Record<string, string> = { manager: 'Manager', se: 'SE', 'read-only': 'Read-only' };
+const ROLES = ['manager', 'se', 'viewer'] as const;
+const ROLE_LABELS: Record<string, string> = { manager: 'Manager', se: 'SE', viewer: 'Viewer' };
 
 interface PageDef {
   key: string;

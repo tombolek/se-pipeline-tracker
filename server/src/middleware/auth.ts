@@ -46,3 +46,15 @@ export function requireAdmin(
   }
   next();
 }
+
+export function requireWriteAccess(
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): void {
+  if (req.user?.role === 'viewer') {
+    res.status(403).json(err('Viewer accounts cannot modify data'));
+    return;
+  }
+  next();
+}

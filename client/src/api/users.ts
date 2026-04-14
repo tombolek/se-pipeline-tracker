@@ -14,7 +14,7 @@ export async function listUsers(): Promise<User[]> {
 export async function createUser(payload: {
   name: string;
   email: string;
-  role: 'manager' | 'se' | 'read-only';
+  role: 'manager' | 'se' | 'viewer';
   password: string;
   manager_id?: number | null;
 }): Promise<User> {
@@ -24,7 +24,7 @@ export async function createUser(payload: {
 
 export async function updateUser(
   id: number,
-  payload: Partial<{ name: string; email: string; role: 'manager' | 'se' | 'read-only'; is_active: boolean; is_admin: boolean; manager_id: number | null; teams: string[] }>
+  payload: Partial<{ name: string; email: string; role: 'manager' | 'se' | 'viewer'; is_active: boolean; is_admin: boolean; manager_id: number | null; teams: string[] }>
 ): Promise<User> {
   const { data } = await api.patch<ApiResponse<User>>(`/users/${id}`, payload);
   return data.data;

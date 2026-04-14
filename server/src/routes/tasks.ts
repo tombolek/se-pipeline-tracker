@@ -1,11 +1,12 @@
 import { Router, Request, Response } from 'express';
 import { query, queryOne } from '../db/index.js';
-import { requireAuth } from '../middleware/auth.js';
+import { requireAuth, requireWriteAccess } from '../middleware/auth.js';
 import { AuthenticatedRequest, ok, err } from '../types/index.js';
 import { logAudit } from '../services/auditLog.js';
 
 const router = Router();
 const auth = requireAuth as unknown as (req: Request, res: Response, next: () => void) => void;
+const write = requireWriteAccess as unknown as (req: Request, res: Response, next: () => void) => void;
 
 // GET /tasks  — my open/in-progress tasks (current user)
 router.get('/', auth, async (req: Request, res: Response): Promise<void> => {
@@ -33,7 +34,7 @@ router.get('/', auth, async (req: Request, res: Response): Promise<void> => {
 });
 
 // PATCH /tasks/:id
-router.patch('/:id', auth, async (req: Request, res: Response): Promise<void> => {
+router.patch('/:id', auth, write, async (req: Request, res: Response): Promise<void> => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json(err('Invalid task id')); return; }
 
@@ -90,7 +91,7 @@ router.patch('/:id', auth, async (req: Request, res: Response): Promise<void> =>
 });
 
 // DELETE /tasks/:id  (soft delete)
-router.delete('/:id', auth, async (req: Request, res: Response): Promise<void> => {
+router.delete('/:id', auth, write, async (req: Request, res: Response): Promise<void> => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json(err('Invalid task id')); return; }
 

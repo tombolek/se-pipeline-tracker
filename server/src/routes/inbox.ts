@@ -1,10 +1,11 @@
 import { Router, Request, Response } from 'express';
 import { query, queryOne } from '../db/index.js';
-import { requireAuth } from '../middleware/auth.js';
+import { requireAuth, requireWriteAccess } from '../middleware/auth.js';
 import { AuthenticatedRequest, ok, err } from '../types/index.js';
 
 const router = Router();
 const auth = requireAuth as unknown as (req: Request, res: Response, next: () => void) => void;
+const write = requireWriteAccess as unknown as (req: Request, res: Response, next: () => void) => void;
 
 // GET /inbox — list current user's inbox items (open + recent done)
 router.get('/', auth, async (req: Request, res: Response): Promise<void> => {
@@ -19,7 +20,7 @@ router.get('/', auth, async (req: Request, res: Response): Promise<void> => {
 });
 
 // POST /inbox — create jot
-router.post('/', auth, async (req: Request, res: Response): Promise<void> => {
+router.post('/', auth, write, async (req: Request, res: Response): Promise<void> => {
   const { userId } = (req as AuthenticatedRequest).user;
   const { text, type } = req.body as { text?: string; type?: string };
 
@@ -35,7 +36,7 @@ router.post('/', auth, async (req: Request, res: Response): Promise<void> => {
 });
 
 // PATCH /inbox/:id — update text or status
-router.patch('/:id', auth, async (req: Request, res: Response): Promise<void> => {
+router.patch('/:id', auth, write, async (req: Request, res: Response): Promise<void> => {
   const { userId } = (req as AuthenticatedRequest).user;
   const id = parseInt(req.params.id);
   const { text, status } = req.body as { text?: string; status?: string };
@@ -59,7 +60,7 @@ router.patch('/:id', auth, async (req: Request, res: Response): Promise<void> =>
 });
 
 // DELETE /inbox/:id — soft delete
-router.delete('/:id', auth, async (req: Request, res: Response): Promise<void> => {
+router.delete('/:id', auth, write, async (req: Request, res: Response): Promise<void> => {
   const { userId } = (req as AuthenticatedRequest).user;
   const id = parseInt(req.params.id);
 
@@ -71,7 +72,7 @@ router.delete('/:id', auth, async (req: Request, res: Response): Promise<void> =
 });
 
 // POST /inbox/:id/convert — link to opportunity and convert to task or note
-router.post('/:id/convert', auth, async (req: Request, res: Response): Promise<void> => {
+router.post('/:id/convert', auth, write, async (req: Request, res: Response): Promise<void> => {
   const { userId } = (req as AuthenticatedRequest).user;
   const id = parseInt(req.params.id);
   const { opportunity_id, convert_as } = req.body as {
