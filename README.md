@@ -123,10 +123,18 @@ This tool pulls deal data from Salesforce via a CSV/XLS export and layers a nati
 
 ### Home / Daily Digest (`/home`)
 - Landing page shown after login
-- **Summary KPI cards**: ARR moved forward, ARR closed lost, net pipeline change, new qualified deals, stale deals
-- **Period selector**: 7d / 14d / 30d toggle
-- **Sections**: New Qualified Opps, Stage Progressions, Stale Deals, PoCs Started/Ended, Deals Flagged At-Risk, Closed Lost This Period
+- **Summary KPI cards**: Overdue, Due Today, PoC Alerts, New Closed Lost, **Needs Attention** (data hygiene count)
+- **Sections**: Today's Tasks, PoC Alerts, Recent Activity, Stale Deals, Upcoming This Week, **Needs Attention**
 - **AI Quick Links**: Pre-Call Brief, Process Call Notes, Opp Summary, and Demo Prep — each lets you pick an opportunity via search, then opens the drawer with that AI feature activated
+- **SE Data Hygiene ("Needs Attention")**: surfaces deals with SE-responsibility issues. Each flagged deal shows issue badges. Detection rules:
+  - **Stale SE Comments** — `se_comments_updated_at` > 21 days or never set
+  - **PoC not started on time** — past PoC Start Date but status still Identified/In Deployment
+  - **PoC overrunning** — status In Progress but past PoC End Date
+  - **PoC wrap-up overdue** — status Wrapping Up but past PoC End Date
+  - **PoC timeline too long** — Start-to-End span exceeds 6 weeks
+  - **Missing PoC planning** — Develop Solution stage with no PoC Status or Start Date
+  - **Missing Tech Blockers** — Develop Solution or later with empty Technical Blockers/Risk
+  - **Demo mentioned, no follow-up** — "demo" keyword in SE Comments/Next Step but no note in 7 days
 
 ### My Pipeline (`/my-pipeline`)
 - Personal pipeline view scoped to the logged-in user's deals
@@ -250,6 +258,12 @@ This tool pulls deal data from Salesforce via a CSV/XLS export and layers a nati
 - Drag-and-drop between SE columns in kanban view
 - Sortable table view with column picker
 - Filter by SE, stage, text search
+
+#### 1:1 Prep (`/insights/one-on-one`)
+- Manager-only one-page brief for 1:1 meetings with each SE
+- SE picker dropdown; deep-link via `?se=<id>`
+- **Stat cards**: Open Opps, Total ARR, Health RAG breakdown, Overdue Tasks, Stale Comments, **Hygiene Issues**
+- **Sections**: AI Coaching Brief (collapsible), Overdue Tasks, Due This Week, Deals Missing SE Notes, **Data Hygiene — Needs Attention** (table of flagged deals with issue badges, same 8 rules as the Home page), Deals with No Next Step, Recent Stage Movements, All Open Opportunities
 
 ### Settings (Manager only)
 

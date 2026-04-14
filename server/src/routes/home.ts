@@ -12,7 +12,7 @@ router.get('/digest', auth, async (req: Request, res: Response): Promise<void> =
   const user = (req as AuthenticatedRequest).user;
   const uid = user.userId;
 
-  const [myTasks, pocAlerts, recentActivity, closedLost, staleDeals, upcoming] = await Promise.all([
+  const [myTasks, pocAlerts, recentActivity, closedLost, staleDeals, upcoming, hygieneRaw] = await Promise.all([
     // 1. My tasks: overdue + due today + due this week (open/in_progress/blocked)
     query(
       `SELECT t.id, t.title, t.status, t.due_date, t.is_next_step,
@@ -224,10 +224,27 @@ router.get('/digest', auth, async (req: Request, res: Response): Promise<void> =
       LIMIT 15`,
       [uid]
     ),
+
+    // 7. SE Data Hygiene: active opps with SE-responsibility issues
+    query(
+      `SELECT o.id, o.name, o.account_name, o.stage, o.arr, o.arr_currency,
+              o.se_comments, o.se_comments_updated_at,
+              o.poc_status, o.poc_start_date, o.poc_end_date,
+              o.technical_blockers, o.next_step_sf, o.last_note_at,
+              u.id AS se_owner_id, u.name AS se_owner_name
+       FROM opportunities o
+       LEFT JOIN users u ON u.id = o.se_owner_id
+       WHERE o.se_owner_id = $1
+         AND o.is_active = true AND o.is_closed_lost = false
+         AND COALESCE(o.is_closed_won, false) = false
+       ORDER BY COALESCE(o.arr, 0) DESC NULLS LAST`,
+      [uid]
+    ),
   ]);
 
   // Compute summary counts
   const today = new Date().toISOString().slice(0, 10);
+  const nowMs = Date.now();
   const overdueCount = (myTasks as { due_date: Date | string | null }[]).filter(t => {
     if (!t.due_date) return false;
     const d = typeof t.due_date === 'string' ? t.due_date.slice(0, 10) : t.due_date.toISOString().slice(0, 10);
@@ -239,6 +256,108 @@ router.get('/digest', auth, async (req: Request, res: Response): Promise<void> =
     return d === today;
   }).length;
 
+  // ── SE Data Hygiene: compute flags per opp ──────────────────────────────
+  type HygieneOpp = {
+    id: number; name: string; account_name: string | null;
+    stage: string; arr: number | null; arr_currency: string;
+    se_comments: string | null; se_comments_updated_at: string | null;
+    poc_status: string | null; poc_start_date: string | null; poc_end_date: string | null;
+    technical_blockers: string | null; next_step_sf: string | null; last_note_at: string | null;
+    se_owner_id: number | null; se_owner_name: string | null;
+  };
+  const POC_ACTIVE = ['Identified', 'In Deployment', 'In Progress', 'Wrapping Up'];
+  const POC_STARTED = ['In Progress', 'Wrapping Up'];
+  const dayMs = 86_400_000;
+
+  function daysSinceStr(iso: string | null): number | null {
+    if (!iso) return null;
+    return Math.floor((nowMs - new Date(iso).getTime()) / dayMs);
+  }
+
+  function toDateStr(v: string | Date | null): string | null {
+    if (!v) return null;
+    return typeof v === 'string' ? v.slice(0, 10) : v.toISOString().slice(0, 10);
+  }
+
+  const hygiene: { id: number; name: string; account_name: string | null; stage: string; arr: number | null; arr_currency: string; se_owner_id: number | null; se_owner_name: string | null; flags: string[] }[] = [];
+
+  for (const raw of hygieneRaw as HygieneOpp[]) {
+    const flags: string[] = [];
+    const seCommentsDays = daysSinceStr(raw.se_comments_updated_at);
+    const pocStart = toDateStr(raw.poc_start_date);
+    const pocEnd = toDateStr(raw.poc_end_date);
+    const pocStatus = raw.poc_status?.trim() || null;
+
+    // Rule 1: Stale SE Comments (>21 days or never updated)
+    if (seCommentsDays === null) {
+      flags.push('SE Comments never updated');
+    } else if (seCommentsDays > 21) {
+      flags.push(`SE Comments ${seCommentsDays}d old`);
+    }
+
+    // Rule 2: PoC not started on time
+    if (pocStart && pocStart < today && pocStatus && POC_ACTIVE.includes(pocStatus) && !POC_STARTED.includes(pocStatus)) {
+      flags.push('PoC should be In Progress');
+    }
+
+    // Rule 3: PoC overrunning
+    if (pocStatus === 'In Progress' && pocEnd && pocEnd < today) {
+      const overdue = Math.floor((nowMs - new Date(pocEnd).getTime()) / dayMs);
+      flags.push(`PoC overdue by ${overdue}d`);
+    }
+
+    // Rule 4: PoC wrap-up overdue
+    if (pocStatus === 'Wrapping Up' && pocEnd && pocEnd < today) {
+      const overdue = Math.floor((nowMs - new Date(pocEnd).getTime()) / dayMs);
+      flags.push(`PoC wrap-up overdue ${overdue}d`);
+    }
+
+    // Rule 5: PoC timeline too long (>6 weeks)
+    if (pocStart && pocEnd) {
+      const span = Math.floor((new Date(pocEnd).getTime() - new Date(pocStart).getTime()) / dayMs);
+      if (span > 42) {
+        flags.push(`PoC span ${Math.round(span / 7)}wk`);
+      }
+    }
+
+    // Rule 6: Develop Solution or later → missing PoC planning
+    if (raw.stage === 'Develop Solution' && (!pocStatus || !pocStart)) {
+      if (!pocStatus && !pocStart) {
+        flags.push('Missing PoC planning');
+      } else if (!pocStatus) {
+        flags.push('Missing PoC status');
+      } else if (!pocStart) {
+        flags.push('Missing PoC start date');
+      }
+    }
+
+    // Rule 7: Develop Solution or later → missing Tech Blockers
+    const DEVELOP_OR_LATER = ['Develop Solution', 'Build Value', 'Proposal Sent', 'Submitted for Booking', 'Negotiate'];
+    if (DEVELOP_OR_LATER.includes(raw.stage) && !raw.technical_blockers?.trim()) {
+      flags.push('Missing Tech Blockers');
+    }
+
+    // Rule 8: Demo mentioned in SE Comments or Next Step, but no recent note
+    const demoRe = /\bdemo\b/i;
+    const mentionsDemo = (raw.se_comments && demoRe.test(raw.se_comments)) ||
+                         (raw.next_step_sf && demoRe.test(raw.next_step_sf));
+    if (mentionsDemo) {
+      const lastNote = daysSinceStr(raw.last_note_at);
+      if (lastNote === null || lastNote > 7) {
+        flags.push('Demo mentioned, no follow-up');
+      }
+    }
+
+    if (flags.length > 0) {
+      hygiene.push({
+        id: raw.id, name: raw.name, account_name: raw.account_name,
+        stage: raw.stage, arr: raw.arr, arr_currency: raw.arr_currency,
+        se_owner_id: raw.se_owner_id, se_owner_name: raw.se_owner_name,
+        flags,
+      });
+    }
+  }
+
   res.json(ok({
     summary: {
       overdue: overdueCount,
@@ -246,6 +365,7 @@ router.get('/digest', auth, async (req: Request, res: Response): Promise<void> =
       poc_alerts: (pocAlerts as unknown[]).length,
       closed_lost_unread: (closedLost as unknown[]).length,
       stale_deals: (staleDeals as unknown[]).length,
+      hygiene_issues: hygiene.length,
     },
     tasks: myTasks,
     poc_alerts: pocAlerts,
@@ -253,6 +373,7 @@ router.get('/digest', auth, async (req: Request, res: Response): Promise<void> =
     closed_lost: closedLost,
     stale_deals: staleDeals,
     upcoming: upcoming,
+    hygiene,
   }));
   } catch (err) {
     console.error('Home digest error:', err);

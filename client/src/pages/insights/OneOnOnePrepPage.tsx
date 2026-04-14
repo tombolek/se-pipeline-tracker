@@ -18,6 +18,7 @@ import HealthScoreBadge from '../../components/shared/HealthScoreBadge';
 import StageBadge from '../../components/shared/StageBadge';
 import { formatARR, formatDate } from '../../utils/formatters';
 import { Loading } from './shared';
+import { computeHygieneFlags } from '../../utils/hygieneFlags';
 import { useOppUrlSync } from '../../hooks/useOppUrlSync';
 import Drawer from '../../components/Drawer';
 import OpportunityDetail from '../../components/OpportunityDetail';
@@ -273,6 +274,15 @@ export default function OneOnOnePrepPage() {
     [opps]
   );
 
+  const hygieneOpps = useMemo(() => {
+    const result: { opp: typeof opps[0]; flags: string[] }[] = [];
+    for (const o of opps) {
+      const flags = computeHygieneFlags(o);
+      if (flags.length > 0) result.push({ opp: o, flags });
+    }
+    return result;
+  }, [opps]);
+
   const stageMovements = useMemo(
     () => [...rawStageMovements].sort(
       (a, b) => stageRank(a.current_stage) - stageRank(b.current_stage)
@@ -293,9 +303,10 @@ export default function OneOnOnePrepPage() {
       overdueCount,
       staleCount: staleOpps.length,
       noNextStep: noNextStepOpps.length,
+      hygieneCount: hygieneOpps.length,
       red, amber, green,
     };
-  }, [opps, overdueTasks, staleOpps, noNextStepOpps]);
+  }, [opps, overdueTasks, staleOpps, noNextStepOpps, hygieneOpps]);
 
   const selectedSe = ses.find(s => s.id === seId);
 
@@ -345,6 +356,7 @@ export default function OneOnOnePrepPage() {
             <StatCard label="Green" value={String(summary.green)} tone="success" />
             <StatCard label="Overdue tasks" value={String(summary.overdueCount)} tone={summary.overdueCount > 0 ? 'danger' : undefined} />
             <StatCard label="Stale comments" value={String(summary.staleCount)} tone={summary.staleCount > 0 ? 'warn' : undefined} />
+            <StatCard label="Hygiene issues" value={String(summary.hygieneCount)} tone={summary.hygieneCount > 0 ? 'warn' : undefined} />
           </div>
 
           {/* AI Coaching Brief — collapsible, collapsed by default, with freshness indicator */}
@@ -442,6 +454,61 @@ export default function OneOnOnePrepPage() {
               count={noNextStepOpps.length}
             >
               <OppTable opps={noNextStepOpps} onOpenOpp={handleOpenOpp} />
+            </Section>
+          )}
+
+          {/* Data Hygiene — Needs Attention */}
+          {hygieneOpps.length > 0 && (
+            <Section
+              title="Data Hygiene — Needs Attention"
+              subtitle="(SE-responsibility issues)"
+              count={hygieneOpps.length}
+            >
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-xs text-brand-navy-70 uppercase tracking-wide border-b border-brand-navy-30/50">
+                      <th className="text-left py-2 pr-3 font-medium">Deal</th>
+                      <th className="text-left py-2 pr-3 font-medium">Stage</th>
+                      <th className="text-right py-2 pr-3 font-medium">ARR</th>
+                      <th className="text-left py-2 font-medium">Issues</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-brand-navy-30/30">
+                    {hygieneOpps.map(({ opp, flags }) => (
+                      <tr
+                        key={opp.id}
+                        className="hover:bg-brand-purple-30/20 cursor-pointer transition-colors"
+                        onClick={() => handleOpenOpp(opp.id)}
+                      >
+                        <td className="py-2.5 pr-3">
+                          <p className="font-medium text-brand-navy">{opp.name}</p>
+                          {opp.account_name && <p className="text-xs text-brand-navy-70">{opp.account_name}</p>}
+                        </td>
+                        <td className="py-2.5 pr-3 text-brand-navy-70 whitespace-nowrap">
+                          <StageBadge stage={opp.stage} />
+                        </td>
+                        <td className="py-2.5 pr-3 text-right text-brand-navy-70 whitespace-nowrap">
+                          {opp.arr != null ? formatARR(typeof opp.arr === 'string' ? parseFloat(opp.arr) : opp.arr) : '—'}
+                        </td>
+                        <td className="py-2.5">
+                          <div className="flex flex-wrap gap-1">
+                            {flags.map((f, i) => (
+                              <span key={i} className={`inline-flex text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded ${
+                                f.includes('overdue') || f.includes('should be')
+                                  ? 'text-status-overdue bg-status-overdue/10'
+                                  : f.includes('Missing')
+                                  ? 'text-brand-purple bg-brand-purple-30/50'
+                                  : 'text-status-warning bg-status-warning/10'
+                              }`}>{f}</span>
+                            ))}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </Section>
           )}
 

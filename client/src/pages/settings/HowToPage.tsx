@@ -215,6 +215,21 @@ export default function HowToPage() {
         <Li><strong>Stale Deals</strong> — opportunities with no activity in the last 14+ days, sorted by staleness.</Li>
       </Ul>
 
+      <SubTitle>Needs Attention (Data Hygiene)</SubTitle>
+      <P>A KPI card and section that surfaces deals with SE-responsibility issues — things you should fix or follow up on. Each flagged deal shows one or more issue badges. The rules focus on <strong>SE-owned data</strong>, not AE responsibilities like MEDDPICC or close dates.</P>
+      <P>Detection rules:</P>
+      <Ul>
+        <Li><Badge color="amber">SE Comments Nd old</Badge> — SE Comments in Salesforce haven't been updated in more than 21 days (or were never set).</Li>
+        <Li><Badge color="red">PoC should be In Progress</Badge> — PoC Estimated Start Date has passed but the PoC Status is still Identified or In Deployment.</Li>
+        <Li><Badge color="red">PoC overdue by Nd</Badge> — PoC Status is In Progress but the Estimated End Date has passed.</Li>
+        <Li><Badge color="red">PoC wrap-up overdue Nd</Badge> — PoC Status is Wrapping Up but the Estimated End Date has passed.</Li>
+        <Li><Badge color="amber">PoC span Nwk</Badge> — PoC Start-to-End Date is more than 6 weeks apart.</Li>
+        <Li><Badge color="purple">Missing PoC planning</Badge> — deal is at Develop Solution stage but has no PoC Status and/or no PoC Start Date set.</Li>
+        <Li><Badge color="purple">Missing Tech Blockers</Badge> — deal is at Develop Solution or later but the Technical Blockers/Risk field is empty.</Li>
+        <Li><Badge color="amber">Demo mentioned, no follow-up</Badge> — SE Comments or Next Step mention "demo" but there's been no note added in the last 7 days.</Li>
+      </Ul>
+      <P>For managers, the same hygiene data appears in the <strong>1:1 Prep</strong> page per-SE, with a table view and hygiene-issue count in the stats row.</P>
+
       <SubTitle>AI Quick Links</SubTitle>
       <P>Four shortcut buttons let you search for any opportunity and immediately open a drawer with the selected AI feature activated:</P>
       <Ul>

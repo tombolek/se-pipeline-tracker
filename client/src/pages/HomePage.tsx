@@ -38,14 +38,21 @@ interface UpcomingEvent {
   event_date: string; label: string; is_next_step: boolean;
   opportunity_id: number; opportunity_name: string;
 }
+interface HygieneItem {
+  id: number; name: string; account_name: string | null;
+  stage: string; arr: number | null; arr_currency: string;
+  se_owner_id: number | null; se_owner_name: string | null;
+  flags: string[];
+}
 interface DigestData {
-  summary: { overdue: number; due_today: number; poc_alerts: number; closed_lost_unread: number; stale_deals: number };
+  summary: { overdue: number; due_today: number; poc_alerts: number; closed_lost_unread: number; stale_deals: number; hygiene_issues: number };
   tasks: DigestTask[];
   poc_alerts: PocAlert[];
   recent_activity: Activity[];
   closed_lost: ClosedLostItem[];
   stale_deals: StaleDeal[];
   upcoming: UpcomingEvent[];
+  hygiene: HygieneItem[];
 }
 
 function dueLabel(d: string | null): { text: string; cls: string } {
@@ -228,7 +235,7 @@ export default function HomePage() {
         </div>
 
         {/* Summary cards */}
-        <div className="grid grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-5 gap-4 mb-6">
           <SummaryCard count={s.overdue} label="Overdue" color="bg-status-overdue/10"
             icon={<svg className="w-5 h-5 text-status-overdue" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>} />
           <SummaryCard count={s.due_today} label="Due Today" color="bg-status-warning/10"
@@ -237,6 +244,8 @@ export default function HomePage() {
             icon={<svg className="w-5 h-5 text-brand-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>} />
           <SummaryCard count={s.closed_lost_unread} label="New Closed Lost" color="bg-brand-pink/10"
             icon={<svg className="w-5 h-5 text-brand-pink" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>} />
+          <SummaryCard count={s.hygiene_issues} label="Needs Attention" color="bg-status-warning/10"
+            icon={<svg className="w-5 h-5 text-status-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>} />
         </div>
 
         {/* AI Quick Links */}
@@ -583,6 +592,42 @@ export default function HomePage() {
                 </div>
               )}
             </SectionCard>
+
+            {/* Needs Attention — SE Data Hygiene */}
+            {data.hygiene.length > 0 && (
+              <SectionCard
+                icon={<svg className="w-4 h-4 text-status-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>}
+                title="Needs Attention"
+                badge={<span className="text-[10px] font-semibold bg-status-warning/10 text-status-warning px-1.5 py-0.5 rounded-full">{data.hygiene.length} {data.hygiene.length === 1 ? 'deal' : 'deals'}</span>}
+              >
+                <div className="divide-y divide-brand-navy-30/15">
+                  {data.hygiene.slice(0, 6).map(h => (
+                    <div key={h.id} onClick={() => openOpp(h.id)} className="px-5 py-3 hover:bg-brand-purple-30/20 cursor-pointer transition-colors">
+                      <div className="flex items-start gap-3">
+                        <span className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ring-2 ${
+                          h.flags.some(f => f.includes('overdue') || f.includes('should be')) ? 'bg-status-overdue ring-status-overdue/20' : 'bg-status-warning ring-status-warning/20'
+                        }`} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium text-brand-navy leading-snug">{h.name}</p>
+                          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                            <span className="text-[10px] text-brand-navy-70">{h.stage}{h.arr != null ? ` · ${formatARR(h.arr)}` : ''}</span>
+                            {h.flags.map((f, i) => (
+                              <span key={i} className={`inline-flex text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded ${
+                                f.includes('overdue') || f.includes('should be')
+                                  ? 'text-status-overdue bg-status-overdue/10'
+                                  : f.includes('Missing')
+                                  ? 'text-brand-purple bg-brand-purple-30/50'
+                                  : 'text-status-warning bg-status-warning/10'
+                              }`}>{f}</span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </SectionCard>
+            )}
           </div>
         </div>
       </div>
