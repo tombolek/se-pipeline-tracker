@@ -8,6 +8,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## 2026-04-14
 
 ### Added
+- **Competitive Intelligence Rollup** — new insights page showing competitor frequency across the open pipeline: ranked bar chart, per-competitor cards with win/loss donut, SE matchup breakdown, stale-comment warnings, and expandable deal lists with drawer click-through. Supports team scope filtering. (Issue #72)
 - **Pipeline Analytics Dashboard** — new insights page with visual pipeline breakdown: funnel chart (ARR by stage), ARR by SE owner (stacked by stage), ARR by record type (donut), ARR by close month (bar chart), stage velocity (avg days in stage with RAG coloring), plus summary KPI cards for total pipeline, converted ARR, key deals, and average deal size. (Issue #71)
 - **SE Data Hygiene ("Needs Attention")** — new widget on the Home page and 1:1 Prep page that surfaces deals with SE-responsibility issues. Eight detection rules: stale SE comments (>21d), PoC not started on time, PoC overrunning, PoC wrap-up overdue, PoC timeline >6 weeks, missing PoC planning at Develop Solution, missing Tech Blockers at Develop Solution+, demo mentioned without follow-up note. Home page shows a summary KPI card + deal list with issue badges; 1:1 Prep page shows a stat card + table view per SE. (Issue #105)
 

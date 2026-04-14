@@ -1422,5 +1422,160 @@ router.get('/analytics', auth, mgr, async (req: Request, res: Response): Promise
   }
 });
 
+// GET /insights/competitive — Competitive Intelligence Rollup (Issue #72)
+router.get('/competitive', auth, mgr, async (req: Request, res: Response): Promise<void> => {
+  try {
+    // 1. All opps with competitors (open pipeline)
+    const openRows = await query(
+      `SELECT o.id, o.sf_opportunity_id, o.name, o.account_name, o.stage, o.arr,
+              o.engaged_competitors, o.se_comments, o.se_comments_updated_at,
+              o.team, o.account_segment, o.record_type,
+              u.id AS se_owner_id, u.name AS se_owner_name
+       FROM opportunities o
+       LEFT JOIN users u ON u.id = o.se_owner_id
+       WHERE o.is_active = true AND o.is_closed_lost = false AND o.is_closed_won = false
+         AND o.engaged_competitors IS NOT NULL AND o.engaged_competitors != ''`,
+      []
+    );
+
+    // 2. Closed lost opps with competitors (for win/loss context)
+    const closedLostRows = await query(
+      `SELECT o.engaged_competitors, o.arr
+       FROM opportunities o
+       WHERE o.is_closed_lost = true
+         AND o.engaged_competitors IS NOT NULL AND o.engaged_competitors != ''`,
+      []
+    );
+
+    // 3. Closed won opps with competitors
+    const closedWonRows = await query(
+      `SELECT o.engaged_competitors, o.arr
+       FROM opportunities o
+       WHERE o.is_closed_won = true
+         AND o.engaged_competitors IS NOT NULL AND o.engaged_competitors != ''`,
+      []
+    );
+
+    // Parse semicolon-separated competitors and aggregate
+    type CompAgg = {
+      open_count: number;
+      open_arr: number;
+      closed_lost_count: number;
+      closed_lost_arr: number;
+      closed_won_count: number;
+      closed_won_arr: number;
+      se_counts: Map<string, number>;
+      deals: {
+        id: number; sf_opportunity_id: string; name: string; account_name: string | null;
+        stage: string; arr: number; se_owner_name: string | null; team: string | null;
+        se_comments_stale: boolean;
+      }[];
+    };
+    const compMap = new Map<string, CompAgg>();
+
+    function getOrCreate(name: string): CompAgg {
+      const trimmed = name.trim();
+      if (!trimmed) return null as unknown as CompAgg;
+      if (!compMap.has(trimmed)) {
+        compMap.set(trimmed, {
+          open_count: 0, open_arr: 0,
+          closed_lost_count: 0, closed_lost_arr: 0,
+          closed_won_count: 0, closed_won_arr: 0,
+          se_counts: new Map(),
+          deals: [],
+        });
+      }
+      return compMap.get(trimmed)!;
+    }
+
+    // Process open pipeline
+    const now = Date.now();
+    const STALE_MS = 21 * 24 * 60 * 60 * 1000; // 21 days
+    for (const row of openRows) {
+      const competitors = (row.engaged_competitors as string).split(';');
+      const seCommentsStale = !row.se_comments_updated_at ||
+        (now - new Date(row.se_comments_updated_at as string).getTime()) > STALE_MS;
+
+      for (const c of competitors) {
+        const agg = getOrCreate(c);
+        if (!agg) continue;
+        agg.open_count++;
+        agg.open_arr += Number(row.arr ?? 0);
+        const seName = (row.se_owner_name as string) || 'Unassigned';
+        agg.se_counts.set(seName, (agg.se_counts.get(seName) ?? 0) + 1);
+        agg.deals.push({
+          id: row.id as number,
+          sf_opportunity_id: row.sf_opportunity_id as string,
+          name: row.name as string,
+          account_name: row.account_name as string | null,
+          stage: row.stage as string,
+          arr: Number(row.arr ?? 0),
+          se_owner_name: row.se_owner_name as string | null,
+          team: row.team as string | null,
+          se_comments_stale: seCommentsStale,
+        });
+      }
+    }
+
+    // Process closed lost
+    for (const row of closedLostRows) {
+      const competitors = (row.engaged_competitors as string).split(';');
+      for (const c of competitors) {
+        const agg = getOrCreate(c);
+        if (!agg) continue;
+        agg.closed_lost_count++;
+        agg.closed_lost_arr += Number(row.arr ?? 0);
+      }
+    }
+
+    // Process closed won
+    for (const row of closedWonRows) {
+      const competitors = (row.engaged_competitors as string).split(';');
+      for (const c of competitors) {
+        const agg = getOrCreate(c);
+        if (!agg) continue;
+        agg.closed_won_count++;
+        agg.closed_won_arr += Number(row.arr ?? 0);
+      }
+    }
+
+    // Convert to response
+    const competitors = Array.from(compMap.entries())
+      .map(([name, agg]) => ({
+        name,
+        open_count: agg.open_count,
+        open_arr: agg.open_arr,
+        closed_lost_count: agg.closed_lost_count,
+        closed_lost_arr: agg.closed_lost_arr,
+        closed_won_count: agg.closed_won_count,
+        closed_won_arr: agg.closed_won_arr,
+        total_count: agg.open_count + agg.closed_lost_count + agg.closed_won_count,
+        se_breakdown: Array.from(agg.se_counts.entries())
+          .map(([se_name, count]) => ({ se_name, count }))
+          .sort((a, b) => b.count - a.count),
+        deals: agg.deals,
+        stale_comment_count: agg.deals.filter(d => d.se_comments_stale).length,
+      }))
+      .sort((a, b) => b.open_count - a.open_count);
+
+    // Summary
+    const totalOpenWithComp = openRows.length;
+    const uniqueCompetitors = compMap.size;
+    const totalOpenArr = openRows.reduce((s, r) => s + Number(r.arr ?? 0), 0);
+
+    res.json(ok({
+      competitors,
+      summary: {
+        total_open_deals_with_competitors: totalOpenWithComp,
+        unique_competitors: uniqueCompetitors,
+        total_open_arr: totalOpenArr,
+      },
+    }));
+  } catch (e: unknown) {
+    console.error('[competitive] query failed:', e);
+    res.status(500).json(err('Failed to load competitive intelligence'));
+  }
+});
+
 export default router;
 
