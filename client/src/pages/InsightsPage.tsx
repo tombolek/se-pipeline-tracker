@@ -19,7 +19,6 @@ import TeamTasksPage from './insights/TeamTasksPage';
 import ForecastingBriefPage from './insights/ForecastingBriefPage';
 import OneOnOnePrepPage from './insights/OneOnOnePrepPage';
 import AnalyticsDashboardPage from './insights/AnalyticsDashboardPage';
-import CompetitiveIntelPage from './insights/CompetitiveIntelPage';
 
 function ScopeBar() {
   const { user } = useAuthStore();
@@ -139,16 +138,6 @@ export default function InsightsPage() {
         <ScopeBar />
         <div className="flex-1 overflow-y-auto px-8 py-6">
           <AnalyticsDashboardPage />
-        </div>
-      </div>
-    );
-  }
-  if (pathname.includes('competitive')) {
-    return (
-      <div className="flex-1 bg-[#F5F5F7] flex flex-col overflow-hidden">
-        <ScopeBar />
-        <div className="flex-1 overflow-y-auto px-8 py-6">
-          <CompetitiveIntelPage />
         </div>
       </div>
     );

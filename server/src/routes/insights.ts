@@ -1422,7 +1422,8 @@ router.get('/analytics', auth, mgr, async (req: Request, res: Response): Promise
   }
 });
 
-// GET /insights/competitive — Competitive Intelligence Rollup (Issue #72)
+/* Competitive Intelligence (Issue #72) — disabled; will re-enable once meeting
+   transcript ingestion provides real competitive data.
 router.get('/competitive', auth, mgr, async (req: Request, res: Response): Promise<void> => {
   try {
     // 1. All opps with competitors (open pipeline)
@@ -1576,6 +1577,7 @@ router.get('/competitive', auth, mgr, async (req: Request, res: Response): Promi
     res.status(500).json(err('Failed to load competitive intelligence'));
   }
 });
+*/
 
 export default router;
 

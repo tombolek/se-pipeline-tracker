@@ -24,7 +24,6 @@ export const DEFAULT_INSIGHTS_NAV: InsightsNavItem[] = [
   { id: 'tech-blockers',       label: 'Tech Blockers',       to: '/insights/tech-blockers',       icon: 'insight', visible: true },
   { id: 'agentic-qual',        label: 'Agentic Qual',        to: '/insights/agentic-qual',        icon: 'insight', visible: true },
   { id: 'analytics',            label: 'Pipeline Analytics',  to: '/insights/analytics',           icon: 'insight', visible: true },
-  { id: 'competitive',          label: 'Competitive Intel',   to: '/insights/competitive',         icon: 'insight', visible: true },
 ];
 
 export function getInsightsNav(): InsightsNavItem[] {
