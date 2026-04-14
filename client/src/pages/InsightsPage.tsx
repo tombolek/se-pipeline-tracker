@@ -18,6 +18,7 @@ import WeeklyDigestPage from './insights/WeeklyDigestPage';
 import TeamTasksPage from './insights/TeamTasksPage';
 import ForecastingBriefPage from './insights/ForecastingBriefPage';
 import OneOnOnePrepPage from './insights/OneOnOnePrepPage';
+import AnalyticsDashboardPage from './insights/AnalyticsDashboardPage';
 
 function ScopeBar() {
   const { user } = useAuthStore();
@@ -126,6 +127,17 @@ export default function InsightsPage() {
       <div className="flex-1 overflow-hidden bg-[#F5F5F7] flex flex-col relative">
         <div className="flex-1 overflow-hidden flex flex-col">
           <TeamTasksPage />
+        </div>
+      </div>
+    );
+  }
+
+  if (pathname.includes('analytics')) {
+    return (
+      <div className="flex-1 bg-[#F5F5F7] flex flex-col overflow-hidden">
+        <ScopeBar />
+        <div className="flex-1 overflow-y-auto px-8 py-6">
+          <AnalyticsDashboardPage />
         </div>
       </div>
     );

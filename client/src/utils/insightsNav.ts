@@ -23,6 +23,7 @@ export const DEFAULT_INSIGHTS_NAV: InsightsNavItem[] = [
   { id: 'percent-to-target', label: '% to Target', to: '/insights/percent-to-target', icon: 'insight', visible: true },
   { id: 'tech-blockers',       label: 'Tech Blockers',       to: '/insights/tech-blockers',       icon: 'insight', visible: true },
   { id: 'agentic-qual',        label: 'Agentic Qual',        to: '/insights/agentic-qual',        icon: 'insight', visible: true },
+  { id: 'analytics',            label: 'Pipeline Analytics',  to: '/insights/analytics',           icon: 'insight', visible: true },
 ];
 
 export function getInsightsNav(): InsightsNavItem[] {

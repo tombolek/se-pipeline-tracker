@@ -1298,5 +1298,129 @@ Keep it under 350 words total. Use deal names and ARR figures. Be direct and act
   }
 });
 
+// GET /insights/analytics — Pipeline Analytics Dashboard (Issue #71)
+router.get('/analytics', auth, mgr, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const baseWhere = `is_active = true AND is_closed_lost = false AND is_closed_won = false`;
+    const stageOrder = `CASE stage
+      WHEN 'Qualify' THEN 1 WHEN 'Develop Solution' THEN 2
+      WHEN 'Build Value' THEN 3 WHEN 'Proposal Sent' THEN 4
+      WHEN 'Submitted for Booking' THEN 5 WHEN 'Negotiate' THEN 6
+    END`;
+
+    // 1. Pipeline funnel: total ARR by stage, ordered by pipeline stage order
+    const funnelRows = await query(
+      `SELECT stage, COALESCE(SUM(arr), 0)::numeric AS arr, COUNT(*)::int AS count
+       FROM opportunities
+       WHERE ${baseWhere}
+       GROUP BY stage
+       ORDER BY ${stageOrder}`,
+      []
+    );
+
+    // 2. ARR by SE Owner with breakdown by stage
+    const bySeRows = await query(
+      `SELECT COALESCE(u.name, 'Unassigned') AS se_owner_name,
+              o.stage,
+              COALESCE(SUM(o.arr), 0)::numeric AS arr
+       FROM opportunities o
+       LEFT JOIN users u ON u.id = o.se_owner_id
+       WHERE ${baseWhere}
+       GROUP BY COALESCE(u.name, 'Unassigned'), o.stage
+       ORDER BY COALESCE(u.name, 'Unassigned'), ${stageOrder.replace(/stage/g, 'o.stage')}`,
+      []
+    );
+
+    // Reshape by_se into grouped structure
+    const seMap = new Map<string, { total_arr: number; stages: { stage: string; arr: number }[] }>();
+    for (const row of bySeRows) {
+      const name = row.se_owner_name as string;
+      if (!seMap.has(name)) {
+        seMap.set(name, { total_arr: 0, stages: [] });
+      }
+      const entry = seMap.get(name)!;
+      const arr = Number(row.arr);
+      entry.total_arr += arr;
+      entry.stages.push({ stage: row.stage as string, arr });
+    }
+    const by_se = Array.from(seMap.entries()).map(([se_owner_name, v]) => ({
+      se_owner_name,
+      total_arr: v.total_arr,
+      stages: v.stages,
+    }));
+
+    // 3. ARR by Record Type
+    const byRecordTypeRows = await query(
+      `SELECT COALESCE(record_type, 'Unknown') AS record_type,
+              COALESCE(SUM(arr), 0)::numeric AS arr,
+              COUNT(*)::int AS count
+       FROM opportunities
+       WHERE ${baseWhere}
+       GROUP BY COALESCE(record_type, 'Unknown')
+       ORDER BY arr DESC`,
+      []
+    );
+
+    // 4. ARR by Close Month
+    const byCloseMonthRows = await query(
+      `SELECT TO_CHAR(close_date, 'YYYY-MM') AS month,
+              COALESCE(SUM(arr), 0)::numeric AS arr,
+              COUNT(*)::int AS count
+       FROM opportunities
+       WHERE ${baseWhere} AND close_date IS NOT NULL
+       GROUP BY TO_CHAR(close_date, 'YYYY-MM')
+       ORDER BY month`,
+      []
+    );
+
+    // 5. Key deals summary
+    const keyDealsRow = await queryOne(
+      `SELECT COALESCE(SUM(arr), 0)::numeric AS total_arr, COUNT(*)::int AS count
+       FROM opportunities
+       WHERE ${baseWhere} AND key_deal = true`,
+      []
+    );
+
+    // 6. Stage velocity: average days in current stage
+    const stageVelocityRows = await query(
+      `SELECT stage,
+              ROUND(AVG(EXTRACT(EPOCH FROM (now() - stage_changed_at)) / 86400)::numeric, 1) AS avg_days,
+              COUNT(*)::int AS count
+       FROM opportunities
+       WHERE ${baseWhere} AND stage_changed_at IS NOT NULL
+       GROUP BY stage
+       ORDER BY ${stageOrder}`,
+      []
+    );
+
+    // 7. Summary totals
+    const summaryRow = await queryOne(
+      `SELECT COALESCE(SUM(arr), 0)::numeric AS total_arr,
+              COUNT(*)::int AS total_count,
+              COALESCE(SUM(arr_converted), 0)::numeric AS total_arr_converted
+       FROM opportunities
+       WHERE ${baseWhere}`,
+      []
+    );
+
+    res.json(ok({
+      funnel: funnelRows.map(r => ({ stage: r.stage, arr: Number(r.arr), count: Number(r.count) })),
+      by_se,
+      by_record_type: byRecordTypeRows.map(r => ({ record_type: r.record_type, arr: Number(r.arr), count: Number(r.count) })),
+      by_close_month: byCloseMonthRows.map(r => ({ month: r.month, arr: Number(r.arr), count: Number(r.count) })),
+      key_deals: { total_arr: Number(keyDealsRow?.total_arr ?? 0), count: Number(keyDealsRow?.count ?? 0) },
+      stage_velocity: stageVelocityRows.map(r => ({ stage: r.stage, avg_days: Number(r.avg_days), count: Number(r.count) })),
+      summary: {
+        total_arr: Number(summaryRow?.total_arr ?? 0),
+        total_count: Number(summaryRow?.total_count ?? 0),
+        total_arr_converted: Number(summaryRow?.total_arr_converted ?? 0),
+      },
+    }));
+  } catch (e: unknown) {
+    console.error('[analytics] query failed:', e);
+    res.status(500).json(err('Failed to load analytics data'));
+  }
+});
+
 export default router;
 
