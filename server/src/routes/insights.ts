@@ -1303,9 +1303,9 @@ router.get('/analytics', auth, mgr, async (req: Request, res: Response): Promise
   try {
     const baseWhere = `o.is_active = true AND o.is_closed_lost = false AND o.is_closed_won = false`;
     const stageOrder = `CASE stage
-      WHEN 'Qualify' THEN 1 WHEN 'Develop Solution' THEN 2
-      WHEN 'Build Value' THEN 3 WHEN 'Proposal Sent' THEN 4
-      WHEN 'Submitted for Booking' THEN 5 WHEN 'Negotiate' THEN 6
+      WHEN 'Negotiate' THEN 1 WHEN 'Submitted for Booking' THEN 2
+      WHEN 'Proposal Sent' THEN 3 WHEN 'Build Value' THEN 4
+      WHEN 'Develop Solution' THEN 5 WHEN 'Qualify' THEN 6
     END`;
 
     // 1. Pipeline funnel: total ARR by stage, ordered by pipeline stage order
