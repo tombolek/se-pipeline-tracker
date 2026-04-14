@@ -53,6 +53,8 @@ export interface Opportunity {
   poc_type: string | null;
   poc_deploy_type: string | null;
   rfx_status: string | null;
+  rfx_received_date: string | null;
+  rfx_submission_date: string | null;
   sourcing_partner: string | null;
   sourcing_partner_tier: string | null;
   influencing_partner: string | null;

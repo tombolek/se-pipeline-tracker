@@ -996,16 +996,15 @@ router.get('/calendar', auth, async (req: Request, res: Response): Promise<void>
         ORDER BY o.poc_start_date ASC NULLS LAST`
     ),
     query(
-      `SELECT o.id, o.name, o.account_name, o.rfx_status, o.rfx_submission_date, o.team,
+      `SELECT o.id, o.name, o.account_name, o.rfx_status, o.rfx_received_date, o.rfx_submission_date, o.team,
               u.id   AS se_owner_id,
               u.name AS se_owner_name
          FROM opportunities o
          LEFT JOIN users u ON u.id = o.se_owner_id
         WHERE o.rfx_status IS NOT NULL AND o.rfx_status != ''
-          AND o.rfx_submission_date IS NOT NULL
           AND o.is_active = true
           ${seFilter}
-        ORDER BY o.rfx_submission_date ASC`
+        ORDER BY o.rfx_submission_date ASC NULLS LAST`
     ),
     query(
       `SELECT t.id, t.title, t.status, t.due_date, t.is_next_step,

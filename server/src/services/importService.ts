@@ -62,6 +62,8 @@ const COLUMN_MAP: Record<string, string | null> = {
   'poc type':                           'poc_type',
   'poc deployment type':                'poc_deploy_type',
   'rfx status':                         'rfx_status',
+  'rfx recieved':                       'rfx_received_date',
+  'rfx response deadline':              'rfx_submission_date',
   'technical blockers/risk':            'technical_blockers',
   // 'forecast category' is intentionally NOT mapped — we only use Forecast Status.
   'forecast status':                    'forecast_status',
@@ -120,6 +122,7 @@ function normalizeDateToIso(raw: string | null | undefined): string | null {
 // DB fields that are DATE type
 const DATE_FIELDS = new Set([
   'close_date', 'close_month', 'poc_start_date', 'poc_end_date',
+  'rfx_received_date', 'rfx_submission_date',
   'stage_date_qualify', 'stage_date_build_value', 'stage_date_develop_solution',
   'stage_date_proposal_sent', 'stage_date_negotiate', 'stage_date_submitted_for_booking',
   'stage_date_closed_won', 'stage_date_closed_lost',
