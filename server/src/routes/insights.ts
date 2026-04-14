@@ -1301,7 +1301,7 @@ Keep it under 350 words total. Use deal names and ARR figures. Be direct and act
 // GET /insights/analytics — Pipeline Analytics Dashboard (Issue #71)
 router.get('/analytics', auth, mgr, async (req: Request, res: Response): Promise<void> => {
   try {
-    const baseWhere = `is_active = true AND is_closed_lost = false AND is_closed_won = false`;
+    const baseWhere = `o.is_active = true AND o.is_closed_lost = false AND o.is_closed_won = false`;
     const stageOrder = `CASE stage
       WHEN 'Qualify' THEN 1 WHEN 'Develop Solution' THEN 2
       WHEN 'Build Value' THEN 3 WHEN 'Proposal Sent' THEN 4
@@ -1310,11 +1310,11 @@ router.get('/analytics', auth, mgr, async (req: Request, res: Response): Promise
 
     // 1. Pipeline funnel: total ARR by stage, ordered by pipeline stage order
     const funnelRows = await query(
-      `SELECT stage, COALESCE(SUM(arr), 0)::numeric AS arr, COUNT(*)::int AS count
-       FROM opportunities
+      `SELECT o.stage, COALESCE(SUM(o.arr), 0)::numeric AS arr, COUNT(*)::int AS count
+       FROM opportunities o
        WHERE ${baseWhere}
-       GROUP BY stage
-       ORDER BY ${stageOrder}`,
+       GROUP BY o.stage
+       ORDER BY ${stageOrder.replace(/stage/g, 'o.stage')}`,
       []
     );
 
@@ -1351,54 +1351,54 @@ router.get('/analytics', auth, mgr, async (req: Request, res: Response): Promise
 
     // 3. ARR by Record Type
     const byRecordTypeRows = await query(
-      `SELECT COALESCE(record_type, 'Unknown') AS record_type,
-              COALESCE(SUM(arr), 0)::numeric AS arr,
+      `SELECT COALESCE(o.record_type, 'Unknown') AS record_type,
+              COALESCE(SUM(o.arr), 0)::numeric AS arr,
               COUNT(*)::int AS count
-       FROM opportunities
+       FROM opportunities o
        WHERE ${baseWhere}
-       GROUP BY COALESCE(record_type, 'Unknown')
+       GROUP BY COALESCE(o.record_type, 'Unknown')
        ORDER BY arr DESC`,
       []
     );
 
     // 4. ARR by Close Month
     const byCloseMonthRows = await query(
-      `SELECT TO_CHAR(close_date, 'YYYY-MM') AS month,
-              COALESCE(SUM(arr), 0)::numeric AS arr,
+      `SELECT TO_CHAR(o.close_date, 'YYYY-MM') AS month,
+              COALESCE(SUM(o.arr), 0)::numeric AS arr,
               COUNT(*)::int AS count
-       FROM opportunities
-       WHERE ${baseWhere} AND close_date IS NOT NULL
-       GROUP BY TO_CHAR(close_date, 'YYYY-MM')
+       FROM opportunities o
+       WHERE ${baseWhere} AND o.close_date IS NOT NULL
+       GROUP BY TO_CHAR(o.close_date, 'YYYY-MM')
        ORDER BY month`,
       []
     );
 
     // 5. Key deals summary
     const keyDealsRow = await queryOne(
-      `SELECT COALESCE(SUM(arr), 0)::numeric AS total_arr, COUNT(*)::int AS count
-       FROM opportunities
-       WHERE ${baseWhere} AND key_deal = true`,
+      `SELECT COALESCE(SUM(o.arr), 0)::numeric AS total_arr, COUNT(*)::int AS count
+       FROM opportunities o
+       WHERE ${baseWhere} AND o.key_deal = true`,
       []
     );
 
     // 6. Stage velocity: average days in current stage
     const stageVelocityRows = await query(
-      `SELECT stage,
-              ROUND(AVG(EXTRACT(EPOCH FROM (now() - stage_changed_at)) / 86400)::numeric, 1) AS avg_days,
+      `SELECT o.stage,
+              ROUND(AVG(EXTRACT(EPOCH FROM (now() - o.stage_changed_at)) / 86400)::numeric, 1) AS avg_days,
               COUNT(*)::int AS count
-       FROM opportunities
-       WHERE ${baseWhere} AND stage_changed_at IS NOT NULL
-       GROUP BY stage
-       ORDER BY ${stageOrder}`,
+       FROM opportunities o
+       WHERE ${baseWhere} AND o.stage_changed_at IS NOT NULL
+       GROUP BY o.stage
+       ORDER BY ${stageOrder.replace(/stage/g, 'o.stage')}`,
       []
     );
 
     // 7. Summary totals
     const summaryRow = await queryOne(
-      `SELECT COALESCE(SUM(arr), 0)::numeric AS total_arr,
+      `SELECT COALESCE(SUM(o.arr), 0)::numeric AS total_arr,
               COUNT(*)::int AS total_count,
-              COALESCE(SUM(arr_converted), 0)::numeric AS total_arr_converted
-       FROM opportunities
+              COALESCE(SUM(o.arr_converted), 0)::numeric AS total_arr_converted
+       FROM opportunities o
        WHERE ${baseWhere}`,
       []
     );
