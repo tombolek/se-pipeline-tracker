@@ -689,7 +689,7 @@ router.get('/:id/summary/cached', auth, async (req: Request, res: Response): Pro
 });
 
 // POST /opportunities/:id/summary  — AI deal summary
-router.post('/:id/summary', auth, async (req: Request, res: Response): Promise<void> => {
+router.post('/:id/summary', auth, write, async (req: Request, res: Response): Promise<void> => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json(err('Invalid opportunity id')); return; }
   const userId = (req as AuthenticatedRequest).user?.userId ?? null;
@@ -821,7 +821,7 @@ router.get('/:id/meddpicc-coach/cached', auth, async (req: Request, res: Respons
 });
 
 // POST /opportunities/:id/meddpicc-coach
-router.post('/:id/meddpicc-coach', auth, async (req: Request, res: Response): Promise<void> => {
+router.post('/:id/meddpicc-coach', auth, write, async (req: Request, res: Response): Promise<void> => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json(err('Invalid opportunity id')); return; }
   const userId = (req as AuthenticatedRequest).user?.userId ?? null;
@@ -1739,7 +1739,7 @@ router.get('/:id/call-prep', auth, async (req: Request, res: Response): Promise<
 
 // POST /opportunities/:id/call-prep/generate
 // Generates (or regenerates) the AI pre-call brief using deal context + KB matches.
-router.post('/:id/call-prep/generate', auth, async (req: Request, res: Response): Promise<void> => {
+router.post('/:id/call-prep/generate', auth, write, async (req: Request, res: Response): Promise<void> => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json(err('Invalid opportunity id')); return; }
   const userId = (req as AuthenticatedRequest).user?.userId ?? null;
@@ -1998,7 +1998,7 @@ router.get('/:id/demo-prep', auth, async (req: Request, res: Response): Promise<
 });
 
 // POST /opportunities/:id/demo-prep/generate — AI-powered demo readiness assessment
-router.post('/:id/demo-prep/generate', auth, async (req: Request, res: Response): Promise<void> => {
+router.post('/:id/demo-prep/generate', auth, write, async (req: Request, res: Response): Promise<void> => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json(err('Invalid opportunity id')); return; }
   const userId = (req as AuthenticatedRequest).user?.userId ?? null;
