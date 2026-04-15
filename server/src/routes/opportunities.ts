@@ -1253,6 +1253,12 @@ router.patch('/:id', auth, write, async (req: Request, res: Response): Promise<v
     }
   }
 
+  // Capture the previous owner BEFORE the update so we can record assignment
+  // history for the undo feature (Issue #114).
+  const prev = await queryOne<{ se_owner_id: number | null; name: string }>(
+    'SELECT se_owner_id, name FROM opportunities WHERE id = $1', [id],
+  );
+
   const updated = await queryOne<Record<string, unknown>>(
     `UPDATE opportunities SET se_owner_id = $1, updated_at = now()
      WHERE id = $2 RETURNING id, name, se_owner_id`,
@@ -1265,11 +1271,24 @@ router.patch('/:id', auth, write, async (req: Request, res: Response): Promise<v
         'SELECT id, name, email FROM users WHERE id = $1', [updated.se_owner_id])
     : null;
 
+  // Only log a history row if the owner actually changed — avoids noise when a
+  // PATCH sends the same owner (e.g. UI form submits unchanged values).
+  const prevOwnerId = prev?.se_owner_id ?? null;
+  const newOwnerId = (se_owner_id ?? null) as number | null;
+  if (prevOwnerId !== newOwnerId) {
+    await queryOne(
+      `INSERT INTO se_assignment_history (opportunity_id, previous_owner_id, new_owner_id, changed_by_id)
+         VALUES ($1, $2, $3, $4)`,
+      [id, prevOwnerId, newOwnerId, user.userId],
+    );
+  }
+
   res.json(ok({ ...updated, se_owner }));
   logAudit(req, {
     action: 'ASSIGN_SE', resourceType: 'opportunity',
     resourceId: id, resourceName: updated.name as string,
-    after: { se_owner_id: se_owner_id ?? null, se_owner_name: se_owner?.name ?? null },
+    before: { se_owner_id: prevOwnerId },
+    after: { se_owner_id: newOwnerId, se_owner_name: se_owner?.name ?? null },
   });
 });
 

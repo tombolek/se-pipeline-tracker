@@ -90,13 +90,13 @@ router.patch('/:id', auth, write, async (req: Request, res: Response): Promise<v
   });
 });
 
-// DELETE /tasks/:id  (soft delete)
+// DELETE /tasks/:id  (soft delete). Sets deleted_at so restore + 30-day purge work.
 router.delete('/:id', auth, write, async (req: Request, res: Response): Promise<void> => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json(err('Invalid task id')); return; }
 
   const task = await queryOne(
-    `UPDATE tasks SET is_deleted = true, updated_at = now()
+    `UPDATE tasks SET is_deleted = true, deleted_at = now(), updated_at = now()
      WHERE id = $1 AND is_deleted = false
      RETURNING id`,
     [id]
@@ -105,6 +105,26 @@ router.delete('/:id', auth, write, async (req: Request, res: Response): Promise<
 
   res.json(ok({ deleted: true, id }));
   logAudit(req, { action: 'DELETE_TASK', resourceType: 'task', resourceId: id });
+});
+
+// POST /tasks/:id/restore  — undo a soft delete within the 30-day window.
+router.post('/:id/restore', auth, write, async (req: Request, res: Response): Promise<void> => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) { res.status(400).json(err('Invalid task id')); return; }
+
+  const restored = await queryOne(
+    `UPDATE tasks
+       SET is_deleted = false, deleted_at = NULL, updated_at = now()
+     WHERE id = $1
+       AND is_deleted = true
+       AND (deleted_at IS NULL OR deleted_at > now() - interval '30 days')
+     RETURNING *`,
+    [id],
+  );
+  if (!restored) { res.status(404).json(err('Task not found or beyond restore window')); return; }
+
+  logAudit(req, { action: 'RESTORE_TASK', resourceType: 'task', resourceId: id });
+  res.json(ok(restored));
 });
 
 export default router;

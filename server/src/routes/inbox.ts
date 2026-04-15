@@ -59,16 +59,34 @@ router.patch('/:id', auth, write, async (req: Request, res: Response): Promise<v
   res.json(ok(updated));
 });
 
-// DELETE /inbox/:id — soft delete
+// DELETE /inbox/:id — soft delete (undoable within 30 days)
 router.delete('/:id', auth, write, async (req: Request, res: Response): Promise<void> => {
   const { userId } = (req as AuthenticatedRequest).user;
   const id = parseInt(req.params.id);
 
   await queryOne(
-    `UPDATE inbox_items SET is_deleted = true, updated_at = now() WHERE id = $1 AND user_id = $2`,
+    `UPDATE inbox_items SET is_deleted = true, deleted_at = now(), updated_at = now()
+      WHERE id = $1 AND user_id = $2`,
     [id, userId]
   );
   res.json(ok(null));
+});
+
+// POST /inbox/:id/restore — undo a soft delete within the 30-day window.
+router.post('/:id/restore', auth, write, async (req: Request, res: Response): Promise<void> => {
+  const { userId } = (req as AuthenticatedRequest).user;
+  const id = parseInt(req.params.id);
+  const restored = await queryOne(
+    `UPDATE inbox_items
+        SET is_deleted = false, deleted_at = NULL, updated_at = now()
+      WHERE id = $1 AND user_id = $2
+        AND is_deleted = true
+        AND (deleted_at IS NULL OR deleted_at > now() - interval '30 days')
+      RETURNING *`,
+    [id, userId],
+  );
+  if (!restored) { res.status(404).json(err('Item not found or beyond restore window')); return; }
+  res.json(ok(restored));
 });
 
 // POST /inbox/:id/convert — link to opportunity and convert to task or note

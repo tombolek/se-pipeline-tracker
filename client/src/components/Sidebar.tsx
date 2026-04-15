@@ -6,6 +6,7 @@ import { listClosedLost } from '../api/opportunities';
 import { listInboxItems } from '../api/inbox';
 import { getChangelog } from '../api/changelog';
 import ChangelogModal from './ChangelogModal';
+import RecentActionsModal from './RecentActionsModal';
 import { getInsightsNav, type InsightsNavItem } from '../utils/insightsNav';
 import { getMainNav, type MainNavItem } from '../utils/mainNav';
 
@@ -53,6 +54,7 @@ export default function Sidebar() {
   const [mainNav, setMainNav] = useState<MainNavItem[]>(() => getMainNav());
   const [changelogOpen, setChangelogOpen] = useState(false);
   const [changelogUnread, setChangelogUnread] = useState(0);
+  const [recentOpen, setRecentOpen] = useState(false);
 
   useEffect(() => {
     listClosedLost()
@@ -231,6 +233,19 @@ export default function Sidebar() {
           <span className="text-[10px] text-white/30 ml-auto">{isMac ? '⌘K' : 'Ctrl+K'}</span>
         </button>
         )}
+        {/* Recent actions — undo deletes & SE reassignments within 30 days */}
+        {user?.role !== 'viewer' && (
+          <button
+            onClick={() => setRecentOpen(true)}
+            className="flex items-center gap-1.5 w-full px-2 py-1.5 rounded-lg text-xs text-white/50 hover:text-white/80 hover:bg-white/10 transition-colors mb-0.5"
+          >
+            <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a4 4 0 014 4v0a4 4 0 01-4 4H9m-6-8l4-4m-4 4l4 4" />
+            </svg>
+            <span>Recent actions</span>
+          </button>
+        )}
+
         {/* What's New — shows unread dot when new entries published since last open */}
         <button
           onClick={openChangelog}
@@ -283,6 +298,7 @@ export default function Sidebar() {
       </div>
 
       <ChangelogModal open={changelogOpen} onClose={() => setChangelogOpen(false)} />
+      <RecentActionsModal open={recentOpen} onClose={() => setRecentOpen(false)} />
     </aside>
   );
 }
