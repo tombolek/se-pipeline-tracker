@@ -7,6 +7,9 @@ node_modules/
 dist/
 build/
 *.tsbuildinfo
+# Compiled JS next to TS source — server/scripts/*.ts produce these when
+# npm run build runs locally and the tsconfig includes scripts/
+server/scripts/*.js
 
 # Environment
 .env
