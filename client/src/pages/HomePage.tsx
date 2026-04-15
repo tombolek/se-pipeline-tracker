@@ -8,6 +8,7 @@ import { listOpportunities } from '../api/opportunities';
 import Drawer from '../components/Drawer';
 import OpportunityDetail from '../components/OpportunityDetail';
 import { useOppUrlSync } from '../hooks/useOppUrlSync';
+import { listMentions, markMentionsRead, type MentionFeedItem } from '../api/mentions';
 
 interface DigestTask {
   id: number; title: string; status: string; due_date: string | null;
@@ -154,6 +155,13 @@ export default function HomePage() {
   const [aiSearch, setAiSearch] = useState('');
   const aiPickerRef = useRef<HTMLDivElement>(null);
 
+  // Mentions feed (Issue #113). Loaded independently of the digest so a slow
+  // mention query can't delay the rest of the page. Unread count drives the
+  // badge; opening the section marks them read so the badge clears.
+  const [mentions, setMentions] = useState<MentionFeedItem[]>([]);
+  const [mentionsUnread, setMentionsUnread] = useState(0);
+  const mentionsMarkedRef = useRef(false);
+
   useEffect(() => {
     api.get<ApiResponse<DigestData>>('/home/digest')
       .then(r => setData(r.data.data))
@@ -162,7 +170,22 @@ export default function HomePage() {
     listOpportunities({ include_qualify: true, limit: 2000 })
       .then(setAllOpps)
       .catch(() => {});
+    listMentions(20)
+      .then(r => { setMentions(r.items); setMentionsUnread(r.unread); })
+      .catch(() => {});
   }, []);
+
+  // Auto-mark the visible mentions as read once the user lands on Home with
+  // unread mentions. Slightly delayed so the badge registers visually before
+  // disappearing.
+  useEffect(() => {
+    if (mentionsUnread === 0 || mentionsMarkedRef.current) return;
+    mentionsMarkedRef.current = true;
+    const t = setTimeout(() => {
+      markMentionsRead().then(() => setMentionsUnread(0)).catch(() => {});
+    }, 2500);
+    return () => clearTimeout(t);
+  }, [mentionsUnread]);
 
   // Close picker on click outside
   useEffect(() => {
@@ -526,6 +549,46 @@ export default function HomePage() {
                 </div>
               )}
             </SectionCard>
+
+            {/* Mentions (Issue #113) — newest first, unread highlighted */}
+            {mentions.length > 0 && (
+              <SectionCard
+                icon={<svg className="w-4 h-4 text-brand-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"/></svg>}
+                title="Mentions"
+                badge={mentionsUnread > 0
+                  ? <span className="text-[10px] font-semibold bg-brand-purple/10 text-brand-purple px-1.5 py-0.5 rounded-full">{mentionsUnread} new</span>
+                  : <span className="text-[10px] text-brand-navy-70">When teammates @-mention you in notes</span>}
+              >
+                <div className="divide-y divide-brand-navy-30/15">
+                  {mentions.slice(0, 6).map(m => {
+                    const initials = m.author_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+                    const unread = m.seen_at === null;
+                    return (
+                      <div
+                        key={m.mention_id}
+                        onClick={() => openOpp(m.opportunity_id)}
+                        className={`px-5 py-3 hover:bg-brand-purple-30/20 cursor-pointer transition-colors ${unread ? 'bg-brand-purple/[0.03]' : ''}`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="mt-0.5 w-6 h-6 rounded-full bg-brand-purple flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0">
+                            {initials}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs text-brand-navy leading-snug">
+                              <span className="font-medium">{m.author_name}</span> mentioned you on{' '}
+                              <span className="font-medium">{m.opportunity_name}</span>
+                            </p>
+                            <p className="text-[11px] text-brand-navy-70 mt-1 line-clamp-2 italic">&ldquo;{m.content}&rdquo;</p>
+                            <span className="text-[10px] text-brand-navy-70 mt-0.5 block">{timeAgo(m.created_at)}</span>
+                          </div>
+                          {unread && <span className="mt-1 w-2 h-2 rounded-full bg-brand-purple flex-shrink-0" />}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </SectionCard>
+            )}
 
             {/* Closed Lost */}
             {data.closed_lost.length > 0 && (

@@ -92,6 +92,12 @@ export interface Task {
   updated_at: string;
 }
 
+export interface NoteMention {
+  id: number;
+  name: string;
+  email: string;
+}
+
 export interface Note {
   id: number;
   opportunity_id: number;
@@ -100,6 +106,7 @@ export interface Note {
   content: string;
   source_url: string | null;
   created_at: string;
+  mentions?: NoteMention[];
 }
 
 export interface ColumnPrefs {

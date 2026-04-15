@@ -23,6 +23,7 @@ import aiJobsRoutes from './routes/aiJobs.js';
 import changelogRoutes from './routes/changelog.js';
 import templatesRoutes from './routes/templates.js';
 import recentActionsRoutes from './routes/recentActions.js';
+import mentionsRoutes from './routes/mentions.js';
 import { query } from './db/index.js';
 import { startBackupScheduler } from './services/backupScheduler.js';
 
@@ -54,6 +55,7 @@ app.use('/api/v1/ai-jobs', aiJobsRoutes);
 app.use('/api/v1/changelog', changelogRoutes);
 app.use('/api/v1/templates', templatesRoutes);
 app.use('/api/v1/recent-actions', recentActionsRoutes);
+app.use('/api/v1/mentions', mentionsRoutes);
 
 // ── Safety net: catch unhandled async route errors ────────────────────────────
 // Express 4 does NOT forward rejected promises from `async` route handlers to
