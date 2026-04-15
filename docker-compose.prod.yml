@@ -41,6 +41,7 @@ services:
       DEPLOY_SHA: ${DEPLOY_SHA:-}
     volumes:
       - ./kb:/app/kb:ro
+      - ./CHANGELOG.md:/app/CHANGELOG.md:ro
     depends_on:
       db:
         condition: service_healthy

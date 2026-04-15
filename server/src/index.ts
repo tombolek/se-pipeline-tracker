@@ -20,6 +20,7 @@ import adminRoutes from './routes/admin.js';
 import settingsRoutes from './routes/settings.js';
 import forecastingBriefRoutes from './routes/forecastingBrief.js';
 import aiJobsRoutes from './routes/aiJobs.js';
+import changelogRoutes from './routes/changelog.js';
 import { query } from './db/index.js';
 import { startBackupScheduler } from './services/backupScheduler.js';
 
@@ -48,6 +49,7 @@ app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/settings', settingsRoutes);
 app.use('/api/v1/forecasting-brief', forecastingBriefRoutes);
 app.use('/api/v1/ai-jobs', aiJobsRoutes);
+app.use('/api/v1/changelog', changelogRoutes);
 
 // Retention cleanup — purge rows older than 180 days on startup
 query(`DELETE FROM events    WHERE timestamp < now() - interval '180 days'`).catch(() => {});

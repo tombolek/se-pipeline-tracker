@@ -5,6 +5,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ---
 
+## 2026-04-15
+
+### Added
+- **What's New panel (in-product changelog)** — new button in the sidebar footer opens a "What's New" drawer with the full release history parsed from `CHANGELOG.md`. Entries published since your last visit are highlighted with a **New** badge and the sidebar shows an unread count. Opening the panel marks entries as seen so the badge clears until the next release. (Issue #134)
+
+---
+
 ## 2026-04-14
 
 ### Added

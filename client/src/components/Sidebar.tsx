@@ -4,6 +4,8 @@ import { useAuthStore } from '../store/auth';
 import { usePipelineStore } from '../store/pipeline';
 import { listClosedLost } from '../api/opportunities';
 import { listInboxItems } from '../api/inbox';
+import { getChangelog } from '../api/changelog';
+import ChangelogModal from './ChangelogModal';
 import { getInsightsNav, type InsightsNavItem } from '../utils/insightsNav';
 import { getMainNav, type MainNavItem } from '../utils/mainNav';
 
@@ -48,6 +50,8 @@ export default function Sidebar() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [insightsNav, setInsightsNav] = useState<InsightsNavItem[]>(() => getInsightsNav());
   const [mainNav, setMainNav] = useState<MainNavItem[]>(() => getMainNav());
+  const [changelogOpen, setChangelogOpen] = useState(false);
+  const [changelogUnread, setChangelogUnread] = useState(0);
 
   useEffect(() => {
     listClosedLost()
@@ -56,7 +60,15 @@ export default function Sidebar() {
     listInboxItems()
       .then(items => setInboxCount(items.filter(i => i.status === 'open').length))
       .catch(() => {});
+    getChangelog()
+      .then(r => setChangelogUnread(r.unread_count))
+      .catch(() => {});
   }, [setClosedLostUnread, setInboxCount]);
+
+  function openChangelog() {
+    setChangelogOpen(true);
+    setChangelogUnread(0); // optimistically clear badge; server is updated by the modal
+  }
 
   useEffect(() => {
     function onInsightsChanged() { setInsightsNav(getInsightsNav()); }
@@ -218,6 +230,22 @@ export default function Sidebar() {
           <span className="text-[10px] text-white/30 ml-auto">{isMac ? '⌘K' : 'Ctrl+K'}</span>
         </button>
         )}
+        {/* What's New — shows unread dot when new entries published since last open */}
+        <button
+          onClick={openChangelog}
+          className="flex items-center gap-1.5 w-full px-2 py-1.5 rounded-lg text-xs text-white/50 hover:text-white/80 hover:bg-white/10 transition-colors mb-0.5"
+        >
+          <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+          </svg>
+          <span>What's New</span>
+          {changelogUnread > 0 && (
+            <span className="ml-auto text-[10px] font-semibold bg-brand-pink text-white rounded px-1.5 py-px min-w-[18px] text-center leading-tight">
+              {changelogUnread}
+            </span>
+          )}
+        </button>
+
         {/* How To — full-width, visually distinct */}
         <NavLink
           to="/settings/how-to"
@@ -252,6 +280,8 @@ export default function Sidebar() {
           </button>
         </div>
       </div>
+
+      <ChangelogModal open={changelogOpen} onClose={() => setChangelogOpen(false)} />
     </aside>
   );
 }
