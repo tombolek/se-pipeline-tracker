@@ -677,6 +677,31 @@ Original build sequence (kept for reference). Each step depended on the previous
 - All DB queries use parameterized statements — no string interpolation (SQL injection)
 - Environment variables for ALL URLs, secrets, config — never hardcode, not even localhost
 - Consistent API response envelope: `{ data, error, meta }`
+
+### Adding a new page — three-place checklist
+
+Role access for pages lives in three separate places. Missing any one of
+them will make the page either invisible in the sidebar or impossible to
+configure. Always touch all three in the same commit as the new page:
+
+1. **Sidebar nav** — add the route to the relevant nav list so it shows up:
+   - Insights pages → `DEFAULT_INSIGHTS_NAV` in `client/src/utils/insightsNav.ts`
+   - Main nav pages → `DEFAULT_MAIN_NAV` in `client/src/utils/mainNav.ts`
+   - Administration pages → `SETTINGS_NAV` in `client/src/components/Sidebar.tsx`
+2. **Role Access admin UI** — add the page to `PAGE_REGISTRY` in
+   `client/src/pages/settings/RoleAccessPage.tsx` so admins can toggle
+   per-role visibility. The `key` must match the route minus the leading
+   slash (e.g. `insights/win-rate`).
+3. **Seed the DB** — add a new migration that `INSERT … ON CONFLICT DO
+   NOTHING` into `role_page_access` for every role that should see the
+   page by default. See `server/migrations/041_seed_role_access_for_new_pages.sql`
+   for the pattern. Without this row, the sidebar filter in
+   `Sidebar.tsx` (lines ~152–156) drops the entry even though it's in
+   the nav config.
+
+If you forget step 3, existing users never see the page. If you forget
+step 2, admins can't grant access to other roles. If you forget step 1,
+nothing ever shows up regardless of access.
 - Soft deletes only — never `DELETE` from DB for users, opportunities, or tasks
 - `.env` is in `.gitignore` from commit #1; `.env.example` is always up to date
 

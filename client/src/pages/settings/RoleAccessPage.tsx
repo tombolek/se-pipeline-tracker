@@ -40,6 +40,7 @@ const PAGE_REGISTRY: PageDef[] = [
   { key: 'insights/closed-lost-stats', label: 'Loss Analysis', section: 'Insights' },
   { key: 'insights/closed-won', label: 'Closed Won', section: 'Insights' },
   { key: 'insights/percent-to-target', label: '% to Target', section: 'Insights' },
+  { key: 'insights/win-rate', label: 'Win Rate', section: 'Insights' },
   { key: 'insights/tech-blockers', label: 'Tech Blockers', section: 'Insights' },
   { key: 'insights/agentic-qual', label: 'Agentic Qual', section: 'Insights' },
   { key: 'insights/analytics', label: 'Pipeline Analytics', section: 'Insights' },
@@ -53,6 +54,7 @@ const PAGE_REGISTRY: PageDef[] = [
   { key: 'settings/deploy', label: 'Deploy', section: 'Administration' },
   { key: 'settings/deal-info-layout', label: 'Deal Info Layout', section: 'Administration' },
   { key: 'settings/quotas', label: 'Quotas', section: 'Administration' },
+  { key: 'settings/templates', label: 'Templates', section: 'Administration' },
   { key: 'settings/role-access', label: 'Role Access', section: 'Administration' },
 ];
 
