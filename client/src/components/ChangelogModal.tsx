@@ -77,16 +77,21 @@ export default function ChangelogModal({ open, onClose }: Props) {
   const [entries, setEntries] = useState<ChangelogEntry[]>([]);
   const [lastSeenAt, setLastSeenAt] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [markedSeen, setMarkedSeen] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     setLoading(true);
+    setError(null);
     setMarkedSeen(false);
     getChangelog()
       .then(r => {
         setEntries(r.entries);
         setLastSeenAt(r.last_seen_at);
+      })
+      .catch(e => {
+        setError((e as Error).message || 'Failed to load changelog');
       })
       .finally(() => setLoading(false));
   }, [open]);
@@ -135,6 +140,11 @@ export default function ChangelogModal({ open, onClose }: Props) {
         <div className="flex-1 overflow-y-auto px-5 py-5 space-y-4">
           {loading ? (
             <p className="text-xs text-brand-navy-70 text-center py-8">Loading…</p>
+          ) : error ? (
+            <div className="text-center py-8">
+              <p className="text-xs text-status-overdue">Couldn't load changelog.</p>
+              <p className="text-[11px] text-brand-navy-30 mt-1">{error}</p>
+            </div>
           ) : entries.length === 0 ? (
             <p className="text-xs text-brand-navy-70 text-center py-8">No changelog entries available.</p>
           ) : (

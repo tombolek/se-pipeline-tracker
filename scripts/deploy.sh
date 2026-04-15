@@ -134,6 +134,15 @@ if [ "$DEPLOY_SERVER" = true ]; then
   echo "=== Syncing compose file and scripts to EC2 ==="
   scp -i "$KEY_FILE" -o StrictHostKeyChecking=no \
     docker-compose.prod.yml ec2-user@$INSTANCE_IP:/app/
+
+  # CHANGELOG.md is bind-mounted into the server container at /app/CHANGELOG.md
+  # (see docker-compose.prod.yml). If the host path doesn't exist, Docker
+  # silently creates an empty DIRECTORY at that path on first container start —
+  # which then blocks scp from writing the file. Clear whatever's there first.
+  echo "=== Syncing CHANGELOG.md to EC2 ==="
+  $SSH "rm -rf /app/CHANGELOG.md"
+  scp -i "$KEY_FILE" -o StrictHostKeyChecking=no \
+    CHANGELOG.md ec2-user@$INSTANCE_IP:/app/CHANGELOG.md
   $SSH "mkdir -p /app/scripts"
   scp -i "$KEY_FILE" -o StrictHostKeyChecking=no \
     scripts/backup.sh ec2-user@$INSTANCE_IP:/app/scripts/

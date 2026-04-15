@@ -55,6 +55,32 @@ app.use('/api/v1/changelog', changelogRoutes);
 app.use('/api/v1/templates', templatesRoutes);
 app.use('/api/v1/recent-actions', recentActionsRoutes);
 
+// ── Safety net: catch unhandled async route errors ────────────────────────────
+// Express 4 does NOT forward rejected promises from `async` route handlers to
+// the default error middleware. Unhandled rejections in Node 20 crash the
+// process by default (see the changelog EISDIR incident). This global handler
+// logs the error, returns a 500 to the triggering request, and — crucially —
+// keeps the server alive for everyone else.
+import type { NextFunction } from 'express';
+import type { Request, Response } from 'express';
+app.use((err: unknown, req: Request, res: Response, _next: NextFunction) => {
+  const msg = err instanceof Error ? err.stack || err.message : String(err);
+  console.error(`[unhandled] ${req.method} ${req.originalUrl}\n${msg}`);
+  if (!res.headersSent) {
+    res.status(500).json({ data: null, error: 'Internal server error', meta: {} });
+  }
+});
+
+// Belt-and-braces: if a handler forgets to `next(err)`, an unhandled promise
+// rejection will still reach here. Log and move on — don't crash.
+process.on('unhandledRejection', (reason) => {
+  const msg = reason instanceof Error ? reason.stack || reason.message : String(reason);
+  console.error(`[unhandledRejection] ${msg}`);
+});
+process.on('uncaughtException', (err) => {
+  console.error(`[uncaughtException] ${err.stack || err.message}`);
+});
+
 // Retention cleanup — purge rows older than 180 days on startup
 query(`DELETE FROM events    WHERE timestamp < now() - interval '180 days'`).catch(() => {});
 query(`DELETE FROM audit_log WHERE timestamp < now() - interval '180 days'`).catch(() => {});

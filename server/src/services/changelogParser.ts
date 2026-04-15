@@ -30,7 +30,15 @@ function resolveChangelogPath(): string | null {
     path.resolve(__dirname, '../../../CHANGELOG.md'),   // src/services → project root
   ];
   for (const p of candidates) {
-    if (fs.existsSync(p)) return p;
+    // existsSync returns true for directories too — Docker creates an empty
+    // directory at the mount path if the host file is missing, so reject
+    // anything that isn't a plain file.
+    try {
+      const stat = fs.statSync(p);
+      if (stat.isFile()) return p;
+    } catch {
+      // path doesn't exist — try the next candidate
+    }
   }
   return null;
 }
@@ -94,12 +102,22 @@ export function loadChangelog(): Changelog {
   if (cache && Date.now() - cache.loadedAt < CACHE_MS) return cache.changelog;
   const filePath = resolveChangelogPath();
   if (!filePath) {
+    console.warn('[changelog] CHANGELOG.md not found; serving empty list');
     const empty: Changelog = { entries: [], latest_date: null };
     cache = { loadedAt: Date.now(), changelog: empty };
     return empty;
   }
-  const md = fs.readFileSync(filePath, 'utf8');
-  const changelog = parseChangelogMarkdown(md);
-  cache = { loadedAt: Date.now(), changelog };
-  return changelog;
+  try {
+    const md = fs.readFileSync(filePath, 'utf8');
+    const changelog = parseChangelogMarkdown(md);
+    cache = { loadedAt: Date.now(), changelog };
+    return changelog;
+  } catch (e) {
+    console.error(`[changelog] Failed to read ${filePath}:`, (e as Error).message);
+    const empty: Changelog = { entries: [], latest_date: null };
+    // Cache the failure briefly so we don't hammer the filesystem on every
+    // request, but use a shorter TTL so a fix is picked up quickly.
+    cache = { loadedAt: Date.now(), changelog: empty };
+    return empty;
+  }
 }
