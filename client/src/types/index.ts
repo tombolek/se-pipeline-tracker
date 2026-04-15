@@ -17,6 +17,7 @@ export interface Opportunity {
   fiscal_year: string | null;
   ae_owner_name: string | null;
   se_owner: { id: number; name: string; email: string } | null;
+  se_contributors?: { id: number; name: string; email: string }[];
   team: string | null;
   deploy_mode: string | null;
   deploy_location: string | null;
@@ -134,7 +135,7 @@ export interface DealInfoFieldDef {
   key: string;
   label: string;
   source: 'column' | 'sf_raw';
-  format?: 'arr' | 'date' | 'se_owner' | 'products';
+  format?: 'arr' | 'date' | 'se_owner' | 'products' | 'se_contributors';
 }
 
 export interface DealInfoSection {

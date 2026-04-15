@@ -15,6 +15,7 @@ import { formatDate, formatARR, daysSince } from '../utils/formatters';
 import { TaskRow, AddTaskForm } from './opportunity/TaskSection';
 import { NoteItem, AddNoteForm } from './opportunity/NoteSection';
 import ApplyTemplateButton from './opportunity/ApplyTemplateButton';
+import ContributorsStrip from './opportunity/ContributorsStrip';
 import OpportunityTimeline from './OpportunityTimeline';
 import CallPrepTab from './CallPrepTab';
 import AccountTimelinePanel from './AccountTimelinePanel';
@@ -519,6 +520,17 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
                 )}
               </button>
             </div>
+          </div>
+
+          {/* Row 3: SE Contributors (Issue #104) */}
+          <div className="mt-2">
+            <ContributorsStrip
+              oppId={oppId}
+              ownerId={opp.se_owner?.id ?? null}
+              contributors={opp.se_contributors ?? []}
+              readOnly={isReadOnly}
+              onChange={next => setOpp(prev => prev ? { ...prev, se_contributors: next } : prev)}
+            />
           </div>
         </div>
 

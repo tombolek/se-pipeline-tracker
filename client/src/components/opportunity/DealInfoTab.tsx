@@ -24,6 +24,7 @@ const DEFAULT_CONFIG: DealInfoConfig = {
         { key: 'close_date', label: 'Close', source: 'column', format: 'date' },
         { key: 'ae_owner_name', label: 'AE Owner', source: 'column' },
         { key: 'se_owner', label: 'SE Owner', source: 'column', format: 'se_owner' },
+        { key: 'se_contributors', label: 'SE Contributors', source: 'column', format: 'se_contributors' },
         { key: 'team', label: 'Team', source: 'column' },
         { key: 'record_type', label: 'Record Type', source: 'column' },
         { key: 'deploy_mode', label: 'Deploy', source: 'column' },
@@ -63,6 +64,11 @@ function resolveFieldValue(opp: Opportunity, field: DealInfoFieldDef): string | 
   if (field.key === 'se_owner') {
     const owner = (opp as unknown as Record<string, unknown>).se_owner as { name: string } | null;
     return owner?.name ?? 'Unassigned';
+  }
+  if (field.key === 'se_contributors') {
+    const list = (opp as unknown as Record<string, unknown>).se_contributors as { name: string }[] | undefined;
+    if (!list || list.length === 0) return null; // triggers "—" in formatter
+    return list.map(c => c.name).join(', ');
   }
   return (opp as unknown as Record<string, unknown>)[field.key] as string | null | undefined;
 }

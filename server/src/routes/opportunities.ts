@@ -1209,10 +1209,20 @@ router.get('/:id', auth, async (req: Request, res: Response): Promise<void> => {
     [id]
   );
 
+  const contributors = await query<{ id: number; name: string; email: string }>(
+    `SELECT u.id, u.name, u.email
+       FROM opportunity_se_contributors c
+       JOIN users u ON u.id = c.user_id
+      WHERE c.opportunity_id = $1 AND u.is_active = true AND u.is_deleted = false
+      ORDER BY u.name ASC`,
+    [id],
+  );
+
   const { se_owner_id, se_owner_name, se_owner_email, ...oppFields } = opp;
   res.json(ok({
     ...oppFields,
     se_owner: se_owner_id ? { id: se_owner_id, name: se_owner_name, email: se_owner_email } : null,
+    se_contributors: contributors,
     tasks,
     notes,
   }));
@@ -1290,6 +1300,117 @@ router.patch('/:id', auth, write, async (req: Request, res: Response): Promise<v
     before: { se_owner_id: prevOwnerId },
     after: { se_owner_id: newOwnerId, se_owner_name: se_owner?.name ?? null },
   });
+});
+
+// ── SE Contributors (Issue #104) ─────────────────────────────────────────────
+// Zero-or-more SEs who help on an opportunity beyond the single SE Owner.
+// Permission model:
+//  - Managers: always allowed
+//  - SE who is the current owner: allowed
+//  - SE adding/removing THEMSELVES as a contributor: allowed (light-touch)
+//  - Other SEs: 403
+function canManageContributors(
+  user: AuthenticatedRequest['user'],
+  oppOwnerId: number | null,
+  targetUserId: number,
+): boolean {
+  if (user.role === 'manager') return true;
+  if (user.role === 'se' && oppOwnerId === user.userId) return true;
+  if (user.role === 'se' && targetUserId === user.userId) return true;
+  return false;
+}
+
+// POST /opportunities/:id/contributors  body: { user_id }
+router.post('/:id/contributors', auth, write, async (req: Request, res: Response): Promise<void> => {
+  const oppId = parseInt(req.params.id);
+  if (isNaN(oppId)) { res.status(400).json(err('Invalid opportunity id')); return; }
+  const { user_id } = req.body as { user_id?: number };
+  if (!Number.isFinite(user_id)) { res.status(400).json(err('user_id is required')); return; }
+
+  const opp = await queryOne<{ id: number; se_owner_id: number | null; name: string }>(
+    'SELECT id, se_owner_id, name FROM opportunities WHERE id = $1',
+    [oppId],
+  );
+  if (!opp) { res.status(404).json(err('Opportunity not found')); return; }
+
+  const actor = (req as AuthenticatedRequest).user!;
+  if (!canManageContributors(actor, opp.se_owner_id, user_id!)) {
+    res.status(403).json(err('Not allowed to add contributors to this opportunity')); return;
+  }
+
+  const target = await queryOne<{ id: number; role: string; is_active: boolean }>(
+    `SELECT id, role, is_active FROM users WHERE id = $1 AND is_deleted = false`,
+    [user_id],
+  );
+  if (!target || !target.is_active) { res.status(400).json(err('User not found')); return; }
+  if (target.role === 'viewer') { res.status(400).json(err('Viewer users cannot be contributors')); return; }
+  if (opp.se_owner_id === user_id) {
+    res.status(409).json(err('This user is already the SE Owner on this opportunity'));
+    return;
+  }
+
+  await queryOne(
+    `INSERT INTO opportunity_se_contributors (opportunity_id, user_id, added_by_id)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (opportunity_id, user_id) DO NOTHING`,
+    [oppId, user_id, actor.userId],
+  );
+
+  const contributors = await query<{ id: number; name: string; email: string }>(
+    `SELECT u.id, u.name, u.email
+       FROM opportunity_se_contributors c
+       JOIN users u ON u.id = c.user_id
+      WHERE c.opportunity_id = $1 AND u.is_active = true AND u.is_deleted = false
+      ORDER BY u.name ASC`,
+    [oppId],
+  );
+
+  logAudit(req, {
+    action: 'ADD_SE_CONTRIBUTOR', resourceType: 'opportunity',
+    resourceId: oppId, resourceName: opp.name,
+    after: { user_id },
+  });
+  res.json(ok({ se_contributors: contributors }));
+});
+
+// DELETE /opportunities/:id/contributors/:userId
+router.delete('/:id/contributors/:userId', auth, write, async (req: Request, res: Response): Promise<void> => {
+  const oppId = parseInt(req.params.id);
+  const userId = parseInt(req.params.userId);
+  if (isNaN(oppId) || isNaN(userId)) { res.status(400).json(err('Invalid id(s)')); return; }
+
+  const opp = await queryOne<{ id: number; se_owner_id: number | null; name: string }>(
+    'SELECT id, se_owner_id, name FROM opportunities WHERE id = $1',
+    [oppId],
+  );
+  if (!opp) { res.status(404).json(err('Opportunity not found')); return; }
+
+  const actor = (req as AuthenticatedRequest).user!;
+  if (!canManageContributors(actor, opp.se_owner_id, userId)) {
+    res.status(403).json(err('Not allowed to remove contributors from this opportunity')); return;
+  }
+
+  await queryOne(
+    `DELETE FROM opportunity_se_contributors
+       WHERE opportunity_id = $1 AND user_id = $2`,
+    [oppId, userId],
+  );
+
+  const contributors = await query<{ id: number; name: string; email: string }>(
+    `SELECT u.id, u.name, u.email
+       FROM opportunity_se_contributors c
+       JOIN users u ON u.id = c.user_id
+      WHERE c.opportunity_id = $1 AND u.is_active = true AND u.is_deleted = false
+      ORDER BY u.name ASC`,
+    [oppId],
+  );
+
+  logAudit(req, {
+    action: 'REMOVE_SE_CONTRIBUTOR', resourceType: 'opportunity',
+    resourceId: oppId, resourceName: opp.name,
+    after: { user_id: userId },
+  });
+  res.json(ok({ se_contributors: contributors }));
 });
 
 // GET /opportunities/:id/kb-matches

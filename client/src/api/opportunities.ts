@@ -89,6 +89,25 @@ export async function assignSeOwner(id: number, seOwnerId: number | null): Promi
   return data.data;
 }
 
+// ── SE Contributors (Issue #104) ─────────────────────────────────────────────
+
+export interface SeContributorUser { id: number; name: string; email: string; }
+
+export async function addSeContributor(oppId: number, userId: number): Promise<SeContributorUser[]> {
+  const { data } = await api.post<ApiResponse<{ se_contributors: SeContributorUser[] }>>(
+    `/opportunities/${oppId}/contributors`,
+    { user_id: userId },
+  );
+  return data.data.se_contributors;
+}
+
+export async function removeSeContributor(oppId: number, userId: number): Promise<SeContributorUser[]> {
+  const { data } = await api.delete<ApiResponse<{ se_contributors: SeContributorUser[] }>>(
+    `/opportunities/${oppId}/contributors/${userId}`,
+  );
+  return data.data.se_contributors;
+}
+
 // ── Favorites ────────────────────────────────────────────────────────────────
 
 export async function listFavorites(): Promise<Opportunity[]> {
