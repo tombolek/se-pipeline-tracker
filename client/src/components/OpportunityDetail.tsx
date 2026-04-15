@@ -16,6 +16,7 @@ import { TaskRow, AddTaskForm } from './opportunity/TaskSection';
 import { NoteItem, AddNoteForm } from './opportunity/NoteSection';
 import ApplyTemplateButton from './opportunity/ApplyTemplateButton';
 import ContributorsStrip from './opportunity/ContributorsStrip';
+import OwnerSelector from './opportunity/OwnerSelector';
 import OpportunityTimeline from './OpportunityTimeline';
 import CallPrepTab from './CallPrepTab';
 import AccountTimelinePanel from './AccountTimelinePanel';
@@ -522,8 +523,15 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
             </div>
           </div>
 
-          {/* Row 3: SE Contributors (Issue #104) */}
-          <div className="mt-2">
+          {/* Row 3: SE Owner + Contributors (Issues #104, header fix) */}
+          <div className="mt-2 flex items-start gap-5 flex-wrap relative">
+            <OwnerSelector
+              oppId={oppId}
+              owner={opp.se_owner}
+              readOnly={isReadOnly}
+              onChange={next => setOpp(prev => prev ? { ...prev, se_owner: next.se_owner ?? null } : prev)}
+            />
+            <span className="text-brand-navy-30">|</span>
             <ContributorsStrip
               oppId={oppId}
               ownerId={opp.se_owner?.id ?? null}
