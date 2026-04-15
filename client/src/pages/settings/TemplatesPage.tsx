@@ -321,20 +321,49 @@ function TemplateList({
       </div>
       <div className="divide-y divide-brand-navy-30/20">
         {items.map(t => (
-          <div key={t.id} className="px-5 py-3 flex items-start gap-3 hover:bg-gray-50">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <button onClick={() => onEdit(t)} className="text-sm font-medium text-brand-navy hover:text-brand-purple">{t.name}</button>
-                <KindBadge kind={t.kind} />
-                {t.stage && <span className="px-1.5 py-0.5 rounded bg-gray-100 text-[10px] font-medium text-brand-navy-70 uppercase tracking-wide">{t.stage}</span>}
-                {t.kind === 'task_pack' && t.items && <span className="text-[11px] text-brand-navy-70">· {t.items.length} task{t.items.length !== 1 ? 's' : ''}</span>}
+          <div key={t.id} className="px-5 py-3 hover:bg-gray-50">
+            <div className="flex items-start gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button onClick={() => onEdit(t)} className="text-sm font-medium text-brand-navy hover:text-brand-purple">{t.name}</button>
+                  <KindBadge kind={t.kind} />
+                  {t.stage && <span className="px-1.5 py-0.5 rounded bg-gray-100 text-[10px] font-medium text-brand-navy-70 uppercase tracking-wide">{t.stage}</span>}
+                  {t.kind === 'task_pack' && t.items && <span className="text-[11px] text-brand-navy-70">· {t.items.length} task{t.items.length !== 1 ? 's' : ''}</span>}
+                  {t.created_by_name && (
+                    <span className="text-[11px] text-brand-navy-30">· by {t.created_by_name}</span>
+                  )}
+                </div>
+                {t.description && <p className="text-xs text-brand-navy-70 mt-0.5">{t.description}</p>}
               </div>
-              {t.description && <p className="text-xs text-brand-navy-70 mt-0.5">{t.description}</p>}
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <button onClick={() => onEdit(t)} className="text-xs text-brand-purple hover:text-brand-navy font-medium">Edit</button>
+                <button onClick={() => onDelete(t)} className="text-xs text-brand-navy-30 hover:text-status-overdue">Delete</button>
+              </div>
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <button onClick={() => onEdit(t)} className="text-xs text-brand-purple hover:text-brand-navy font-medium">Edit</button>
-              <button onClick={() => onDelete(t)} className="text-xs text-brand-navy-30 hover:text-status-overdue">Delete</button>
-            </div>
+
+            {/* Inline detail — so the user can see what's inside without opening the editor */}
+            {t.kind === 'task_pack' && t.items && t.items.length > 0 && (
+              <ol className="mt-2 ml-1 space-y-1 border-l-2 border-brand-navy-30/40 pl-3">
+                {t.items.map((it, i) => (
+                  <li key={i} className="text-xs text-brand-navy-70 flex items-center gap-2 flex-wrap">
+                    <span className="text-brand-navy-30 font-mono tabular-nums">{String(i + 1).padStart(2, '0')}</span>
+                    <span className="text-brand-navy font-medium">{it.title}</span>
+                    <span className="text-[10px] text-brand-navy-30">
+                      +{it.due_offset_days ?? 7}d
+                    </span>
+                    {it.is_next_step && (
+                      <span className="px-1.5 py-0.5 rounded bg-brand-purple-30 text-[9px] font-semibold uppercase tracking-wide text-brand-purple">Next step</span>
+                    )}
+                    {it.description && (
+                      <span className="text-[11px] text-brand-navy-70 font-light italic basis-full pl-6">{it.description}</span>
+                    )}
+                  </li>
+                ))}
+              </ol>
+            )}
+            {t.kind === 'note' && t.body && (
+              <pre className="mt-2 ml-1 p-2 rounded bg-gray-50 border border-brand-navy-30/40 text-[11px] text-brand-navy-70 font-mono whitespace-pre-wrap max-h-32 overflow-y-auto">{t.body}</pre>
+            )}
           </div>
         ))}
       </div>

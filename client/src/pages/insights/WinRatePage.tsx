@@ -189,6 +189,19 @@ export default function WinRatePage() {
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Work-in-progress banner — see issue for follow-up. */}
+      <div className="flex items-start gap-3 rounded-2xl border border-status-warning/40 bg-amber-50 px-4 py-3">
+        <svg className="w-5 h-5 text-status-warning flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z" />
+        </svg>
+        <div className="flex-1">
+          <p className="text-sm font-semibold text-brand-navy">Work in progress</p>
+          <p className="text-xs text-brand-navy-70 mt-0.5">
+            This report is still being validated — the numbers may not yet be fully accurate. We'll revisit methodology (territory attribution, partial-quarter handling, and the "reached Negotiate" definition) in a follow-up pass.
+          </p>
+        </div>
+      </div>
+
       <div className="flex items-end gap-4 flex-wrap">
         <PageHeader
           title="Win Rate"
