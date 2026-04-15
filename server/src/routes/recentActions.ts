@@ -97,6 +97,7 @@ router.get('/', auth, async (req: Request, res: Response): Promise<void> => {
        LEFT JOIN users nu ON nu.id = h.new_owner_id
       WHERE h.changed_by_id = $1
         AND h.changed_at > now() - interval '30 days'
+        AND h.undone_at IS NULL
       ORDER BY h.changed_at DESC
       LIMIT $2`,
     [userId, limit],
@@ -230,12 +231,10 @@ router.post('/undo', auth, write, async (req: Request, res: Response): Promise<v
       `UPDATE se_assignment_history SET undone_at = now() WHERE id = $1`,
       [id],
     );
-    // Also record the revert as a new (non-history) assignment event so audit log has it.
-    await queryOne(
-      `INSERT INTO se_assignment_history (opportunity_id, previous_owner_id, new_owner_id, changed_by_id)
-         VALUES ($1, $2, $3, $4)`,
-      [h.opportunity_id, h.new_owner_id, h.previous_owner_id, userId],
-    );
+    // Do NOT insert a synthetic reverse-direction history row here. It clutters
+    // the Recent Actions feed AND becomes a new "undo" candidate, creating an
+    // undo/redo loop. The audit_log UNDO_ASSIGN_SE entry below is the canonical
+    // record of the revert action.
     logAudit(req, {
       action: 'UNDO_ASSIGN_SE', resourceType: 'opportunity',
       resourceId: h.opportunity_id, resourceName: h.opp_name,
