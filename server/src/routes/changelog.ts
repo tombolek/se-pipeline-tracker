@@ -13,11 +13,17 @@ const auth = requireAuth as unknown as (req: Request, res: Response, next: () =>
 router.get('/', auth, async (req: Request, res: Response): Promise<void> => {
   const { userId } = (req as AuthenticatedRequest).user;
   const changelog = loadChangelog();
-  const user = await queryOne<{ last_changelog_seen_at: string | null }>(
+  // node-pg returns TIMESTAMPTZ as a JS Date, not a string. Normalise both to
+  // an ISO string (yyyy-mm-ddThh:mm:ssZ) so `.slice(0, 10)` below is safe and
+  // the client gets a stable wire format.
+  const user = await queryOne<{ last_changelog_seen_at: Date | string | null }>(
     'SELECT last_changelog_seen_at FROM users WHERE id = $1',
     [userId],
   );
-  const lastSeenAt = user?.last_changelog_seen_at ?? null;
+  const raw = user?.last_changelog_seen_at ?? null;
+  const lastSeenAt: string | null =
+    raw instanceof Date ? raw.toISOString() :
+    typeof raw === 'string' ? raw : null;
 
   const unreadCount = lastSeenAt
     ? changelog.entries.filter(e => e.date > lastSeenAt.slice(0, 10)).length

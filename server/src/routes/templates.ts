@@ -39,13 +39,14 @@ function validateItems(items: unknown): TaskPackItem[] {
 // GET /api/v1/templates?kind=task_pack|note&stage=Build%20Value
 router.get('/', auth, async (req: Request, res: Response): Promise<void> => {
   const { kind, stage } = req.query as { kind?: string; stage?: string };
-  const where: string[] = ['is_deleted = false'];
+  // Qualify every column — `users` also has `is_deleted`, so the join makes it ambiguous.
+  const where: string[] = ['t.is_deleted = false'];
   const params: unknown[] = [];
-  if (kind) { params.push(kind); where.push(`kind = $${params.length}`); }
+  if (kind) { params.push(kind); where.push(`t.kind = $${params.length}`); }
   if (stage) {
     params.push(stage);
     // Either matches the stage exactly, or is un-scoped (NULL = any stage)
-    where.push(`(stage = $${params.length} OR stage IS NULL)`);
+    where.push(`(t.stage = $${params.length} OR t.stage IS NULL)`);
   }
   const rows = await query(
     `SELECT t.*, u.name AS created_by_name
