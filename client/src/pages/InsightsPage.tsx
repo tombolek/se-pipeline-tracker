@@ -19,6 +19,7 @@ import TeamTasksPage from './insights/TeamTasksPage';
 import ForecastingBriefPage from './insights/ForecastingBriefPage';
 import OneOnOnePrepPage from './insights/OneOnOnePrepPage';
 import AnalyticsDashboardPage from './insights/AnalyticsDashboardPage';
+import WinRatePage from './insights/WinRatePage';
 
 function ScopeBar() {
   const { user } = useAuthStore();
@@ -107,6 +108,16 @@ export default function InsightsPage() {
       <div className="flex-1 bg-[#F5F5F7] flex flex-col overflow-hidden">
         <div className="flex-1 overflow-y-auto px-8 py-6">
           <ClosedWonPage />
+        </div>
+      </div>
+    );
+  }
+  if (pathname.includes('win-rate')) {
+    // Same treatment as Closed Won — by-SE breakdown is the point, no team scoping.
+    return (
+      <div className="flex-1 bg-[#F5F5F7] flex flex-col overflow-hidden">
+        <div className="flex-1 overflow-y-auto px-8 py-6">
+          <WinRatePage />
         </div>
       </div>
     );

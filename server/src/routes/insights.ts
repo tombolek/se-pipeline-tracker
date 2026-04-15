@@ -492,6 +492,164 @@ router.get('/ae-owners', auth, mgr, async (_req: Request, res: Response): Promis
   res.json(ok(rows.map(r => r.ae_owner_name)));
 });
 
+// ── Win Rate (Issue #92) ─────────────────────────────────────────────────────
+//
+// GET /insights/win-rate?fiscal_year=FY2026&fiscal_period=FY2026-Q1
+//
+// Two perspectives on win rate:
+//   1. Technical Win Rate  — among closed deals, how many reached Negotiate?
+//      Proxy for "did the SE earn a technical win" before commercial terms took over.
+//      Computed as: reached_negotiate / (closed_won + closed_lost)
+//   2. Negotiate Win Rate  — among deals that reached Negotiate, how many Closed Won?
+//      Proxy for "when the technical side was solved, did we close?"
+//      Computed as: closed_won_ex_negotiate / (closed_won_ex_negotiate + closed_lost_ex_negotiate)
+//
+// Also returns the classic Overall Win Rate: closed_won / (closed_won + closed_lost).
+// All three are returned at the team level and broken down per SE.
+// Excludes Services & Renewal record types (matching Closed Won / % to Target).
+router.get('/win-rate', auth, mgr, async (req: Request, res: Response): Promise<void> => {
+  const fiscalYear   = (req.query.fiscal_year   as string | undefined) || null;
+  const fiscalPeriod = (req.query.fiscal_period as string | undefined) || null;
+
+  const conditions: string[] = [
+    `(o.is_closed_won = true OR o.is_closed_lost = true)`,
+    `o.record_type IN ('New Logo','Upsell','Cross-Sell')`,
+  ];
+  const params: unknown[] = [];
+  if (fiscalYear) {
+    params.push(fiscalYear);
+    conditions.push(`o.fiscal_year = $${params.length}`);
+  }
+  if (fiscalPeriod) {
+    params.push(fiscalPeriod);
+    conditions.push(`o.fiscal_period = $${params.length}`);
+  }
+
+  interface Row {
+    id: number;
+    sf_opportunity_id: string;
+    name: string;
+    account_name: string | null;
+    team: string | null;
+    record_type: string | null;
+    arr_converted: string | null;
+    stage: string;
+    is_closed_won: boolean;
+    is_closed_lost: boolean;
+    stage_date_negotiate: string | null;
+    closed_at: string | null;
+    fiscal_year: string | null;
+    fiscal_period: string | null;
+    se_owner_id: number | null;
+    se_owner_name: string | null;
+  }
+
+  const rows = await query<Row>(
+    `SELECT o.id, o.sf_opportunity_id, o.name, o.account_name,
+            o.team, o.record_type,
+            o.arr_converted, o.stage,
+            o.is_closed_won, o.is_closed_lost,
+            o.stage_date_negotiate,
+            o.closed_at, o.fiscal_year, o.fiscal_period,
+            u.id AS se_owner_id, u.name AS se_owner_name
+       FROM opportunities o
+       LEFT JOIN users u ON u.id = o.se_owner_id
+      WHERE ${conditions.join(' AND ')}`,
+    params,
+  );
+
+  interface Bucket {
+    closed_won: number;
+    closed_lost: number;
+    won_arr: number;
+    lost_arr: number;
+    reached_negotiate: number;
+    negotiate_won: number;
+    negotiate_lost: number;
+  }
+
+  function emptyBucket(): Bucket {
+    return { closed_won: 0, closed_lost: 0, won_arr: 0, lost_arr: 0,
+             reached_negotiate: 0, negotiate_won: 0, negotiate_lost: 0 };
+  }
+
+  function add(b: Bucket, r: Row): void {
+    const arr = parseFloat(r.arr_converted ?? '0') || 0;
+    const reached = r.stage_date_negotiate !== null;
+    if (r.is_closed_won) { b.closed_won += 1; b.won_arr  += arr; if (reached) b.negotiate_won  += 1; }
+    if (r.is_closed_lost){ b.closed_lost+= 1; b.lost_arr += arr; if (reached) b.negotiate_lost += 1; }
+    if (reached) b.reached_negotiate += 1;
+  }
+
+  function summarize(b: Bucket) {
+    const closed = b.closed_won + b.closed_lost;
+    const negotiateCohort = b.negotiate_won + b.negotiate_lost;
+    return {
+      ...b,
+      total_closed: closed,
+      overall_win_rate:   closed           > 0 ? b.closed_won       / closed           : null,
+      technical_win_rate: closed           > 0 ? b.reached_negotiate / closed          : null,
+      negotiate_win_rate: negotiateCohort  > 0 ? b.negotiate_won    / negotiateCohort  : null,
+    };
+  }
+
+  const overall = emptyBucket();
+  const bySe = new Map<number | string, { se_id: number | null; se_name: string; bucket: Bucket; deals: Row[] }>();
+
+  for (const r of rows) {
+    add(overall, r);
+    const key = r.se_owner_id ?? '__unassigned__';
+    let entry = bySe.get(key);
+    if (!entry) {
+      entry = {
+        se_id: r.se_owner_id,
+        se_name: r.se_owner_name ?? 'Unassigned',
+        bucket: emptyBucket(),
+        deals: [],
+      };
+      bySe.set(key, entry);
+    }
+    add(entry.bucket, r);
+    entry.deals.push(r);
+  }
+
+  const perSe = Array.from(bySe.values()).map(e => ({
+    se_id: e.se_id,
+    se_name: e.se_name,
+    ...summarize(e.bucket),
+    deals: e.deals.map(d => ({
+      id: d.id,
+      sf_opportunity_id: d.sf_opportunity_id,
+      name: d.name,
+      account_name: d.account_name,
+      team: d.team,
+      arr_converted: d.arr_converted,
+      is_closed_won: d.is_closed_won,
+      is_closed_lost: d.is_closed_lost,
+      reached_negotiate: d.stage_date_negotiate !== null,
+      closed_at: d.closed_at,
+      fiscal_period: d.fiscal_period,
+    })),
+  })).sort((a, b) => b.total_closed - a.total_closed);
+
+  // Distinct fiscal years in the scope (won+lost, new business only) for the FY dropdown
+  const fyRows = await query<{ fiscal_year: string }>(
+    `SELECT DISTINCT fiscal_year FROM opportunities
+      WHERE (is_closed_won = true OR is_closed_lost = true)
+        AND record_type IN ('New Logo','Upsell','Cross-Sell')
+        AND fiscal_year IS NOT NULL AND fiscal_year != ''
+      ORDER BY fiscal_year DESC`,
+  );
+
+  res.json(ok({
+    overall: summarize(overall),
+    by_se: perSe,
+  }, {
+    fiscal_years: fyRows.map(r => r.fiscal_year),
+    filters: { fiscal_year: fiscalYear, fiscal_period: fiscalPeriod },
+  }));
+});
+
 // ── Technical Blockers ────────────────────────────────────────────────────────
 
 // GET /insights/tech-blockers  — all active opps that have technical_blockers content
