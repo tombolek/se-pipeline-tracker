@@ -21,6 +21,7 @@ import { sortRows, oppColType, getOppValue, type SortDir } from '../utils/sortRo
 import { computeMeddpicc } from '../utils/meddpicc';
 import TeamScopeSelector from '../components/shared/TeamScopeSelector';
 import { useTeamScope } from '../hooks/useTeamScope';
+import BulkActionsBar from '../components/pipeline/BulkActionsBar';
 
 // Stage order per issue #16
 const STAGES = [
@@ -168,10 +169,12 @@ function NameCellWithCapture({ opp, onSaved }: { opp: Opportunity; onSaved?: () 
 // Memoized: skips re-render unless the opp object, selection, or column set
 // changes. Critical with 1000+ rows — without this, every keystroke in the
 // search box re-rendered every row. (Issue #102)
-const OppRow = memo(function OppRow({ opp, selected, onSelect, onRefreshList, visibleColumns }: {
+const OppRow = memo(function OppRow({ opp, selected, checked, onSelect, onToggleCheck, onRefreshList, visibleColumns }: {
   opp: Opportunity;
   selected: boolean;
+  checked: boolean;
   onSelect: (id: number) => void;
+  onToggleCheck: (id: number, e: React.MouseEvent | React.ChangeEvent) => void;
   onRefreshList?: () => void;
   visibleColumns: string[];
 }) {
@@ -182,9 +185,23 @@ const OppRow = memo(function OppRow({ opp, selected, onSelect, onRefreshList, vi
       className={`group border-b border-brand-navy-30/30 cursor-pointer transition-colors ${
         selected
           ? 'bg-brand-purple/[0.04] border-l-2 border-l-brand-purple-70'
-          : 'hover:bg-brand-navy/[0.025]'
+          : checked
+            ? 'bg-brand-purple/[0.025]'
+            : 'hover:bg-brand-navy/[0.025]'
       }`}
     >
+      <td
+        className="px-2 py-3 w-8"
+        onClick={e => { e.stopPropagation(); onToggleCheck(opp.id, e); }}
+      >
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={e => { e.stopPropagation(); onToggleCheck(opp.id, e); }}
+          className="h-3.5 w-3.5 rounded border-brand-navy-30 text-brand-purple focus:ring-brand-purple cursor-pointer"
+          aria-label={`Select ${opp.name}`}
+        />
+      </td>
       {visibleColumns.map(col => (
         <td key={col} className="px-3 py-3 whitespace-nowrap">
           {col === 'name'
@@ -504,6 +521,69 @@ export default function PipelinePage({ myPipelineMode = false, favoritesMode = f
   // Stable callback so memoized OppRow doesn't re-render on parent state churn.
   const handleSelectId = useCallback((id: number) => setSelectedId(id), []);
 
+  // ── Bulk selection (Issue #115) ────────────────────────────────────────────
+  // Track row checkboxes separately from the drawer's "selectedId". Using a
+  // Set keeps membership checks O(1) in the memoized row, and supports
+  // shift-click range select against a last-clicked anchor.
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const lastClickedIdRef = useRef<number | null>(null);
+
+  const handleToggleCheck = useCallback((id: number, e: React.MouseEvent | React.ChangeEvent) => {
+    const shift = 'shiftKey' in e ? (e as React.MouseEvent).shiftKey : false;
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      const anchor = lastClickedIdRef.current;
+      if (shift && anchor != null && anchor !== id) {
+        // Select the contiguous range in the currently-visible list.
+        const ids = displayed.map(o => o.id);
+        const a = ids.indexOf(anchor);
+        const b = ids.indexOf(id);
+        if (a >= 0 && b >= 0) {
+          const [lo, hi] = a < b ? [a, b] : [b, a];
+          for (let i = lo; i <= hi; i++) next.add(ids[i]);
+        } else {
+          if (next.has(id)) next.delete(id); else next.add(id);
+        }
+      } else {
+        if (next.has(id)) next.delete(id); else next.add(id);
+      }
+      return next;
+    });
+    lastClickedIdRef.current = id;
+  }, [displayed]);
+
+  // Clear selection whenever the visible row set changes materially (filter /
+  // search / sort). Otherwise users see "3 selected" referring to rows that
+  // are no longer on screen.
+  useEffect(() => {
+    setSelectedIds(new Set());
+    lastClickedIdRef.current = null;
+  }, [debouncedSearch, stages, teams, recordTypes, selectedFiscalPeriods, seIdParam, atRisk, meddpiccMax, sortKey, sortDir, myPipelineMode, favoritesMode]);
+
+  const allVisibleChecked = displayed.length > 0 && displayed.every(o => selectedIds.has(o.id));
+  const someVisibleChecked = !allVisibleChecked && displayed.some(o => selectedIds.has(o.id));
+  const selectAllRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (selectAllRef.current) selectAllRef.current.indeterminate = someVisibleChecked;
+  }, [someVisibleChecked]);
+
+  function toggleSelectAll() {
+    if (allVisibleChecked) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(displayed.map(o => o.id)));
+    }
+  }
+
+  const selectedOpps = useMemo(
+    () => displayed.filter(o => selectedIds.has(o.id)),
+    [displayed, selectedIds],
+  );
+  const visibleColumnLabels = useMemo(
+    () => visibleColumns.map(k => ({ key: k, label: COLUMN_BY_KEY[k]?.label ?? k })),
+    [visibleColumns],
+  );
+
   async function handleColumnsChange(cols: string[]) {
     setVisibleColumns(cols);
     try {
@@ -554,6 +634,16 @@ export default function PipelinePage({ myPipelineMode = false, favoritesMode = f
         }
       />
 
+      {selectedIds.size > 0 && (
+        <BulkActionsBar
+          selectedIds={selectedIds}
+          selectedOpps={selectedOpps}
+          visibleColumnLabels={visibleColumnLabels}
+          onClear={() => setSelectedIds(new Set())}
+          onAfterMutate={load}
+        />
+      )}
+
       {/* Opportunity table */}
       <div className="flex-1 overflow-y-auto overflow-x-auto bg-white">
         {loading && (
@@ -572,6 +662,17 @@ export default function PipelinePage({ myPipelineMode = false, favoritesMode = f
           <table className="w-full border-collapse">
             <thead className="sticky top-0 bg-white border-b border-brand-navy-30/40 z-10">
               <tr>
+                <th className="px-2 py-2.5 w-8">
+                  <input
+                    ref={selectAllRef}
+                    type="checkbox"
+                    checked={allVisibleChecked}
+                    onChange={toggleSelectAll}
+                    className="h-3.5 w-3.5 rounded border-brand-navy-30 text-brand-purple focus:ring-brand-purple cursor-pointer"
+                    aria-label="Select all visible rows"
+                    title={allVisibleChecked ? 'Clear selection' : 'Select all visible'}
+                  />
+                </th>
                 {visibleColumns.map(col => (
                   <SortableHeader
                     key={col}
@@ -592,7 +693,9 @@ export default function PipelinePage({ myPipelineMode = false, favoritesMode = f
                   key={opp.id}
                   opp={opp}
                   selected={selectedId === opp.id}
+                  checked={selectedIds.has(opp.id)}
                   onSelect={handleSelectId}
+                  onToggleCheck={handleToggleCheck}
                   onRefreshList={load}
                   visibleColumns={visibleColumns}
                 />

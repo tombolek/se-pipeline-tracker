@@ -1228,6 +1228,154 @@ router.get('/:id', auth, async (req: Request, res: Response): Promise<void> => {
   }));
 });
 
+// ── Bulk actions (Issue #115) ────────────────────────────────────────────────
+// PATCH /opportunities/bulk  body: { ids: number[], patch: { se_owner_id? } }
+//
+// Applies the same mutation to every opportunity in `ids`. Each row runs
+// through the same permission check as the single-row PATCH and is audited
+// individually, so Settings → Audit remains a faithful per-deal history
+// (managers doing a quarter-start reassign of 40 deals get 40 audit rows, not
+// one opaque "BULK" entry). Failures on one row don't abort the rest — the
+// response is a summary of successes + failures so the UI can show which
+// rows couldn't be updated and why.
+//
+// Supported patch fields (whitelist — new fields must be added explicitly):
+//   - se_owner_id: number | null  (reassign / unassign)
+//
+// NOTE: this endpoint must come BEFORE /:id so Express doesn't match "bulk"
+// as an opportunity id and return 404.
+interface BulkPatchResult {
+  id: number;
+  ok: boolean;
+  error?: string;
+}
+router.patch('/bulk', auth, write, async (req: Request, res: Response): Promise<void> => {
+  const user = (req as AuthenticatedRequest).user!;
+  const { ids, patch } = req.body as {
+    ids?: unknown;
+    patch?: { se_owner_id?: number | null };
+  };
+
+  if (!Array.isArray(ids) || ids.length === 0) {
+    res.status(400).json(err('ids must be a non-empty array of opportunity ids'));
+    return;
+  }
+  if (ids.length > 500) {
+    res.status(400).json(err('Too many rows in one bulk call (max 500)'));
+    return;
+  }
+  const cleanIds = ids.map(n => Number(n)).filter(Number.isFinite) as number[];
+  if (cleanIds.length === 0) { res.status(400).json(err('No valid ids')); return; }
+
+  if (!patch || typeof patch !== 'object') {
+    res.status(400).json(err('patch is required')); return;
+  }
+
+  // Only se_owner_id is mutable here for now. Other fields added to the
+  // whitelist later must each implement their own permission check and
+  // audit entry.
+  const hasOwner = Object.prototype.hasOwnProperty.call(patch, 'se_owner_id');
+  if (!hasOwner) {
+    res.status(400).json(err('patch must include se_owner_id'));
+    return;
+  }
+  const newOwnerId = patch.se_owner_id ?? null;
+
+  // Validate target user is an active SE once, not per-row.
+  if (newOwnerId != null) {
+    const seUser = await queryOne<{ role: string }>(
+      `SELECT role FROM users WHERE id = $1 AND is_active = true AND is_deleted = false`,
+      [newOwnerId],
+    );
+    if (!seUser) { res.status(400).json(err('Target user not found')); return; }
+  }
+
+  const results: BulkPatchResult[] = [];
+
+  for (const id of cleanIds) {
+    try {
+      const prev = await queryOne<{ se_owner_id: number | null; name: string }>(
+        'SELECT se_owner_id, name FROM opportunities WHERE id = $1 AND is_active = true',
+        [id],
+      );
+      if (!prev) { results.push({ id, ok: false, error: 'Not found' }); continue; }
+
+      // Same SE-specific permission gate as the single-row PATCH.
+      if (user.role === 'se') {
+        const currentlyOwns = prev.se_owner_id === user.userId;
+        if (!currentlyOwns && newOwnerId !== user.userId) {
+          results.push({ id, ok: false, error: 'Not allowed' });
+          continue;
+        }
+      }
+
+      const prevOwnerId = prev.se_owner_id;
+      if (prevOwnerId === newOwnerId) {
+        // No-op — skip history + audit to avoid noise.
+        results.push({ id, ok: true });
+        continue;
+      }
+
+      await queryOne(
+        `UPDATE opportunities SET se_owner_id = $1, updated_at = now() WHERE id = $2`,
+        [newOwnerId, id],
+      );
+      await queryOne(
+        `INSERT INTO se_assignment_history (opportunity_id, previous_owner_id, new_owner_id, changed_by_id)
+           VALUES ($1, $2, $3, $4)`,
+        [id, prevOwnerId, newOwnerId, user.userId],
+      );
+
+      logAudit(req, {
+        action: 'ASSIGN_SE', resourceType: 'opportunity',
+        resourceId: id, resourceName: prev.name,
+        before: { se_owner_id: prevOwnerId },
+        after:  { se_owner_id: newOwnerId },
+      });
+      results.push({ id, ok: true });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Update failed';
+      results.push({ id, ok: false, error: message });
+    }
+  }
+
+  const succeeded = results.filter(r => r.ok).length;
+  const failed    = results.length - succeeded;
+  res.json(ok({ results }, { succeeded, failed }));
+});
+
+// POST /opportunities/bulk/favorite  body: { ids: number[], favorited: boolean }
+// Adds or removes favorites for the current user in bulk. Per-user state, so
+// no permission check beyond auth; no audit log (favorites are personal
+// UI state, not an auditable deal change — mirrors the single-row endpoint).
+router.post('/bulk/favorite', auth, write, async (req: Request, res: Response): Promise<void> => {
+  const user = (req as AuthenticatedRequest).user!;
+  const { ids, favorited } = req.body as { ids?: unknown; favorited?: boolean };
+  if (!Array.isArray(ids) || ids.length === 0) {
+    res.status(400).json(err('ids must be a non-empty array')); return;
+  }
+  if (ids.length > 500) { res.status(400).json(err('Too many rows (max 500)')); return; }
+  const cleanIds = ids.map(n => Number(n)).filter(Number.isFinite) as number[];
+  if (cleanIds.length === 0) { res.status(400).json(err('No valid ids')); return; }
+
+  if (favorited) {
+    // One INSERT ... SELECT unnest() is cheaper than one round-trip per id.
+    await query(
+      `INSERT INTO user_favorites (user_id, opportunity_id)
+         SELECT $1, id FROM opportunities WHERE id = ANY($2::int[])
+         ON CONFLICT DO NOTHING`,
+      [user.userId, cleanIds],
+    );
+  } else {
+    await query(
+      `DELETE FROM user_favorites WHERE user_id = $1 AND opportunity_id = ANY($2::int[])`,
+      [user.userId, cleanIds],
+    );
+  }
+
+  res.json(ok({ count: cleanIds.length, favorited: !!favorited }));
+});
+
 // PATCH /opportunities/:id  (se_owner_id)
 // Manager: can assign anyone with role=se
 // SE: can assign themselves if they don't own the opp;

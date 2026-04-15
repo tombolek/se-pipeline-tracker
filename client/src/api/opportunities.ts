@@ -89,6 +89,34 @@ export async function assignSeOwner(id: number, seOwnerId: number | null): Promi
   return data.data;
 }
 
+// ── Bulk actions (Issue #115) ───────────────────────────────────────────────
+
+export interface BulkResult {
+  id: number;
+  ok: boolean;
+  error?: string;
+}
+
+/** Reassign SE Owner on many opps at once. `se_owner_id = null` unassigns. */
+export async function bulkAssignSeOwner(ids: number[], seOwnerId: number | null): Promise<{
+  results: BulkResult[]; succeeded: number; failed: number;
+}> {
+  const { data } = await api.patch<ApiResponse<{ results: BulkResult[] }>>(
+    '/opportunities/bulk',
+    { ids, patch: { se_owner_id: seOwnerId } },
+  );
+  return {
+    results: data.data.results,
+    succeeded: (data.meta.succeeded as number) ?? 0,
+    failed:    (data.meta.failed    as number) ?? 0,
+  };
+}
+
+/** Add or remove many opps from the current user's favorites at once. */
+export async function bulkFavorite(ids: number[], favorited: boolean): Promise<void> {
+  await api.post('/opportunities/bulk/favorite', { ids, favorited });
+}
+
 // ── SE Contributors (Issue #104) ─────────────────────────────────────────────
 
 export interface SeContributorUser { id: number; name: string; email: string; }
