@@ -14,6 +14,7 @@ import { useAiJobAttach } from '../hooks/useAiJob';
 import { formatDate, formatARR, daysSince } from '../utils/formatters';
 import { TaskRow, AddTaskForm } from './opportunity/TaskSection';
 import { NoteItem, AddNoteForm } from './opportunity/NoteSection';
+import ApplyTemplateButton from './opportunity/ApplyTemplateButton';
 import OpportunityTimeline from './OpportunityTimeline';
 import CallPrepTab from './CallPrepTab';
 import AccountTimelinePanel from './AccountTimelinePanel';
@@ -262,6 +263,13 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
     await createNote(oppId, content);
     setShowAddNote(false);
     reload();
+  }
+
+  function handleTemplateApplied() {
+    // Both task_pack and note results need a full reload: the server persisted new rows
+    // and we want authoritative timestamps/ids plus any opportunity-level recomputes.
+    reload();
+    onRefreshList?.();
   }
 
   async function handleAssignSelf() {
@@ -755,12 +763,21 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
             count={openTasks.length}
             action={
               !isReadOnly ? (
-                <button
-                  onClick={() => setShowAddTask(!showAddTask)}
-                  className="text-xs text-brand-purple hover:text-brand-navy font-medium transition-colors"
-                >
-                  + Add task
-                </button>
+                <div className="flex items-center gap-3">
+                  <ApplyTemplateButton
+                    oppId={oppId}
+                    stage={opp?.stage ?? null}
+                    kind="task_pack"
+                    onApplied={handleTemplateApplied}
+                  />
+                  <span className="text-brand-navy-30">·</span>
+                  <button
+                    onClick={() => setShowAddTask(!showAddTask)}
+                    className="text-xs text-brand-purple hover:text-brand-navy font-medium transition-colors"
+                  >
+                    + Add task
+                  </button>
+                </div>
               ) : undefined
             }
           />
@@ -805,6 +822,13 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
             </div>
             {!isReadOnly && (
               <div className="flex items-center gap-3">
+                <ApplyTemplateButton
+                  oppId={oppId}
+                  stage={opp?.stage ?? null}
+                  kind="note"
+                  onApplied={handleTemplateApplied}
+                />
+                <span className="text-brand-navy-30">·</span>
                 <button
                   onClick={() => setShowAddNote(!showAddNote)}
                   className="text-xs text-brand-purple hover:text-brand-navy font-medium transition-colors"

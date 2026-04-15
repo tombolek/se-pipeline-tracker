@@ -9,6 +9,7 @@ import DeployPage from './settings/DeployPage';
 import DealInfoConfigPage from './settings/DealInfoConfigPage';
 import QuotaSettingsPage from './settings/QuotaSettingsPage';
 import RoleAccessPage from './settings/RoleAccessPage';
+import TemplatesPage from './settings/TemplatesPage';
 
 export default function SettingsPage() {
   const { pathname } = useLocation();
@@ -23,6 +24,7 @@ export default function SettingsPage() {
   else if (pathname.includes('deal-info-layout')) content = <DealInfoConfigPage />;
   else if (pathname.includes('quotas'))       content = <QuotaSettingsPage />;
   else if (pathname.includes('role-access')) content = <RoleAccessPage />;
+  else if (pathname.includes('templates'))   content = <TemplatesPage />;
   else                                       content = <UsersPage />;
 
   return (

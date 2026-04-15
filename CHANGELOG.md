@@ -8,6 +8,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## 2026-04-15
 
 ### Added
+- **Task & Note templates** — reusable templates managers can define once and SEs apply in one click from the Work tab. Two kinds: **Task packs** (a set of tasks with per-task due-date offsets and "next step" flags — e.g. "PoC Kickoff" → 6 tasks with offsets) and **Notes** (a prefilled note body — e.g. "Call Recap" structure). Templates can be scoped to a stage or left global. A new **Settings → Templates** page (manager-only) provides full CRUD. SEs see a **Use template** picker next to "+ Add task" and "+ Add note" on the opportunity drawer, filtered to the deal's current stage. (Issue #132)
 - **What's New panel (in-product changelog)** — new button in the sidebar footer opens a "What's New" drawer with the full release history parsed from `CHANGELOG.md`. Entries published since your last visit are highlighted with a **New** badge and the sidebar shows an unread count. Opening the panel marks entries as seen so the badge clears until the next release. (Issue #134)
 
 ---
