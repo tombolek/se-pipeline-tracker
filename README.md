@@ -50,6 +50,11 @@ This tool pulls deal data from Salesforce via a CSV/XLS export and layers a nati
 | Link a jot to a deal and convert it to a task or note | Inbox page |
 | See when my SE comments are going stale | Pipeline — freshness indicator on each row |
 | See the health score of my deals and drill into at-risk ones | Pipeline — Health Score column + At-risk filter |
+| Reassign the SE Owner on a deal without leaving the drawer | Opportunity header — SE Owner pill |
+| Add myself as a contributor on a teammate's deal | Opportunity header — Contributors strip |
+| Apply a reusable task pack or note template to a deal | Opportunity Work tab — **Use template** picker |
+| Undo a recent delete or reassignment | Sidebar footer — **Recent actions** |
+| See what changed in the latest release | Sidebar footer — **What's New** |
 
 ### For the SE Manager
 
@@ -69,6 +74,14 @@ This tool pulls deal data from Salesforce via a CSV/XLS export and layers a nati
 | Assign or reassign SE owners across deals | Insights → SE Deal Mapping |
 | Generate an AI analysis of pipeline blockers | Insights → Tech Blockers → AI Insights |
 | Drill into a specific SE's workload or overdue tasks | Team Workload — click any stat |
+| Prep for an SE 1:1 with a ready-made brief | Insights → 1:1 Prep |
+| Track Closed Won ARR for bonus calculation | Insights → Closed Won |
+| See Closed Won progress against quota targets | Insights → % to Target |
+| Compare team and per-SE win rates (overall / technical / negotiate) | Insights → Win Rate (work in progress) |
+| Visualise the pipeline with funnel + charts | Insights → Pipeline Analytics |
+| Define reusable task packs and note templates for SEs | Settings → Templates |
+| Configure quota groups used by % to Target | Settings → Quotas |
+| Control which roles can see which pages | Settings → Role Access |
 | Manage team members and their roles | Settings → Users |
 | View Salesforce import history and roll back imports | Settings → Import History |
 | Customize which Insights and nav pages appear in the sidebar | Settings → Menu Settings |
@@ -111,6 +124,8 @@ This tool pulls deal data from Salesforce via a CSV/XLS export and layers a nati
 ### Opportunity Detail (slide-in drawer)
 - Opens from any deal row in Pipeline, Closed Lost, or Insights views
 - **Header**: opp name, account name (clickable — opens Account History panel), stage, ARR, close date, "Health" score pill, "MEDDPICC" score pill, lightbulb coach button, Summarize button
+- **Inline SE Owner pill** — click the SE Owner next to the title to open a compact search popover and reassign without a drawer round-trip. Managers can assign any active SE or unassign; SE owners can hand off or unassign themselves; SEs can self-assign an unassigned opp. Permissions mirror the server PATCH handler
+- **Contributors strip** — zero-or-more SE teammates who also work on the deal, in addition to the single SE Owner. Add/remove via the `+` chip. Managers and the current SE Owner can manage anyone; any SE can add or remove themselves. Data lives in the `opportunity_se_contributors` table and is also surfaced in the Deal Info tab when the Contributors section is enabled in the Deal Info Layout
 - **AI Summary** — collapsible panel below the header. Shows freshness indicator (green <=3d, amber <=14d, red 14d+). Summary is persisted server-side. Regenerate button to refresh on demand
 - **MEDDPICC Gap Coach** — lightbulb button triggers AI analysis of all 9 MEDDPICC elements (Metrics, Economic Buyer, Decision Criteria, Decision Process, Paper Process, Implicate Pain, Champion, Budget, Authority). Shows Green/Amber/Red per element with evidence, gaps, and suggested discovery questions. Collapsible panel below AI Summary with freshness indicator. Results cached server-side
 - **4 tabs** replacing the previous two-column layout:
@@ -265,6 +280,34 @@ This tool pulls deal data from Salesforce via a CSV/XLS export and layers a nati
 - **Stat cards**: Open Opps, Total ARR, Health RAG breakdown, Overdue Tasks, Stale Comments, **Hygiene Issues**
 - **Sections**: AI Coaching Brief (collapsible), Overdue Tasks, Due This Week, Deals Missing SE Notes, **Data Hygiene — Needs Attention** (table of flagged deals with issue badges, same 8 rules as the Home page), Deals with No Next Step, Recent Stage Movements, All Open Opportunities
 
+#### Closed Won (`/insights/closed-won`)
+- Closed Won report for SE bonus calculation. Aggregates Closed Won ARR in USD (`arr_converted`)
+- **View toggle**: **By Territory** (Team → SE) or **By SE** (SE → Team breakdown; SE totals are global across territories)
+- Filter by fiscal year (dropdown) and quarter (All / Q1-Q4). Bucketing uses `closed_at`-based months — aligned with `/insights/percent-to-target`
+- New-business only — New Logo + Upsell + Cross-Sell (Services + Renewal excluded)
+- Rows expand to show underlying deals; click a deal to open the opp drawer
+
+#### % to Target (`/insights/percent-to-target`)
+- Manager-only report showing Closed Won progress against configured quota targets
+- Each configured quota group renders as a donut + month-over-month sparkline; a combined chart compares all groups against the linear FY pace line
+- Filter by FY and quarter (All YTD / Q1-Q4) — switching the quarter changes the "as-of" point used by all charts
+- New business only, USD via `arr_converted`. Groups are configured in Settings → Quotas
+
+#### Win Rate (`/insights/win-rate`) — work in progress
+- Team-level and per-SE win-rate metrics. The page renders an amber "Work in progress" banner at the top because the numbers are still being validated
+- **Three metrics**:
+  - **Overall Win Rate** — Won / (Won + Lost)
+  - **Technical Win Rate** — share of closed deals that reached Negotiate; proxies "did the SE earn a technical win?"
+  - **Negotiate Win Rate** — share of Negotiate-reaching deals that Closed Won; proxies "once the technical side was solved, did we commercial-close?"
+- Filterable by FY and quarter (All / Q1-Q4), same bucketing as Closed Won and % to Target
+- Per-SE rows expand to show the underlying deals with "reached Negotiate" and Won/Lost badges
+- New business only (New Logo + Upsell + Cross-Sell)
+
+#### Pipeline Analytics (`/insights/analytics`)
+- Visual dashboard of the active pipeline
+- **Charts**: Funnel chart (ARR by stage), ARR by SE owner (stacked by stage), ARR by record type (donut), ARR by close month (bar chart), Stage velocity (avg days in stage with RAG colouring)
+- **Summary KPI cards**: total pipeline, converted ARR, key deals, average deal size
+
 ### Settings (Manager only)
 
 #### Users (`/settings/users`)
@@ -302,6 +345,25 @@ This tool pulls deal data from Salesforce via a CSV/XLS export and layers a nati
 - **Insights nav**: toggle and reorder manager Insights pages in the sidebar
 - Drag-and-drop reorder; reset to default
 
+#### Templates (`/settings/templates`)
+- Reusable **task packs** and **note templates** SEs can apply in one click from the Work tab of any opportunity
+- **Task packs**: ordered list of tasks with per-task due-date offsets (`+Nd`) and optional `is_next_step` flags. Example: "PoC Kickoff" → 6 tasks staggered across a week
+- **Notes**: prefilled note body (e.g. a "Call Recap" structure)
+- Each template can be scoped to a specific stage or left global
+- SEs see a **Use template** picker next to "+ Add task" and "+ Add note" on the opportunity drawer, filtered to the deal's current stage plus any global templates
+- List shows kind, scope, author, item count, and a short content preview per template
+
+#### Quotas (`/settings/quotas`)
+- Configure quota groups used by the **% to Target** Insights page
+- Three rule types: **All Closed Won (Global)**, **By team(s)**, or **By AE owner(s)**. The same deal can count toward multiple groups
+- Seeded with Global ($16M), NA ($11.4M, NA Enterprise + NA Strategic), INTL ($6.12M, EMEA + ANZ), and DACH ($1.5M, AE = Thomas Miebach)
+
+#### Role Access (`/settings/role-access`)
+- Admin-only matrix that controls which roles (Manager / SE / Viewer) can see each page
+- Pages grouped into **Main Navigation**, **Insights**, and **Administration** — section-level checkboxes toggle a whole group at once
+- Admin users always see Administration pages regardless of the matrix
+- Backed by the `role_page_access` table; every new page must also be added to `PAGE_REGISTRY` in `RoleAccessPage.tsx` and seeded via migration (see CLAUDE.md for the three-place checklist)
+
 ### Audit (`/audit`)
 Manager-only usage analytics and activity log.
 
@@ -319,6 +381,22 @@ Manager-only usage analytics and activity log.
 - Collapsible **Insights** and **Settings** sections (manager only)
 - Main nav items (Calendar, SE Mapping, PoC Board, RFx Board) are user-configurable
 - Insights nav order is user-configurable (see Menu Settings above)
+
+### Sidebar Footer — Recent Actions & What's New
+
+Two always-available buttons pinned in the sidebar footer:
+
+#### Recent Actions (Undo)
+- Lists destructive actions you've taken in the **last 30 days** and lets you undo them inline
+- Covers: deleted tasks, deleted Inbox items, SE Owner reassignments
+- Reassignment history is tracked in a new `se_assignment_history` table; tasks and inbox items now carry `deleted_at` timestamps to bound the restore window
+- Actions that can no longer be safely reverted (e.g. the opp was reassigned again by someone else after you) are shown as **Not undoable** with the reason
+- A startup cleanup job hard-deletes soft-deleted rows past the 30-day window
+
+#### What's New
+- Opens a drawer with the full release history parsed from `CHANGELOG.md`
+- Entries published since your last visit are highlighted with a **New** badge; the sidebar button shows an unread count
+- Opening the panel marks entries as seen so the badge clears until the next release
 
 ---
 

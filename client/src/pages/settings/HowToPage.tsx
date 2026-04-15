@@ -15,6 +15,7 @@ const SECTIONS = [
   { id: 'settings',    label: 'Settings (Manager)' },
   { id: 'audit',       label: 'Audit (Manager)' },
   { id: 'ai-features', label: 'AI Features' },
+  { id: 'sidebar-helpers', label: "Recent Actions & What's New" },
 ];
 
 // ── Layout components ────────────────────────────────────────────────────────
@@ -184,6 +185,13 @@ export default function HowToPage() {
 
       <SubTitle>Opportunity detail</SubTitle>
       <P>Click any row to open the detail side panel. The header shows the opportunity name, account name (clickable to open Account History), current stage, ARR, close date, a <Badge color="green">Health score</Badge> pill, a <Badge color="purple">MEDDPICC score</Badge> pill, a Coach lightbulb button, and a Summarize button.</P>
+
+      <SubTitle>Inline SE Owner &amp; Contributors</SubTitle>
+      <P>The header also exposes an <strong>SE Owner pill</strong> and a <strong>Contributors strip</strong> right under the title — no drawer round-trip needed to change ownership:</P>
+      <Ul>
+        <Li><strong>SE Owner pill</strong> — click to open a compact search popover. Managers can reassign to any active SE or unassign. An SE who already owns the deal can hand it off or unassign themselves. An SE can self-assign an unassigned deal. Permissions mirror the server rules exactly.</Li>
+        <Li><strong>Contributors</strong> — zero-or-more SE teammates who also work on the deal, in addition to the single SE Owner. Add or remove teammates with the <em>+</em> chip. Managers and the current SE Owner can manage anyone; any SE can add or remove themselves. Contributors also show in the Deal Info tab when the <em>Contributors</em> section is enabled in the Deal Info Layout.</Li>
+      </Ul>
 
       <P><strong>AI Summary</strong> — a collapsible panel below the header. Shows a freshness indicator (e.g. "Generated 2h ago"). The summary is persisted server-side and can be regenerated on demand with the Regenerate button.</P>
 
@@ -405,6 +413,41 @@ export default function HowToPage() {
       <SubTitle>SE Deal Mapping</SubTitle>
       <P>Also available under Insights for quick access. This view is available to <strong>all users</strong> (not just managers) and shows the same SE assignment interface described in the SE Deal Mapping section above.</P>
 
+      <SubTitle>1:1 Prep</SubTitle>
+      <P>A one-page brief for your next 1:1 with any SE. Pick the SE from the dropdown (or deep-link with <code>?se=&lt;id&gt;</code>). Sections include stat cards (open opps, total ARR, Health RAG, overdue tasks, stale comments, hygiene issues), an AI Coaching Brief (collapsible, with freshness badge), overdue tasks, due this week, deals missing SE notes, <strong>Data Hygiene — Needs Attention</strong> table (same 8 rules as the Home page), deals with no next step, recent stage movements, and all open opportunities. Clicking any deal or task opens the full Opportunity Detail in a side drawer.</P>
+
+      <SubTitle>Closed Won</SubTitle>
+      <P>Closed Won report for SE bonus calculation. Aggregates Closed Won ARR in USD (<code>arr_converted</code>) with a view toggle:</P>
+      <Ul>
+        <Li><strong>By Territory</strong> — Team → SE breakdown.</Li>
+        <Li><strong>By SE</strong> — SE → Team breakdown; SE totals are global across territories.</Li>
+      </Ul>
+      <P>Filter by fiscal year (dropdown) and quarter (<em>All</em> / Q1-Q4). New-business only — New Logo + Upsell + Cross-Sell (Services + Renewal excluded). Quarter bucketing uses <code>closed_at</code>-based months so results are consistent with the % to Target page. Rows expand to show the underlying deals; clicking a deal opens the opp drawer.</P>
+
+      <SubTitle>% to Target</SubTitle>
+      <P>Closed Won progress against configured quota groups. Each group renders as a donut plus a month-over-month sparkline; a combined chart compares all groups against the linear FY pace line. Filter by FY and quarter (<em>All YTD</em> / Q1-Q4) — switching the quarter changes the <em>as-of</em> point used by every chart so you can see where each group stood at any quarter boundary. New-business only, USD via <code>arr_converted</code>. Groups are configured in <strong>Settings → Quotas</strong>.</P>
+
+      <SubTitle>Win Rate</SubTitle>
+      <InfoBox><strong>Work in progress:</strong> this report is still being validated — the numbers may not yet be fully accurate. A matching banner is shown at the top of the page.</InfoBox>
+      <P>Three win-rate metrics at the team level and broken down per SE:</P>
+      <Ul>
+        <Li><strong>Overall Win Rate</strong> — classic Won / (Won + Lost).</Li>
+        <Li><strong>Technical Win Rate</strong> — share of closed deals that reached Negotiate. Proxies "did the SE earn a technical win?"</Li>
+        <Li><strong>Negotiate Win Rate</strong> — share of Negotiate-reaching deals that Closed Won. Proxies "once the technical side was solved, did we commercial-close?"</Li>
+      </Ul>
+      <P>Filterable by FY and quarter (<em>All</em> / Q1-Q4), same bucketing as Closed Won and % to Target. Per-SE rows expand to show the underlying deals with "reached Negotiate" and Won/Lost badges. New-business only (New Logo + Upsell + Cross-Sell).</P>
+
+      <SubTitle>Pipeline Analytics</SubTitle>
+      <P>Visual dashboard for the current pipeline:</P>
+      <Ul>
+        <Li><strong>Funnel chart</strong> — ARR by stage.</Li>
+        <Li><strong>ARR by SE owner</strong> — stacked by stage.</Li>
+        <Li><strong>ARR by record type</strong> — donut.</Li>
+        <Li><strong>ARR by close month</strong> — bar chart.</Li>
+        <Li><strong>Stage velocity</strong> — average days in stage with RAG colouring.</Li>
+        <Li><strong>Summary KPI cards</strong> — total pipeline, converted ARR, key deals, average deal size.</Li>
+      </Ul>
+
       {/* ── 12. Settings ── */}
       <SectionTitle id="settings">12. Settings</SectionTitle>
       <RoleTag role="manager" />
@@ -453,6 +496,27 @@ export default function HowToPage() {
 
       <SubTitle>Deal Info Layout</SubTitle>
       <P>Configure which fields and sections appear in the <strong>Deal Info</strong> tab of the opportunity detail panel. Drag sections to reorder them and use toggles to show or hide individual sections. A live preview using real opportunity data updates as you make changes, so you can see exactly what the layout will look like before saving.</P>
+
+      <SubTitle>Templates</SubTitle>
+      <P>Reusable <strong>task packs</strong> and <strong>note templates</strong> SEs can apply in one click from the Work tab of any opportunity.</P>
+      <Ul>
+        <Li><strong>Task packs</strong> — a set of tasks with per-task due-date offsets (<em>+Nd</em>) and optional <Badge color="purple">Next step</Badge> flags. Example: "PoC Kickoff" → 6 tasks with staggered offsets.</Li>
+        <Li><strong>Notes</strong> — a prefilled note body (e.g. a "Call Recap" structure).</Li>
+      </Ul>
+      <P>Each template can be scoped to a specific stage or left <em>global</em>. The SE-facing <strong>Use template</strong> picker next to "+ Add task" / "+ Add note" filters to the deal's current stage plus any global templates. Full CRUD lives on this page; the list shows each template's kind, scope, author, item count, and a short content preview.</P>
+
+      <SubTitle>Quotas</SubTitle>
+      <P>Configure quota groups used by the <strong>% to Target</strong> Insights page. Three rule types:</P>
+      <Ul>
+        <Li><strong>All Closed Won (Global)</strong> — the full-company quota.</Li>
+        <Li><strong>By team(s)</strong> — e.g. NA Enterprise + NA Strategic.</Li>
+        <Li><strong>By AE owner(s)</strong> — e.g. DACH = Thomas Miebach.</Li>
+      </Ul>
+      <P>The same deal can count toward multiple groups. Seeded with Global ($16M), NA ($11.4M), INTL ($6.12M), and DACH ($1.5M).</P>
+
+      <SubTitle>Role Access</SubTitle>
+      <P>Admin-only page that controls which roles can see each page and menu item. Pages are grouped into <em>Main Navigation</em>, <em>Insights</em>, and <em>Administration</em>; per-role checkboxes (Manager / SE / Viewer) let you toggle visibility individually or use the section-level checkbox to toggle a whole group at once. Admin users always see Administration pages regardless of the matrix.</P>
+      <InfoBox>Role access lives in three places: the sidebar nav lists, this admin registry, and a DB seed migration. Adding a new page requires touching all three — see the project CLAUDE.md for the checklist.</InfoBox>
 
       {/* ── 13. Audit ── */}
       <SectionTitle id="audit">13. Audit</SectionTitle>
@@ -504,6 +568,23 @@ export default function HowToPage() {
 
       <SubTitle>Tech Blockers AI Insights</SubTitle>
       <P>Available in the <strong>Tech Blockers</strong> Insights view. Generates a Claude-powered summary of technical blockers across the entire pipeline, weighted by severity. Useful for identifying systemic technical issues and prioritising engineering support across deals.</P>
+
+      {/* ── 15. Sidebar Helpers ── */}
+      <SectionTitle id="sidebar-helpers">15. Recent Actions &amp; What's New</SectionTitle>
+      <RoleTag role="all" />
+      <P>Two buttons in the sidebar footer give you an always-available safety net and a summary of recent releases.</P>
+
+      <SubTitle>Recent Actions (Undo)</SubTitle>
+      <P>The <strong>Recent actions</strong> button lists destructive actions you've taken in the last <strong>30 days</strong> and lets you undo them inline. Covers:</P>
+      <Ul>
+        <Li>Deleted tasks.</Li>
+        <Li>Deleted Inbox items.</Li>
+        <Li>SE Owner reassignments (yours).</Li>
+      </Ul>
+      <P>Actions that can no longer be safely reverted (for example, the opp was reassigned again by someone else after you) are shown as <em>Not undoable</em> with the reason. Soft-deleted rows are hard-deleted by a startup cleanup job once they exceed the 30-day window.</P>
+
+      <SubTitle>What's New</SubTitle>
+      <P>The <strong>What's New</strong> button in the sidebar footer opens a drawer with the full release history parsed from the app's <code>CHANGELOG.md</code>. Entries published since your last visit are highlighted with a <Badge color="purple">New</Badge> badge, and the sidebar button shows an unread count. Opening the panel marks entries as seen, so the badge clears until the next release.</P>
 
       <div className="h-8" />
     </div>
