@@ -1,20 +1,21 @@
-import { Router, Response } from 'express';
+import { Router, Request, Response } from 'express';
 import { requireAuth } from '../middleware/auth.js';
 import { queryOne } from '../db/index.js';
 import { AuthenticatedRequest, ok } from '../types/index.js';
 import { loadChangelog } from '../services/changelogParser.js';
 
 const router = Router();
-router.use(requireAuth);
+const auth = requireAuth as unknown as (req: Request, res: Response, next: () => void) => void;
 
 // GET /api/v1/changelog
 // Returns parsed changelog entries + this user's last-seen timestamp.
 // Client computes unread count as entries with date > last_seen_at.
-router.get('/', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+router.get('/', auth, async (req: Request, res: Response): Promise<void> => {
+  const { userId } = (req as AuthenticatedRequest).user;
   const changelog = loadChangelog();
   const user = await queryOne<{ last_changelog_seen_at: string | null }>(
     'SELECT last_changelog_seen_at FROM users WHERE id = $1',
-    [req.user.userId],
+    [userId],
   );
   const lastSeenAt = user?.last_changelog_seen_at ?? null;
 
@@ -32,7 +33,8 @@ router.get('/', async (req: AuthenticatedRequest, res: Response): Promise<void> 
 
 // POST /api/v1/changelog/mark-seen
 // Sets the user's last-seen timestamp to the date of the newest entry (or now() as fallback).
-router.post('/mark-seen', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+router.post('/mark-seen', auth, async (req: Request, res: Response): Promise<void> => {
+  const { userId } = (req as AuthenticatedRequest).user;
   const changelog = loadChangelog();
   const latest = changelog.latest_date;
   // Store the latest entry's date at end-of-day so a new entry written *on the same day*
@@ -41,10 +43,10 @@ router.post('/mark-seen', async (req: AuthenticatedRequest, res: Response): Prom
     await queryOne(
       `UPDATE users SET last_changelog_seen_at = ($1::date + time '23:59:59')
        WHERE id = $2`,
-      [latest, req.user.userId],
+      [latest, userId],
     );
   } else {
-    await queryOne('UPDATE users SET last_changelog_seen_at = now() WHERE id = $1', [req.user.userId]);
+    await queryOne('UPDATE users SET last_changelog_seen_at = now() WHERE id = $1', [userId]);
   }
   res.json(ok({ marked: true, latest_date: latest }));
 });
