@@ -243,6 +243,10 @@ When a flush completes cleanly, a brief green "Synced N changes" chip appears at
 **Optimistic UI**
 Offline writes update the UI immediately. Notes render with a "(you — pending sync)" author label; reassign pills turn amber; task edits merge the patch onto the current view. When the flush succeeds, the next refetch replaces the optimistic row with the real server data.
 
+**Heartbeat (Phase 3.1)**
+
+A lightweight 45-second poll (`GET /api/v1/ping` → `204 No Content`) runs while the tab is visible. It feeds the existing axios response interceptor, which flips the connection indicator and — on an offline → online transition — auto-drains any queued writes. Closes the "laptop slept, woke up on a new network, never focused the tab" gap where the browser's native `online` event can be missed. Skipped when the tab is hidden; negligible battery / server cost. Start/stop is wired into the auth lifecycle (begins after `checkAuth`, stops on logout, restarts on login).
+
 **Security & storage notes**
 - Logout wipes the entire local cache so a shared laptop can't leak previous users' deals.
 - The app calls `navigator.storage.persist()` so the browser won't evict the cache under disk pressure.

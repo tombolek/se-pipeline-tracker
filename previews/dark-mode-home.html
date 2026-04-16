@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dark Mode — Home / Daily Digest (Preview)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script>
+tailwind.config = {
+  darkMode: 'class',
+  theme: {
+    extend: {
+      fontFamily: { sans: ['Poppins', 'system-ui', 'sans-serif'] },
+      colors: {
+        brand: {
+          purple: '#9C72F8', 'purple-bright': '#B89AFA', 'purple-muted': '#6A2CF5', 'purple-30': '#2A1A5E',
+          pink: '#F655B5', 'pink-muted': '#F10090', 'pink-30': '#3A1530',
+          navy: '#1A0C42', 'navy-light': '#1E1247', 'navy-raised': '#241555',
+          ink: '#0A0520',
+        },
+        text: {
+          primary: '#F5F1FF', secondary: '#A89DBF', muted: '#7B6F95',
+        },
+        status: { overdue: '#FF6B6F', warning: '#FFBB33', info: '#33E5FF', success: '#33EDC4' },
+      },
+    },
+  },
+}
+</script>
+<style>
+  body { background: #0A0520; }
+  .surface { background: #15093A; border: 1px solid rgba(156,114,248,0.12); }
+  .surface-raised { background: #1E1247; }
+  .divider { border-color: rgba(156,114,248,0.1); }
+  .row-hover:hover { background: rgba(156,114,248,0.08); }
+  .scrollbar-thin::-webkit-scrollbar { width: 4px; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background: #2A1A5E; border-radius: 2px; }
+</style>
+</head>
+<body class="font-sans text-text-primary">
+
+<div class="min-h-screen flex">
+
+  <!-- Sidebar -->
+  <div class="w-[220px] flex-shrink-0 flex flex-col py-4" style="background:#050013">
+    <div class="px-4 pb-4 mb-2 border-b border-white/5 flex items-center gap-2">
+      <div class="w-7 h-7 rounded-md bg-brand-purple flex items-center justify-center">
+        <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 7v10l10 5 10-5V7z"/></svg>
+      </div>
+      <span class="text-[13px] font-semibold text-white">SE Pipeline</span>
+      <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-brand-purple/20 text-brand-purple-bright">DARK</span>
+    </div>
+
+    <div class="px-2">
+      <div class="flex items-center gap-2 px-2.5 py-2 rounded-md mb-2 cursor-pointer" style="background:rgba(156,114,248,0.15);border:1px dashed rgba(156,114,248,0.25)">
+        <svg class="w-4 h-4 text-brand-purple-bright" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+        <span class="text-[12px] text-white/80">Quick capture</span>
+        <span class="ml-auto text-[10px] text-white/40 font-mono">⌘K</span>
+      </div>
+
+      <nav class="space-y-0.5">
+        <div class="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-brand-purple/25 border-l-2 border-brand-purple-bright">
+          <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+          <span class="text-[12.5px] text-white font-medium">Home</span>
+        </div>
+        <div class="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-white/55 row-hover cursor-pointer">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h7"/></svg>
+          <span class="text-[12.5px]">Pipeline</span>
+        </div>
+        <div class="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-white/55 row-hover cursor-pointer">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+          <span class="text-[12.5px]">My Pipeline</span>
+        </div>
+        <div class="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-white/55 row-hover cursor-pointer">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          <span class="text-[12.5px]">Closed Lost</span>
+          <span class="ml-auto w-2 h-2 rounded-full bg-brand-pink"></span>
+        </div>
+        <div class="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-white/55 row-hover cursor-pointer">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/></svg>
+          <span class="text-[12.5px]">My Tasks</span>
+          <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-white/10 text-white/60">5</span>
+        </div>
+        <div class="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-white/55 row-hover cursor-pointer">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-3.28a1 1 0 00-.948.684l-.544 1.632a1 1 0 01-.948.684h-4.56a1 1 0 01-.948-.684l-.544-1.632A1 1 0 007.28 13H4"/></svg>
+          <span class="text-[12.5px]">Inbox</span>
+          <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-white/10 text-white/60">2</span>
+        </div>
+
+        <div class="mt-4 mb-1 px-2.5 text-[10px] uppercase tracking-widest text-white/30">Insights</div>
+        <div class="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-white/55 row-hover cursor-pointer">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+          <span class="text-[12.5px]">Stage Movement</span>
+        </div>
+        <div class="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-white/55 row-hover cursor-pointer">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1"/></svg>
+          <span class="text-[12.5px]">Missing Notes</span>
+        </div>
+        <div class="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-white/55 row-hover cursor-pointer">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          <span class="text-[12.5px]">Team Workload</span>
+        </div>
+      </nav>
+    </div>
+
+    <div class="mt-auto px-3 pt-3 border-t border-white/5 flex items-center gap-2">
+      <div class="w-7 h-7 rounded-full bg-brand-purple/40 flex items-center justify-center text-[10px] font-bold text-white">TB</div>
+      <div class="flex-1 min-w-0">
+        <p class="text-[11px] text-white font-medium truncate">Tomas Bolek</p>
+        <p class="text-[10px] text-white/40">Manager</p>
+      </div>
+      <svg class="w-4 h-4 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+    </div>
+  </div>
+
+  <!-- Main content -->
+  <div class="flex-1 overflow-y-auto px-8 py-6">
+
+    <!-- Greeting header -->
+    <div class="mb-6 flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-semibold text-white">Good evening, Tomas</h1>
+        <p class="text-sm text-text-secondary mt-0.5">Thursday, April 16 — here's what needs your attention today</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button class="px-3 py-1.5 rounded-lg text-[11px] font-medium text-white/70 surface row-hover">
+          <span class="inline-flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+            Dark
+          </span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Top row: summary counts -->
+    <div class="grid grid-cols-4 gap-4 mb-6">
+      <div class="surface rounded-2xl p-4 flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:rgba(255,107,111,0.12)">
+          <svg class="w-5 h-5 text-status-overdue" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+        <div>
+          <p class="text-2xl font-semibold text-status-overdue">3</p>
+          <p class="text-[10px] text-text-secondary uppercase tracking-wide">Overdue</p>
+        </div>
+      </div>
+      <div class="surface rounded-2xl p-4 flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:rgba(255,187,51,0.12)">
+          <svg class="w-5 h-5 text-status-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+          </svg>
+        </div>
+        <div>
+          <p class="text-2xl font-semibold text-status-warning">2</p>
+          <p class="text-[10px] text-text-secondary uppercase tracking-wide">Due Today</p>
+        </div>
+      </div>
+      <div class="surface rounded-2xl p-4 flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:rgba(156,114,248,0.15)">
+          <svg class="w-5 h-5 text-brand-purple-bright" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+          </svg>
+        </div>
+        <div>
+          <p class="text-2xl font-semibold text-brand-purple-bright">1</p>
+          <p class="text-[10px] text-text-secondary uppercase tracking-wide">PoC Alert</p>
+        </div>
+      </div>
+      <div class="surface rounded-2xl p-4 flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:rgba(246,85,181,0.12)">
+          <svg class="w-5 h-5 text-brand-pink" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+          </svg>
+        </div>
+        <div>
+          <p class="text-2xl font-semibold text-brand-pink">1</p>
+          <p class="text-[10px] text-text-secondary uppercase tracking-wide">New Closed Lost</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Two-column layout -->
+    <div class="grid grid-cols-2 gap-6">
+
+      <!-- LEFT COLUMN -->
+      <div class="space-y-6">
+
+        <!-- Today's Tasks -->
+        <div class="surface rounded-2xl overflow-hidden">
+          <div class="px-5 py-3.5 border-b divider flex items-center gap-2">
+            <svg class="w-4 h-4 text-status-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/></svg>
+            <h2 class="text-xs font-semibold uppercase tracking-widest text-text-secondary">Today's Tasks</h2>
+            <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style="background:rgba(255,107,111,0.15);color:#FF6B6F">5</span>
+          </div>
+
+          <div class="divide-y" style="--tw-divide-opacity:1">
+            <div class="px-5 py-3 row-hover cursor-pointer border-b divider">
+              <div class="flex items-start gap-3">
+                <span class="mt-1 w-2 h-2 rounded-full bg-status-overdue flex-shrink-0" style="box-shadow:0 0 0 3px rgba(255,107,111,0.2)"></span>
+                <div class="flex-1 min-w-0">
+                  <p class="text-xs font-medium text-white leading-snug">Investigate Oracle connector support prior to April 21st demo</p>
+                  <div class="flex items-center gap-2 mt-1">
+                    <span class="text-[10px] text-text-secondary">[IT] Axa Italy - DQG via SDG Group</span>
+                    <span class="text-[10px] font-semibold text-status-overdue">2d overdue</span>
+                  </div>
+                </div>
+                <span class="text-[9px] font-semibold uppercase tracking-wide text-status-overdue px-1.5 py-0.5 rounded" style="background:rgba(255,107,111,0.15)">Blocked</span>
+              </div>
+            </div>
+            <div class="px-5 py-3 row-hover cursor-pointer border-b divider">
+              <div class="flex items-start gap-3">
+                <span class="mt-1 w-2 h-2 rounded-full bg-status-overdue flex-shrink-0" style="box-shadow:0 0 0 3px rgba(255,107,111,0.2)"></span>
+                <div class="flex-1 min-w-0">
+                  <p class="text-xs font-medium text-white leading-snug">Send updated DQ profiling results to Nick</p>
+                  <div class="flex items-center gap-2 mt-1">
+                    <span class="text-[10px] text-text-secondary">[ES] MAPFRE-DQG</span>
+                    <span class="text-[10px] font-semibold text-status-overdue">5d overdue</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="px-5 py-3 row-hover cursor-pointer border-b divider">
+              <div class="flex items-start gap-3">
+                <span class="mt-1 w-2 h-2 rounded-full bg-status-overdue flex-shrink-0" style="box-shadow:0 0 0 3px rgba(255,107,111,0.2)"></span>
+                <div class="flex-1 min-w-0">
+                  <p class="text-xs font-medium text-white leading-snug">Follow up with SDG Group / AXA Italy re: Oracle connectivity</p>
+                  <div class="flex items-center gap-2 mt-1">
+                    <span class="text-[10px] text-text-secondary">[IT] Axa Italy - DQG via SDG Group</span>
+                    <span class="text-[10px] font-semibold text-status-overdue">3d overdue</span>
+                  </div>
+                </div>
+                <span class="text-[9px] font-semibold uppercase tracking-wide text-brand-purple-bright px-1.5 py-0.5 rounded" style="background:rgba(156,114,248,0.15)">Next Step</span>
+              </div>
+            </div>
+            <div class="px-5 py-3 row-hover cursor-pointer border-b divider">
+              <div class="flex items-start gap-3">
+                <span class="mt-1 w-2 h-2 rounded-full bg-status-warning flex-shrink-0" style="box-shadow:0 0 0 3px rgba(255,187,51,0.2)"></span>
+                <div class="flex-1 min-w-0">
+                  <p class="text-xs font-medium text-white leading-snug">Prepare and confirm demo for April 21st</p>
+                  <div class="flex items-center gap-2 mt-1">
+                    <span class="text-[10px] text-text-secondary">[IT] Axa Italy - DQG via SDG Group</span>
+                    <span class="text-[10px] font-semibold text-status-warning">Due today</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="px-5 py-3 row-hover cursor-pointer">
+              <div class="flex items-start gap-3">
+                <span class="mt-1 w-2 h-2 rounded-full bg-status-warning flex-shrink-0" style="box-shadow:0 0 0 3px rgba(255,187,51,0.2)"></span>
+                <div class="flex-1 min-w-0">
+                  <p class="text-xs font-medium text-white leading-snug">Review RFP technical requirements section</p>
+                  <div class="flex items-center gap-2 mt-1">
+                    <span class="text-[10px] text-text-secondary">[US] HCA - DQ (Supply Chain LOB)</span>
+                    <span class="text-[10px] font-semibold text-status-warning">Due today</span>
+                  </div>
+                </div>
+                <span class="text-[9px] font-semibold uppercase tracking-wide text-brand-purple-bright px-1.5 py-0.5 rounded" style="background:rgba(156,114,248,0.15)">Next Step</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="px-5 py-2.5 border-t divider">
+            <button class="text-[11px] font-medium text-brand-purple-bright hover:text-brand-pink transition-colors">View all my tasks →</button>
+          </div>
+        </div>
+
+        <!-- PoC Alerts -->
+        <div class="surface rounded-2xl overflow-hidden">
+          <div class="px-5 py-3.5 border-b divider flex items-center gap-2">
+            <svg class="w-4 h-4 text-brand-purple-bright" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+            <h2 class="text-xs font-semibold uppercase tracking-widest text-text-secondary">PoC Alerts</h2>
+            <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style="background:rgba(156,114,248,0.15);color:#B89AFA">1</span>
+          </div>
+          <div class="px-5 py-3 row-hover cursor-pointer">
+            <div class="flex items-start gap-3">
+              <span class="mt-1 w-2 h-2 rounded-full bg-status-overdue flex-shrink-0" style="box-shadow:0 0 0 3px rgba(255,107,111,0.2)"></span>
+              <div class="flex-1 min-w-0">
+                <p class="text-xs font-medium text-white leading-snug">[IT] Axa Italy - DQG via SDG Group</p>
+                <div class="flex items-center gap-2 mt-1">
+                  <span class="text-[10px] text-text-secondary">PoC ends Apr 22</span>
+                  <span class="text-[10px] font-semibold text-status-overdue">6d left</span>
+                  <span class="text-text-muted">·</span>
+                  <span class="text-[10px] text-text-secondary">In Progress</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stale Deals -->
+        <div class="surface rounded-2xl overflow-hidden">
+          <div class="px-5 py-3.5 border-b divider flex items-center gap-2">
+            <svg class="w-4 h-4 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <h2 class="text-xs font-semibold uppercase tracking-widest text-text-secondary">Stale Deals</h2>
+            <span class="text-[10px] text-text-muted">No notes in 21+ days</span>
+          </div>
+          <div class="px-5 py-8 text-center">
+            <div class="w-10 h-10 mx-auto rounded-full flex items-center justify-center mb-2" style="background:rgba(51,237,196,0.12)">
+              <svg class="w-5 h-5 text-status-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+            </div>
+            <p class="text-xs text-text-secondary">All clear — all your deals have recent notes</p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT COLUMN -->
+      <div class="space-y-6">
+
+        <!-- AI Priority Brief -->
+        <div class="rounded-2xl overflow-hidden p-5" style="background:linear-gradient(135deg,#1E1247 0%,#2A1555 100%);border:1px solid rgba(156,114,248,0.25)">
+          <div class="flex items-center gap-2 mb-3">
+            <div class="w-6 h-6 rounded-md flex items-center justify-center" style="background:linear-gradient(135deg,#9C72F8,#F655B5)">
+              <svg class="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l2.09 6.26L20 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l5.91-1.01z"/></svg>
+            </div>
+            <h2 class="text-xs font-semibold uppercase tracking-widest text-brand-purple-bright">AI Priority Brief</h2>
+            <span class="ml-auto text-[10px] text-text-muted">Generated 12m ago</span>
+          </div>
+          <p class="text-sm text-white leading-relaxed mb-3">
+            Your biggest risk today is <span class="font-semibold text-brand-pink">Axa Italy</span> — three overdue items and a PoC closing in 6 days. Prioritize confirming Oracle connector support this morning before the 2pm demo prep.
+          </p>
+          <div class="flex items-center gap-2">
+            <button class="text-[11px] font-medium px-3 py-1.5 rounded-md text-white" style="background:rgba(156,114,248,0.3);border:1px solid rgba(156,114,248,0.4)">Open deal</button>
+            <button class="text-[11px] font-medium text-text-secondary hover:text-white">Regenerate</button>
+          </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="surface rounded-2xl overflow-hidden">
+          <div class="px-5 py-3.5 border-b divider flex items-center gap-2">
+            <svg class="w-4 h-4 text-status-info" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <h2 class="text-xs font-semibold uppercase tracking-widest text-text-secondary">Recent Activity on My Deals</h2>
+          </div>
+          <div>
+            <div class="px-5 py-3 row-hover cursor-pointer border-b divider">
+              <div class="flex items-start gap-3">
+                <div class="mt-0.5 w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0" style="background:rgba(156,114,248,0.2);color:#B89AFA">SF</div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-xs text-white leading-snug"><span class="font-medium">[US] HCA - DQ (Supply Chain LOB)</span> moved from <span class="font-medium text-brand-purple-bright">Build Value</span> → <span class="font-medium text-brand-purple-bright">Develop Solution</span></p>
+                  <span class="text-[10px] text-text-muted mt-0.5 block">Today, 8:45 AM</span>
+                </div>
+              </div>
+            </div>
+            <div class="px-5 py-3 row-hover cursor-pointer border-b divider">
+              <div class="flex items-start gap-3">
+                <div class="mt-0.5 w-6 h-6 rounded-full bg-brand-purple flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0">NS</div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-xs text-white leading-snug"><span class="font-medium">Nick Stammers</span> added a note on <span class="font-medium">[ES] MAPFRE-DQG</span></p>
+                  <p class="text-[11px] text-text-secondary mt-1 italic leading-relaxed">"Spoke with the DQ team lead — they want to see address validation working with Spanish postal format before PoC sign-off..."</p>
+                  <span class="text-[10px] text-text-muted mt-0.5 block">Yesterday, 4:12 PM</span>
+                </div>
+              </div>
+            </div>
+            <div class="px-5 py-3 row-hover cursor-pointer border-b divider">
+              <div class="flex items-start gap-3">
+                <div class="mt-0.5 w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0" style="background:rgba(246,85,181,0.2);color:#F655B5">MG</div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-xs text-white leading-snug"><span class="font-medium">Manager</span> updated comments on <span class="font-medium">[IT] Axa Italy</span></p>
+                  <p class="text-[11px] text-text-secondary mt-1 italic leading-relaxed">"Need to validate Oracle connector support before committing to PoC timeline. Escalate if engineering doesn't respond by EOD Friday."</p>
+                  <span class="text-[10px] text-text-muted mt-0.5 block">Yesterday, 2:30 PM</span>
+                </div>
+              </div>
+            </div>
+            <div class="px-5 py-3 row-hover cursor-pointer">
+              <div class="flex items-start gap-3">
+                <div class="mt-0.5 w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0" style="background:rgba(51,237,196,0.2)">
+                  <svg class="w-3 h-3 text-status-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-xs text-white leading-snug">Task completed: <span class="font-medium">Confirm Snowflake pushdown compatibility</span></p>
+                  <div class="flex items-center gap-2 mt-0.5">
+                    <span class="text-[10px] text-text-secondary">[US] Principal - Snowflake Pushdown</span>
+                    <span class="text-text-muted">·</span>
+                    <span class="text-[10px] text-text-secondary">Yesterday</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="px-5 py-2.5 border-t divider">
+            <button class="text-[11px] font-medium text-brand-purple-bright">View full activity →</button>
+          </div>
+        </div>
+
+        <!-- New Closed Lost -->
+        <div class="surface rounded-2xl overflow-hidden">
+          <div class="px-5 py-3.5 border-b divider flex items-center gap-2">
+            <svg class="w-4 h-4 text-brand-pink" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+            <h2 class="text-xs font-semibold uppercase tracking-widest text-text-secondary">New Closed Lost</h2>
+            <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style="background:rgba(246,85,181,0.15);color:#F655B5">1 unread</span>
+          </div>
+          <div class="px-5 py-3 row-hover cursor-pointer">
+            <div class="flex items-start gap-3">
+              <span class="mt-1 w-2 h-2 rounded-full bg-brand-pink flex-shrink-0" style="box-shadow:0 0 0 3px rgba(246,85,181,0.2)"></span>
+              <div class="flex-1 min-w-0">
+                <p class="text-xs font-medium text-white leading-snug">[DE] Brenntag - DQG via Deloitte</p>
+                <div class="flex items-center gap-2 mt-1">
+                  <span class="text-[10px] text-text-secondary">$111K ARR</span>
+                  <span class="text-text-muted">·</span>
+                  <span class="text-[10px] text-text-secondary">Was at Develop Solution</span>
+                  <span class="text-text-muted">·</span>
+                  <span class="text-[10px] text-text-secondary">Closed Apr 14</span>
+                </div>
+              </div>
+              <button class="text-[10px] text-text-muted hover:text-white underline">Mark read</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

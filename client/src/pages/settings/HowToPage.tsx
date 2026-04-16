@@ -651,6 +651,9 @@ export default function HowToPage() {
       </Ul>
       <P>A <em>Discard all unapplied changes</em> footer option lets you dismiss the whole list if you've looked at each and don't want to re-apply anything.</P>
 
+      <SubTitle>Connection heartbeat</SubTitle>
+      <P>While the tab is visible, the app pings the server every 45 seconds on a tiny no-content endpoint. Each successful ping keeps the indicator green; a network failure flips it to <Badge color="purple">Offline</Badge>. When a ping succeeds after being offline, any queued writes flush automatically — so a laptop that slept with pending edits picks up where it left off within ~45 seconds of reconnecting, even if you never click back into the tab. Paused while the tab is hidden to save battery.</P>
+
       <SubTitle>Installable app (optional)</SubTitle>
       <P>Chrome and Edge will show an <em>Install app</em> prompt in the address bar. Installing is optional and doesn't change any behaviour — it just puts the app in its own window with the Ataccama symbol, no address bar, and a dedicated taskbar / dock icon. Uninstall from your OS like any other app.</P>
 
