@@ -38,13 +38,17 @@ router.patch('/:id', auth, write, async (req: Request, res: Response): Promise<v
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json(err('Invalid task id')); return; }
 
-  const { title, description, status, is_next_step, due_date, assigned_to_id } = req.body as {
+  const {
+    title, description, status, is_next_step, due_date, assigned_to_id,
+    expected_updated_at,
+  } = req.body as {
     title?: string;
     description?: string;
     status?: string;
     is_next_step?: boolean;
     due_date?: string | null;
     assigned_to_id?: number | null;
+    expected_updated_at?: string | null;
   };
 
   const VALID_STATUSES = new Set(['open', 'in_progress', 'done', 'blocked']);
@@ -58,6 +62,29 @@ router.patch('/:id', auth, write, async (req: Request, res: Response): Promise<v
     [id]
   );
   if (!existing) { res.status(404).json(err('Task not found')); return; }
+
+  // Optimistic-concurrency version guard (Issue #117 Phase 2). When the
+  // client is replaying a task edit queued offline, it sends the updated_at
+  // it saw at the time. Reject with 409 if the row has moved.
+  if (expected_updated_at) {
+    const currentIso = new Date(existing.updated_at as string).toISOString();
+    const expectedIso = new Date(expected_updated_at).toISOString();
+    if (currentIso !== expectedIso) {
+      // Find who last touched it so the review UI can attribute the conflict.
+      const lastActor = await queryOne<{ name: string }>(
+        `SELECT u.name FROM audit_log a JOIN users u ON u.id = a.user_id
+         WHERE a.resource_type = 'task' AND a.resource_id = $1
+         ORDER BY a.timestamp DESC LIMIT 1`,
+        [id],
+      );
+      res.status(409).json(err('Task has changed since you queued this edit', {
+        task_id: id,
+        current: existing,
+        last_modified_by: lastActor,
+      }));
+      return;
+    }
+  }
 
   const updated = await queryOne(
     `UPDATE tasks SET

@@ -42,6 +42,13 @@ export function ok<T>(data: T, meta: Record<string, unknown> = {}): ApiResponse<
   return { data, error: null, meta };
 }
 
-export function err(message: string): ApiResponse<null> {
-  return { data: null, error: message, meta: {} };
+export function err(
+  message: string,
+  data: unknown = null,
+): ApiResponse<unknown> {
+  // Optional `data` payload for richer error responses (e.g. 409 conflict
+  // where the client needs to see the current server state so the Review
+  // Offline Changes screen can render "you tried X; it's now Y"). Defaults
+  // to null to preserve the original shape for every existing caller.
+  return { data, error: message, meta: {} };
 }

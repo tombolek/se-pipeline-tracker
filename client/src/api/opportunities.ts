@@ -5,6 +5,7 @@ import {
   putOppDetail, getCachedOppDetail,
   putFavoriteIds, getCachedFavoriteIds,
 } from '../offline/cache';
+import { enqueue } from '../offline/queue';
 
 export interface OpportunityListParams {
   stage?: string;
@@ -132,9 +133,40 @@ export async function getOpportunity(idOrSfId: number | string): Promise<Opportu
   return result.data;
 }
 
-export async function assignSeOwner(id: number, seOwnerId: number | null): Promise<Opportunity> {
-  const { data } = await api.patch<ApiResponse<Opportunity>>(`/opportunities/${id}`, { se_owner_id: seOwnerId });
-  return data.data;
+export async function assignSeOwner(
+  id: number,
+  seOwnerId: number | null,
+  opts: { expectedUpdatedAt?: string | null; opportunityName?: string } = {},
+): Promise<Opportunity> {
+  try {
+    const { data } = await api.patch<ApiResponse<Opportunity>>(`/opportunities/${id}`, {
+      se_owner_id: seOwnerId,
+      ...(opts.expectedUpdatedAt ? { expected_updated_at: opts.expectedUpdatedAt } : {}),
+    });
+    return data.data;
+  } catch (e) {
+    if (isNetworkErrorAxios(e)) {
+      // Queue the reassign with its version guard (Issue #117 Phase 2).
+      await enqueue({
+        kind: 'reassign',
+        opportunity_id: id,
+        opportunity_name: opts.opportunityName ?? `Opportunity #${id}`,
+        payload: { se_owner_id: seOwnerId },
+        expected_updated_at: opts.expectedUpdatedAt ?? null,
+      });
+      // Optimistic echo — caller typically calls reload() right after.
+      return { id, se_owner_id: seOwnerId } as unknown as Opportunity;
+    }
+    throw e;
+  }
+}
+
+function isNetworkErrorAxios(e: unknown): boolean {
+  const msg = (e as { message?: string })?.message ?? '';
+  const code = (e as { code?: string })?.code ?? '';
+  if (code === 'ERR_NETWORK' || code === 'ECONNABORTED') return true;
+  if (msg === 'Network Error') return true;
+  return false;
 }
 
 // ── Bulk actions (Issue #115) ───────────────────────────────────────────────

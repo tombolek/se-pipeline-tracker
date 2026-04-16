@@ -1385,7 +1385,13 @@ router.patch('/:id', auth, write, async (req: Request, res: Response): Promise<v
   if (isNaN(id)) { res.status(400).json(err('Invalid opportunity id')); return; }
 
   const user = (req as AuthenticatedRequest).user!;
-  const { se_owner_id } = req.body as { se_owner_id?: number | null };
+  const {
+    se_owner_id,
+    expected_updated_at,
+  } = req.body as {
+    se_owner_id?: number | null;
+    expected_updated_at?: string | null;
+  };
 
   // Validate target user is an active SE (when assigning)
   if (se_owner_id != null) {
@@ -1413,9 +1419,38 @@ router.patch('/:id', auth, write, async (req: Request, res: Response): Promise<v
 
   // Capture the previous owner BEFORE the update so we can record assignment
   // history for the undo feature (Issue #114).
-  const prev = await queryOne<{ se_owner_id: number | null; name: string }>(
-    'SELECT se_owner_id, name FROM opportunities WHERE id = $1', [id],
+  const prev = await queryOne<{ se_owner_id: number | null; name: string; updated_at: string }>(
+    'SELECT se_owner_id, name, updated_at FROM opportunities WHERE id = $1', [id],
   );
+
+  // Optimistic-concurrency version guard (Issue #117 Phase 2). When the
+  // client is replaying a reassign that was queued offline, it sends the
+  // updated_at it saw at the time. If the row has changed since, we reject
+  // with 409 Conflict and return the current server state so the client's
+  // conflict-review UI can explain what happened.
+  if (prev && expected_updated_at) {
+    const currentIso = new Date(prev.updated_at).toISOString();
+    const expectedIso = new Date(expected_updated_at).toISOString();
+    if (currentIso !== expectedIso) {
+      // Enrich with current se_owner + last_modified_by for the review UI.
+      const currentOwner = prev.se_owner_id
+        ? await queryOne<{ id: number; name: string; email: string }>(
+            'SELECT id, name, email FROM users WHERE id = $1', [prev.se_owner_id])
+        : null;
+      const lastActor = await queryOne<{ name: string }>(
+        `SELECT u.name FROM se_assignment_history h JOIN users u ON u.id = h.changed_by_id
+         WHERE h.opportunity_id = $1 ORDER BY h.changed_at DESC LIMIT 1`,
+        [id],
+      );
+      res.status(409).json(err('Opportunity has changed since you queued this edit', {
+        opportunity_id: id,
+        se_owner: currentOwner,
+        updated_at: currentIso,
+        last_modified_by: lastActor,
+      }));
+      return;
+    }
+  }
 
   const updated = await queryOne<Record<string, unknown>>(
     `UPDATE opportunities SET se_owner_id = $1, updated_at = now()
