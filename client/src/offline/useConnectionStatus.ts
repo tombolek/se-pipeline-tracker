@@ -74,3 +74,18 @@ if (typeof window !== 'undefined') {
   window.addEventListener('online',  () => { markOnline(); });
   window.addEventListener('offline', () => { markOffline(); });
 }
+
+// ── Reconnect → auto-flush ──────────────────────────────────────────────────
+// When the app transitions from offline to online, replay any queued writes.
+// Imported dynamically to avoid a circular dependency with flushHandler which
+// reads this module's setSyncing.
+let wasOffline = !state.online;
+listeners.add(() => {
+  if (wasOffline && state.online) {
+    wasOffline = false;
+    // Fire-and-forget; errors are caught inside runFlush.
+    void import('./flushHandler').then(m => m.runFlush());
+  } else if (!state.online) {
+    wasOffline = true;
+  }
+});

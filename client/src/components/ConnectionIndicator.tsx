@@ -11,6 +11,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { useConnectionStatus } from '../offline/useConnectionStatus';
+import { useOfflineQueue } from '../offline/useOfflineQueue';
 
 function timeAgo(ms: number): string {
   const mins = Math.round((Date.now() - ms) / 60000);
@@ -23,6 +24,7 @@ function timeAgo(ms: number): string {
 
 export default function ConnectionIndicator() {
   const { online, syncing, lastSync } = useConnectionStatus();
+  const { pending, conflicts } = useOfflineQueue();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -43,6 +45,7 @@ export default function ConnectionIndicator() {
   }, [open]);
 
   const stale = online && lastSync !== null && Date.now() - lastSync > 5 * 60_000;
+  const hasQueue = pending > 0 || conflicts > 0;
 
   let dotClass = 'bg-status-success';
   let label = 'Live';
@@ -54,9 +57,15 @@ export default function ConnectionIndicator() {
   } else if (syncing) {
     dotClass = 'bg-brand-purple-70 animate-pulse';
     label = 'Syncing…';
+    clickable = true;
   } else if (stale && lastSync !== null) {
     dotClass = 'bg-status-warning';
     label = `Cached ${timeAgo(lastSync)}`;
+    clickable = true;
+  } else if (hasQueue) {
+    // Online, but still has unresolved queued items — make it visible.
+    dotClass = 'bg-status-warning';
+    label = 'Pending sync';
     clickable = true;
   }
 
@@ -72,6 +81,11 @@ export default function ConnectionIndicator() {
       >
         <span className={`w-2 h-2 rounded-full flex-shrink-0 ${dotClass} ring-2 ring-white/10`} />
         <span className={online ? 'text-white/70' : 'text-white font-medium'}>{label}</span>
+        {hasQueue && (
+          <span className="text-[10px] font-semibold text-white bg-status-warning/80 px-1.5 py-0.5 rounded-full">
+            {pending + conflicts}
+          </span>
+        )}
         {clickable && (
           <svg className="w-3 h-3 ml-auto text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
@@ -84,7 +98,7 @@ export default function ConnectionIndicator() {
           <div className="px-4 py-3 bg-brand-purple/[0.04] border-b border-brand-navy-30/40">
             <p className="text-xs font-semibold flex items-center gap-2">
               <span className={`w-2 h-2 rounded-full ${dotClass}`} />
-              {online ? (stale ? 'Cached data' : 'Online') : "You're offline"}
+              {online ? (stale ? 'Cached data' : syncing ? 'Syncing…' : 'Online') : "You're offline"}
             </p>
             <p className="text-[11px] text-brand-navy-70 mt-0.5">
               {lastSync !== null
@@ -92,6 +106,21 @@ export default function ConnectionIndicator() {
                 : 'No successful sync yet'}
             </p>
           </div>
+          {(pending > 0 || conflicts > 0) && (
+            <div className="px-4 py-3 border-b border-brand-navy-30/40">
+              {pending > 0 && (
+                <p className="text-[11px] text-brand-navy-70">
+                  <span className="font-semibold text-brand-navy">{pending} pending</span>
+                  {' '}{pending === 1 ? 'change is' : 'changes are'} queued and will sync when you reconnect.
+                </p>
+              )}
+              {conflicts > 0 && (
+                <p className="text-[11px] text-status-overdue mt-1">
+                  <span className="font-semibold">{conflicts} {conflicts === 1 ? 'change needs' : 'changes need'} review.</span>
+                </p>
+              )}
+            </div>
+          )}
           <div className="px-4 py-2.5 border-t border-brand-navy-30/40 flex items-center justify-between bg-gray-50">
             <button
               onClick={() => { setOpen(false); window.location.reload(); }}

@@ -19,6 +19,7 @@ import { usePageTracking } from './hooks/useTracking';
 import OfflineBanner from './components/OfflineBanner';
 import OfflineSimBadge from './components/OfflineSimBadge';
 import { requestPersistentStorage } from './offline/db';
+import { runFlush } from './offline/flushHandler';
 
 function AppShell({ children }: { children: React.ReactNode }) {
   const openQuickCapture = usePipelineStore((s) => s.openQuickCapture);
@@ -57,6 +58,10 @@ function AuthInit({ children }: { children: React.ReactNode }) {
     // Ask the browser to not evict our IDB cache under disk pressure.
     // No-op on unsupported browsers; silent if already persistent.
     void requestPersistentStorage();
+    // Drain any writes queued in a previous session. Safe when the queue
+    // is empty; safe if we're still offline (flush will fail transiently
+    // and leave everything intact).
+    void runFlush();
   }, [checkAuth]);
   return <>{children}</>;
 }
