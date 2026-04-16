@@ -12,6 +12,8 @@ import StageBadge from '../../components/shared/StageBadge';
 import SortableHeader from '../../components/shared/SortableHeader';
 import MultiSelectFilter from '../../components/shared/MultiSelectFilter';
 import { sortRows, type SortDir, type ColType } from '../../utils/sortRows';
+import OfflineUnavailable from '../../components/OfflineUnavailable';
+import { useConnectionStatus } from '../../offline/useConnectionStatus';
 
 interface RfxOpp {
   id: number;
@@ -154,6 +156,7 @@ export default function RfxBoardPage() {
   const [opps, setOpps]       = useState<RfxOpp[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState<string | null>(null);
+  const { online } = useConnectionStatus();
   const { filterOppUnion, isOutOfTerritory, teamNames } = useTeamScope();
   const [selectedId, setSelectedId] = useState<number | null>(null);
   useOppUrlSync(selectedId, setSelectedId);
@@ -231,6 +234,7 @@ export default function RfxBoardPage() {
   const closedCount = scopedOpps.filter(o => o.is_closed_lost).length;
 
   if (loading) return <div className="flex items-center justify-center h-full text-sm text-brand-navy-70">Loading…</div>;
+  if (error && !online) return <OfflineUnavailable label="RFx Board" />;
   if (error)   return <div className="px-8 py-6 text-sm text-status-overdue">{error}</div>;
 
   return (

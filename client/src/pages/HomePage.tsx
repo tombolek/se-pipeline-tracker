@@ -9,6 +9,8 @@ import Drawer from '../components/Drawer';
 import OpportunityDetail from '../components/OpportunityDetail';
 import { useOppUrlSync } from '../hooks/useOppUrlSync';
 import { listMentions, markMentionsRead, type MentionFeedItem } from '../api/mentions';
+import { setMeta, getMeta } from '../offline/db';
+import OfflineUnavailable from '../components/OfflineUnavailable';
 
 interface DigestTask {
   id: number; title: string; status: string; due_date: string | null;
@@ -163,9 +165,15 @@ export default function HomePage() {
   const mentionsMarkedRef = useRef(false);
 
   useEffect(() => {
+    // Digest (Issue #117): write-through cache. The aggregation call is
+    // server-only — no per-entity fallback — so we stash the last successful
+    // response under meta:home_digest and serve it when offline.
     api.get<ApiResponse<DigestData>>('/home/digest')
-      .then(r => setData(r.data.data))
-      .catch(err => console.error('Digest load failed:', err))
+      .then(r => { setData(r.data.data); void setMeta('home_digest', r.data.data); })
+      .catch(async () => {
+        const cached = await getMeta<DigestData>('home_digest');
+        if (cached) setData(cached);
+      })
       .finally(() => setLoading(false));
     listOpportunities({ include_qualify: true, limit: 2000 })
       .then(setAllOpps)
@@ -241,7 +249,14 @@ export default function HomePage() {
     return <div className="flex items-center justify-center flex-1 text-sm text-brand-navy-70">Loading your daily digest...</div>;
   }
   if (!data) {
-    return <div className="flex items-center justify-center flex-1 text-sm text-status-overdue">Failed to load digest. Please refresh.</div>;
+    // Offline + no cached digest → graceful empty state instead of the scary
+    // red error banner. (Issue #117)
+    return (
+      <OfflineUnavailable
+        label="Home"
+        hint="You're offline and the daily digest hasn't been loaded yet in this browser. Your favorited deals are still browsable via the sidebar — open Favorites to pick up where you left off."
+      />
+    );
   }
 
   const firstName = user?.name?.split(' ')[0] ?? 'there';

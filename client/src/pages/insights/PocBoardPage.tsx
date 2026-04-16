@@ -8,6 +8,8 @@ import { formatDate, formatARR } from '../../utils/formatters';
 import Drawer from '../../components/Drawer';
 import OpportunityDetail from '../../components/OpportunityDetail';
 import { useOppUrlSync } from '../../hooks/useOppUrlSync';
+import OfflineUnavailable from '../../components/OfflineUnavailable';
+import { useConnectionStatus } from '../../offline/useConnectionStatus';
 
 interface PocOpp {
   id: number;
@@ -237,6 +239,7 @@ export default function PocBoardPage() {
   const [filterSe, setFilterSe]             = useState('');
   const [filterPocType, setFilterPocType]   = useState('');
   const [filterDeployType, setFilterDeployType] = useState('');
+  const { online } = useConnectionStatus();
 
   useEffect(() => {
     api.get<ApiResponse<PocOpp[]>>('/insights/poc')
@@ -289,6 +292,7 @@ export default function PocBoardPage() {
   const closedCount = filteredOpps.filter(o => o.is_closed_lost).length;
 
   if (loading) return <div className="flex items-center justify-center h-full text-sm text-brand-navy-70">Loading…</div>;
+  if (error && !online) return <OfflineUnavailable label="PoC Board" />;
   if (error)   return <div className="px-8 py-6 text-sm text-status-overdue">{error}</div>;
 
   return (

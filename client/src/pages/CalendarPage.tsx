@@ -7,6 +7,9 @@ import TeamScopeSelector from '../components/shared/TeamScopeSelector';
 import Drawer from '../components/Drawer';
 import OpportunityDetail from '../components/OpportunityDetail';
 import { useOppUrlSync } from '../hooks/useOppUrlSync';
+import OfflineUnavailable from '../components/OfflineUnavailable';
+import { useConnectionStatus } from '../offline/useConnectionStatus';
+import { setMeta, getMeta } from '../offline/db';
 
 // ── Raw API types ─────────────────────────────────────────────────────────────
 
@@ -523,12 +526,20 @@ export default function CalendarPage() {
   const [draggingTaskId, setDraggingTaskId] = useState<number | null>(null);
 
   const { filterOppUnion, isOutOfTerritory, teamNames } = useTeamScope();
+  const { online } = useConnectionStatus();
 
+  const [loadError, setLoadError] = useState(false);
   useEffect(() => {
     setLoading(true);
+    setLoadError(false);
     api.get<ApiResponse<CalendarData>>('/insights/calendar')
-      .then(r => setData(r.data.data))
-      .catch(() => {})
+      .then(r => { setData(r.data.data); void setMeta('calendar_data', r.data.data); })
+      .catch(async () => {
+        // Offline fallback (Issue #117) — serve last successful response if we have one.
+        const cached = await getMeta<CalendarData>('calendar_data');
+        if (cached) setData(cached);
+        else setLoadError(true);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -636,6 +647,8 @@ export default function CalendarPage() {
   };
 
   const is1m = viewMode === '1m';
+
+  if (loadError && !online) return <OfflineUnavailable label="Calendar" />;
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-white min-h-0 max-h-[95vh]">

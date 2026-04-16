@@ -13,6 +13,8 @@ import Drawer from '../../components/Drawer';
 import OpportunityDetail from '../../components/OpportunityDetail';
 import { useAuthStore } from '../../store/auth';
 import { useOppUrlSync } from '../../hooks/useOppUrlSync';
+import OfflineUnavailable from '../../components/OfflineUnavailable';
+import { useConnectionStatus } from '../../offline/useConnectionStatus';
 
 // se_owner is pinned as an interactive select — exclude it from the picker
 const SE_OWNER_KEY = 'se_owner';
@@ -259,6 +261,8 @@ export default function SeDealMappingPage() {
   const [opps, setOpps] = useState<Opportunity[]>([]);
   const [ses, setSes] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const { online } = useConnectionStatus();
   const defaultFilter: number | 'unassigned' | 'all' =
     currentUser?.role === 'se' && currentUser.id ? currentUser.id : 'all';
   const [filterSe, setFilterSe] = useState<number | 'unassigned' | 'all'>(defaultFilter);
@@ -277,20 +281,26 @@ export default function SeDealMappingPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [oppsRes, usersRes] = await Promise.all([
-      api.get<ApiResponse<Opportunity[]>>('/opportunities?include_qualify=true&sort=close_date'),
-      listUsers(),
-    ]);
-    setOpps(oppsRes.data.data);
-    const activeUsers = usersRes.filter(u => u.is_active);
-    const seList = activeUsers.filter(u => u.role === 'se');
-    // Always include the current user so they can self-assign regardless of role
-    if (currentUser && !seList.some(u => u.id === currentUser.id)) {
-      const me = activeUsers.find(u => u.id === currentUser.id);
-      if (me) seList.push(me);
+    setLoadError(false);
+    try {
+      const [oppsRes, usersRes] = await Promise.all([
+        api.get<ApiResponse<Opportunity[]>>('/opportunities?include_qualify=true&sort=close_date'),
+        listUsers(),
+      ]);
+      setOpps(oppsRes.data.data);
+      const activeUsers = usersRes.filter(u => u.is_active);
+      const seList = activeUsers.filter(u => u.role === 'se');
+      // Always include the current user so they can self-assign regardless of role
+      if (currentUser && !seList.some(u => u.id === currentUser.id)) {
+        const me = activeUsers.find(u => u.id === currentUser.id);
+        if (me) seList.push(me);
+      }
+      setSes(seList);
+    } catch {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
     }
-    setSes(seList);
-    setLoading(false);
   }, [currentUser]);
 
   useEffect(() => { load(); }, [load]);
@@ -397,6 +407,8 @@ export default function SeDealMappingPage() {
   function oppsForColumn(seId: number | null) {
     return filtered.filter(o => (o.se_owner?.id ?? null) === seId);
   }
+
+  if (loadError && !online) return <OfflineUnavailable label="SE Deal Mapping" />;
 
   return (
     <div className="flex flex-col h-full relative overflow-hidden">
