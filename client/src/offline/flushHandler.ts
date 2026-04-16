@@ -101,6 +101,9 @@ export const handleQueuedWrite: FlushHandler = async (w: QueuedWrite) => {
 /**
  * Drive a flush cycle with the correct sidebar state. Safe to call
  * concurrently — the sync flag flicks off once flushing actually finishes.
+ *
+ * Dispatches a custom `offline-flush-complete` event on window so the App
+ * can surface a toast with counts (successes / conflicts) after reconnect.
  */
 let flushing = false;
 export async function runFlush(): Promise<void> {
@@ -108,7 +111,10 @@ export async function runFlush(): Promise<void> {
   flushing = true;
   setSyncing(true);
   try {
-    await flushQueue(handleQueuedWrite);
+    const result = await flushQueue(handleQueuedWrite);
+    if (result.succeeded > 0 || result.conflicts > 0) {
+      window.dispatchEvent(new CustomEvent('offline-flush-complete', { detail: result }));
+    }
   } finally {
     flushing = false;
     setSyncing(false);

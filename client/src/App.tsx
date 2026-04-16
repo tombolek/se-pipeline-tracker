@@ -13,11 +13,13 @@ import QuickCapture from './components/QuickCapture';
 import HomePage from './pages/HomePage';
 import SettingsPage from './pages/SettingsPage';
 import AuditPage from './pages/AuditPage';
+import ReviewOfflineChangesPage from './pages/ReviewOfflineChangesPage';
 import { useAuthStore } from './store/auth';
 import { usePipelineStore } from './store/pipeline';
 import { usePageTracking } from './hooks/useTracking';
 import OfflineBanner from './components/OfflineBanner';
 import OfflineSimBadge from './components/OfflineSimBadge';
+import ReconnectToast from './components/ReconnectToast';
 import { requestPersistentStorage } from './offline/db';
 import { runFlush } from './offline/flushHandler';
 
@@ -46,6 +48,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
         {children}
       </main>
       <QuickCapture />
+      <ReconnectToast />
     </div>
   );
 }
@@ -90,6 +93,7 @@ export default function App() {
             <Route path="/insights/*" element={<AppShell><InsightsPage /></AppShell>} />
             <Route path="/settings/*" element={<AppShell><SettingsPage /></AppShell>} />
             <Route path="/audit"      element={<AppShell><AuditPage /></AppShell>} />
+            <Route path="/review-offline-changes" element={<AppShell><ReviewOfflineChangesPage /></AppShell>} />
             <Route path="/" element={<Navigate to="/home" replace />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />

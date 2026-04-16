@@ -15,6 +15,9 @@
  */
 import { getDb, type QueuedWrite, type ConflictRecord } from './db';
 
+// Re-export so callers can import these types from the queue module alone.
+export type { QueuedWrite, ConflictRecord };
+
 const listeners = new Set<() => void>();
 
 function emit() { for (const l of listeners) l(); }

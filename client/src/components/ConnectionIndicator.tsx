@@ -10,6 +10,7 @@
  * still online — a soft hint that a refresh wouldn't hurt, not an error.
  */
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useConnectionStatus } from '../offline/useConnectionStatus';
 import { useOfflineQueue } from '../offline/useOfflineQueue';
 
@@ -27,6 +28,7 @@ export default function ConnectionIndicator() {
   const { pending, conflicts } = useOfflineQueue();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
   // Force a tick every 60s so "Cached Nm ago" keeps advancing.
   const [, setTick] = useState(0);
@@ -115,9 +117,13 @@ export default function ConnectionIndicator() {
                 </p>
               )}
               {conflicts > 0 && (
-                <p className="text-[11px] text-status-overdue mt-1">
-                  <span className="font-semibold">{conflicts} {conflicts === 1 ? 'change needs' : 'changes need'} review.</span>
-                </p>
+                <button
+                  type="button"
+                  onClick={() => { setOpen(false); navigate('/review-offline-changes'); }}
+                  className="text-[11px] text-status-overdue mt-1 text-left hover:underline block w-full"
+                >
+                  <span className="font-semibold">{conflicts} {conflicts === 1 ? 'change needs' : 'changes need'} review</span> →
+                </button>
               )}
             </div>
           )}
