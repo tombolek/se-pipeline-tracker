@@ -24,6 +24,7 @@ const SETTINGS_NAV = [
   { to: '/settings/quotas',       label: 'Quotas',           icon: QuotasIcon  },
   { to: '/settings/templates',    label: 'Templates',        icon: TemplatesIcon },
   { to: '/settings/role-access',  label: 'Role Access',      icon: RoleAccessIcon },
+  { to: '/settings/developer',    label: 'Developer',        icon: InsightIcon },
 ];
 
 function MainNavIcon({ icon }: { icon: MainNavItem['icon'] }) {

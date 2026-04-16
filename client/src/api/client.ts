@@ -1,12 +1,20 @@
 import axios from 'axios';
 import { markOnline, markOffline } from '../offline/useConnectionStatus';
+import { isOfflineSimEnabled, SimulatedOfflineError } from '../offline/offlineSim';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:3001/api/v1',
 });
 
-// Attach JWT token + session ID to every request
+// Attach JWT token + session ID to every request. Also: if the dev offline
+// simulation toggle is on (Settings → Developer), short-circuit every request
+// with a synthetic Network Error so the offline codepaths exercise end-to-end
+// without needing to actually disconnect from the VPN.
 api.interceptors.request.use((config) => {
+  if (isOfflineSimEnabled()) {
+    markOffline();
+    throw new SimulatedOfflineError();
+  }
   const token     = localStorage.getItem('token');
   const sessionId = sessionStorage.getItem('sessionId');
   if (token)     config.headers.Authorization  = `Bearer ${token}`;

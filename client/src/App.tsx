@@ -17,6 +17,7 @@ import { useAuthStore } from './store/auth';
 import { usePipelineStore } from './store/pipeline';
 import { usePageTracking } from './hooks/useTracking';
 import OfflineBanner from './components/OfflineBanner';
+import OfflineSimBadge from './components/OfflineSimBadge';
 import { requestPersistentStorage } from './offline/db';
 
 function AppShell({ children }: { children: React.ReactNode }) {
@@ -44,6 +45,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
         {children}
       </main>
       <QuickCapture />
+      <OfflineSimBadge />
     </div>
   );
 }
