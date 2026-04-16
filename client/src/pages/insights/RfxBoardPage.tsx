@@ -14,6 +14,7 @@ import MultiSelectFilter from '../../components/shared/MultiSelectFilter';
 import { sortRows, type SortDir, type ColType } from '../../utils/sortRows';
 import OfflineUnavailable from '../../components/OfflineUnavailable';
 import { useConnectionStatus } from '../../offline/useConnectionStatus';
+import { setMeta, getMeta } from '../../offline/db';
 
 interface RfxOpp {
   id: number;
@@ -180,9 +181,14 @@ export default function RfxBoardPage() {
   }
 
   useEffect(() => {
+    // Write-through cache (Issue #117) — same pattern as Calendar + PoC Board.
     api.get<ApiResponse<RfxOpp[]>>('/insights/rfx')
-      .then(r => setOpps(r.data.data))
-      .catch(() => setError('Failed to load RFx data.'))
+      .then(r => { setOpps(r.data.data); void setMeta('rfx_board', r.data.data); })
+      .catch(async () => {
+        const cached = await getMeta<RfxOpp[]>('rfx_board');
+        if (cached && cached.length > 0) setOpps(cached);
+        else setError('Failed to load RFx data.');
+      })
       .finally(() => setLoading(false));
   }, []);
 

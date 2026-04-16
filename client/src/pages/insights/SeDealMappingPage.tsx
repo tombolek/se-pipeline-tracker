@@ -15,6 +15,7 @@ import { useAuthStore } from '../../store/auth';
 import { useOppUrlSync } from '../../hooks/useOppUrlSync';
 import OfflineUnavailable from '../../components/OfflineUnavailable';
 import { useConnectionStatus } from '../../offline/useConnectionStatus';
+import { setMeta, getMeta } from '../../offline/db';
 
 // se_owner is pinned as an interactive select — exclude it from the picker
 const SE_OWNER_KEY = 'se_owner';
@@ -288,6 +289,7 @@ export default function SeDealMappingPage() {
         listUsers(),
       ]);
       setOpps(oppsRes.data.data);
+      void setMeta('se_mapping_opps', oppsRes.data.data);
       const activeUsers = usersRes.filter(u => u.is_active);
       const seList = activeUsers.filter(u => u.role === 'se');
       // Always include the current user so they can self-assign regardless of role
@@ -297,7 +299,25 @@ export default function SeDealMappingPage() {
       }
       setSes(seList);
     } catch {
-      setLoadError(true);
+      // Offline fallback (Issue #117). Reuse the cached opps list if we
+      // have one from a previous online visit. listUsers() is already
+      // cache-aware so it doesn't need a separate fallback path here.
+      const cachedOpps = await getMeta<Opportunity[]>('se_mapping_opps');
+      if (cachedOpps && cachedOpps.length > 0) {
+        setOpps(cachedOpps);
+        try {
+          const users = await listUsers();
+          const active = users.filter(u => u.is_active);
+          const seList = active.filter(u => u.role === 'se');
+          if (currentUser && !seList.some(u => u.id === currentUser.id)) {
+            const me = active.find(u => u.id === currentUser.id);
+            if (me) seList.push(me);
+          }
+          setSes(seList);
+        } catch { /* users list will be empty; rows still render */ }
+      } else {
+        setLoadError(true);
+      }
     } finally {
       setLoading(false);
     }

@@ -10,6 +10,7 @@ import OpportunityDetail from '../../components/OpportunityDetail';
 import { useOppUrlSync } from '../../hooks/useOppUrlSync';
 import OfflineUnavailable from '../../components/OfflineUnavailable';
 import { useConnectionStatus } from '../../offline/useConnectionStatus';
+import { setMeta, getMeta } from '../../offline/db';
 
 interface PocOpp {
   id: number;
@@ -242,9 +243,15 @@ export default function PocBoardPage() {
   const { online } = useConnectionStatus();
 
   useEffect(() => {
+    // Write-through cache (Issue #117). Mirror the response into IDB so
+    // visiting the page once online leaves a copy available for offline use.
     api.get<ApiResponse<PocOpp[]>>('/insights/poc')
-      .then(r => setOpps(r.data.data))
-      .catch(() => setError('Failed to load PoC data.'))
+      .then(r => { setOpps(r.data.data); void setMeta('poc_board', r.data.data); })
+      .catch(async () => {
+        const cached = await getMeta<PocOpp[]>('poc_board');
+        if (cached && cached.length > 0) setOpps(cached);
+        else setError('Failed to load PoC data.');
+      })
       .finally(() => setLoading(false));
   }, []);
 
