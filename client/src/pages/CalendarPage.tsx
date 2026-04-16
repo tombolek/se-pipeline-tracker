@@ -200,7 +200,8 @@ function normalizePoc(p: CalPoc): CalEvent | null {
   };
 }
 
-function normalizeRfp(r: CalRfp): CalEvent {
+function normalizeRfp(r: CalRfp): CalEvent | null {
+  if (!r.rfx_submission_date) return null;
   const d = parseLocalDate(r.rfx_submission_date);
   return {
     id: `rfp-${r.id}`, type: 'rfp', start: d, end: d, isMultiDay: false,
@@ -214,7 +215,8 @@ function normalizeRfp(r: CalRfp): CalEvent {
   };
 }
 
-function normalizeTask(t: CalTask): CalEvent {
+function normalizeTask(t: CalTask): CalEvent | null {
+  if (!t.due_date) return null;
   const d = parseLocalDate(t.due_date);
   return {
     id: `task-${t.id}`, type: 'task', start: d, end: d, isMultiDay: false,
@@ -562,8 +564,8 @@ export default function CalendarPage() {
   const allEvents = useMemo<CalEvent[]>(() => {
     const evts: CalEvent[] = [];
     if (types.has('poc'))  data.pocs.forEach(p  => { const e = normalizePoc(p);  if (e) evts.push(e); });
-    if (types.has('rfp'))  data.rfps.forEach(r  => evts.push(normalizeRfp(r)));
-    if (types.has('task')) data.tasks.forEach(t => evts.push(normalizeTask(t)));
+    if (types.has('rfp'))  data.rfps.forEach(r  => { const e = normalizeRfp(r);  if (e) evts.push(e); });
+    if (types.has('task')) data.tasks.forEach(t => { const e = normalizeTask(t); if (e) evts.push(e); });
     return evts;
   }, [data, types]);
 
