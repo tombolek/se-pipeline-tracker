@@ -3,6 +3,7 @@ import type { User } from '../types';
 import { login as apiLogin, logout as apiLogout, getMe } from '../api/auth';
 import { getMyRoleAccess } from '../api/settings';
 import { clearAll as clearOfflineCache } from '../offline/db';
+import { startHeartbeat, stopHeartbeat } from '../offline/heartbeat';
 
 interface AuthState {
   user: User | null;
@@ -36,6 +37,10 @@ export const useAuthStore = create<AuthState>((set) => ({
       // Fetch allowed pages after login
       const allowedPages = await getMyRoleAccess().catch(() => [] as string[]);
       set({ token, user, sessionId, allowedPages, isLoading: false });
+      // Re-start the heartbeat after login. Logout stops it, and a
+      // same-tab login-after-logout needs to pick the poll back up.
+      // Idempotent — safe if already running.
+      startHeartbeat();
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { error?: string } } })?.response?.data?.error
@@ -46,6 +51,9 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   logout: async () => {
+    // Stop the offline heartbeat before clearing credentials so we don't
+    // fire one last ping mid-teardown. (Issue #117 Phase 3.1)
+    stopHeartbeat();
     await apiLogout().catch(() => {});
     localStorage.removeItem('token');
     sessionStorage.removeItem('sessionId');

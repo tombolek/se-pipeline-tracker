@@ -23,6 +23,7 @@ import OfflineSimBadge from './components/OfflineSimBadge';
 import ReconnectToast from './components/ReconnectToast';
 import { requestPersistentStorage } from './offline/db';
 import { runFlush } from './offline/flushHandler';
+import { startHeartbeat } from './offline/heartbeat';
 
 function AppShell({ children }: { children: React.ReactNode }) {
   const openQuickCapture = usePipelineStore((s) => s.openQuickCapture);
@@ -61,7 +62,14 @@ function AppShell({ children }: { children: React.ReactNode }) {
 function AuthInit({ children }: { children: React.ReactNode }) {
   const checkAuth = useAuthStore((s) => s.checkAuth);
   useEffect(() => {
-    checkAuth();
+    // Check auth first, then start the 45-second offline heartbeat
+    // (Phase 3.1). The ping endpoint is unauthenticated so it's fine to
+    // start even if checkAuth ends with user=null (e.g. on /login) — the
+    // indicator still reflects real network state in that case.
+    void (async () => {
+      await checkAuth();
+      startHeartbeat();
+    })();
     // Ask the browser to not evict our IDB cache under disk pressure.
     // No-op on unsupported browsers; silent if already persistent.
     void requestPersistentStorage();

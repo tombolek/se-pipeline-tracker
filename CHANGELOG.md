@@ -7,6 +7,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## 2026-04-17
 
+### Added
+- **Offline heartbeat (Phase 3.1)** — the client now pings a new `GET /api/v1/ping` endpoint every 45 seconds while the tab is visible. Any success flips the connection indicator back to Live; any network-level failure flips it to Offline. Closes the "laptop slept with queued writes, woke up on new Wi-Fi but never focused the tab" gap — a successful ping after a period offline triggers the same `wasOffline → online` transition the browser's native `online` event does, which auto-drains the offline write queue. Tunable interval (currently 45s); skipped while the tab is hidden so it's cheap on battery and server. Start/stop is wired into auth lifecycle — begins after `checkAuth`, stops on logout, restarts on login. (Issue #117)
+
 ### Changed
 - **Horizontal header bar** — cross-cutting tools (Quick Note, Recent Actions, What's New, How To, profile) moved from the sidebar footer into a new slim top bar. The sidebar is now dedicated to navigation with just the connection indicator in its footer. The user pill in the top-right opens a dropdown with **Sign out** (moved from a standalone icon) and quick links; below the `xl` breakpoint the pill collapses to avatar-only to save space. The top bar is 42px tall — about 25% slimmer than a typical app header — so it doesn't steal visible rows from the pipeline table.
 

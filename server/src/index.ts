@@ -37,6 +37,14 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Lightweight no-auth ping for the client-side offline heartbeat (Issue #117
+// Phase 3.1). 204 No Content is cheap to produce and cheap to transfer;
+// the client's axios response interceptor uses the success/failure signal to
+// flip the connection indicator and trigger a queue flush on recovery.
+app.get('/api/v1/ping', (_req, res) => {
+  res.status(204).end();
+});
+
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/opportunities', opportunitiesRoutes);
 app.use('/api/v1/tasks', tasksRoutes);
