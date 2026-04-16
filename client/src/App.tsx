@@ -45,7 +45,6 @@ function AppShell({ children }: { children: React.ReactNode }) {
         {children}
       </main>
       <QuickCapture />
-      <OfflineSimBadge />
     </div>
   );
 }
@@ -65,6 +64,10 @@ function AuthInit({ children }: { children: React.ReactNode }) {
 export default function App() {
   return (
     <BrowserRouter>
+      {/* Rendered outside AuthInit/Routes so it's also visible on the login
+          page — otherwise a user who turns sim on, logs out, and lands back
+          at /login has no way to disable it without devtools. */}
+      <OfflineSimBadge />
       <AuthInit>
         <Routes>
           <Route path="/login" element={<LoginPage />} />

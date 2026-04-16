@@ -60,6 +60,9 @@ export default function DeveloperPage() {
                 ⚠ Currently ON — the app will not talk to the server until you toggle this off.
               </p>
             )}
+            <p className="text-[11px] text-brand-navy-70 mt-2">
+              <strong>Login still works</strong> while sim is on — <code>/auth/*</code> requests bypass the toggle so you can't lock yourself out after a session refresh.
+            </p>
           </div>
 
           <label className="relative inline-flex items-center cursor-pointer flex-shrink-0 mt-1">
