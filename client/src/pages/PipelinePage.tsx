@@ -22,6 +22,8 @@ import { computeMeddpicc } from '../utils/meddpicc';
 import TeamScopeSelector from '../components/shared/TeamScopeSelector';
 import { useTeamScope } from '../hooks/useTeamScope';
 import BulkActionsBar from '../components/pipeline/BulkActionsBar';
+import { estimateUsage } from '../offline/db';
+import { useConnectionStatus } from '../offline/useConnectionStatus';
 
 // Stage order per issue #16
 const STAGES = [
@@ -608,11 +610,14 @@ export default function PipelinePage({ myPipelineMode = false, favoritesMode = f
         </div>
       )}
       {favoritesMode && (
-        <div className="flex items-center gap-2 px-5 py-2.5 border-b border-brand-navy-30/40 bg-white flex-shrink-0">
-          <svg className="w-4 h-4 text-amber-400" viewBox="0 0 20 20" fill="currentColor"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-          <span className="text-[13px] font-semibold text-brand-navy">Favorites</span>
-          <span className="text-[11px] text-brand-navy-70">{allOpps.length} deal{allOpps.length !== 1 ? 's' : ''}</span>
-        </div>
+        <>
+          <div className="flex items-center gap-2 px-5 py-2.5 border-b border-brand-navy-30/40 bg-white flex-shrink-0">
+            <svg className="w-4 h-4 text-amber-400" viewBox="0 0 20 20" fill="currentColor"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+            <span className="text-[13px] font-semibold text-brand-navy">Favorites</span>
+            <span className="text-[11px] text-brand-navy-70">{allOpps.length} deal{allOpps.length !== 1 ? 's' : ''}</span>
+          </div>
+          <FavoritesOfflineBanner />
+        </>
       )}
       <FilterBar
         search={search} setSearch={setSearch}
@@ -730,6 +735,57 @@ export default function PipelinePage({ myPipelineMode = false, favoritesMode = f
           />
         )}
       </Drawer>
+    </div>
+  );
+}
+
+// ── Favorites offline banner (Issue #117) ──────────────────────────────────
+// Sits above the Favorites table, explains that favoriting a deal also keeps
+// it available offline. Shows current cache usage + last-synced. Re-using
+// the favorites primitive avoids a new "pin for offline" UI concept.
+function FavoritesOfflineBanner() {
+  const { online, syncing, lastSync } = useConnectionStatus();
+  const [usageMb, setUsageMb] = useState<number | null>(null);
+  useEffect(() => {
+    estimateUsage().then(u => {
+      if (u && u.used) setUsageMb(Math.round(u.used / (1024 * 1024) * 10) / 10);
+    });
+  }, [lastSync]);
+
+  const syncedLabel = lastSync === null
+    ? 'not yet synced'
+    : (() => {
+        const mins = Math.round((Date.now() - lastSync) / 60000);
+        if (mins < 1) return 'just now';
+        if (mins < 60) return `${mins} min ago`;
+        const hrs = Math.floor(mins / 60);
+        return `${hrs}h ${mins % 60}m ago`;
+      })();
+
+  return (
+    <div className="mx-5 my-4 p-4 rounded-xl border border-brand-purple-30 bg-brand-purple-30/30 flex gap-3">
+      <svg className="w-5 h-5 text-brand-purple flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <div className="flex-1">
+        <p className="text-xs font-medium text-brand-navy">Favorited deals are available offline</p>
+        <p className="text-[11px] text-brand-navy-70 mt-1 leading-relaxed">
+          When you favorite a deal, the app keeps a local copy so you can review it without VPN or internet.
+          Notes, tasks and reassigns made offline sync automatically when you reconnect.
+        </p>
+        <div className="flex items-center gap-3 mt-3 text-[11px] flex-wrap">
+          {usageMb != null && (
+            <span className="text-brand-navy-70">Cached: <span className="font-semibold text-brand-navy">{usageMb} MB</span></span>
+          )}
+          <span className="text-brand-navy-70">Last synced {syncedLabel}{syncing ? ' · syncing now…' : ''}</span>
+          <button
+            onClick={() => window.location.reload()}
+            className="ml-auto text-brand-purple font-semibold hover:text-brand-purple-70"
+            disabled={!online}
+            title={online ? 'Refresh from server' : 'Reconnect to sync'}
+          >Sync now</button>
+        </div>
+      </div>
     </div>
   );
 }

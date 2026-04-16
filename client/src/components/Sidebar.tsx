@@ -9,6 +9,7 @@ import ChangelogModal from './ChangelogModal';
 import RecentActionsModal from './RecentActionsModal';
 import { getInsightsNav, type InsightsNavItem } from '../utils/insightsNav';
 import { getMainNav, type MainNavItem } from '../utils/mainNav';
+import ConnectionIndicator from './ConnectionIndicator';
 
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
 
@@ -220,6 +221,8 @@ export default function Sidebar() {
 
       {/* User footer */}
       <div className="px-3 pt-3 pb-4 border-t border-white/10">
+        {/* Connection status (Issue #117) */}
+        <ConnectionIndicator />
         {/* Quick Capture */}
         {user?.role !== 'viewer' && (
         <button

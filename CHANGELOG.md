@@ -5,6 +5,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ---
 
+## 2026-04-16
+
+### Added
+- **Offline mode — Phase 1 (read cache + PWA shell)** — the app now works off VPN for deals you've already seen. Favorited deals and recently-opened drawer data are kept locally (IndexedDB); static assets are served by a service worker so the page loads without network. A new connection indicator in the sidebar shows Live / Syncing / Cached / Offline, and a thin banner appears above the page content when you're off-network. The Favorites page gains an info banner explaining that favoriting a deal also keeps it available offline, with cache size + last-synced read-out. The app is also installable (optional) — Chrome and Edge will offer an "Install" prompt so you can launch it as a standalone window with the Ataccama icon. Logout wipes the local cache so shared laptops stay clean. Offline writes (notes, task edits, SE reassigns with conflict review) ship in Phase 2. (Issue #117)
+
+---
+
 ## 2026-04-15
 
 ### Added

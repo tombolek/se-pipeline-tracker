@@ -16,6 +16,8 @@ import AuditPage from './pages/AuditPage';
 import { useAuthStore } from './store/auth';
 import { usePipelineStore } from './store/pipeline';
 import { usePageTracking } from './hooks/useTracking';
+import OfflineBanner from './components/OfflineBanner';
+import { requestPersistentStorage } from './offline/db';
 
 function AppShell({ children }: { children: React.ReactNode }) {
   const openQuickCapture = usePipelineStore((s) => s.openQuickCapture);
@@ -38,6 +40,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
     <div className="flex h-screen overflow-hidden">
       <Sidebar />
       <main className="flex-1 min-w-0 overflow-hidden flex flex-col">
+        <OfflineBanner />
         {children}
       </main>
       <QuickCapture />
@@ -48,7 +51,12 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
 function AuthInit({ children }: { children: React.ReactNode }) {
   const checkAuth = useAuthStore((s) => s.checkAuth);
-  useEffect(() => { checkAuth(); }, [checkAuth]);
+  useEffect(() => {
+    checkAuth();
+    // Ask the browser to not evict our IDB cache under disk pressure.
+    // No-op on unsupported browsers; silent if already persistent.
+    void requestPersistentStorage();
+  }, [checkAuth]);
   return <>{children}</>;
 }
 

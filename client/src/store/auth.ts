@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { User } from '../types';
 import { login as apiLogin, logout as apiLogout, getMe } from '../api/auth';
 import { getMyRoleAccess } from '../api/settings';
+import { clearAll as clearOfflineCache } from '../offline/db';
 
 interface AuthState {
   user: User | null;
@@ -48,6 +49,9 @@ export const useAuthStore = create<AuthState>((set) => ({
     await apiLogout().catch(() => {});
     localStorage.removeItem('token');
     sessionStorage.removeItem('sessionId');
+    // Wipe the offline cache so user-B on a shared machine never sees
+    // user-A's cached deals, notes, or queued writes. (Issue #117)
+    await clearOfflineCache().catch(() => {});
     set({ user: null, token: null, sessionId: null, allowedPages: [] });
   },
 

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Maskable icon variant: navy safe-zone background, pink A scaled to inner 60%
+     so Android/ChromeOS rounded-corner masks never clip the mark. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1080">
+  <rect width="1080" height="1080" fill="#1A0C42"/>
+  <g transform="translate(216 216) scale(0.6)">
+    <path fill="#F10090" d="M745,250v212.97c-34-128.36-150.94-222.97-290-222.97-165.69,0-300,134.31-300,300s134.31,300,300,300c139.05,0,255.99-94.62,290-222.97v212.97h180V250h-180ZM455,685.62c-80.42,0-145.62-65.2-145.62-145.62s65.19-145.62,145.62-145.62,145.62,65.2,145.62,145.62-65.19,145.62-145.62,145.62Z"/>
+  </g>
+</svg>

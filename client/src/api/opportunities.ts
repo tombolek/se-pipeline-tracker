@@ -1,5 +1,10 @@
 import api from './client';
 import type { Opportunity, ApiResponse } from '../types';
+import {
+  cacheRead, putOpps, getCachedOpps,
+  putOppDetail, getCachedOppDetail,
+  putFavoriteIds, getCachedFavoriteIds,
+} from '../offline/cache';
 
 export interface OpportunityListParams {
   stage?: string;
@@ -60,13 +65,38 @@ export async function listOpportunitiesPaginated(
       wire[k] = v as string | number;
     }
   }
-  const { data } = await api.get<ApiResponse<Opportunity[]>>('/opportunities/paginated', { params: wire });
-  return {
-    data: data.data,
-    total: (data.meta.total as number) ?? data.data.length,
-    limit: (data.meta.limit as number) ?? data.data.length,
-    offset: (data.meta.offset as number) ?? 0,
-  };
+
+  // Offline-aware (Issue #117): on success mirror the rows into IDB; on
+  // network failure return the cached rows (ignoring the server-side filters
+  // — the user sees everything we have cached, not a "no results" page).
+  // The cache captures union-of-all-previously-seen opps, so the offline
+  // pipeline view still beats a blank page. Filters applied *on top* of the
+  // offline set are handled on the client in a follow-up.
+  const result = await cacheRead<PaginatedResponse<Opportunity>>(
+    async () => {
+      const { data } = await api.get<ApiResponse<Opportunity[]>>('/opportunities/paginated', { params: wire });
+      const out: PaginatedResponse<Opportunity> = {
+        data: data.data,
+        total: (data.meta.total as number) ?? data.data.length,
+        limit: (data.meta.limit as number) ?? data.data.length,
+        offset: (data.meta.offset as number) ?? 0,
+      };
+      // Write-through on the first page only; deeper pages merge into the
+      // same store without clobbering earlier entries.
+      void putOpps(out.data as unknown[]);
+      return out;
+    },
+    async () => {
+      const c = await getCachedOpps();
+      if (!c) return null;
+      const rows = c.list as Opportunity[];
+      return {
+        data: { data: rows, total: rows.length, limit: rows.length, offset: 0 } as PaginatedResponse<Opportunity>,
+        cachedAt: c.cachedAt,
+      };
+    },
+  );
+  return result.data;
 }
 
 export async function getFilterOptions(): Promise<{
@@ -80,8 +110,26 @@ export async function getFilterOptions(): Promise<{
 }
 
 export async function getOpportunity(idOrSfId: number | string): Promise<Opportunity> {
-  const { data } = await api.get<ApiResponse<Opportunity>>(`/opportunities/${idOrSfId}`);
-  return data.data;
+  // Write-through + read-fallback (Issue #117). Opens are cached per-opp so
+  // the drawer works offline for any deal you've previously viewed.
+  const result = await cacheRead<Opportunity>(
+    async () => {
+      const { data } = await api.get<ApiResponse<Opportunity>>(`/opportunities/${idOrSfId}`);
+      if (typeof idOrSfId === 'number') {
+        void putOppDetail(idOrSfId, data.data);
+      } else if (typeof (data.data as { id?: number }).id === 'number') {
+        void putOppDetail((data.data as { id: number }).id, data.data);
+      }
+      return data.data;
+    },
+    async () => {
+      if (typeof idOrSfId !== 'number') return null;   // sf-id lookups can't offline fallback yet
+      const c = await getCachedOppDetail(idOrSfId);
+      if (!c) return null;
+      return { data: c.payload as Opportunity, cachedAt: c.cachedAt };
+    },
+  );
+  return result.data;
 }
 
 export async function assignSeOwner(id: number, seOwnerId: number | null): Promise<Opportunity> {
@@ -139,13 +187,41 @@ export async function removeSeContributor(oppId: number, userId: number): Promis
 // ── Favorites ────────────────────────────────────────────────────────────────
 
 export async function listFavorites(): Promise<Opportunity[]> {
-  const { data } = await api.get<ApiResponse<Opportunity[]>>('/opportunities/favorites');
-  return data.data;
+  // Favorites are the explicit "keep offline" set — always write-through so
+  // they survive a reconnect outage. (Issue #117)
+  const result = await cacheRead<Opportunity[]>(
+    async () => {
+      const { data } = await api.get<ApiResponse<Opportunity[]>>('/opportunities/favorites');
+      void putOpps(data.data as unknown[]);
+      void putFavoriteIds(data.data.map(o => o.id));
+      return data.data;
+    },
+    async () => {
+      const ids = await getCachedFavoriteIds();
+      if (ids.length === 0) return null;
+      const c = await getCachedOpps();
+      if (!c) return null;
+      const idset = new Set(ids);
+      const rows = (c.list as Opportunity[]).filter(o => idset.has(o.id));
+      return { data: rows, cachedAt: c.cachedAt };
+    },
+  );
+  return result.data;
 }
 
 export async function getFavoriteIds(): Promise<number[]> {
-  const { data } = await api.get<ApiResponse<number[]>>('/opportunities/favorites/ids');
-  return data.data;
+  const result = await cacheRead<number[]>(
+    async () => {
+      const { data } = await api.get<ApiResponse<number[]>>('/opportunities/favorites/ids');
+      void putFavoriteIds(data.data);
+      return data.data;
+    },
+    async () => {
+      const ids = await getCachedFavoriteIds();
+      return { data: ids, cachedAt: Date.now() };
+    },
+  );
+  return result.data;
 }
 
 export async function addFavorite(oppId: number): Promise<void> {

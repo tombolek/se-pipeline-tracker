@@ -1,5 +1,6 @@
 import api from './client';
 import type { User, ColumnPrefs, ApiResponse } from '../types';
+import { cacheRead, putUsers, getCachedUsers } from '../offline/cache';
 
 export async function listTeams(): Promise<string[]> {
   const { data } = await api.get<ApiResponse<string[]>>('/opportunities/teams');
@@ -7,8 +8,21 @@ export async function listTeams(): Promise<string[]> {
 }
 
 export async function listUsers(): Promise<User[]> {
-  const { data } = await api.get<ApiResponse<User[]>>('/users');
-  return data.data;
+  // Offline-aware (Issue #117). Mentions UI and OwnerSelector both depend on
+  // a populated user list; cache ensures those keep working off VPN.
+  const result = await cacheRead<User[]>(
+    async () => {
+      const { data } = await api.get<ApiResponse<User[]>>('/users');
+      void putUsers(data.data as unknown[]);
+      return data.data;
+    },
+    async () => {
+      const cached = await getCachedUsers();
+      if (cached.length === 0) return null;
+      return { data: cached as User[], cachedAt: Date.now() };
+    },
+  );
+  return result.data;
 }
 
 export async function createUser(payload: {
