@@ -9,6 +9,7 @@ import InsightsPage from './pages/InsightsPage';
 import CalendarPage from './pages/CalendarPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import Sidebar from './components/Sidebar';
+import AppHeader from './components/AppHeader';
 import QuickCapture from './components/QuickCapture';
 import HomePage from './pages/HomePage';
 import SettingsPage from './pages/SettingsPage';
@@ -41,12 +42,15 @@ function AppShell({ children }: { children: React.ReactNode }) {
   }, [openQuickCapture, user]);
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      <Sidebar />
-      <main className="flex-1 min-w-0 overflow-hidden flex flex-col">
-        <OfflineBanner />
-        {children}
-      </main>
+    <div className="flex flex-col h-screen overflow-hidden">
+      <AppHeader />
+      <div className="flex flex-1 min-h-0 overflow-hidden">
+        <Sidebar />
+        <main className="flex-1 min-w-0 overflow-hidden flex flex-col">
+          <OfflineBanner />
+          {children}
+        </main>
+      </div>
       <QuickCapture />
       <ReconnectToast />
     </div>

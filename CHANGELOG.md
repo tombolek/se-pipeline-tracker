@@ -7,6 +7,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## 2026-04-17
 
+### Changed
+- **Horizontal header bar** — cross-cutting tools (Quick Note, Recent Actions, What's New, How To, profile) moved from the sidebar footer into a new slim top bar. The sidebar is now dedicated to navigation with just the connection indicator in its footer. The user pill in the top-right opens a dropdown with **Sign out** (moved from a standalone icon) and quick links; below the `xl` breakpoint the pill collapses to avatar-only to save space. The top bar is 42px tall — about 25% slimmer than a typical app header — so it doesn't steal visible rows from the pipeline table.
+
 ### Added
 - **Offline mode — Phase 2: queued writes + conflict review** — notes, task edits, new tasks, and SE reassigns can now be made while the app is offline. Each write queues locally with the `updated_at` you saw at the time; as soon as you reconnect, the queue drains automatically. Server-side, PATCH `/opportunities/:id` and PATCH `/tasks/:id` accept an optional `expected_updated_at` and return HTTP 409 with the current server state if the row has moved since — preventing silent overwrites. A small reconnect toast summarises the sync ("Synced 3 changes" / "Synced 1 · 1 needs review"), and conflicts land on a new **Review Offline Changes** page (`/review-offline-changes`) where each card shows what you tried, what the server now says, who changed it while you were gone, and per-conflict actions: **Re-apply my change** (force overwrite), **Keep current**, or **View opportunity**. The sidebar connection indicator gains a pending/conflict counter; offline-added notes render immediately in the drawer as "(you — pending sync)" and get replaced by the real note after sync. (Issue #117)
 
