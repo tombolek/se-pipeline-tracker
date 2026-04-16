@@ -16,6 +16,7 @@ const SECTIONS = [
   { id: 'audit',       label: 'Audit (Manager)' },
   { id: 'ai-features', label: 'AI Features' },
   { id: 'sidebar-helpers', label: "Recent Actions & What's New" },
+  { id: 'offline',     label: 'Offline mode (PWA)' },
 ];
 
 // ── Layout components ────────────────────────────────────────────────────────
@@ -518,6 +519,13 @@ export default function HowToPage() {
       <P>Admin-only page that controls which roles can see each page and menu item. Pages are grouped into <em>Main Navigation</em>, <em>Insights</em>, and <em>Administration</em>; per-role checkboxes (Manager / SE / Viewer) let you toggle visibility individually or use the section-level checkbox to toggle a whole group at once. Admin users always see Administration pages regardless of the matrix.</P>
       <InfoBox>Role access lives in three places: the sidebar nav lists, this admin registry, and a DB seed migration. Adding a new page requires touching all three — see the project CLAUDE.md for the checklist.</InfoBox>
 
+      <SubTitle>Developer</SubTitle>
+      <P>Debug tools for admins. Changes made here affect only your own browser; other users are unaffected.</P>
+      <Ul>
+        <Li><strong>Simulate offline mode</strong> — toggle to short-circuit every API request with a synthetic <em>Network Error</em>. The app behaves as if you disconnected from VPN: cached data is served where available, the offline banner appears, and writes queue locally. A persistent red <Badge color="red">SIMULATED OFFLINE</Badge> chip pins to the bottom-right corner so you can't forget to turn it off. Click the chip to exit.</Li>
+        <Li><strong>Offline cache storage</strong> — readout of how much IndexedDB you're currently using and the browser quota. Use <strong>Clear offline cache</strong> to wipe everything locally (you'll re-sync on next connect).</Li>
+      </Ul>
+
       {/* ── 13. Audit ── */}
       <SectionTitle id="audit">13. Audit</SectionTitle>
       <RoleTag role="manager" />
@@ -585,6 +593,54 @@ export default function HowToPage() {
 
       <SubTitle>What's New</SubTitle>
       <P>The <strong>What's New</strong> button in the sidebar footer opens a drawer with the full release history parsed from the app's <code>CHANGELOG.md</code>. Entries published since your last visit are highlighted with a <Badge color="purple">New</Badge> badge, and the sidebar button shows an unread count. Opening the panel marks entries as seen, so the badge clears until the next release.</P>
+
+      {/* ── 16. Offline mode (PWA) ── */}
+      <SectionTitle id="offline">16. Offline mode (PWA)</SectionTitle>
+      <RoleTag role="all" />
+      <P>The app keeps a local copy of the data you've recently viewed so it continues to work off VPN or on a dropped connection. You'll notice the difference most when you're on a train, at a conference, or briefly off the corporate network.</P>
+
+      <SubTitle>What's cached automatically</SubTitle>
+      <Ul>
+        <Li>The app itself (HTML, JavaScript, styles, icons) — served from a Service Worker so the page loads without network.</Li>
+        <Li>Your pipeline list, any opportunity drawer you open, favorites, the user directory, the mentions feed, the Home digest, and the Calendar — stored in your browser's IndexedDB.</Li>
+        <Li>Other pages are cached <strong>on-demand</strong>: visit a page once while online and it'll be available offline afterwards.</Li>
+      </Ul>
+      <InfoBox>Cache is capped at <strong>500 MB</strong> with least-recently-used eviction on drawer payloads. <strong>Favorited deals are never evicted</strong> — they're your always-available set.</InfoBox>
+
+      <SubTitle>Favorites = your offline pin</SubTitle>
+      <P>Favoriting a deal (the <Badge color="amber">★</Badge> star) has always marked it as something you care about. It now also means "keep this available offline." No separate pin-for-offline action — one control, two meanings. The Favorites page carries an info banner explaining this, plus:</P>
+      <Ul>
+        <Li>How much storage your cache is using.</Li>
+        <Li>When the data was last synced.</Li>
+        <Li>A <strong>Sync now</strong> button to force a refresh.</Li>
+      </Ul>
+
+      <SubTitle>Connection indicator</SubTitle>
+      <P>Always visible in the sidebar footer. Four states:</P>
+      <Ul>
+        <Li><Badge color="green">Live</Badge> — connected, latest data.</Li>
+        <Li><Badge color="purple">Syncing…</Badge> — background refresh in progress.</Li>
+        <Li><Badge color="amber">Cached N min ago</Badge> — online but last successful fetch is more than 5 minutes old. Click for detail + Sync now.</Li>
+        <Li><Badge color="purple">Offline</Badge> — network unreachable. Data is being served from cache; pending writes are queued locally.</Li>
+      </Ul>
+      <P>When offline, a thin banner also appears at the top of every page with the last-synced time and a <strong>Try reconnect</strong> button. Non-cached rows on the Pipeline are dimmed so you know they exist but need a connection to open.</P>
+
+      <SubTitle>Pending edits (in progress)</SubTitle>
+      <P>Notes, task edits, and SE reassigns made while offline queue locally and flush when you reconnect. Append-only notes never conflict. If a reassign or task edit collides with someone else's change while you were gone, you'll get an explicit per-item review screen — with a side-by-side of your intent and the current server state — rather than silent data loss.</P>
+
+      <SubTitle>Installable app (optional)</SubTitle>
+      <P>Chrome and Edge will show an <em>Install app</em> prompt in the address bar. Installing is optional and doesn't change any behaviour — it just puts the app in its own window with the Ataccama symbol, no address bar, and a dedicated taskbar / dock icon. Uninstall from your OS like any other app.</P>
+
+      <SubTitle>Security &amp; storage notes</SubTitle>
+      <Ul>
+        <Li><strong>Logout wipes the cache</strong> — a shared laptop can't leak a previous user's deals.</Li>
+        <Li>The browser is asked to keep the cache <em>persistent</em> so it isn't evicted under disk pressure.</Li>
+        <Li>Cached data is readable by anyone with access to your browser profile — use OS-level disk encryption (BitLocker on Windows, FileVault on Mac) for at-rest protection.</Li>
+        <Li>Cache is per-browser-profile — Chrome at the office and Edge at home are separate caches.</Li>
+      </Ul>
+
+      <SubTitle>Testing offline without dropping VPN</SubTitle>
+      <P>Admins have a <strong>Simulate offline mode</strong> toggle in <em>Settings → Developer</em>. When on, every API request is short-circuited with a synthetic network error, so you can verify the offline experience end-to-end from your desk.</P>
 
       <div className="h-8" />
     </div>

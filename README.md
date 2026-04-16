@@ -55,6 +55,8 @@ This tool pulls deal data from Salesforce via a CSV/XLS export and layers a nati
 | Apply a reusable task pack or note template to a deal | Opportunity Work tab — **Use template** picker |
 | Undo a recent delete or reassignment | Sidebar footer — **Recent actions** |
 | See what changed in the latest release | Sidebar footer — **What's New** |
+| Review my favorited deals without VPN or internet | Any cached page — data served from local IndexedDB cache (see [Offline mode (PWA)](#offline-mode-pwa)) |
+| Add a note / complete a task / reassign an SE while offline | Normal drawer actions — edits queue locally and flush on reconnect |
 
 ### For the SE Manager
 
@@ -88,6 +90,7 @@ This tool pulls deal data from Salesforce via a CSV/XLS export and layers a nati
 | Trigger a Salesforce data import | Settings → Import (file upload) |
 | Back up or restore all app data | Settings → Backup |
 | Deploy a new frontend build from the browser | Settings → Deploy |
+| Test the offline experience without disconnecting from VPN | Settings → Developer — **Simulate offline mode** |
 | Review team usage and track system actions | Audit |
 
 ---
@@ -178,6 +181,52 @@ This tool pulls deal data from Salesforce via a CSV/XLS export and layers a nati
 - Drag-and-drop or arrow buttons to reorder columns
 - Saved per user in the database (`column_prefs` JSONB field)
 - Reset to default button
+
+### Offline mode (PWA)
+
+The app keeps a local copy of the data you've recently viewed so it continues to work off VPN or on a dropped connection. Designed for the common case of a laptop on a train, a conference Wi-Fi that's strict about routing, or working briefly without reconnecting to the corporate VPN.
+
+**Storage layers**
+
+| Layer | What | How long |
+|---|---|---|
+| Service Worker Cache | App shell (HTML/JS/CSS/fonts/icons) | Replaced on each deploy |
+| IndexedDB | Opportunity list, opp drawer payloads, favorites, users, mentions, Home digest, Calendar events | Capped at 500 MB; oldest drawer payloads evicted first (favorites never evicted); wiped on logout |
+
+**What's cached automatically**
+- Your team's pipeline list and any opp drawer you've opened, across all pages.
+- Favorites, users list, `@`-mention feed, Home digest, Calendar events.
+- Pages other than the above are cached **on-demand** — visit a page once while online and it'll be available offline afterwards.
+
+**Installable**
+- Chrome / Edge will offer an "Install app" prompt — optional. When installed, the app launches in its own window with the Ataccama symbol, no address bar.
+- Same codepath online or installed — no native binary.
+
+**Connection indicator** (sidebar footer)
+
+| State | Meaning |
+|---|---|
+| 🟢 Live | Connected, latest data |
+| 🟣 Syncing… | Background refresh in progress |
+| 🟡 Cached N min ago | Online but last successful fetch is > 5 min old — click to see detail + Sync now |
+| 🟣 Offline | Network unreachable — data is being served from cache; pending writes queue locally |
+
+**Offline banner** appears above page content when the app can't reach the server. Non-cached rows on the Pipeline are dimmed to signal they need a reconnect to open.
+
+**Favorites = your offline pin**
+The Favorites page carries an info banner explaining that favoriting a deal also keeps it available offline. No separate pin-for-offline primitive — one action, two meanings. Cache size and last-synced timestamp shown in the banner; **Sync now** / **Clear offline cache** buttons next to them.
+
+**Pending edits (phase 2 — in progress)**
+Notes, task edits, and SE reassigns made while offline queue in the local database and flush when you reconnect. If a reassign collides with someone else's change while you were gone, you get an explicit per-item review screen rather than silent data loss. Append-only notes never conflict.
+
+**Security & storage notes**
+- Logout wipes the entire local cache so a shared laptop can't leak previous users' deals.
+- The app calls `navigator.storage.persist()` so the browser won't evict the cache under disk pressure.
+- Cached data is readable by anyone with access to your browser profile — OS-level disk encryption (BitLocker / FileVault, standard on corporate laptops) is the right layer for that.
+- Cache is per-browser-profile — Chrome at the office and Edge at home are separate caches.
+
+**Testing offline without dropping VPN**
+Admins can flip **Settings → Developer → Simulate offline mode** to short-circuit every request with a synthetic Network Error. A persistent red `SIMULATED OFFLINE` chip pins to the bottom-right corner while it's on so you can't accidentally leave it running; click the chip to turn it off.
 
 ### Manager Insights
 
@@ -364,6 +413,11 @@ This tool pulls deal data from Salesforce via a CSV/XLS export and layers a nati
 - Admin users always see Administration pages regardless of the matrix
 - Backed by the `role_page_access` table; every new page must also be added to `PAGE_REGISTRY` in `RoleAccessPage.tsx` and seeded via migration (see CLAUDE.md for the three-place checklist)
 
+#### Developer (`/settings/developer`)
+- Admin-only debug surface. Affects only your browser — other users are unaffected.
+- **Simulate offline mode** toggle — short-circuits every API request with a synthetic `ERR_NETWORK` so the offline codepaths (cache fallback, offline banner, queued writes) exercise end-to-end without dropping VPN. Persists in `localStorage`. A floating red "SIMULATED OFFLINE" chip pins to the bottom-right corner while it's on; click to disable
+- **Offline cache storage** readout — current IndexedDB usage vs browser quota, with a **Clear offline cache** button for resetting between tests
+
 ### Audit (`/audit`)
 Manager-only usage analytics and activity log.
 
@@ -382,9 +436,14 @@ Manager-only usage analytics and activity log.
 - Main nav items (Calendar, SE Mapping, PoC Board, RFx Board) are user-configurable
 - Insights nav order is user-configurable (see Menu Settings above)
 
-### Sidebar Footer — Recent Actions & What's New
+### Sidebar Footer — Connection indicator, Recent Actions, What's New
 
-Two always-available buttons pinned in the sidebar footer:
+Always-visible controls pinned in the sidebar footer:
+
+#### Connection indicator
+- Shows the app's current network state: 🟢 Live / 🟣 Syncing… / 🟡 Cached N min ago / 🟣 Offline
+- Click the pill (when cached or offline) to see last-synced time and a **Sync now** / **Try reconnect** button
+- Full details in [Offline mode (PWA)](#offline-mode-pwa)
 
 #### Recent Actions (Undo)
 - Lists destructive actions you've taken in the **last 30 days** and lets you undo them inline
@@ -421,6 +480,8 @@ Two always-available buttons pinned in the sidebar footer:
 - `zustand` — lightweight global state
 - `axios` — HTTP client
 - `tailwindcss` — utility-first CSS
+- `idb` — typed wrapper around IndexedDB for the offline data cache
+- `vite-plugin-pwa` (+ Workbox) — service worker, web manifest, and installable PWA shell
 
 ### Key backend libraries
 - `express` — HTTP server
@@ -966,7 +1027,8 @@ Typography: **Poppins** (Google Fonts) — 300/400/500/600 weights.
 
 The app runs on AWS infrastructure deployed via `scripts/deploy.sh`:
 
-- **Frontend**: built with Vite, uploaded to S3, served via CloudFront
+- **Frontend**: built with Vite, uploaded to S3, served via CloudFront. Ships as a PWA — the build emits `manifest.webmanifest`, `sw.js` (service worker), and the Ataccama icons. Clients see an "Install app" prompt in Chrome / Edge on the next visit
+- **Service worker update strategy**: `registerType: 'prompt'` — on a new deploy, users see an in-app "A new version is available · Reload" chip rather than being force-refreshed mid-task. Ignoring the chip is fine; the new SW activates on next full navigation
 - **Backend**: Docker container running on EC2, proxied from CloudFront
 - **Database**: PostgreSQL 16 in a Docker container on the same EC2 instance (data volume persisted)
 - **Migrations**: run automatically on every server container start
