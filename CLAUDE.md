@@ -702,6 +702,59 @@ configure. Always touch all three in the same commit as the new page:
 If you forget step 3, existing users never see the page. If you forget
 step 2, admins can't grant access to other roles. If you forget step 1,
 nothing ever shows up regardless of access.
+
+### Adding a new notable feature — offline-caching consideration
+
+The app ships with offline / PWA support (Issue #117). The cache holds
+favorites, opportunities, notes, tasks, mentions, Home digest, Calendar,
+PoC Board, RFx Board, SE Mapping, and the user directory. Anything else
+is **not** offline-available unless you deliberately wire it in.
+
+When you add a notable user-facing feature (a new page, a new data
+source, a new write path), decide what the offline behaviour should be
+before shipping:
+
+1. **Should the read data be cached for offline use?**
+   - For small per-user data (lists, dashboards, feeds) that's clearly
+     useful off VPN → yes, wrap the fetch with `cacheRead()` and mirror
+     into IndexedDB (pattern: `client/src/api/opportunities.ts`,
+     `client/src/pages/CalendarPage.tsx`).
+   - For expensive / sensitive / rarely-viewed data (audit logs, AI
+     generations, file attachments, admin-only reports) → decide
+     deliberately. Defaults: AI generations network-only, admin pages
+     network-only, file attachments on-demand (pinning via favorites).
+   - Pages that aren't cached should render the shared
+     `<OfflineUnavailable label="…" />` component when the fetch fails
+     offline, instead of leaving the user stranded on a broken loader
+     or red error banner.
+
+2. **Should a new write be queueable offline?**
+   - Append-only writes (notes, audit events) → always queueable, no
+     conflict risk. Pattern: `createNote` in `client/src/api/notes.ts`.
+   - Mutating writes (edits, reassigns) → queueable ONLY if you add a
+     server-side version guard (`expected_updated_at` in the PATCH
+     body + 409 with current state on mismatch). Pattern:
+     `server/src/routes/tasks.ts` PATCH handler.
+   - Destructive writes (deletes, admin actions, import triggers) →
+     default to network-only. The risk/reward ratio rarely justifies
+     queueing them.
+   - If in doubt, **ask the user explicitly before the implementation
+     pass** rather than guessing — especially for anything that
+     touches multiple users' data or is hard to reverse.
+
+3. **Storage / bandwidth cost**
+   - Anything that could push the per-user cache over ~10 MB (large
+     binary blobs, long transcripts, many hundreds of rows) needs an
+     explicit opt-in rather than automatic caching. The 500 MB cap
+     exists, but any individual feature shouldn't eat a meaningful
+     share of it by default.
+
+A good commit message for a new feature calls out the offline
+decision, e.g. "[fe+be] Win Rate page — network-only, no cache (admin
+insights are small + rarely needed off VPN)" or "[fe] Attachments
+list on opp drawer — cached per opp, attachments themselves fetched
+on-demand".
+
 - Soft deletes only — never `DELETE` from DB for users, opportunities, or tasks
 - `.env` is in `.gitignore` from commit #1; `.env.example` is always up to date
 

@@ -216,8 +216,32 @@ The app keeps a local copy of the data you've recently viewed so it continues to
 **Favorites = your offline pin**
 The Favorites page carries an info banner explaining that favoriting a deal also keeps it available offline. No separate pin-for-offline primitive — one action, two meanings. Cache size and last-synced timestamp shown in the banner; **Sync now** / **Clear offline cache** buttons next to them.
 
-**Pending edits (phase 2 — in progress)**
-Notes, task edits, and SE reassigns made while offline queue in the local database and flush when you reconnect. If a reassign collides with someone else's change while you were gone, you get an explicit per-item review screen rather than silent data loss. Append-only notes never conflict.
+**Queued writes (Phase 2)**
+
+Four write types are queued when you're offline and flushed automatically on reconnect:
+
+| Kind | Conflict risk | Handling |
+|---|---|---|
+| **Add note** | None — notes are append-only | Fire-and-forget flush. Shows as `(you — pending sync)` in the drawer until synced |
+| **Create task** | None — new rows can't conflict | Fire-and-forget flush |
+| **Edit task** | Real — someone else may have edited in the meantime | Optimistic-concurrency version guard: client captures `updated_at` at edit time; server rejects with HTTP 409 if the row has moved |
+| **Reassign SE Owner** | Real — another manager may have reassigned | Same version-guard protocol |
+
+**Conflict review**
+When a queued write is rejected on flush, it lands in a conflict queue and surfaces via:
+- A small **amber toast** after the flush completes ("Synced N · M need review") with a direct link to the review page.
+- The **connection indicator dropdown** showing "N changes need review".
+- A dedicated **Review Offline Changes** page (`/review-offline-changes`) showing per-conflict cards with:
+  - What you tried to do (captured at queue time)
+  - The current server state (captured when the flush was rejected)
+  - Who made the conflicting change, if known
+  - Per-card actions: **Re-apply my change** (force-overwrite without the version guard), **Keep current** (discard your queued edit), or **View opportunity**
+
+**Reconnect toast**
+When a flush completes cleanly, a brief green "Synced N changes" chip appears at the bottom of the screen and dismisses after 8 seconds. No interruption for the all-clean path — the chip is informational, not a modal.
+
+**Optimistic UI**
+Offline writes update the UI immediately. Notes render with a "(you — pending sync)" author label; reassign pills turn amber; task edits merge the patch onto the current view. When the flush succeeds, the next refetch replaces the optimistic row with the real server data.
 
 **Security & storage notes**
 - Logout wipes the entire local cache so a shared laptop can't leak previous users' deals.

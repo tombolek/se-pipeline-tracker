@@ -625,8 +625,31 @@ export default function HowToPage() {
       </Ul>
       <P>When offline, a thin banner also appears at the top of every page with the last-synced time and a <strong>Try reconnect</strong> button. Non-cached rows on the Pipeline are dimmed so you know they exist but need a connection to open.</P>
 
-      <SubTitle>Pending edits (in progress)</SubTitle>
-      <P>Notes, task edits, and SE reassigns made while offline queue locally and flush when you reconnect. Append-only notes never conflict. If a reassign or task edit collides with someone else's change while you were gone, you'll get an explicit per-item review screen — with a side-by-side of your intent and the current server state — rather than silent data loss.</P>
+      <SubTitle>Queued writes</SubTitle>
+      <P>Four kinds of edit can be made while offline. They queue locally and flush automatically when you reconnect — you don't have to do anything to resend them.</P>
+      <Ul>
+        <Li><strong>Add a note</strong> — append-only, never conflicts. Shows as <em>(you — pending sync)</em> in the drawer until synced.</Li>
+        <Li><strong>Create a task</strong> — new rows can't conflict; just flushes.</Li>
+        <Li><strong>Edit a task</strong> — title, description, status, due date, assignee. Protected by a version check so two people editing the same task in parallel can't silently overwrite each other.</Li>
+        <Li><strong>Reassign SE Owner</strong> — same version check as task edits.</Li>
+      </Ul>
+      <P>The sidebar indicator flips to <Badge color="amber">Pending sync</Badge> with a count chip whenever the queue has items. Opening the dropdown shows the total and a shortcut to the review page.</P>
+
+      <SubTitle>Reconnect — what you see</SubTitle>
+      <P>When the app regains its connection, the queue drains in the background and surfaces one of two chips at the bottom of the screen:</P>
+      <Ul>
+        <Li><Badge color="green">Synced N changes</Badge> — all queued writes applied cleanly. Dismisses after a few seconds; no further action needed.</Li>
+        <Li><Badge color="amber">Synced N · M need review</Badge> — at least one queued edit conflicts with something that happened while you were offline. Click <em>Review →</em> to open the Review Offline Changes page.</Li>
+      </Ul>
+
+      <SubTitle>Review Offline Changes</SubTitle>
+      <P>When a queued edit collides with a change made by someone else, the app doesn't silently win or lose — it parks the edit in a conflict queue and lets you pick what happens to it on the <strong>Review Offline Changes</strong> page. Each conflict card shows:</P>
+      <Ul>
+        <Li>What <strong>you tried to do</strong> (captured at queue time — so it's still accurate even days later).</Li>
+        <Li>The <strong>current server state</strong> and who changed it, if known.</Li>
+        <Li>Three actions: <strong>Re-apply my change</strong> (force-overwrites whatever's on the server now), <strong>Keep current</strong> (discards your queued edit), or <strong>View opportunity</strong>.</Li>
+      </Ul>
+      <P>A <em>Discard all unapplied changes</em> footer option lets you dismiss the whole list if you've looked at each and don't want to re-apply anything.</P>
 
       <SubTitle>Installable app (optional)</SubTitle>
       <P>Chrome and Edge will show an <em>Install app</em> prompt in the address bar. Installing is optional and doesn't change any behaviour — it just puts the app in its own window with the Ataccama symbol, no address bar, and a dedicated taskbar / dock icon. Uninstall from your OS like any other app.</P>
