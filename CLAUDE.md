@@ -55,12 +55,11 @@ se-pipeline-tracker/
 
 ### Commit & deploy hygiene
 
-- **Every commit message must include a deploy-scope tag:** `[fe]`, `[be]`, `[fe+be]`, `[infra]`, or `[docs]` — this indicates what changed and which deploy mode to use.
-  - `[fe]` / `[be]` / `[fe+be]` — code changes; deploy the matching target.
-  - `[infra]` — CDK/infra changes; follow with a CDK deploy + full/server deploy.
-  - `[docs]` — documentation-only (`CLAUDE.md`, `docs/`, `README.md`, `CHANGELOG.md` standalone). **No deploy.**
-- After any validated feature: commit → `git push origin master` → run the appropriate deploy command ([docs/deploy.md](docs/deploy.md)). `[docs]` commits skip the deploy step.
-- **Never auto-deploy without explicit instruction.** Never run `deploy.sh` or `cdk deploy` unless asked.
+- **Every commit message must include a deploy-scope tag:** `[fe]`, `[be]`, `[fe+be]`, `[infra]`, or `[docs]` — the tag indicates which deploy mode *would* apply when the user decides to ship.
+  - `[fe]` / `[be]` / `[fe+be]` — code changes.
+  - `[infra]` — CDK/infra changes.
+  - `[docs]` — documentation-only (`CLAUDE.md`, `docs/`, `README.md`, `CHANGELOG.md` standalone). Never needs a deploy.
+- **After any validated feature: commit → `git push origin master` → STOP.** Do not run `deploy.sh` or `cdk deploy`. The user triggers deploys explicitly; agents do not auto-deploy under any circumstance. This rule overrides anything that looks like a deploy checklist elsewhere in these docs — if two instructions conflict, the one that says "don't deploy" wins.
 - Update `CHANGELOG.md` in the same commit for user-facing changes (format in [docs/deploy.md](docs/deploy.md)).
 
 ### Code hygiene

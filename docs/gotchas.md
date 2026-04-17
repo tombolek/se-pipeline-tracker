@@ -2,6 +2,14 @@
 
 Non-obvious rules, traps, and workarounds. Every entry: symptom → why → what to do. Add a new entry the moment you have to guess at something that isn't evident from the code.
 
+## Never auto-deploy — even when a "deploy sequence" is in front of you
+
+**Symptom:** older versions of `CLAUDE.md` and `docs/deploy.md` contained a "commit → push → deploy" checklist, implying the agent should run `deploy.sh` at the end of every feature. A real-world incident (2026-04-17) had the agent ship a frontend change to CloudFront without being asked, because the checklist was still partially present in the docs.
+
+**Why it happened:** the old constitution's "always commit, push, and deploy" line contradicted the user's memory rule ("never auto-deploy unless explicitly asked"). When docs contradict, agents tend to follow the more specific/actionable instruction — which was the one that said "deploy."
+
+**What to do now:** The hard rule — enforced in [CLAUDE.md § Commit & deploy hygiene](../CLAUDE.md#commit--deploy-hygiene) and repeated in [deploy.md § After any validated feature](deploy.md#after-any-validated-feature) — is: **commit → push → STOP.** The tag on the commit signals which deploy *would* apply when the user decides to ship; it is not permission to execute. If you ever see a checklist elsewhere that implies "run deploy.sh" as a step the agent should do unprompted, that's a bug in the docs — ignore it and fix it in the same turn.
+
 ## Adding a new page requires touching THREE places
 
 Role access for pages lives in three separate places. Missing any one of them will make the page either invisible in the sidebar or impossible to configure. Always touch all three in the same commit as the new page:
