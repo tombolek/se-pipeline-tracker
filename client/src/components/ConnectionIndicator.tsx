@@ -1,6 +1,6 @@
 /**
- * Connection indicator — lives in the sidebar footer above the user pill.
- * Four states (see `offline-pwa-117.html` mockup, screen 1):
+ * Connection indicator — lives in the top AppHeader, to the left of the
+ * feature-chip buttons. Four states (see `offline-pwa-117.html` mockup):
  *   - live     → green dot, "Live"
  *   - syncing  → spinner, "Syncing…"
  *   - cached   → amber dot, "Cached Nm ago", clicking opens dropdown
@@ -8,6 +8,10 @@
  *
  * The "cached" variant kicks in when lastSync is older than 5 minutes and we're
  * still online — a soft hint that a refresh wouldn't hurt, not an error.
+ *
+ * Compact layout: dot + label + optional queue badge. Dropdown opens downward
+ * with a fixed width panel. Previously rendered in the sidebar footer; moved
+ * to the header as part of the horizontal redesign.
  */
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -72,12 +76,12 @@ export default function ConnectionIndicator() {
   }
 
   return (
-    <div ref={rootRef} className="relative mb-1">
+    <div ref={rootRef} className="relative">
       <button
         type="button"
         onClick={() => clickable && setOpen(v => !v)}
         disabled={!clickable}
-        className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-lg text-[11px] transition-colors ${
+        className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] transition-colors ${
           clickable ? 'hover:bg-white/10 cursor-pointer' : 'cursor-default'
         }`}
       >
@@ -88,15 +92,10 @@ export default function ConnectionIndicator() {
             {pending + conflicts}
           </span>
         )}
-        {clickable && (
-          <svg className="w-3 h-3 ml-auto text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-          </svg>
-        )}
       </button>
 
       {open && (
-        <div className="absolute bottom-full left-0 right-0 mb-1 z-30 bg-white text-brand-navy rounded-xl border border-brand-navy-30 shadow-xl overflow-hidden">
+        <div className="absolute top-full left-0 mt-1 z-50 w-72 bg-white text-brand-navy rounded-xl border border-brand-navy-30 shadow-xl overflow-hidden">
           <div className="px-4 py-3 bg-brand-purple/[0.04] border-b border-brand-navy-30/40">
             <p className="text-xs font-semibold flex items-center gap-2">
               <span className={`w-2 h-2 rounded-full ${dotClass}`} />

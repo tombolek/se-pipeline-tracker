@@ -12,13 +12,32 @@
  * Height: 42px (slimmer than a typical 56px top bar — the app already uses
  * the vertical real estate heavily for the sidebar and drawer).
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/auth';
 import { usePipelineStore } from '../store/pipeline';
 import { getChangelog } from '../api/changelog';
 import ChangelogModal from './ChangelogModal';
 import RecentActionsModal from './RecentActionsModal';
+import ConnectionIndicator from './ConnectionIndicator';
+
+/**
+ * Pill tooltip shown on hover for icon-only header buttons. Reveals the
+ * action name (+ optional kbd hint) below the button. Pure CSS via Tailwind
+ * `group-hover:`; no JS / no tooltip library. The parent button must have
+ * `className="... group"`.
+ */
+function TooltipPill({ children }: { children: ReactNode }) {
+  return (
+    <span className="pointer-events-none absolute left-1/2 top-full z-50 mt-1.5 -translate-x-1/2 whitespace-nowrap rounded-full bg-white px-2.5 py-1 text-[11px] font-medium text-brand-navy opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100">
+      {children}
+    </span>
+  );
+}
+
+/** Square icon button (32x32) with hover-pill tooltip. Navy-header styling. */
+const iconBtnClass =
+  'group relative inline-flex items-center justify-center w-8 h-8 rounded-md text-white/75 hover:bg-white/10 hover:text-white transition-colors';
 
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
 
@@ -74,64 +93,69 @@ export default function AppHeader() {
 
         <div className="flex-1" />
 
-        {/* Right — feature chips */}
-        <nav className="flex items-center gap-0.5 flex-shrink-0">
+        {/* Right — connection indicator + icon-only feature buttons + user pill */}
+        <nav className="flex items-center gap-1 flex-shrink-0">
+          {/* Connection indicator — lives to the left of the feature buttons */}
+          <ConnectionIndicator />
+
+          <div className="w-px h-5 bg-white/10 mx-1" />
+
           {!isViewer && (
             <button
               onClick={openQuickCapture}
-              className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md text-[12px] text-white/75 hover:bg-white/10 hover:text-white transition-colors"
-              title="Quick note or task"
+              className={iconBtnClass}
+              aria-label="Quick note or task"
             >
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
-              <span className="hidden md:inline">Quick note</span>
-              <span className="hidden lg:inline text-[10px] text-white/40 font-mono bg-white/10 rounded px-1 py-px">{isMac ? '⌘K' : 'Ctrl+K'}</span>
+              <TooltipPill>
+                Quick note
+                <span className="ml-1.5 font-mono text-[10px] text-brand-navy-70">{isMac ? '⌘K' : 'Ctrl+K'}</span>
+              </TooltipPill>
             </button>
           )}
 
           {!isViewer && (
             <button
               onClick={() => setRecentOpen(true)}
-              className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md text-[12px] text-white/75 hover:bg-white/10 hover:text-white transition-colors"
-              title="Recent actions"
+              className={iconBtnClass}
+              aria-label="Recent actions"
             >
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a4 4 0 014 4v0a4 4 0 01-4 4H9m-6-8l4-4m-4 4l4 4" />
               </svg>
-              <span className="hidden md:inline">Recent actions</span>
+              <TooltipPill>Recent actions</TooltipPill>
             </button>
           )}
 
           <button
             onClick={openChangelog}
-            className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md text-[12px] text-white/75 hover:bg-white/10 hover:text-white transition-colors"
-            title="What's New"
+            className={iconBtnClass}
+            aria-label="What's New"
           >
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
             </svg>
-            <span className="hidden md:inline">What's New</span>
             {changelogUnread > 0 && (
-              <span className="text-[9px] font-semibold bg-brand-pink text-white rounded-full px-1.5 py-px min-w-[16px] text-center leading-tight">
+              <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px] px-1 rounded-full bg-brand-pink text-[9px] font-semibold text-white flex items-center justify-center leading-none">
                 {changelogUnread}
               </span>
             )}
+            <TooltipPill>What's New</TooltipPill>
           </button>
 
           <NavLink
             to="/settings/how-to"
             className={({ isActive }) =>
-              `inline-flex items-center gap-2 px-2.5 py-1 rounded-md text-[12px] transition-colors ${
-                isActive ? 'bg-white/10 text-white' : 'text-white/75 hover:bg-white/10 hover:text-white'
-              }`
+              `${iconBtnClass}${isActive ? ' bg-white/10 text-white' : ''}`
             }
-            title="How To"
+            aria-label="How To"
           >
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
             </svg>
-            <span className="hidden md:inline">How To</span>
+            <TooltipPill>How To</TooltipPill>
           </NavLink>
 
           <div className="w-px h-5 bg-white/10 mx-2" />

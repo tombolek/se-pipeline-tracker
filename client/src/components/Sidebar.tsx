@@ -6,7 +6,6 @@ import { listClosedLost } from '../api/opportunities';
 import { listInboxItems } from '../api/inbox';
 import { getInsightsNav, type InsightsNavItem } from '../utils/insightsNav';
 import { getMainNav, type MainNavItem } from '../utils/mainNav';
-import ConnectionIndicator from './ConnectionIndicator';
 
 const SETTINGS_NAV = [
   { to: '/settings/users',        label: 'Users',            icon: UsersIcon   },
@@ -193,13 +192,8 @@ export default function Sidebar() {
           </>
         )}
       </nav>
-
-      {/* Slim footer — just the connection indicator. Quick Note, Recent
-          Actions, What's New, How To, and the user pill all moved to the
-          top AppHeader (horizontal redesign). */}
-      <div className="px-3 pb-3 pt-2 border-t border-white/10 flex-shrink-0">
-        <ConnectionIndicator />
-      </div>
+      {/* Sidebar is now navigation-only. Connection indicator moved to the
+          top AppHeader alongside the feature buttons. */}
     </aside>
   );
 }
