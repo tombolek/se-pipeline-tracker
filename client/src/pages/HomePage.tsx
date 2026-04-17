@@ -147,7 +147,7 @@ export default function HomePage() {
   const [data, setData] = useState<DigestData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedOppId, setSelectedOppId] = useState<number | null>(null);
-  const [drawerInitialTab, setDrawerInitialTab] = useState<'work' | 'timeline' | 'call-prep' | 'demo-prep' | 'deal-info' | undefined>(undefined);
+  const [drawerInitialTab, setDrawerInitialTab] = useState<'work' | 'timeline' | 'call-prep' | 'demo-prep' | 'similar-deals' | 'deal-info' | undefined>(undefined);
   const [drawerInitialAction, setDrawerInitialAction] = useState<'summary' | 'notes-processor' | undefined>(undefined);
 
   // AI quick links state

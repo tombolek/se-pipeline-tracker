@@ -40,6 +40,9 @@ GET    /insights/overdue-tasks
 # AI
 POST   /opportunities/:id/summary        (calls Claude API)
 
+# Similarity (no AI)
+GET    /opportunities/:id/similar-deals  (top closed-won/lost matches, SQL+TS scoring, issue #111)
+
 # Inbox
 GET    /inbox                            (current user's items, status=open)
 POST   /inbox                            (create jot — text, type, optional opportunity_id)

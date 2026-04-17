@@ -23,7 +23,7 @@ One section per page/route. Describes the behaviour, filters, and data rules —
 
 ## Opportunity Detail (`/opportunities/:id`)
 
-**Full-width layout with 4 tabs:** Work, Timeline, Call Prep, Deal Info.
+**Full-width layout with 6 tabs:** Work, Timeline, Call Prep, Demo Prep, Similar Deals, Deal Info.
 
 **Header area** (always visible above tabs):
 - SF data (read-only) — name, account (clickable → Account History panel), stage, ARR, close date, AE owner, team, SE owner, deploy mode, PoC status, competitors.
@@ -35,6 +35,10 @@ One section per page/route. Describes the behaviour, filters, and data rules —
 **Timeline tab:** Chronological activity feed for the opportunity (OpportunityTimeline component).
 
 **Call Prep tab:** AI-powered pre-call brief generation with PDF export, uses knowledge base files from `kb/` directory.
+
+**Demo Prep tab:** AI-powered demo readiness assessment — classifies the deal into a demo level (D1–D4), scores readiness across a fixed question set, surfaces gaps and suggested commitments. PDF export.
+
+**Similar Deals tab:** Ranks historical closed-won/lost deals (past 18 months) by similarity to the open deal. Scored on industry, segment, ARR band, products, deploy mode, record type, competitor overlap, and keyword overlap on use-case / MEDDPICC free-text. Pure SQL + TS scoring — **no AI calls, no caching** (cheap enough to compute on demand). Only shows matches with score ≥ 40; top 5. Includes a playbook summary of wins/losses vs. the primary competitor. Issue #111.
 
 **Deal Info tab:** Read-only SF fields — deal info, Next Step, Manager Comments, SE Comments (with freshness badge), Technical Blockers/Risk, MEDDPICC fields, partner info, PoC details.
 
