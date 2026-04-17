@@ -7,6 +7,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## 2026-04-17
 
+### Changed
+- **Docs restructure (contributor-facing, no product change)** — `CLAUDE.md` shrunk from ~900 lines to a slim constitution (inviolable rules + pointer map), and the encyclopaedic content moved into a new `docs/` knowledge base: `data-model.md`, `sf-import.md`, `api.md`, `features.md`, `ui-brand.md`, `deploy.md`, `gotchas.md`, `roadmap.md`, `build-order.md`, `cloud-migration.md`, plus an `index.md`. `docs/data-model.md` now points at `server/migrations/` as the canonical schema (the old inline column dump had drifted well past the live schema) and documents design rules + non-obvious columns instead of mirroring DDL. `docs/gotchas.md` is the new home for non-obvious traps — three-place nav checklist, offline-caching decision tree, WSL/AWS quirks, SDK v0.32.1 pin, SF stale-vs-closed-lost rule, etc. New update rule in `CLAUDE.md`: update the matching `docs/` file in the same commit as any behaviour-changing task.
+
 ### Added
 - **Offline heartbeat (Phase 3.1)** — the client now pings a new `GET /api/v1/ping` endpoint every 45 seconds while the tab is visible. Any success flips the connection indicator back to Live; any network-level failure flips it to Offline. Closes the "laptop slept with queued writes, woke up on new Wi-Fi but never focused the tab" gap — a successful ping after a period offline triggers the same `wasOffline → online` transition the browser's native `online` event does, which auto-drains the offline write queue. Tunable interval (currently 45s); skipped while the tab is hidden so it's cheap on battery and server. Start/stop is wired into auth lifecycle — begins after `checkAuth`, stops on logout, restarts on login. (Issue #117)
 
