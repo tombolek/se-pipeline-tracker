@@ -198,12 +198,13 @@ export default function HowToPage() {
 
       <P><strong>MEDDPICC Gap Coach</strong> — a second collapsible panel below the AI Summary. Shows per-element analysis with Green/Amber/Red ratings, evidence, gaps, and suggested discovery questions.</P>
 
-      <P>The detail view has <strong>4 tabs</strong>:</P>
+      <P>The detail view has <strong>6 tabs</strong>:</P>
       <Ul>
         <Li><strong>Work</strong> — tasks, notes, and the Meeting Notes Processor (paste raw call notes and let AI extract structured outputs).</Li>
         <Li><strong>Timeline</strong> — unified event history across tasks, notes, stage changes, and SF field updates in chronological order.</Li>
         <Li><strong>Call Prep</strong> — AI-generated pre-call brief with talking points, risk areas, questions, customer stories, and differentiator plays. Includes a PDF export button and a Slack send placeholder.</Li>
         <Li><strong>Demo Prep</strong> — AI-generated demo readiness brief with 6 critical questions, evidence, missing items, suggested commitments, coaching tips, overall assessment, and a before-you-demo checklist. PDF export and Slack send buttons mirror Call Prep.</Li>
+        <Li><strong>Similar Deals</strong> — ranks historical closed deals, in-flight deals in advanced stages, and KB proof points by similarity. When the deterministic scorer produces 5+ matches, Claude adds a one-sentence "why it matches" caption on each row; when it produces fewer than 3 matches, Claude synthesizes a short playbook (win pattern, positioning, anticipate, lead-with) from matching KB proof points instead. Both AI layers are cached 7 days per deal.</Li>
         <Li><strong>Deal Info</strong> — configurable Salesforce fields (layout managed in Settings), MEDDPICC scores with an "Show AI notes" toggle to display inline AI analysis per element.</Li>
       </Ul>
       <P>All stage-change and time-in-stage data everywhere in the app (Timeline, Stage Movement, Weekly Digest, Recent Activity, Forecasting Brief) is now derived from Salesforce's per-stage date columns (<em>Stage Date: Build Value</em>, etc.), so multi-stage jumps within a window produce one row per move rather than just the most recent.</P>
@@ -498,6 +499,15 @@ export default function HowToPage() {
       <SubTitle>Deal Info Layout</SubTitle>
       <P>Configure which fields and sections appear in the <strong>Deal Info</strong> tab of the opportunity detail panel. Drag sections to reorder them and use toggles to show or hide individual sections. A live preview using real opportunity data updates as you make changes, so you can see exactly what the layout will look like before saving.</P>
 
+      <SubTitle>Knowledge Base</SubTitle>
+      <P>Manage the curated markdown files under <code>kb/</code> that power <strong>Call Prep</strong> and the <strong>Similar Deals</strong> tab. Each file covers one vertical (e.g. <em>finance_banking.md</em>, <em>insurance_pc.md</em>) and follows a strict template: one <code>### Customer</code> section per customer, with an About paragraph, a Products / Business Initiatives table, a <strong>Proof Point</strong> narrative, and a <code>---</code> separator.</P>
+      <Ul>
+        <Li><strong>Download</strong> — pulls the raw <code>.md</code> file to edit locally in any text editor.</Li>
+        <Li><strong>Upload</strong> — replaces the file on disk atomically, re-parses it, and (for proof-point files) auto-imports the delta: customers removed from the file disappear from the DB, new or edited customers are upserted. Parser errors reject the upload with a descriptive message before any DB write.</Li>
+        <Li><strong>Full re-import</strong> — clears and re-parses every file. Needed after editing <em>index.md</em> or the differentiators file (those have cross-file dependencies).</Li>
+      </Ul>
+      <P>Each row shows the file's disk size, kind (proof points / differentiators / index), the current customer count in the DB, and when it was last imported.</P>
+
       <SubTitle>Templates</SubTitle>
       <P>Reusable <strong>task packs</strong> and <strong>note templates</strong> SEs can apply in one click from the Work tab of any opportunity.</P>
       <Ul>
@@ -576,6 +586,12 @@ export default function HowToPage() {
 
       <SubTitle>Tech Blockers AI Insights</SubTitle>
       <P>Available in the <strong>Tech Blockers</strong> Insights view. Generates a Claude-powered summary of technical blockers across the entire pipeline, weighted by severity. Useful for identifying systemic technical issues and prioritising engineering support across deals.</P>
+
+      <SubTitle>Similar Deals — AI "Why it matches"</SubTitle>
+      <P>On the <strong>Similar Deals</strong> tab, when the deterministic scorer produces 5 or more candidates, the top 15 are sent to Claude for per-row annotation — one sentence per candidate explaining why it's relevant to the active deal, grounded in that candidate's notes and match signals. Rendered inline on each row in a purple callout, replacing the default deterministic "why" text. Cached 7 days per deal; Refresh button on the tab header.</P>
+
+      <SubTitle>Similar Deals — Synthesized Playbook</SubTitle>
+      <P>When the deterministic scorer produces <strong>fewer than 3 matches</strong> — e.g. an early-stage opp with thin signal — the tab instead synthesizes a short <em>playbook</em> from the closest KB proof points: a win pattern, positioning, bullets of what to lead with, and bullets of blockers to anticipate. Clearly labelled "no direct matches — drawn from KB proof points" so it isn't confused with real deal evidence. The prompt explicitly forbids invention; every claim must be grounded in the proof-point text. Cached 7 days; Refresh button on the card.</P>
 
       {/* ── 15. Sidebar Helpers ── */}
       <SectionTitle id="sidebar-helpers">15. Recent Actions &amp; What's New</SectionTitle>
