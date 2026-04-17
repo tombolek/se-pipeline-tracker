@@ -87,9 +87,9 @@ Add new entries at the top, under `## [Unreleased]` if the date isn't known yet,
 
 Always commit, push, and deploy without being asked (hard rules — see [CLAUDE.md](../CLAUDE.md)). The sequence is:
 
-1. `git add <files> && git commit -m "[fe] ..."` — use `[fe]`, `[be]`, `[fe+be]`, or `[infra]` tag.
+1. `git add <files> && git commit -m "[fe] ..."` — use `[fe]`, `[be]`, `[fe+be]`, `[infra]`, or `[docs]` tag.
 2. `git push origin master`.
-3. Run the appropriate deploy command above (frontend-only if only client changed, full if server changed).
+3. Run the appropriate deploy command above (frontend-only if only client changed, full if server changed). `[docs]` commits skip this step — no deploy.
 
 ## Hard "don't"s — see [gotchas.md](gotchas.md)
 

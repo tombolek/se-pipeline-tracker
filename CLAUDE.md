@@ -55,8 +55,11 @@ se-pipeline-tracker/
 
 ### Commit & deploy hygiene
 
-- **Every commit message must include a deploy-scope tag:** `[fe]`, `[be]`, `[fe+be]`, or `[infra]` — this indicates what changed and which deploy mode to use.
-- After any validated feature: commit → `git push origin master` → run the appropriate deploy command ([docs/deploy.md](docs/deploy.md)).
+- **Every commit message must include a deploy-scope tag:** `[fe]`, `[be]`, `[fe+be]`, `[infra]`, or `[docs]` — this indicates what changed and which deploy mode to use.
+  - `[fe]` / `[be]` / `[fe+be]` — code changes; deploy the matching target.
+  - `[infra]` — CDK/infra changes; follow with a CDK deploy + full/server deploy.
+  - `[docs]` — documentation-only (`CLAUDE.md`, `docs/`, `README.md`, `CHANGELOG.md` standalone). **No deploy.**
+- After any validated feature: commit → `git push origin master` → run the appropriate deploy command ([docs/deploy.md](docs/deploy.md)). `[docs]` commits skip the deploy step.
 - **Never auto-deploy without explicit instruction.** Never run `deploy.sh` or `cdk deploy` unless asked.
 - Update `CHANGELOG.md` in the same commit for user-facing changes (format in [docs/deploy.md](docs/deploy.md)).
 
