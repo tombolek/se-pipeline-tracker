@@ -22,6 +22,10 @@ export interface InsightsResponse {
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const MIN_CANDIDATES_TO_GENERATE = 5;
 const MAX_CANDIDATES_TO_SEND = 15;
+// Only annotate candidates at or above this score. Below ~70 the AI has little
+// substantive signal and ends up writing "limited relevance" filler on every
+// row, which is clutter. Caller-side thresholds should match.
+export const INSIGHT_SCORE_MIN = 70;
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -132,9 +136,12 @@ export async function generateInsights(oppId: number): Promise<InsightsResponse>
     return { insights: [], generated_at: null, is_stale: true, candidates_considered: 0 };
   }
 
-  const candidates = similar.results.slice(0, MAX_CANDIDATES_TO_SEND);
+  const topCandidates = similar.results.slice(0, MAX_CANDIDATES_TO_SEND);
+  // Only send strong matches (score ≥ 70) to Claude. Weaker matches produce
+  // filler like "limited relevance — only shared the industry" which clutters
+  // the UI. The rest fall back to the deterministic why_text on each row.
+  const candidates = topCandidates.filter(c => c.score >= INSIGHT_SCORE_MIN);
   if (candidates.length < MIN_CANDIDATES_TO_GENERATE) {
-    // Not enough to bother — insights add clutter when matches are thin.
     return { insights: [], generated_at: null, is_stale: true, candidates_considered: candidates.length };
   }
 

@@ -7,6 +7,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## 2026-04-17
 
+### Changed
+- **Similar Deals — AI insights only on strong matches (≥ 70)** — the "why it matches" caption was firing on weak candidates (e.g. a score-50 match that just happened to share an industry), producing filler like "limited relevance — only shared the industry" that added noise. Now both the server and the client gate AI annotation on score ≥ 70: insights only auto-generate when there are 5+ strong matches, and rows below 70 always fall back to the deterministic why-text. Stale cached insights pointing at weak rows are also suppressed at render time. Cheaper (smaller prompt, fewer tokens) and cleaner UI. (Issue #111)
+
 ### Added
 - **Similar Deals — AI "why it matches" insights (lever 2)** — when field scoring produces 5 or more matches, the top 15 candidates are sent to Claude for per-result annotation: one sentence per row grounded in that candidate's notes and match signals, explaining why it's relevant to the active deal. Rendered inline on each result row in a purple callout, replacing the default deterministic "why" text. Cached 7 days per opp (`ai_summary_cache` key `similar-deals-insights-{oppId}`) so tokens are ~1× per week per opened opp. Status strip in the tab header shows generation state and offers a Refresh button. Prompt explicitly forbids invention — if a candidate is weakly matched, the insight says so ("limited relevance — only shared the industry"). (Issue #111)
 

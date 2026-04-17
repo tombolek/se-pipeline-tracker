@@ -148,6 +148,7 @@ interface KbPlaybookResponse {
 
 const PLAYBOOK_THRESHOLD = 3; // fetch/offer playbook when below this
 const INSIGHTS_THRESHOLD = 5; // fetch/offer insights when at or above this
+const INSIGHT_SCORE_MIN = 70; // only annotate strong matches; must match server-side INSIGHT_SCORE_MIN
 
 interface Insight {
   ref_type: 'opportunity' | 'kb';
@@ -242,20 +243,23 @@ export default function SimilarDealsTab({ oppId }: { oppId: number; oppName?: st
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // When we have plenty of candidates, fetch cached insights and auto-generate if missing.
+  // Count strong matches (score ≥ 70) — only these are worth AI annotation.
+  const strongMatchCount = data ? data.results.filter(r => r.score >= INSIGHT_SCORE_MIN).length : 0;
+
+  // When we have enough strong matches, fetch cached insights and auto-generate if missing.
   useEffect(() => {
     if (!data) return;
-    if (data.total_above_threshold < INSIGHTS_THRESHOLD) return;
+    if (strongMatchCount < INSIGHTS_THRESHOLD) return;
     fetchCachedInsights();
-  }, [data, fetchCachedInsights]);
+  }, [data, strongMatchCount, fetchCachedInsights]);
 
   useEffect(() => {
     if (!data || !insights) return;
-    if (data.total_above_threshold < INSIGHTS_THRESHOLD) return;
+    if (strongMatchCount < INSIGHTS_THRESHOLD) return;
     if (insights.insights.length === 0 && !insightsGenerating && !insightsError) {
       generateInsights();
     }
-  }, [data, insights, insightsGenerating, insightsError, generateInsights]);
+  }, [data, insights, strongMatchCount, insightsGenerating, insightsError, generateInsights]);
 
   // When the corpus is thin, pull cached playbook; if there isn't one and we
   // have KB sources available, auto-generate so the empty state isn't empty.
@@ -420,7 +424,7 @@ export default function SimilarDealsTab({ oppId }: { oppId: number; oppName?: st
   if (insights) {
     for (const i of insights.insights) insightByKey.set(`${i.ref_type}-${i.id}`, i.insight);
   }
-  const showInsightsStrip = data.total_above_threshold >= INSIGHTS_THRESHOLD;
+  const showInsightsStrip = strongMatchCount >= INSIGHTS_THRESHOLD;
 
   return (
     <div className="space-y-4">
@@ -556,7 +560,11 @@ export default function SimilarDealsTab({ oppId }: { oppId: number; oppName?: st
                   )}
 
                   {(() => {
-                    const aiInsight = insightByKey.get(`${r.ref_type}-${r.id}`);
+                    // Only show AI caption on strong matches; guards against stale cached
+                    // insights generated before the ≥ 70 threshold was introduced.
+                    const aiInsight = r.score >= INSIGHT_SCORE_MIN
+                      ? insightByKey.get(`${r.ref_type}-${r.id}`)
+                      : undefined;
                     if (aiInsight) {
                       return (
                         <div className="mt-2 bg-brand-purple-30/20 rounded-lg px-3 py-2 border border-brand-purple/10">
