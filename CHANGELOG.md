@@ -8,6 +8,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## 2026-04-17
 
 ### Added
+- **Similar Deals — AI "why it matches" insights (lever 2)** — when field scoring produces 5 or more matches, the top 15 candidates are sent to Claude for per-result annotation: one sentence per row grounded in that candidate's notes and match signals, explaining why it's relevant to the active deal. Rendered inline on each result row in a purple callout, replacing the default deterministic "why" text. Cached 7 days per opp (`ai_summary_cache` key `similar-deals-insights-{oppId}`) so tokens are ~1× per week per opened opp. Status strip in the tab header shows generation state and offers a Refresh button. Prompt explicitly forbids invention — if a candidate is weakly matched, the insight says so ("limited relevance — only shared the industry"). (Issue #111)
+
+### Added
 - **Similar Deals — synthesized playbook fallback (lever 3)** — when field scoring produces fewer than 3 matches above threshold, the tab now auto-generates a short playbook from the top matching KB proof points using Claude: win pattern, positioning, lead-with bullets, anticipate bullets, and a "based on" list of the customer names it was drawn from. Grounded in proof-point text only — the prompt explicitly forbids invention. Cached 7 days per opp in `ai_summary_cache`. Card clearly labelled "no direct matches — drawn from KB proof points" so SEs know it's pattern advice, not a real deal. Small prompt (~1K input tokens) so the cache miss cost is negligible; the 7-day TTL means each opp generates ≤ 1×/week even if the tab is opened daily. (Issue #111)
 
 ### Added

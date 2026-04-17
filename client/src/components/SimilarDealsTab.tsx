@@ -147,6 +147,20 @@ interface KbPlaybookResponse {
 }
 
 const PLAYBOOK_THRESHOLD = 3; // fetch/offer playbook when below this
+const INSIGHTS_THRESHOLD = 5; // fetch/offer insights when at or above this
+
+interface Insight {
+  ref_type: 'opportunity' | 'kb';
+  id: number;
+  insight: string;
+}
+
+interface InsightsResponse {
+  insights: Insight[];
+  generated_at: string | null;
+  is_stale: boolean;
+  candidates_considered: number;
+}
 
 /* ── Component ── */
 export default function SimilarDealsTab({ oppId }: { oppId: number; oppName?: string }) {
@@ -162,6 +176,10 @@ export default function SimilarDealsTab({ oppId }: { oppId: number; oppName?: st
   const [playbook, setPlaybook] = useState<KbPlaybookResponse | null>(null);
   const [playbookGenerating, setPlaybookGenerating] = useState(false);
   const [playbookError, setPlaybookError] = useState<string | null>(null);
+
+  const [insights, setInsights] = useState<InsightsResponse | null>(null);
+  const [insightsGenerating, setInsightsGenerating] = useState(false);
+  const [insightsError, setInsightsError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -199,7 +217,45 @@ export default function SimilarDealsTab({ oppId }: { oppId: number; oppName?: st
     }
   }, [oppId]);
 
+  const fetchCachedInsights = useCallback(async () => {
+    try {
+      const r = await api.get<ApiResponse<InsightsResponse>>(`/opportunities/${oppId}/similar-deals/insights/cached`);
+      setInsights(r.data.data);
+    } catch {
+      /* silent — insights are optional */
+    }
+  }, [oppId]);
+
+  const generateInsights = useCallback(async () => {
+    setInsightsGenerating(true);
+    setInsightsError(null);
+    try {
+      const r = await api.post<ApiResponse<InsightsResponse>>(`/opportunities/${oppId}/similar-deals/insights/generate`);
+      setInsights(r.data.data);
+    } catch (e) {
+      const msg = (e as { response?: { data?: { error?: string } } }).response?.data?.error ?? (e as Error).message;
+      setInsightsError(msg ?? 'Generation failed');
+    } finally {
+      setInsightsGenerating(false);
+    }
+  }, [oppId]);
+
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // When we have plenty of candidates, fetch cached insights and auto-generate if missing.
+  useEffect(() => {
+    if (!data) return;
+    if (data.total_above_threshold < INSIGHTS_THRESHOLD) return;
+    fetchCachedInsights();
+  }, [data, fetchCachedInsights]);
+
+  useEffect(() => {
+    if (!data || !insights) return;
+    if (data.total_above_threshold < INSIGHTS_THRESHOLD) return;
+    if (insights.insights.length === 0 && !insightsGenerating && !insightsError) {
+      generateInsights();
+    }
+  }, [data, insights, insightsGenerating, insightsError, generateInsights]);
 
   // When the corpus is thin, pull cached playbook; if there isn't one and we
   // have KB sources available, auto-generate so the empty state isn't empty.
@@ -360,6 +416,12 @@ export default function SimilarDealsTab({ oppId }: { oppId: number; oppName?: st
     (pb.against_competitor_won > 0 || pb.against_competitor_lost > 0);
   const counts = data.counts_by_outcome;
 
+  const insightByKey = new Map<string, string>();
+  if (insights) {
+    for (const i of insights.insights) insightByKey.set(`${i.ref_type}-${i.id}`, i.insight);
+  }
+  const showInsightsStrip = data.total_above_threshold >= INSIGHTS_THRESHOLD;
+
   return (
     <div className="space-y-4">
       {/* Tab heading + controls */}
@@ -421,6 +483,30 @@ export default function SimilarDealsTab({ oppId }: { oppId: number; oppName?: st
         ))}
       </div>
 
+      {/* AI insights status strip — only rendered when we have plenty of candidates */}
+      {showInsightsStrip && (
+        insightsGenerating ? (
+          <div className="flex items-center gap-2 text-[10px] text-brand-navy-70 bg-brand-purple-30/20 border border-brand-purple/20 rounded-lg px-3 py-1.5">
+            <div className="w-2.5 h-2.5 border-2 border-brand-purple border-t-transparent rounded-full animate-spin" />
+            Generating AI insights for the top {insights?.candidates_considered ?? ''} candidates…
+          </div>
+        ) : insightsError ? (
+          <div className="flex items-center justify-between gap-2 text-[10px] bg-red-50 border border-red-200 rounded-lg px-3 py-1.5">
+            <span className="text-red-700">AI insights failed: {insightsError}</span>
+            <button onClick={generateInsights} className="font-semibold text-red-700 hover:text-red-800 underline">Retry</button>
+          </div>
+        ) : insights && insights.insights.length > 0 ? (
+          <div className="flex items-center justify-between gap-2 text-[10px] text-brand-navy-70 bg-brand-purple-30/20 border border-brand-purple/20 rounded-lg px-3 py-1.5">
+            <span>AI "why it matches" captions shown inline on each result
+              {insights.generated_at && <> · generated {new Date(insights.generated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</>}
+            </span>
+            <button onClick={generateInsights} disabled={insightsGenerating} className="font-semibold text-brand-purple hover:text-brand-purple-70 disabled:opacity-40">
+              Refresh
+            </button>
+          </div>
+        ) : null
+      )}
+
       {/* Synthesized KB playbook — only rendered when matches are thin */}
       {renderPlaybookCard()}
 
@@ -469,12 +555,32 @@ export default function SimilarDealsTab({ oppId }: { oppId: number; oppName?: st
                     </div>
                   )}
 
-                  {r.why_text && (
-                    <p className="text-[11px] text-brand-navy-70 mt-2 leading-relaxed">
-                      <span className="font-semibold text-brand-navy">{whyLabel(r.outcome)}</span>{' '}
-                      {r.why_text}
-                    </p>
-                  )}
+                  {(() => {
+                    const aiInsight = insightByKey.get(`${r.ref_type}-${r.id}`);
+                    if (aiInsight) {
+                      return (
+                        <div className="mt-2 bg-brand-purple-30/20 rounded-lg px-3 py-2 border border-brand-purple/10">
+                          <div className="flex items-center gap-1 mb-0.5">
+                            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none">
+                              <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="url(#iig)" />
+                              <defs><linearGradient id="iig" x1="2" y1="2" x2="22" y2="22"><stop stopColor="#F10090" /><stop offset="1" stopColor="#6A2CF5" /></linearGradient></defs>
+                            </svg>
+                            <span className="text-[9px] font-semibold text-brand-purple uppercase tracking-wide">Why it matches</span>
+                          </div>
+                          <p className="text-[11px] text-brand-navy leading-relaxed">{aiInsight}</p>
+                        </div>
+                      );
+                    }
+                    if (r.why_text) {
+                      return (
+                        <p className="text-[11px] text-brand-navy-70 mt-2 leading-relaxed">
+                          <span className="font-semibold text-brand-navy">{whyLabel(r.outcome)}</span>{' '}
+                          {r.why_text}
+                        </p>
+                      );
+                    }
+                    return null;
+                  })()}
 
                   <div className="flex items-center gap-3 mt-2">
                     {r.ref_type === 'opportunity' ? (
