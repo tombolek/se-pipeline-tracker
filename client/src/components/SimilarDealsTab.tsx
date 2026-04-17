@@ -3,6 +3,8 @@ import api from '../api/client';
 import type { ApiResponse } from '../types';
 
 /* ── Types ── */
+type Outcome = 'won' | 'lost' | 'in_flight' | 'kb_reference';
+
 interface MatchChip {
   label: string;
   kind: 'match' | 'competitor' | 'warn' | 'product';
@@ -10,10 +12,12 @@ interface MatchChip {
 
 interface SimilarDeal {
   id: number;
-  sf_opportunity_id: string;
+  ref_type: 'opportunity' | 'kb';
+  sf_opportunity_id: string | null;
   name: string;
   account_name: string | null;
-  outcome: 'won' | 'lost';
+  outcome: Outcome;
+  stage: string | null;
   closed_date: string | null;
   arr: number | null;
   se_owner_name: string | null;
@@ -47,6 +51,7 @@ interface SimilarDealsResponse {
   results: SimilarDeal[];
   total_candidates: number;
   total_above_threshold: number;
+  counts_by_outcome: { won: number; lost: number; in_flight: number; kb_reference: number };
   playbook: PlaybookSummary;
 }
 
@@ -74,10 +79,38 @@ function chipClass(kind: MatchChip['kind']): string {
   }
 }
 
-function outcomeClass(outcome: 'won' | 'lost'): string {
-  return outcome === 'won'
-    ? 'text-status-success bg-emerald-50'
-    : 'text-status-overdue bg-red-50';
+function outcomeBadge(r: SimilarDeal): { label: string; class: string } {
+  switch (r.outcome) {
+    case 'won':          return { label: 'Won',          class: 'text-status-success bg-emerald-50' };
+    case 'lost':         return { label: 'Lost',         class: 'text-status-overdue bg-red-50' };
+    case 'in_flight':    return { label: r.stage ? `In flight · ${r.stage}` : 'In flight', class: 'text-cyan-700 bg-cyan-50' };
+    case 'kb_reference': return { label: 'KB reference', class: 'text-brand-purple bg-brand-purple-30/60' };
+  }
+}
+
+function whyLabel(outcome: Outcome): string {
+  switch (outcome) {
+    case 'won':          return 'Notes:';
+    case 'lost':         return 'Why it lost:';
+    case 'in_flight':    return "What they're doing:";
+    case 'kb_reference': return 'Proof point:';
+  }
+}
+
+function metaLine(r: SimilarDeal): string {
+  const parts: string[] = [];
+  if (r.outcome === 'kb_reference') {
+    if (r.account_industry) parts.push(r.account_industry);
+  } else {
+    if (r.outcome === 'in_flight') {
+      parts.push('open');
+    } else {
+      parts.push(fmtClosedDate(r.closed_date));
+    }
+    parts.push(fmtArr(r.arr));
+    if (r.se_owner_name) parts.push(`${r.se_owner_name} (SE)`);
+  }
+  return parts.join(' · ');
 }
 
 function ScoreRing({ score }: { score: number }) {
@@ -104,6 +137,8 @@ export default function SimilarDealsTab({ oppId }: { oppId: number; oppName?: st
   const [error, setError] = useState<string | null>(null);
   const [showWon, setShowWon] = useState(true);
   const [showLost, setShowLost] = useState(true);
+  const [showInFlight, setShowInFlight] = useState(true);
+  const [showKb, setShowKb] = useState(true);
   const [sort, setSort] = useState<SortKey>('score');
 
   const fetchData = useCallback(async () => {
@@ -124,16 +159,19 @@ export default function SimilarDealsTab({ oppId }: { oppId: number; oppName?: st
   const filtered = useMemo(() => {
     if (!data) return [];
     const rows = data.results.filter(r =>
-      (r.outcome === 'won' && showWon) || (r.outcome === 'lost' && showLost)
+      (r.outcome === 'won'          && showWon)      ||
+      (r.outcome === 'lost'         && showLost)     ||
+      (r.outcome === 'in_flight'    && showInFlight) ||
+      (r.outcome === 'kb_reference' && showKb)
     );
     const sorted = [...rows];
     if (sort === 'recency') {
       sorted.sort((a, b) => (b.closed_date ?? '').localeCompare(a.closed_date ?? ''));
     } else if (sort === 'arr') {
       sorted.sort((a, b) => (b.arr ?? 0) - (a.arr ?? 0));
-    } // score is already server-sorted
+    }
     return sorted;
-  }, [data, showWon, showLost, sort]);
+  }, [data, showWon, showLost, showInFlight, showKb, sort]);
 
   if (loading) {
     return (
@@ -159,7 +197,7 @@ export default function SimilarDealsTab({ oppId }: { oppId: number; oppName?: st
         <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
           <p className="text-xs font-semibold text-amber-800 mb-1">Not enough historical signal yet</p>
           <p className="text-[11px] text-amber-700 leading-relaxed">
-            Scanned {data.total_candidates} closed deals from the past 18 months but none scored ≥ 40. Matching improves as the corpus grows and as this deal's fields (industry, products, competitors, MEDDPICC) get filled in.
+            Scanned {data.total_candidates} closed + in-flight deals and KB proof points but none scored ≥ 40. Matching improves as the corpus grows and as this deal's fields (industry, products, competitors, MEDDPICC) get filled in.
           </p>
         </div>
       </div>
@@ -169,6 +207,7 @@ export default function SimilarDealsTab({ oppId }: { oppId: number; oppName?: st
   const pb = data.playbook;
   const hasCompetitorPlaybook = pb.against_competitor &&
     (pb.against_competitor_won > 0 || pb.against_competitor_lost > 0);
+  const counts = data.counts_by_outcome;
 
   return (
     <div className="space-y-4">
@@ -176,23 +215,31 @@ export default function SimilarDealsTab({ oppId }: { oppId: number; oppName?: st
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <h2 className="text-sm font-semibold text-brand-navy flex items-center gap-2">
-            Similar Closed Deals
+            Similar Deals
             <span className="text-[10px] font-normal text-brand-navy-70">
-              top {Math.min(filtered.length, data.results.length)} of {data.total_above_threshold} matches · 18 mo window
+              top {filtered.length} of {data.total_above_threshold} matches · 18 mo window
             </span>
           </h2>
           <p className="text-[11px] text-brand-navy-70 mt-0.5">
-            Historical won/lost deals ranked by industry, segment, ARR band, competitor, products, and MEDDPICC shape.
+            Historical closed, in-flight deals in advanced stages, and KB proof points — ranked by industry, segment, ARR band, products, competitor, and free-text overlap.
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <label className="flex items-center gap-1.5 text-[10px] text-brand-navy-70">
             <input type="checkbox" checked={showWon} onChange={e => setShowWon(e.target.checked)} className="w-3 h-3 accent-brand-purple" />
-            Won
+            Won {counts.won > 0 && <span className="text-brand-navy-30">({counts.won})</span>}
           </label>
           <label className="flex items-center gap-1.5 text-[10px] text-brand-navy-70">
             <input type="checkbox" checked={showLost} onChange={e => setShowLost(e.target.checked)} className="w-3 h-3 accent-brand-purple" />
-            Lost
+            Lost {counts.lost > 0 && <span className="text-brand-navy-30">({counts.lost})</span>}
+          </label>
+          <label className="flex items-center gap-1.5 text-[10px] text-brand-navy-70">
+            <input type="checkbox" checked={showInFlight} onChange={e => setShowInFlight(e.target.checked)} className="w-3 h-3 accent-brand-purple" />
+            In flight {counts.in_flight > 0 && <span className="text-brand-navy-30">({counts.in_flight})</span>}
+          </label>
+          <label className="flex items-center gap-1.5 text-[10px] text-brand-navy-70">
+            <input type="checkbox" checked={showKb} onChange={e => setShowKb(e.target.checked)} className="w-3 h-3 accent-brand-purple" />
+            KB {counts.kb_reference > 0 && <span className="text-brand-navy-30">({counts.kb_reference})</span>}
           </label>
           <select
             value={sort}
@@ -243,64 +290,67 @@ export default function SimilarDealsTab({ oppId }: { oppId: number; oppName?: st
       <div className="border border-brand-navy-30/40 rounded-xl divide-y divide-brand-navy-30/20 overflow-hidden bg-white">
         {filtered.length === 0 ? (
           <div className="px-4 py-8 text-center text-[11px] text-brand-navy-70">No matches for the selected filters.</div>
-        ) : filtered.map(r => (
-          <div key={r.id} className="px-4 py-3 hover:bg-brand-purple-30/10 transition-colors">
-            <div className="flex items-start gap-3">
-              <ScoreRing score={r.score} />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs font-semibold text-brand-navy">{r.name}</span>
-                  <span className={`text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded ${outcomeClass(r.outcome)}`}>
-                    {r.outcome === 'won' ? 'Won' : 'Lost'}
-                  </span>
-                  <span className="text-[10px] text-brand-navy-70">
-                    {fmtClosedDate(r.closed_date)} · {fmtArr(r.arr)}{r.se_owner_name ? ` · ${r.se_owner_name} (SE)` : ''}
-                  </span>
-                </div>
-
-                {r.match_chips.length > 0 && (
-                  <div className="flex items-center gap-1 flex-wrap mt-1.5">
-                    {r.match_chips.map((c, i) => (
-                      <span key={i} className={`text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded ${chipClass(c.kind)}`}>
-                        {c.label}
-                      </span>
-                    ))}
+        ) : filtered.map(r => {
+          const badge = outcomeBadge(r);
+          return (
+            <div key={`${r.ref_type}-${r.id}`} className="px-4 py-3 hover:bg-brand-purple-30/10 transition-colors">
+              <div className="flex items-start gap-3">
+                <ScoreRing score={r.score} />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-semibold text-brand-navy">{r.name}</span>
+                    <span className={`text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded ${badge.class}`}>
+                      {badge.label}
+                    </span>
+                    <span className="text-[10px] text-brand-navy-70">{metaLine(r)}</span>
                   </div>
-                )}
 
-                {r.why_text && (
-                  <p className="text-[11px] text-brand-navy-70 mt-2 leading-relaxed">
-                    <span className="font-semibold text-brand-navy">
-                      {r.outcome === 'won' ? 'Notes:' : 'Why it lost:'}
-                    </span>{' '}
-                    {r.why_text}
-                  </p>
-                )}
-
-                <div className="flex items-center gap-3 mt-2">
-                  <a
-                    href={`/opportunities/${r.id}`}
-                    className="text-[10px] font-semibold text-brand-purple hover:text-brand-purple-70"
-                  >
-                    Open deal →
-                  </a>
-                  {r.account_industry && (
-                    <>
-                      <span className="text-brand-navy-30 text-[10px]">·</span>
-                      <span className="text-[10px] text-brand-navy-70">{r.account_industry}</span>
-                    </>
+                  {r.match_chips.length > 0 && (
+                    <div className="flex items-center gap-1 flex-wrap mt-1.5">
+                      {r.match_chips.map((c, i) => (
+                        <span key={i} className={`text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded ${chipClass(c.kind)}`}>
+                          {c.label}
+                        </span>
+                      ))}
+                    </div>
                   )}
+
+                  {r.why_text && (
+                    <p className="text-[11px] text-brand-navy-70 mt-2 leading-relaxed">
+                      <span className="font-semibold text-brand-navy">{whyLabel(r.outcome)}</span>{' '}
+                      {r.why_text}
+                    </p>
+                  )}
+
+                  <div className="flex items-center gap-3 mt-2">
+                    {r.ref_type === 'opportunity' ? (
+                      <a
+                        href={`/opportunities/${r.id}`}
+                        className="text-[10px] font-semibold text-brand-purple hover:text-brand-purple-70"
+                      >
+                        Open deal →
+                      </a>
+                    ) : (
+                      <span className="text-[10px] font-semibold text-brand-purple">KB proof point</span>
+                    )}
+                    {r.account_industry && (
+                      <>
+                        <span className="text-brand-navy-30 text-[10px]">·</span>
+                        <span className="text-[10px] text-brand-navy-70">{r.account_industry}</span>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Footer */}
       <div className="flex items-center justify-between pt-1">
         <span className="text-[10px] text-brand-navy-70">
-          Scanned {data.total_candidates} closed deals · score ≥ 40 · {data.total_above_threshold} total matches
+          Scanned {data.total_candidates} records · score ≥ 40 · {data.total_above_threshold} total matches
         </span>
       </div>
     </div>

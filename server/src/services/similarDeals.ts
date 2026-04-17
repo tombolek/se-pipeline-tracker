@@ -17,6 +17,7 @@ interface DealRow {
   engaged_competitors: string | null;
   technical_blockers: string | null;
   se_comments: string | null;
+  next_step_sf: string | null;
   need: string | null;
   metrics: string | null;
   decision_criteria: string | null;
@@ -30,13 +31,29 @@ interface DealRow {
   se_owner_name: string | null;
 }
 
+interface KbRow {
+  id: number;
+  customer_name: string;
+  about: string | null;
+  vertical: string;
+  sub_vertical: string | null;
+  products: string[];
+  initiatives: string[];
+  proof_point_text: string;
+  source_file: string | null;
+}
+
+export type Outcome = 'won' | 'lost' | 'in_flight' | 'kb_reference';
+
 export interface SimilarDealResult {
   id: number;
-  sf_opportunity_id: string;
+  ref_type: 'opportunity' | 'kb';
+  sf_opportunity_id: string | null;
   name: string;
   account_name: string | null;
-  outcome: 'won' | 'lost';
-  closed_date: string | null; // YYYY-MM-DD, best available
+  outcome: Outcome;
+  stage: string | null;          // populated for in_flight
+  closed_date: string | null;
   arr: number | null;
   se_owner_name: string | null;
   account_industry: string | null;
@@ -64,6 +81,7 @@ export interface SimilarDealsResponse {
   results: SimilarDealResult[];
   total_candidates: number;
   total_above_threshold: number;
+  counts_by_outcome: { won: number; lost: number; in_flight: number; kb_reference: number };
   playbook: PlaybookSummary;
 }
 
@@ -78,9 +96,12 @@ export interface PlaybookSummary {
 // ── Constants ───────────────────────────────────────────────────────────────
 
 const LOOKBACK_MONTHS = 18;
-const MAX_RESULTS = 5;
+const MAX_RESULTS = 8;
 const MIN_SCORE = 40;
-const MAX_PER_QUERY = 200; // cap corpus load to keep scoring cheap
+const MAX_PER_QUERY = 200;
+
+// In-flight stages we count as "playbook is ripe enough to mine"
+const IN_FLIGHT_STAGES = ['Negotiate', 'Proposal Sent', 'Submitted for Booking'];
 
 const STOPWORDS = new Set([
   'the', 'a', 'an', 'and', 'or', 'but', 'if', 'of', 'in', 'on', 'at', 'to', 'for',
@@ -108,12 +129,26 @@ function arrBandIndex(band: string | null): number {
 function normalizeIndustry(raw: string | null): string | null {
   if (!raw) return null;
   const s = raw.trim().toLowerCase();
-  // Light normalization for the common SF free-text drift we see.
   if (s.startsWith('financial')) return 'financial services';
   if (s === 'finance') return 'financial services';
   if (s.startsWith('life science')) return 'life sciences';
   if (s === 'pharma' || s === 'pharmaceutical' || s === 'pharmaceuticals') return 'life sciences';
   return s;
+}
+
+// Map a KB vertical label (e.g. "Finance — Banking & Credit Unions") to the
+// normalized industry name we use for opportunity records.
+function kbVerticalToIndustry(vertical: string): string {
+  const v = vertical.toLowerCase();
+  if (v.startsWith('finance')) return 'financial services';
+  if (v.startsWith('insurance')) return 'insurance';
+  if (v.includes('pharma') || v.includes('life sciences')) return 'life sciences';
+  if (v.startsWith('manufacturing')) return 'manufacturing';
+  if (v.includes('healthcare')) return 'healthcare';
+  if (v.includes('technology') || v.includes('energy') || v.includes('retail') || v.includes('public')) {
+    return 'technology';
+  }
+  return v;
 }
 
 function parseCompetitors(raw: string | null): string[] {
@@ -140,7 +175,6 @@ function jaccard<T>(a: Set<T>, b: Set<T>): number {
 }
 
 function bestClosedDate(row: DealRow): string | null {
-  // Prefer SF-reported close date, fall back to detected-close timestamp.
   if (row.is_closed_won && row.stage_date_closed_won) return row.stage_date_closed_won;
   if (row.is_closed_lost && row.stage_date_closed_lost) return row.stage_date_closed_lost;
   if (row.closed_at) return row.closed_at.slice(0, 10);
@@ -153,6 +187,12 @@ function arrNumber(row: DealRow): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+function dealOutcome(row: DealRow): Outcome {
+  if (row.is_closed_won) return 'won';
+  if (row.is_closed_lost) return 'lost';
+  return 'in_flight';
+}
+
 // ── Scoring ─────────────────────────────────────────────────────────────────
 
 interface ScoreBreakdown {
@@ -160,7 +200,7 @@ interface ScoreBreakdown {
   chips: MatchChip[];
 }
 
-function scorePair(active: DealRow, historical: DealRow): ScoreBreakdown {
+function scoreDealPair(active: DealRow, historical: DealRow): ScoreBreakdown {
   let total = 0;
   const chips: MatchChip[] = [];
 
@@ -174,14 +214,14 @@ function scorePair(active: DealRow, historical: DealRow): ScoreBreakdown {
     chips.push({ label: 'Adjacent industry', kind: 'warn' });
   }
 
-  // Segment (10) — exact only; "one tier" is a fuzzy concept we can refine later
+  // Segment (10)
   if (active.account_segment && historical.account_segment &&
       active.account_segment === historical.account_segment) {
     total += 10;
     chips.push({ label: 'Segment ✓', kind: 'match' });
   }
 
-  // ARR band (10) — adjacent gives 5
+  // ARR band (10 / 5)
   const aArr = arrNumber(active);
   const hArr = arrNumber(historical);
   const aBand = arrBand(aArr);
@@ -194,7 +234,7 @@ function scorePair(active: DealRow, historical: DealRow): ScoreBreakdown {
     if (diff === 1) total += 5;
   }
 
-  // Products (15) — Jaccard × 15
+  // Products (15)
   const aProducts = new Set(active.products ?? []);
   const hProducts = new Set(historical.products ?? []);
   const productJacc = jaccard(aProducts, hProducts);
@@ -216,13 +256,12 @@ function scorePair(active: DealRow, historical: DealRow): ScoreBreakdown {
     total += 5;
   }
 
-  // Competitors (10) — any overlap
+  // Competitors (10)
   const aComp = new Set(parseCompetitors(active.engaged_competitors));
   const hComp = new Set(parseCompetitors(historical.engaged_competitors));
   const sharedComp = [...aComp].filter(c => hComp.has(c));
   if (sharedComp.length > 0) {
     total += 10;
-    // Use the original-case name from the historical deal if we can find it.
     const raw = (historical.engaged_competitors ?? '').split(/[,;|]/).map(s => s.trim()).find(
       s => s.toLowerCase() === sharedComp[0]
     );
@@ -230,49 +269,88 @@ function scorePair(active: DealRow, historical: DealRow): ScoreBreakdown {
     chips.push({ label: `Same competitor: ${displayName}`, kind: 'competitor' });
   }
 
-  // Use-case text (15) — Jaccard on need + technical_blockers + se_comments
+  // Use-case text (15)
   const aUseCase = tokenize(
     [active.need, active.technical_blockers, active.se_comments].filter(Boolean).join(' ')
   );
   const hUseCase = tokenize(
     [historical.need, historical.technical_blockers, historical.se_comments].filter(Boolean).join(' ')
   );
-  const useCaseJacc = jaccard(aUseCase, hUseCase);
-  total += Math.round(useCaseJacc * 15);
+  total += Math.round(jaccard(aUseCase, hUseCase) * 15);
 
-  // MEDDPICC shape (10) — Jaccard on metrics + decision_criteria + paper_process
+  // MEDDPICC shape (10)
   const aMedd = tokenize(
     [active.metrics, active.decision_criteria, active.paper_process].filter(Boolean).join(' ')
   );
   const hMedd = tokenize(
     [historical.metrics, historical.decision_criteria, historical.paper_process].filter(Boolean).join(' ')
   );
-  const meddJacc = jaccard(aMedd, hMedd);
-  total += Math.round(meddJacc * 10);
+  total += Math.round(jaccard(aMedd, hMedd) * 10);
+
+  return { total: Math.min(total, 100), chips };
+}
+
+function scoreKbPair(active: DealRow, kb: KbRow): ScoreBreakdown {
+  // KB rows don't have segment, ARR, deploy mode, record type, competitor, or
+  // MEDDPICC — so we allocate extra weight to the fields they do have.
+  // Max = 100: industry 25, products 35, use-case text 30, initiatives 10.
+  let total = 0;
+  const chips: MatchChip[] = [];
+
+  const aInd = normalizeIndustry(active.account_industry);
+  const kInd = kbVerticalToIndustry(kb.vertical);
+  if (aInd && aInd === kInd) {
+    total += 25;
+    chips.push({ label: 'Industry ✓', kind: 'match' });
+  }
+
+  const aProducts = new Set(active.products ?? []);
+  const kProducts = new Set(kb.products ?? []);
+  const productJacc = jaccard(aProducts, kProducts);
+  total += Math.round(productJacc * 35);
+  if (productJacc > 0) {
+    const overlap = [...aProducts].filter(p => kProducts.has(p));
+    chips.push({ label: `Products: ${overlap.join('+')}`, kind: 'product' });
+  }
+
+  const aText = tokenize(
+    [active.need, active.technical_blockers, active.se_comments, active.metrics].filter(Boolean).join(' ')
+  );
+  const kText = tokenize([kb.about, kb.proof_point_text].filter(Boolean).join(' '));
+  total += Math.round(jaccard(aText, kText) * 30);
+
+  const aInitiatives = tokenize(
+    [active.need, active.metrics, active.decision_criteria].filter(Boolean).join(' ')
+  );
+  const kInitiatives = new Set(kb.initiatives.map(i => i.toLowerCase()));
+  // Check if any active-deal word appears inside any KB initiative token set.
+  let initiativeHit = false;
+  for (const init of kInitiatives) {
+    for (const word of tokenize(init)) {
+      if (aInitiatives.has(word)) { initiativeHit = true; break; }
+    }
+    if (initiativeHit) break;
+  }
+  if (initiativeHit) total += 10;
 
   return { total: Math.min(total, 100), chips };
 }
 
 // ── "Why" text extraction ───────────────────────────────────────────────────
 
-function buildWhyText(row: DealRow): { why: string | null; snippets: { source: string; text: string }[] } {
+function buildWhyForDeal(row: DealRow): { why: string | null; snippets: { source: string; text: string }[] } {
   const snippets: { source: string; text: string }[] = [];
-  if (row.technical_blockers) {
-    snippets.push({ source: 'Technical Blockers', text: row.technical_blockers.slice(0, 300) });
-  }
-  if (row.se_comments) {
-    snippets.push({ source: 'SE Comments', text: row.se_comments.slice(0, 300) });
-  }
-  if (snippets.length === 0 && row.need) {
-    snippets.push({ source: 'Need', text: row.need.slice(0, 300) });
-  }
+  if (row.technical_blockers) snippets.push({ source: 'Technical Blockers', text: row.technical_blockers.slice(0, 300) });
+  if (row.se_comments) snippets.push({ source: 'SE Comments', text: row.se_comments.slice(0, 300) });
+  if (snippets.length === 0 && row.need) snippets.push({ source: 'Need', text: row.need.slice(0, 300) });
 
-  // Rule-of-thumb first line: for won deals, surface technical_blockers as the
-  // headline (what they were worried about that we overcame). For lost deals,
-  // surface SE comments (usually the post-mortem).
   let why: string | null = null;
-  if (row.is_closed_won && row.technical_blockers) why = row.technical_blockers.slice(0, 240);
-  else if (row.is_closed_lost && row.se_comments) why = row.se_comments.slice(0, 240);
+  const outcome = dealOutcome(row);
+  if (outcome === 'won' && row.technical_blockers) why = row.technical_blockers.slice(0, 240);
+  else if (outcome === 'lost' && row.se_comments) why = row.se_comments.slice(0, 240);
+  else if (outcome === 'in_flight' && (row.se_comments || row.next_step_sf)) {
+    why = (row.se_comments ?? row.next_step_sf ?? '').slice(0, 240);
+  }
   else if (row.se_comments) why = row.se_comments.slice(0, 240);
   else if (row.technical_blockers) why = row.technical_blockers.slice(0, 240);
   else if (row.need) why = row.need.slice(0, 240);
@@ -280,13 +358,24 @@ function buildWhyText(row: DealRow): { why: string | null; snippets: { source: s
   return { why, snippets };
 }
 
+function buildWhyForKb(kb: KbRow): { why: string | null; snippets: { source: string; text: string }[] } {
+  // Trim at a sentence boundary if possible — KB proof points are long.
+  const text = kb.proof_point_text.trim();
+  const firstTwoSentences = text.split(/(?<=[.!?])\s+/).slice(0, 2).join(' ');
+  const why = firstTwoSentences.length > 30 ? firstTwoSentences.slice(0, 320) : text.slice(0, 320);
+  return {
+    why,
+    snippets: [{ source: 'Proof Point', text: text.slice(0, 400) }],
+  };
+}
+
 // ── Public API ──────────────────────────────────────────────────────────────
 
 export async function findSimilarDeals(oppId: number): Promise<SimilarDealsResponse | null> {
-  const columns = `
+  const dealColumns = `
     o.id, o.sf_opportunity_id, o.name, o.account_name, o.account_industry, o.account_segment,
     o.stage, o.record_type, o.arr_converted::text AS arr_converted, o.products, o.deploy_mode,
-    o.engaged_competitors, o.technical_blockers, o.se_comments, o.need,
+    o.engaged_competitors, o.technical_blockers, o.se_comments, o.next_step_sf, o.need,
     o.metrics, o.decision_criteria, o.paper_process,
     o.is_closed_won, o.is_closed_lost, o.closed_at,
     o.stage_date_closed_won, o.stage_date_closed_lost, o.close_date,
@@ -294,7 +383,7 @@ export async function findSimilarDeals(oppId: number): Promise<SimilarDealsRespo
   `;
 
   const active = await queryOne<DealRow>(
-    `SELECT ${columns}
+    `SELECT ${dealColumns}
      FROM opportunities o
      LEFT JOIN users u ON u.id = o.se_owner_id
      WHERE o.id = $1 AND o.is_active = true`,
@@ -302,8 +391,9 @@ export async function findSimilarDeals(oppId: number): Promise<SimilarDealsRespo
   );
   if (!active) return null;
 
-  const corpus = await query<DealRow>(
-    `SELECT ${columns}
+  // Historical corpus: closed-won + closed-lost in the lookback window.
+  const closedCorpus = await query<DealRow>(
+    `SELECT ${dealColumns}
      FROM opportunities o
      LEFT JOIN users u ON u.id = o.se_owner_id
      WHERE o.id <> $1
@@ -316,16 +406,45 @@ export async function findSimilarDeals(oppId: number): Promise<SimilarDealsRespo
     [oppId, String(LOOKBACK_MONTHS)]
   );
 
-  const scored = corpus.map(h => {
-    const { total, chips } = scorePair(active, h);
-    const { why, snippets } = buildWhyText(h);
-    return {
+  // In-flight corpus: open deals in advanced stages (MEDDPICC likely filled in).
+  const inFlightCorpus = await query<DealRow>(
+    `SELECT ${dealColumns}
+     FROM opportunities o
+     LEFT JOIN users u ON u.id = o.se_owner_id
+     WHERE o.id <> $1
+       AND o.is_active = true
+       AND o.is_closed_won = false
+       AND o.is_closed_lost = false
+       AND o.stage = ANY($2::text[])
+     ORDER BY o.updated_at DESC
+     LIMIT ${MAX_PER_QUERY}`,
+    [oppId, IN_FLIGHT_STAGES]
+  );
+
+  // KB proof points — optional fallback tier, not bounded by date.
+  const kbCorpus = await query<KbRow>(
+    `SELECT id, customer_name, about, vertical, sub_vertical, products, initiatives,
+            proof_point_text, source_file
+     FROM kb_proof_points
+     LIMIT ${MAX_PER_QUERY}`,
+    []
+  );
+
+  // Score each corpus and merge.
+  const scoredDeals: SimilarDealResult[] = [];
+  for (const h of [...closedCorpus, ...inFlightCorpus]) {
+    const { total, chips } = scoreDealPair(active, h);
+    const { why, snippets } = buildWhyForDeal(h);
+    const outcome = dealOutcome(h);
+    scoredDeals.push({
       id: h.id,
+      ref_type: 'opportunity',
       sf_opportunity_id: h.sf_opportunity_id,
       name: h.name,
       account_name: h.account_name,
-      outcome: (h.is_closed_won ? 'won' : 'lost') as 'won' | 'lost',
-      closed_date: bestClosedDate(h),
+      outcome,
+      stage: outcome === 'in_flight' ? h.stage : null,
+      closed_date: outcome === 'in_flight' ? null : bestClosedDate(h),
       arr: arrNumber(h),
       se_owner_name: h.se_owner_name,
       account_industry: h.account_industry,
@@ -333,13 +452,36 @@ export async function findSimilarDeals(oppId: number): Promise<SimilarDealsRespo
       match_chips: chips,
       why_text: why,
       snippets,
+    });
+  }
+
+  const scoredKb: SimilarDealResult[] = kbCorpus.map(k => {
+    const { total, chips } = scoreKbPair(active, k);
+    const { why, snippets } = buildWhyForKb(k);
+    return {
+      id: k.id,
+      ref_type: 'kb',
+      sf_opportunity_id: null,
+      name: k.customer_name,
+      account_name: k.customer_name,
+      outcome: 'kb_reference',
+      stage: null,
+      closed_date: null,
+      arr: null,
+      se_owner_name: null,
+      account_industry: kbVerticalToIndustry(k.vertical),
+      score: total,
+      match_chips: chips,
+      why_text: why,
+      snippets,
     };
   });
 
-  const aboveThreshold = scored.filter(r => r.score >= MIN_SCORE);
+  const allScored = [...scoredDeals, ...scoredKb];
+  const aboveThreshold = allScored.filter(r => r.score >= MIN_SCORE);
   aboveThreshold.sort((a, b) => b.score - a.score);
 
-  // Playbook summary: counts vs. first listed competitor
+  // Playbook summary — only counts actual closed deals (not in-flight or KB).
   const activeCompetitors = parseCompetitors(active.engaged_competitors);
   const primaryCompetitor = activeCompetitors[0] ?? null;
   const primaryCompetitorDisplay = primaryCompetitor
@@ -350,17 +492,21 @@ export async function findSimilarDeals(oppId: number): Promise<SimilarDealsRespo
 
   let againstWon = 0, againstLost = 0;
   if (primaryCompetitor) {
-    for (const r of scored) {
-      const rowComp = new Set(
-        (corpus.find(c => c.id === r.id)?.engaged_competitors ?? '')
-          .split(/[,;|]/).map(s => s.trim().toLowerCase()).filter(Boolean)
-      );
+    for (const h of closedCorpus) {
+      const rowComp = new Set(parseCompetitors(h.engaged_competitors));
       if (rowComp.has(primaryCompetitor)) {
-        if (r.outcome === 'won') againstWon++;
-        else againstLost++;
+        if (h.is_closed_won) againstWon++;
+        else if (h.is_closed_lost) againstLost++;
       }
     }
   }
+
+  const counts = {
+    won:          aboveThreshold.filter(r => r.outcome === 'won').length,
+    lost:         aboveThreshold.filter(r => r.outcome === 'lost').length,
+    in_flight:    aboveThreshold.filter(r => r.outcome === 'in_flight').length,
+    kb_reference: aboveThreshold.filter(r => r.outcome === 'kb_reference').length,
+  };
 
   return {
     active: {
@@ -373,11 +519,12 @@ export async function findSimilarDeals(oppId: number): Promise<SimilarDealsRespo
       engaged_competitors: parseCompetitors(active.engaged_competitors),
     },
     results: aboveThreshold.slice(0, MAX_RESULTS),
-    total_candidates: corpus.length,
+    total_candidates: closedCorpus.length + inFlightCorpus.length + kbCorpus.length,
     total_above_threshold: aboveThreshold.length,
+    counts_by_outcome: counts,
     playbook: {
-      total_won: scored.filter(r => r.outcome === 'won').length,
-      total_lost: scored.filter(r => r.outcome === 'lost').length,
+      total_won: closedCorpus.filter(r => r.is_closed_won).length,
+      total_lost: closedCorpus.filter(r => r.is_closed_lost).length,
       against_competitor: primaryCompetitorDisplay,
       against_competitor_won: againstWon,
       against_competitor_lost: againstLost,
