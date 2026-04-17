@@ -131,11 +131,12 @@ This tool pulls deal data from Salesforce via a CSV/XLS export and layers a nati
 - **Contributors strip** — zero-or-more SE teammates who also work on the deal, in addition to the single SE Owner. Add/remove via the `+` chip. Managers and the current SE Owner can manage anyone; any SE can add or remove themselves. Data lives in the `opportunity_se_contributors` table and is also surfaced in the Deal Info tab when the Contributors section is enabled in the Deal Info Layout
 - **AI Summary** — collapsible panel below the header. Shows freshness indicator (green <=3d, amber <=14d, red 14d+). Summary is persisted server-side. Regenerate button to refresh on demand
 - **MEDDPICC Gap Coach** — lightbulb button triggers AI analysis of all 9 MEDDPICC elements (Metrics, Economic Buyer, Decision Criteria, Decision Process, Paper Process, Implicate Pain, Champion, Budget, Authority). Shows Green/Amber/Red per element with evidence, gaps, and suggested discovery questions. Collapsible panel below AI Summary with freshness indicator. Results cached server-side
-- **4 tabs** replacing the previous two-column layout:
+- **6 tabs** replacing the previous two-column layout:
   - **Work** — Next Steps, Tasks, Notes, Meeting Notes Processor (paste raw call notes, AI extracts action items and creates tasks/notes)
   - **Timeline** — unified reverse-chronological event history (tasks, notes, stage changes, imports, AI summaries)
   - **Call Prep** — AI-generated pre-call brief with CSV/DIFF/KB source badges, PDF export button, Slack send placeholder
   - **Demo Prep** — AI-generated demo readiness brief (6 critical questions with evidence, missing items, suggested commitments, coaching tips, overall assessment, Before-You-Demo checklist). Persisted server-side. PDF export and Slack send buttons mirror Call Prep
+  - **Similar Deals** — ranks historical closed + in-flight deals and KB proof points by similarity (industry, products, competitor, MEDDPICC shape); when ≥ 5 matches the tab auto-generates an AI "why it matches" caption per row; when < 3 matches it falls back to a synthesized playbook from matching KB proof points. Cached 7 days, refresh buttons on each. (Issue #111)
   - **Deal Info** — configurable layout of SF fields (sections reorderable by manager in Settings). Includes MEDDPICC section with "Show AI notes" toggle that overlays coach insights inline next to each field
 - **Account History panel**: click the account name in the header to see all deals (open and closed) for that account in a side panel
 

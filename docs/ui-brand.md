@@ -97,7 +97,7 @@ Poppins loaded via Google Fonts in `index.html`:
 
 - **Navigation:** collapsible sidebar (Linear/Notion style), `#1A0C42` navy background, `#6A2CF5` active indicator.
 - **Pipeline view:** list view with a **slide-out drawer** for opportunity quick-view. Clicking a row opens a drawer from the right; clicking the opportunity name navigates to the full detail page.
-- **Opportunity detail:** **full-width layout with 4 tabs** (Work, Timeline, Call Prep, Deal Info). AI Summary and MEDDPICC Gap Coach are in the header area above tabs (both collapsible, state persisted). No right column for SF data — Deal Info is its own tab.
+- **Opportunity detail:** **full-width layout with 6 tabs** (Work, Timeline, Call Prep, Demo Prep, Similar Deals, Deal Info). AI Summary and MEDDPICC Gap Coach are in the header area above tabs (both collapsible, state persisted). No right column for SF data — Deal Info is its own tab.
 - **Closed Lost nav item** shows a pink dot badge with unread count (iOS-style).
 - **Quick-capture modal** triggered by `Cmd/Ctrl+K` from anywhere and by `+` button pinned at top of sidebar.
 
