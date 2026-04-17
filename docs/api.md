@@ -43,6 +43,10 @@ POST   /opportunities/:id/summary        (calls Claude API)
 # Similarity (no AI)
 GET    /opportunities/:id/similar-deals  (top closed-won/lost matches, SQL+TS scoring, issue #111)
 
+# Similar Deals — AI fallback (issue #111 lever 3)
+GET    /opportunities/:id/kb-playbook/cached     cached playbook + source count
+POST   /opportunities/:id/kb-playbook/generate   synthesize from KB via Claude, cache 7d
+
 # Knowledge Base admin (Manager only)
 GET    /admin/kb/files                   list KB files with disk + DB metadata
 GET    /admin/kb/files/:filename         download raw .md

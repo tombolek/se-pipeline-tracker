@@ -8,6 +8,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## 2026-04-17
 
 ### Added
+- **Similar Deals — synthesized playbook fallback (lever 3)** — when field scoring produces fewer than 3 matches above threshold, the tab now auto-generates a short playbook from the top matching KB proof points using Claude: win pattern, positioning, lead-with bullets, anticipate bullets, and a "based on" list of the customer names it was drawn from. Grounded in proof-point text only — the prompt explicitly forbids invention. Cached 7 days per opp in `ai_summary_cache`. Card clearly labelled "no direct matches — drawn from KB proof points" so SEs know it's pattern advice, not a real deal. Small prompt (~1K input tokens) so the cache miss cost is negligible; the 7-day TTL means each opp generates ≤ 1×/week even if the tab is opened daily. (Issue #111)
+
+### Added
 - **Settings → Knowledge Base** — new admin page for managing the curated KB markdown files that power Call Prep and Similar Deals. Lists every `kb/*.md` file with its disk size, last-modified timestamp, kind (proof points / differentiators / index), customer count in the DB, and last-imported timestamp. Per-row **Download** returns the raw .md file. Per-row **Upload** replaces the file on disk atomically, re-parses it, and — for proof-point files — auto-imports the delta (customers removed from the file disappear from the DB; added/edited customers are upserted). Parser errors are rejected with a descriptive message before the DB is touched. Differentiators and `index.md` write to disk but require a manual **Full re-import** button (since their parsers depend on sections shared across files). Manager-only. (Issue #111 lever 1 prereq)
 
 ### Changed

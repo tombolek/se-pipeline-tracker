@@ -8,6 +8,7 @@ import { AuthenticatedRequest, ok, err } from '../types/index.js';
 import { logAudit } from '../services/auditLog.js';
 import { runAiJob, startJob, completeJob, failJob } from '../services/aiJobs.js';
 import { findSimilarDeals } from '../services/similarDeals.js';
+import { getCachedPlaybook, generatePlaybook } from '../services/kbPlaybook.js';
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
@@ -1685,6 +1686,37 @@ router.get('/:id/similar-deals', auth, async (req: Request, res: Response): Prom
   } catch (e) {
     console.error('[similar-deals] error:', e);
     res.status(500).json(err('Failed to compute similar deals'));
+  }
+});
+
+// GET /opportunities/:id/kb-playbook/cached
+// Returns the cached KB-synthesized playbook for this opp, if any. Also reports
+// how many KB sources would be available so the UI can decide whether to offer
+// generation. Fallback used by Similar Deals tab when field scoring is thin.
+// Issue #111 lever 3.
+router.get('/:id/kb-playbook/cached', auth, async (req: Request, res: Response): Promise<void> => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) { res.status(400).json(err('Invalid opportunity id')); return; }
+  try {
+    res.json(ok(await getCachedPlaybook(id)));
+  } catch (e) {
+    console.error('[kb-playbook cached] error:', e);
+    res.status(500).json(err('Failed to load KB playbook'));
+  }
+});
+
+// POST /opportunities/:id/kb-playbook/generate
+// Synthesizes a short playbook from matching KB proof points via Claude.
+// Cached for 7 days. Issue #111 lever 3.
+router.post('/:id/kb-playbook/generate', auth, write, async (req: Request, res: Response): Promise<void> => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) { res.status(400).json(err('Invalid opportunity id')); return; }
+  try {
+    const result = await generatePlaybook(id);
+    res.json(ok(result));
+  } catch (e) {
+    console.error('[kb-playbook generate] error:', e);
+    res.status(500).json(err(`Failed to generate KB playbook: ${(e as Error).message}`));
   }
 });
 

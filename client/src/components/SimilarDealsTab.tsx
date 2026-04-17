@@ -130,6 +130,24 @@ function ScoreRing({ score }: { score: number }) {
 
 type SortKey = 'score' | 'recency' | 'arr';
 
+/* ── Playbook types ── */
+interface KbPlaybook {
+  win_pattern: string;
+  positioning: string;
+  anticipate: string[];
+  lead_with: string[];
+  based_on: string[];
+}
+
+interface KbPlaybookResponse {
+  playbook: KbPlaybook | null;
+  generated_at: string | null;
+  is_stale: boolean;
+  sources_available: number;
+}
+
+const PLAYBOOK_THRESHOLD = 3; // fetch/offer playbook when below this
+
 /* ── Component ── */
 export default function SimilarDealsTab({ oppId }: { oppId: number; oppName?: string }) {
   const [data, setData] = useState<SimilarDealsResponse | null>(null);
@@ -140,6 +158,10 @@ export default function SimilarDealsTab({ oppId }: { oppId: number; oppName?: st
   const [showInFlight, setShowInFlight] = useState(true);
   const [showKb, setShowKb] = useState(true);
   const [sort, setSort] = useState<SortKey>('score');
+
+  const [playbook, setPlaybook] = useState<KbPlaybookResponse | null>(null);
+  const [playbookGenerating, setPlaybookGenerating] = useState(false);
+  const [playbookError, setPlaybookError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -154,7 +176,46 @@ export default function SimilarDealsTab({ oppId }: { oppId: number; oppName?: st
     }
   }, [oppId]);
 
+  const fetchCachedPlaybook = useCallback(async () => {
+    try {
+      const r = await api.get<ApiResponse<KbPlaybookResponse>>(`/opportunities/${oppId}/kb-playbook/cached`);
+      setPlaybook(r.data.data);
+    } catch {
+      /* silent — playbook is optional */
+    }
+  }, [oppId]);
+
+  const generatePlaybook = useCallback(async () => {
+    setPlaybookGenerating(true);
+    setPlaybookError(null);
+    try {
+      const r = await api.post<ApiResponse<KbPlaybookResponse>>(`/opportunities/${oppId}/kb-playbook/generate`);
+      setPlaybook(r.data.data);
+    } catch (e) {
+      const msg = (e as { response?: { data?: { error?: string } } }).response?.data?.error ?? (e as Error).message;
+      setPlaybookError(msg ?? 'Generation failed');
+    } finally {
+      setPlaybookGenerating(false);
+    }
+  }, [oppId]);
+
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // When the corpus is thin, pull cached playbook; if there isn't one and we
+  // have KB sources available, auto-generate so the empty state isn't empty.
+  useEffect(() => {
+    if (!data) return;
+    if (data.total_above_threshold >= PLAYBOOK_THRESHOLD) return;
+    fetchCachedPlaybook();
+  }, [data, fetchCachedPlaybook]);
+
+  useEffect(() => {
+    if (!data || !playbook) return;
+    if (data.total_above_threshold >= PLAYBOOK_THRESHOLD) return;
+    if (playbook.playbook === null && playbook.sources_available > 0 && !playbookGenerating && !playbookError) {
+      generatePlaybook();
+    }
+  }, [data, playbook, playbookGenerating, playbookError, generatePlaybook]);
 
   const filtered = useMemo(() => {
     if (!data) return [];
@@ -191,15 +252,105 @@ export default function SimilarDealsTab({ oppId }: { oppId: number; oppName?: st
     );
   }
 
+  const renderPlaybookCard = () => {
+    if (data.total_above_threshold >= PLAYBOOK_THRESHOLD) return null;
+    if (!playbook) return null;
+
+    if (playbookGenerating || (playbook.playbook === null && playbook.sources_available > 0 && !playbookError)) {
+      return (
+        <div className="bg-gradient-to-br from-brand-purple-30/40 to-brand-pink-30/30 border border-brand-purple/20 rounded-xl px-4 py-3">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 border-2 border-brand-purple border-t-transparent rounded-full animate-spin" />
+            <span className="text-[11px] text-brand-navy-70">Synthesizing a playbook from {playbook.sources_available} matching KB proof point{playbook.sources_available === 1 ? '' : 's'}…</span>
+          </div>
+        </div>
+      );
+    }
+
+    if (playbookError) {
+      return (
+        <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
+          <span className="text-[11px] text-red-700">Playbook generation failed: {playbookError}</span>
+          <button onClick={generatePlaybook} className="text-[10px] font-semibold text-red-700 hover:text-red-800 underline">Retry</button>
+        </div>
+      );
+    }
+
+    if (playbook.playbook === null && playbook.sources_available === 0) {
+      return null; // nothing in KB to draw from — empty-state message below handles it
+    }
+
+    const p = playbook.playbook;
+    if (!p) return null;
+
+    return (
+      <div className="bg-gradient-to-br from-brand-purple-30/40 to-brand-pink-30/30 border border-brand-purple/20 rounded-xl overflow-hidden">
+        <div className="flex items-center gap-2 px-4 py-2.5 border-b border-brand-purple/10 bg-white/30">
+          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="url(#pbg)" />
+            <defs><linearGradient id="pbg" x1="2" y1="2" x2="22" y2="22"><stop stopColor="#F10090" /><stop offset="1" stopColor="#6A2CF5" /></linearGradient></defs>
+          </svg>
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-brand-purple">Synthesized Playbook</span>
+          <span className="text-[10px] text-brand-navy-70 ml-1">no direct matches — drawn from KB proof points</span>
+          <button
+            onClick={generatePlaybook}
+            disabled={playbookGenerating}
+            className="ml-auto text-[10px] font-semibold text-brand-navy-70 hover:text-brand-purple disabled:opacity-40"
+          >
+            Refresh
+          </button>
+        </div>
+
+        <div className="px-4 py-3 space-y-3">
+          <div>
+            <p className="text-[10px] font-semibold text-brand-purple uppercase tracking-wide mb-1">Win pattern</p>
+            <p className="text-[11px] text-brand-navy leading-relaxed">{p.win_pattern}</p>
+          </div>
+          <div>
+            <p className="text-[10px] font-semibold text-brand-purple uppercase tracking-wide mb-1">Positioning</p>
+            <p className="text-[11px] text-brand-navy leading-relaxed">{p.positioning}</p>
+          </div>
+          {p.lead_with.length > 0 && (
+            <div>
+              <p className="text-[10px] font-semibold text-brand-purple uppercase tracking-wide mb-1">Lead with</p>
+              <ul className="text-[11px] text-brand-navy leading-relaxed space-y-0.5 list-disc pl-4 marker:text-brand-purple">
+                {p.lead_with.map((item, i) => <li key={i}>{item}</li>)}
+              </ul>
+            </div>
+          )}
+          {p.anticipate.length > 0 && (
+            <div>
+              <p className="text-[10px] font-semibold text-brand-purple uppercase tracking-wide mb-1">Anticipate</p>
+              <ul className="text-[11px] text-brand-navy leading-relaxed space-y-0.5 list-disc pl-4 marker:text-brand-purple">
+                {p.anticipate.map((item, i) => <li key={i}>{item}</li>)}
+              </ul>
+            </div>
+          )}
+          {p.based_on.length > 0 && (
+            <div className="pt-2 border-t border-brand-purple/10">
+              <p className="text-[10px] text-brand-navy-70">
+                Based on: <span className="font-medium text-brand-navy">{p.based_on.join(' · ')}</span>
+                {playbook.generated_at && <span className="text-brand-navy-30"> · generated {new Date(playbook.generated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>}
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   if (data.total_above_threshold === 0) {
     return (
       <div className="space-y-3">
         <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
           <p className="text-xs font-semibold text-amber-800 mb-1">Not enough historical signal yet</p>
           <p className="text-[11px] text-amber-700 leading-relaxed">
-            Scanned {data.total_candidates} closed + in-flight deals and KB proof points but none scored ≥ 40. Matching improves as the corpus grows and as this deal's fields (industry, products, competitors, MEDDPICC) get filled in.
+            Scanned {data.total_candidates} closed + in-flight deals and KB proof points but none scored ≥ 40. {playbook && playbook.sources_available > 0
+              ? 'Pulling a synthesized playbook from the KB below.'
+              : 'Matching improves as the corpus grows and as this deal\'s fields (industry, products, competitors, MEDDPICC) get filled in.'}
           </p>
         </div>
+        {renderPlaybookCard()}
       </div>
     );
   }
@@ -269,6 +420,9 @@ export default function SimilarDealsTab({ oppId }: { oppId: number; oppName?: st
           <span key={c} className="bg-red-50 text-red-700 px-1.5 py-0.5 rounded border border-red-200">vs. {c}</span>
         ))}
       </div>
+
+      {/* Synthesized KB playbook — only rendered when matches are thin */}
+      {renderPlaybookCard()}
 
       {/* Playbook summary */}
       {hasCompetitorPlaybook && (
