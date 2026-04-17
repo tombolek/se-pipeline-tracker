@@ -322,3 +322,121 @@ export async function importKnowledgeBase(kbDir: string): Promise<{
 
   return { proofPoints: totalPP, differentiators: totalDiff, files };
 }
+
+// ── Single-file helpers (admin UI) ──────────────────────────────────────────
+
+const FILENAME_PATTERN = /^[a-z0-9_]+\.md$/;
+
+export function isValidKbFilename(name: string): boolean {
+  return FILENAME_PATTERN.test(name) && !name.includes('..') && !name.includes('/') && !name.includes('\\');
+}
+
+/**
+ * Re-import a single proof-point file. Replaces records in kb_proof_points
+ * where source_file matches, so customers removed from the file disappear
+ * from the DB. Records are inserted with ON CONFLICT UPDATE so a customer
+ * that already exists under a different source_file still gets updated.
+ */
+export async function reimportProofPointFile(
+  kbDir: string,
+  fileName: string,
+): Promise<{ imported: number; deleted: number; parsed_customers: string[] }> {
+  if (!isValidKbFilename(fileName)) {
+    throw new Error(`Invalid KB filename: ${fileName}`);
+  }
+
+  const filePath = path.join(kbDir, fileName);
+  if (!fs.existsSync(filePath)) {
+    throw new Error(`File not found on server: ${fileName}`);
+  }
+
+  // Parse first — if it throws, we haven't touched the DB.
+  const proofPoints = parseProofPointsFile(filePath);
+  if (proofPoints.length === 0) {
+    throw new Error(`No proof points parsed from ${fileName} — check the markdown format (### Customer headings, Products/Initiatives table rows, **Proof Point:** section, --- separators)`);
+  }
+
+  // Remove old rows for this file.
+  const deleted = await query<{ id: number }>(
+    'DELETE FROM kb_proof_points WHERE source_file = $1 RETURNING id',
+    [fileName]
+  );
+
+  // Insert fresh.
+  for (const pp of proofPoints) {
+    await query(
+      `INSERT INTO kb_proof_points (customer_name, about, vertical, products, initiatives, proof_point_text, source_file)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       ON CONFLICT (customer_name) DO UPDATE SET
+         about = $2, vertical = $3, products = $4, initiatives = $5,
+         proof_point_text = $6, source_file = $7, updated_at = now()`,
+      [pp.customer_name, pp.about, pp.vertical, pp.products, pp.initiatives, pp.proof_point_text, pp.source_file]
+    );
+  }
+
+  await query(
+    'INSERT INTO kb_import_log (file_name, record_type, record_count) VALUES ($1, $2, $3)',
+    [fileName, 'proof_point', proofPoints.length]
+  );
+
+  return {
+    imported: proofPoints.length,
+    deleted: deleted.length,
+    parsed_customers: proofPoints.map(p => p.customer_name),
+  };
+}
+
+/**
+ * Write raw markdown content to a KB file on disk, atomically (write to a
+ * temp file + rename). Creates the file if it doesn't exist.
+ */
+export function writeKbFile(kbDir: string, fileName: string, content: string): void {
+  if (!isValidKbFilename(fileName)) {
+    throw new Error(`Invalid KB filename: ${fileName}`);
+  }
+  const target = path.join(kbDir, fileName);
+  const tmp = path.join(kbDir, `.${fileName}.${process.pid}.tmp`);
+  fs.writeFileSync(tmp, content, 'utf-8');
+  fs.renameSync(tmp, target);
+}
+
+export function readKbFile(kbDir: string, fileName: string): string {
+  if (!isValidKbFilename(fileName)) {
+    throw new Error(`Invalid KB filename: ${fileName}`);
+  }
+  const target = path.join(kbDir, fileName);
+  if (!fs.existsSync(target)) {
+    throw new Error(`File not found: ${fileName}`);
+  }
+  return fs.readFileSync(target, 'utf-8');
+}
+
+/**
+ * List all KB markdown files on disk, with basic metadata. Used by the admin
+ * UI to populate the KB management table.
+ */
+export function listKbFiles(kbDir: string): Array<{
+  file_name: string;
+  size_bytes: number;
+  modified_at: string;
+  kind: 'proof_point' | 'differentiator' | 'index';
+}> {
+  if (!fs.existsSync(kbDir)) return [];
+  return fs.readdirSync(kbDir)
+    .filter(f => f.endsWith('.md'))
+    .map(f => {
+      const stat = fs.statSync(path.join(kbDir, f));
+      const kind: 'proof_point' | 'differentiator' | 'index' =
+        f === 'index.md' ? 'index'
+        : f.includes('differentiator') ? 'differentiator'
+        : 'proof_point';
+      return {
+        file_name: f,
+        size_bytes: stat.size,
+        modified_at: stat.mtime.toISOString(),
+        kind,
+      };
+    })
+    .sort((a, b) => a.file_name.localeCompare(b.file_name));
+}
+

@@ -43,6 +43,13 @@ POST   /opportunities/:id/summary        (calls Claude API)
 # Similarity (no AI)
 GET    /opportunities/:id/similar-deals  (top closed-won/lost matches, SQL+TS scoring, issue #111)
 
+# Knowledge Base admin (Manager only)
+GET    /admin/kb/files                   list KB files with disk + DB metadata
+GET    /admin/kb/files/:filename         download raw .md
+POST   /admin/kb/files/:filename         upload .md (multipart field "file"); auto-reimports proof-point files
+POST   /admin/kb/import                  full re-import of all KB files
+GET    /admin/kb/status                  DB counts + per-file import history
+
 # Inbox
 GET    /inbox                            (current user's items, status=open)
 POST   /inbox                            (create jot — text, type, optional opportunity_id)

@@ -55,6 +55,7 @@ const PAGE_REGISTRY: PageDef[] = [
   { key: 'settings/deal-info-layout', label: 'Deal Info Layout', section: 'Administration' },
   { key: 'settings/quotas', label: 'Quotas', section: 'Administration' },
   { key: 'settings/templates', label: 'Templates', section: 'Administration' },
+  { key: 'settings/knowledge-base', label: 'Knowledge Base', section: 'Administration' },
   { key: 'settings/role-access', label: 'Role Access', section: 'Administration' },
 ];
 
