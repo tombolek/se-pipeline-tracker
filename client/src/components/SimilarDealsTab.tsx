@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../api/client';
 import type { ApiResponse } from '../types';
 
@@ -165,6 +166,19 @@ interface InsightsResponse {
 
 /* ── Component ── */
 export default function SimilarDealsTab({ oppId }: { oppId: number; oppName?: string }) {
+  const [, setSearchParams] = useSearchParams();
+
+  // Swap the drawer to a different opportunity by updating the shared
+  // `?oppId=<sf_opportunity_id>` query param. The parent page's useOppUrlSync
+  // hook resolves the sfId and re-renders the drawer with the new deal.
+  const openSimilarDeal = useCallback((sfId: string) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      next.set('oppId', sfId);
+      return next;
+    });
+  }, [setSearchParams]);
+
   const [data, setData] = useState<SimilarDealsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -591,13 +605,14 @@ export default function SimilarDealsTab({ oppId }: { oppId: number; oppName?: st
                   })()}
 
                   <div className="flex items-center gap-3 mt-2">
-                    {r.ref_type === 'opportunity' ? (
-                      <a
-                        href={`/opportunities/${r.id}`}
+                    {r.ref_type === 'opportunity' && r.sf_opportunity_id ? (
+                      <button
+                        type="button"
+                        onClick={() => openSimilarDeal(r.sf_opportunity_id!)}
                         className="text-[10px] font-semibold text-brand-purple hover:text-brand-purple-70"
                       >
                         Open deal →
-                      </a>
+                      </button>
                     ) : (
                       <span className="text-[10px] font-semibold text-brand-purple">KB proof point</span>
                     )}
