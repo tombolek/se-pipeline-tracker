@@ -1061,7 +1061,7 @@ export default function ProcessCallNotesPage() {
   );
 
   return (
-    <div className="min-h-full bg-[#F5F5F7] px-6 py-6">
+    <div className="flex-1 overflow-y-auto bg-[#F5F5F7] px-6 py-6">
       <div className="max-w-[1160px] mx-auto">
         {header}
         {phase === 'configure' && configureView}
