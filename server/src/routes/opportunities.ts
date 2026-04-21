@@ -10,7 +10,7 @@ import { runAiJob, startJob, completeJob, failJob } from '../services/aiJobs.js'
 import { findSimilarDeals } from '../services/similarDeals.js';
 import { getCachedPlaybook, generatePlaybook } from '../services/kbPlaybook.js';
 import { getCachedInsights, generateInsights } from '../services/similarDealsInsights.js';
-import { getTechDiscovery, upsertTechDiscovery, emptyTechDiscovery, type TechDiscoveryPatch } from '../services/techDiscovery.js';
+import { getTechDiscovery, upsertTechDiscovery, emptyTechDiscovery, formatTechDiscoveryForPrompt, type TechDiscoveryPatch } from '../services/techDiscovery.js';
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
@@ -2332,6 +2332,9 @@ router.post('/:id/call-prep/generate', auth, write, async (req: Request, res: Re
       [id]
     );
 
+    const techDiscovery = await getTechDiscovery(id);
+    const techDiscoveryCtx = formatTechDiscoveryForPrompt(techDiscovery);
+
     // KB matches for context — full text, no truncation
     const products = (opp.products as string[]) || [];
     const proofPoints = products.length > 0 ? await query<{
@@ -2432,6 +2435,9 @@ OVERDUE TASKS: ${overdueTasks.length > 0 ? overdueTasks.map(t => t.title).join('
 RECENT NOTES (last 10):
 ${notes.map(n => `[${n.created_at}] ${n.author_name}: ${n.content.slice(0, 500)}`).join('\n') || 'None'}
 
+===== TECH DISCOVERY (the prospect's technical environment — use to tailor talking points, proof points, and discovery questions) =====
+${techDiscoveryCtx}
+
 ===== CUSTOMER VALUE STORIES (use these in talking points!) =====
 ${ppContext}
 
@@ -2473,7 +2479,8 @@ Generate a JSON response with this EXACT structure:
 }
 
 CRITICAL RULES:
-- talking_points: 3-5 items. Every point that can reference a customer story MUST do so by name with a specific metric. No generic statements like "emphasize the unified engine" — instead say "reference Volvo Group — 15 facilities, 2M records/day with cross-plant DQ rules."
+- talking_points: 3-5 items. Every point that can reference a customer story MUST do so by name with a specific metric. No generic statements like "emphasize the unified engine" — instead say "reference Volvo Group — 15 facilities, 2M records/day with cross-plant DQ rules." When Tech Discovery reveals the prospect's stack (e.g. Snowflake + dbt, Salesforce + SAP, existing Collibra catalog), anchor at least one talking point to that reality — match proof points whose customers share stack elements, and reference incumbent solutions or constraints captured in Discovery Notes.
+- discovery_questions: prefer questions that CLOSE gaps visible in Tech Discovery (empty prose fields, unspecified enterprise systems, unnamed incumbent DMG tools). Avoid asking about anything already captured there.
 - proof_point_highlights: Pick the 2-3 BEST stories for this deal. "role" = "primary" (lead story), "scale" (impressive at-scale reference), "backup" (different angle). Only include stories from the CUSTOMER VALUE STORIES section above.
 - differentiator_plays: 1-3 items. Each MUST link back to a proof point customer in "backed_by". If a differentiator has no relevant proof point, omit it.
 - risks: 2-4 items. Include overdue tasks, stale SE comments, MEDDPICC gaps, timeline concerns.
@@ -2590,6 +2597,9 @@ router.post('/:id/demo-prep/generate', auth, write, async (req: Request, res: Re
 
     if (!opp) { res.status(404).json(err('Opportunity not found')); return; }
 
+    const techDiscovery = await getTechDiscovery(id);
+    const techDiscoveryCtx = formatTechDiscoveryForPrompt(techDiscovery);
+
     const formatDate = (d: unknown) => d ? new Date(d as string).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A';
     const formatARR = (a: unknown) => a ? `$${(Number(a) / 1000).toFixed(0)}K` : 'N/A';
 
@@ -2660,6 +2670,9 @@ Technical Blockers: ${opp.technical_blockers ?? '(empty)'}
 MEDDPICC STATUS:
 ${meddpiccContext}
 
+TECH DISCOVERY (the prospect's technical environment — stack, enterprise systems, existing DMG tools, and discovery-notes prose):
+${techDiscoveryCtx}
+
 TASKS:
 ${taskLines}
 
@@ -2669,10 +2682,10 @@ ${noteLines}
 INSTRUCTIONS:
 1. For each of the 6 questions, assess confidence as "strong" (clear evidence from multiple or authoritative sources), "partial" (some signal but gaps), or "missing" (no evidence).
 2. Extract the best answer you can from the data. For "partial" or "missing", explain what IS known and what's NOT.
-3. Provide specific evidence citations with source labels like "Note (Apr 5)", "MEDDPICC Pain", "SE Comments", "Next Step SF", etc.
-4. For gaps, provide actionable coaching: who to ask, what specific question to ask, phrased naturally as an SE would say it.
+3. Provide specific evidence citations with source labels like "Note (Apr 5)", "MEDDPICC Pain", "SE Comments", "Next Step SF", "Tech Discovery", etc. When Tech Discovery captures something relevant (incumbent solution, specific stack, integration priority, deployment preference, technical constraint), cite it — it's first-class evidence, not decoration.
+4. For gaps, provide actionable coaching: who to ask, what specific question to ask, phrased naturally as an SE would say it. Do NOT suggest asking about anything already captured in Tech Discovery; instead point at the genuine empty fields there (e.g. "Tech Discovery has no incumbent DMG tools listed — confirm whether they have Collibra or Informatica in place").
 5. For Q6 (commitment), suggest appropriate commitments for the current deal stage.
-6. Determine the demo level (D1-D4) based on HOW MUCH IS ACTUALLY KNOWN, not just the pipeline stage.
+6. Determine the demo level (D1-D4) based on HOW MUCH IS ACTUALLY KNOWN, not just the pipeline stage. Tech Discovery coverage is a strong signal here — a deal with stack, integrations, and incumbent solutions captured can support D2+ framing; sparse Tech Discovery points to D1.
 7. Generate a "Before You Demo" checklist of 6 items based on the Golden Standard principles, marking each as done (true) or not done (false) based on evidence.
 8. Use **double asterisks** for emphasis on key terms, names, numbers, and findings.
 9. BE CONCISE. Each answer should be 1-3 sentences max. Evidence items should be short (under 20 words each). Coaching tips should be 1-2 sentences. The overall_assessment should be 2-3 sentences. Do NOT write paragraphs — this is a dashboard, not an essay.

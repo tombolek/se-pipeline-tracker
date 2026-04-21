@@ -39,9 +39,9 @@ One section per page/route. Describes the behaviour, filters, and data rules —
 
 **Timeline tab:** Chronological activity feed for the opportunity (OpportunityTimeline component).
 
-**Call Prep tab:** AI-powered pre-call brief generation with PDF export, uses knowledge base files from `kb/` directory.
+**Call Prep tab:** AI-powered pre-call brief generation with PDF export, uses knowledge base files from `kb/` directory. Prompt also ingests the opportunity's **Tech Discovery** row (stack, enterprise systems, existing DMG tools, 9 discovery-notes prose fields) so talking points anchor to the prospect's real environment and discovery questions target genuine gaps rather than anything already captured.
 
-**Demo Prep tab:** AI-powered demo readiness assessment — classifies the deal into a demo level (D1–D4), scores readiness across a fixed question set, surfaces gaps and suggested commitments. PDF export.
+**Demo Prep tab:** AI-powered demo readiness assessment — classifies the deal into a demo level (D1–D4), scores readiness across a fixed question set, surfaces gaps and suggested commitments. PDF export. Tech Discovery is passed to the prompt as first-class evidence: the AI cites it alongside notes / MEDDPICC / SE comments, calibrates the demo level against Tech Discovery coverage, and avoids suggesting discovery questions on topics already captured there.
 
 **Similar Deals tab:** When field scoring yields ≥ 5 matches, the top 15 candidates are sent to Claude for per-result "why it matches" insights — grounded in the candidate's notes and match chips, one sentence per row. Cached 7 days per opp in `ai_summary_cache` under key `similar-deals-insights-{oppId}`. Inline-rendered on each result row in a purple callout, replacing the default deterministic why-text. Refresh button on the insights status strip. Issue #111 lever 2.
 

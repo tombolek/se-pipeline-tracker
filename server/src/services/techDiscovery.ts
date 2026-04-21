@@ -130,6 +130,81 @@ export async function upsertTechDiscovery(
 }
 
 /**
+ * Render the Tech Discovery row as a readable text block for AI prompts. Used
+ * by Call Prep and Demo Prep so the model understands the customer's stack,
+ * enterprise systems, existing DMG tools, and discovery-notes prose.
+ * Empty sections are omitted; returns a "none captured" sentinel when the row
+ * has no content at all.
+ */
+export function formatTechDiscoveryForPrompt(td: TechDiscovery | null): string {
+  if (!td) return '(No Tech Discovery captured yet.)';
+
+  const stack = (td.tech_stack ?? {}) as Record<string, unknown>;
+  const stackLabels: Array<[string, string]> = [
+    ['data_infrastructure', 'Data Infrastructure'],
+    ['data_lake', 'Data Lake'],
+    ['data_lake_metastore', 'Data Lake Metastore'],
+    ['data_warehouse', 'Data Warehouse'],
+    ['database', 'Database'],
+    ['datalake_processing', 'Datalake Processing'],
+    ['etl', 'ETL/ELT/Ingestion'],
+    ['business_intelligence', 'Business Intelligence'],
+    ['nosql', 'NoSQL'],
+    ['streaming', 'Streaming'],
+  ];
+  const stackLines = stackLabels
+    .map(([k, label]) => {
+      const sel = Array.isArray(stack[k]) ? (stack[k] as string[]) : [];
+      return sel.length ? `  ${label}: ${sel.join(', ')}` : null;
+    })
+    .filter((x): x is string => x !== null);
+
+  const es = (td.enterprise_systems ?? {}) as Record<string, string>;
+  const esLabels: Array<[string, string]> = [
+    ['crm', 'CRM'], ['erp', 'ERP'], ['finance', 'Finance'], ['hr', 'HR'],
+    ['claims', 'Claims'], ['marketing', 'Marketing'], ['procurement', 'Procurement'],
+    ['inventory_management', 'Inventory Mgmt'], ['order_management', 'Order Mgmt'],
+  ];
+  const esLines = esLabels
+    .map(([k, label]) => (es[k]?.trim() ? `  ${label}: ${es[k]}` : null))
+    .filter((x): x is string => x !== null);
+
+  const dmg = (td.existing_dmg ?? {}) as Record<string, string>;
+  const dmgLabels: Array<[string, string]> = [
+    ['catalog', 'Catalog'], ['dq', 'DQ'], ['mdm', 'MDM'], ['lineage', 'Lineage'],
+  ];
+  const dmgLines = dmgLabels
+    .map(([k, label]) => (dmg[k]?.trim() ? `  ${label}: ${dmg[k]}` : null))
+    .filter((x): x is string => x !== null);
+
+  const proseLabels: Array<[keyof TechDiscovery, string]> = [
+    ['current_incumbent_solutions', 'Current & Incumbent Solutions'],
+    ['tier1_integrations', 'Priority (Tier 1) Integrations'],
+    ['data_details_and_users', 'Data Details & Users'],
+    ['ingestion_sources', 'Ingestion Sources'],
+    ['planned_ingestion_sources', 'Planned Ingestion Sources'],
+    ['data_cleansing_remediation', 'Data Cleansing & Remediation'],
+    ['deployment_preference', 'Deployment Preference'],
+    ['technical_constraints', 'Technical Constraints'],
+    ['open_technical_requirements', 'Open Technical Requirements'],
+  ];
+  const proseLines = proseLabels
+    .map(([k, label]) => {
+      const v = (td[k] as string | null) ?? '';
+      return v.trim() ? `  ${label}: ${v.trim()}` : null;
+    })
+    .filter((x): x is string => x !== null);
+
+  const sections: string[] = [];
+  if (stackLines.length) sections.push(`Technology Stack:\n${stackLines.join('\n')}`);
+  if (esLines.length) sections.push(`Enterprise Systems:\n${esLines.join('\n')}`);
+  if (dmgLines.length) sections.push(`Existing Data Mgmt & Governance tools:\n${dmgLines.join('\n')}`);
+  if (proseLines.length) sections.push(`Discovery Notes:\n${proseLines.join('\n')}`);
+
+  return sections.length ? sections.join('\n\n') : '(No Tech Discovery captured yet.)';
+}
+
+/**
  * Returns an empty TechDiscovery shape for an opp that has never been edited.
  * Keeps the client code simpler — it always gets the same shape back.
  */

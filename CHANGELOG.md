@@ -5,6 +5,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ---
 
+## 2026-04-21
+
+### Changed
+- **Call Prep & Demo Prep now use Tech Discovery as context** — both AI generators now read the opportunity's Tech Discovery row (stack, enterprise systems, existing DMG tools, and the 9 discovery-notes prose fields) and feed it into the prompt as first-class deal context. Pre-call briefs tailor talking points and discovery questions to the prospect's actual stack and known gaps (no more asking about systems already captured). Demo Prep cites Tech Discovery as evidence, calibrates the demo level against how much technical context is captured, and targets coaching tips at genuinely empty fields. No cache invalidation — next regenerate picks it up. Clear call-prep / demo-prep caches in `ai_summary_cache` to force a fresh read.
+
+---
+
 ## 2026-04-17
 
 ### Added
