@@ -27,7 +27,6 @@ interface TechDiscovery {
   deployment_preference: string | null;
   technical_constraints: string | null;
   open_technical_requirements: string | null;
-  initiatives: Record<string, boolean | string>;
   tech_stack: Record<string, string[] | Record<string, string>>;
   enterprise_systems: Record<string, string>;
   existing_dmg: Record<string, string>;
@@ -48,28 +47,6 @@ const PROSE_SECTIONS: { key: keyof TechDiscovery; label: string; hint: string }[
   { key: 'deployment_preference',       label: 'Deployment Preference', hint: 'Challenges/objections to Ataccama Cloud (VPN, PrivateLink, InfoSec, regulatory, data residency, etc.).' },
   { key: 'technical_constraints',       label: 'Technical Constraints', hint: 'Security, compliance, scalability, and other requirements.' },
   { key: 'open_technical_requirements', label: 'Open Technical Requirements', hint: 'Unresolved technical requirements. Areas requiring further clarification.' },
-];
-
-const INITIATIVE_GROUPS: { heading: string; items: { key: string; label: string }[] }[] = [
-  { heading: 'Management approach', items: [
-    { key: 'centralised_data_mgmt', label: 'Centralised data management' },
-    { key: 'federated_data_mgmt',   label: 'Federated data management' },
-    { key: 'data_governance_office',label: 'Data Governance office' },
-    { key: 'data_mesh',             label: 'Data Mesh' },
-    { key: 'data_fabric',           label: 'Data Fabric' },
-    { key: 'cde_framework',         label: 'Critical data elements framework' },
-  ]},
-  { heading: 'Modernization', items: [
-    { key: 'platform_modernization', label: 'Data platform modernization' },
-    { key: 'data_modernization',     label: 'Data modernization' },
-    { key: 'cloud_migration',        label: 'Cloud migration' },
-  ]},
-  { heading: 'Regulatory exposure', items: [
-    { key: 'privacy_laws',        label: 'Subject to privacy laws' },
-    { key: 'regulatory_compliance', label: 'Subject to regulatory compliance' },
-    { key: 'history_breach',      label: 'History of data breach' },
-    { key: 'history_noncompliance', label: 'History of regulatory non-compliance' },
-  ]},
 ];
 
 const TECH_STACK_GROUPS: { key: string; heading: string; options: string[]; allowOther?: boolean }[] = [
@@ -208,15 +185,9 @@ export default function TechDiscoveryTab({ oppId, readOnly = false }: { oppId: n
     }
   }, [oppId]);
 
-  const initiatives = useMemo(() => (data?.initiatives ?? {}) as Record<string, boolean | string>, [data]);
   const techStack = useMemo(() => (data?.tech_stack ?? {}) as Record<string, string[] | Record<string, string>>, [data]);
   const enterpriseSystems = useMemo(() => (data?.enterprise_systems ?? {}) as Record<string, string>, [data]);
   const existingDmg = useMemo(() => (data?.existing_dmg ?? {}) as Record<string, string>, [data]);
-
-  function toggleInitiative(key: string) {
-    const next = { ...initiatives, [key]: !initiatives[key] };
-    save({ initiatives: next });
-  }
 
   function toggleTechStack(categoryKey: string, option: string) {
     const current = (techStack[categoryKey] as string[] | undefined) ?? [];
@@ -303,42 +274,7 @@ export default function TechDiscoveryTab({ oppId, readOnly = false }: { oppId: n
         </div>
       </section>
 
-      {/* Section 2: Data Initiatives */}
-      <section className="bg-white border border-brand-navy-30/40 rounded-xl overflow-hidden">
-        <div className="px-4 py-2.5 border-b border-brand-navy-30/40 bg-[#F5F5F7]">
-          <h3 className="text-[11px] font-semibold uppercase tracking-widest text-brand-navy-70">Data Initiatives</h3>
-        </div>
-        <div className="px-4 py-3 space-y-4">
-          {INITIATIVE_GROUPS.map(g => (
-            <div key={g.heading}>
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-navy-70 mb-1.5">{g.heading}</p>
-              <div className="flex flex-wrap gap-1.5">
-                {g.items.map(it => (
-                  <Chip
-                    key={it.key}
-                    selected={initiatives[it.key] === true}
-                    onClick={() => toggleInitiative(it.key)}
-                    disabled={readOnly}
-                  >
-                    {it.label}
-                  </Chip>
-                ))}
-              </div>
-            </div>
-          ))}
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-navy-70 mb-1.5">Other</p>
-            <SpecifyField
-              value={typeof initiatives.other_text === 'string' ? initiatives.other_text : ''}
-              onBlurSave={v => save({ initiatives: { ...initiatives, other_text: v } })}
-              placeholder="Specify any other data initiatives…"
-              disabled={readOnly}
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* Section 3: Technology Stack */}
+      {/* Section 2: Technology Stack */}
       <section className="bg-white border border-brand-navy-30/40 rounded-xl overflow-hidden">
         <div className="px-4 py-2.5 border-b border-brand-navy-30/40 bg-[#F5F5F7]">
           <h3 className="text-[11px] font-semibold uppercase tracking-widest text-brand-navy-70">Technology Stack</h3>
@@ -376,7 +312,7 @@ export default function TechDiscoveryTab({ oppId, readOnly = false }: { oppId: n
         </div>
       </section>
 
-      {/* Section 4: Enterprise systems + existing DMG */}
+      {/* Section 3: Enterprise systems + existing DMG */}
       <section className="bg-white border border-brand-navy-30/40 rounded-xl overflow-hidden">
         <div className="px-4 py-2.5 border-b border-brand-navy-30/40 bg-[#F5F5F7]">
           <h3 className="text-[11px] font-semibold uppercase tracking-widest text-brand-navy-70">Enterprise Systems & Existing Data Management Tools</h3>

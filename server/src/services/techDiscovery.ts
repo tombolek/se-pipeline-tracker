@@ -13,7 +13,6 @@ export interface TechDiscovery {
   deployment_preference: string | null;
   technical_constraints: string | null;
   open_technical_requirements: string | null;
-  initiatives: Record<string, unknown>;
   tech_stack: Record<string, unknown>;
   enterprise_systems: Record<string, unknown>;
   existing_dmg: Record<string, unknown>;
@@ -33,7 +32,6 @@ export interface TechDiscoveryPatch {
   deployment_preference?: string | null;
   technical_constraints?: string | null;
   open_technical_requirements?: string | null;
-  initiatives?: Record<string, unknown>;
   tech_stack?: Record<string, unknown>;
   enterprise_systems?: Record<string, unknown>;
   existing_dmg?: Record<string, unknown>;
@@ -53,7 +51,7 @@ const PROSE_FIELDS = [
   'open_technical_requirements',
 ] as const;
 
-const JSONB_FIELDS = ['initiatives', 'tech_stack', 'enterprise_systems', 'existing_dmg'] as const;
+const JSONB_FIELDS = ['tech_stack', 'enterprise_systems', 'existing_dmg'] as const;
 
 // ── Public API ──────────────────────────────────────────────────────────────
 
@@ -68,7 +66,7 @@ export async function getTechDiscovery(oppId: number): Promise<TechDiscovery | n
             current_incumbent_solutions, tier1_integrations, data_details_and_users,
             ingestion_sources, planned_ingestion_sources, data_cleansing_remediation,
             deployment_preference, technical_constraints, open_technical_requirements,
-            initiatives, tech_stack, enterprise_systems, existing_dmg,
+            tech_stack, enterprise_systems, existing_dmg,
             updated_by_id, created_at, updated_at
      FROM opportunity_tech_discovery
      WHERE opportunity_id = $1`,
@@ -123,7 +121,7 @@ export async function upsertTechDiscovery(
               current_incumbent_solutions, tier1_integrations, data_details_and_users,
               ingestion_sources, planned_ingestion_sources, data_cleansing_remediation,
               deployment_preference, technical_constraints, open_technical_requirements,
-              initiatives, tech_stack, enterprise_systems, existing_dmg,
+              tech_stack, enterprise_systems, existing_dmg,
               updated_by_id, created_at, updated_at
   `;
 
@@ -147,7 +145,6 @@ export function emptyTechDiscovery(oppId: number): TechDiscovery {
     deployment_preference: null,
     technical_constraints: null,
     open_technical_requirements: null,
-    initiatives: {},
     tech_stack: {},
     enterprise_systems: {},
     existing_dmg: {},

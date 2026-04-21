@@ -34,7 +34,6 @@ interface DealRow {
 interface TechDiscoveryLite {
   opportunity_id: number;
   tech_stack: Record<string, unknown>;
-  initiatives: Record<string, unknown>;
   existing_dmg: Record<string, unknown>;
 }
 
@@ -226,12 +225,11 @@ interface ScoreBreakdown {
 /**
  * Tech-stack Jaccard across all categories. Same-vendor same-category
  * overlap is a strong signal ("this deal uses Snowflake + dbt, so does that
- * one"). Initiatives overlap catches strategic alignment (both are Cloud
- * Migration + Data Mesh).
+ * one").
  *
- * Max contribution: 15 points (10 stack + 5 initiatives), pushed on top of
- * the base 100 and clamped at 100 by the caller — keeps v1 simple at the
- * cost of losing some resolution at the high end.
+ * Max contribution: 10 points, pushed on top of the base 100 and clamped at
+ * 100 by the caller — keeps v1 simple at the cost of losing some resolution
+ * at the high end.
  */
 function scoreTechDiscoveryPair(
   active: TechDiscoveryLite | undefined,
@@ -269,14 +267,6 @@ function scoreTechDiscoveryPair(
       chips.push({ label: `Same stack: ${picked.items.join('+')}`, kind: 'product' });
     }
   }
-
-  // Initiatives overlap — only boolean true flags count.
-  const aInit = active.initiatives ?? {};
-  const hInit = historical.initiatives ?? {};
-  const aFlags = new Set(Object.keys(aInit).filter(k => (aInit as Record<string, unknown>)[k] === true));
-  const hFlags = new Set(Object.keys(hInit).filter(k => (hInit as Record<string, unknown>)[k] === true));
-  const initJacc = jaccard(aFlags, hFlags);
-  total += Math.round(initJacc * 5);
 
   return { total, chips };
 }
@@ -517,7 +507,7 @@ export async function findSimilarDeals(oppId: number): Promise<SimilarDealsRespo
   // with the existing corpus that has never filled it out.
   const allCandidateIds = [oppId, ...closedCorpus.map(c => c.id), ...inFlightCorpus.map(c => c.id)];
   const techDiscoveryRows = await query<TechDiscoveryLite>(
-    `SELECT opportunity_id, tech_stack, initiatives, existing_dmg
+    `SELECT opportunity_id, tech_stack, existing_dmg
      FROM opportunity_tech_discovery
      WHERE opportunity_id = ANY($1::int[])`,
     [allCandidateIds]
