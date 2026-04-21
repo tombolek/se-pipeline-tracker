@@ -16,6 +16,7 @@ GET    /opportunities/:id                (includes tasks + notes)
 PATCH  /opportunities/:id                (se_owner only — Manager)
 POST   /opportunities/import             (file upload or raw POST — Manager)
 GET    /opportunities/import/history     (Manager)
+GET    /opportunities/import/latest      (all users — powers top-header freshness badge)
 
 # Closed Lost
 GET    /opportunities/closed-lost        sorted by closed_at DESC; includes unread count

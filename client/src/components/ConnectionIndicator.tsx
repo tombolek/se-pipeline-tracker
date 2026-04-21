@@ -56,27 +56,48 @@ export default function ConnectionIndicator() {
   let dotClass = 'bg-status-success';
   let label = 'Live';
   let clickable = false;
+  let stateKey: 'live' | 'syncing' | 'cached' | 'offline' | 'queue' = 'live';
   if (!online) {
     dotClass = 'bg-brand-purple';
     label = 'Offline';
     clickable = true;
+    stateKey = 'offline';
   } else if (syncing) {
     dotClass = 'bg-brand-purple-70 animate-pulse';
     label = 'Syncing…';
     clickable = true;
+    stateKey = 'syncing';
   } else if (stale && lastSync !== null) {
     dotClass = 'bg-status-warning';
     label = `Cached ${timeAgo(lastSync)}`;
     clickable = true;
+    stateKey = 'cached';
   } else if (hasQueue) {
     // Online, but still has unresolved queued items — make it visible.
     dotClass = 'bg-status-warning';
     label = 'Pending sync';
     clickable = true;
+    stateKey = 'queue';
   }
 
+  const tooltipTitle = {
+    live: 'Live',
+    syncing: 'Syncing',
+    cached: 'Cached data',
+    offline: "You're offline",
+    queue: 'Pending sync',
+  }[stateKey];
+
+  const tooltipBody = {
+    live: 'Your browser is reaching the server normally. Reads come from the network; writes (notes, tasks, assignments) save directly.',
+    syncing: 'Pushing queued offline changes to the server. Takes a moment; you can keep working.',
+    cached: "Server's not responding right now, but we're still showing data saved from your last online session. New reads won't be available until you reconnect.",
+    offline: 'Your connection dropped. Favorited deals stay readable, and any notes or task edits you make queue locally and sync automatically when you reconnect.',
+    queue: 'Online, but some offline edits haven\'t synced yet. Click for details.',
+  }[stateKey];
+
   return (
-    <div ref={rootRef} className="relative">
+    <div ref={rootRef} className="relative group">
       <button
         type="button"
         onClick={() => clickable && setOpen(v => !v)}
@@ -93,6 +114,21 @@ export default function ConnectionIndicator() {
           </span>
         )}
       </button>
+
+      {/* Hover tooltip — explains what the current state actually means.
+          Hidden while the click-dropdown is open so the two don't overlap. */}
+      {!open && (
+        <div className="pointer-events-none absolute right-0 top-full z-50 mt-1.5 w-64 rounded-xl bg-white px-3 py-2.5 text-[11px] text-brand-navy opacity-0 shadow-xl border border-brand-navy-30/50 transition-opacity duration-150 group-hover:opacity-100">
+          <p className="font-semibold flex items-center gap-1.5">
+            <span className={`w-2 h-2 rounded-full ${dotClass}`} />
+            {tooltipTitle}
+          </p>
+          <p className="text-brand-navy-70 leading-relaxed mt-1">{tooltipBody}</p>
+          {lastSync !== null && (
+            <p className="text-brand-navy-70 text-[10px] mt-1.5">Last sync: {timeAgo(lastSync)}</p>
+          )}
+        </div>
+      )}
 
       {open && (
         <div className="absolute top-full left-0 mt-1 z-50 w-72 bg-white text-brand-navy rounded-xl border border-brand-navy-30 shadow-xl overflow-hidden">

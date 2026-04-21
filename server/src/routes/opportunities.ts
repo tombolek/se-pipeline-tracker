@@ -67,6 +67,28 @@ router.post('/import/preview', auth, mgr, upload.single('file'), async (req: Req
   }
 });
 
+// GET /opportunities/import/latest  (all auth'd users)
+// Tiny endpoint for the top-header data freshness indicator. Returns the most
+// recent successful import so the header can render "Nh ago" with a colour
+// based on staleness. No manager gate — every user should see this.
+router.get('/import/latest', auth, async (_req: Request, res: Response): Promise<void> => {
+  const row = await queryOne<{
+    id: number;
+    imported_at: string;
+    filename: string | null;
+    row_count: number | null;
+    opportunities_added: number | null;
+    opportunities_updated: number | null;
+  }>(
+    `SELECT id, imported_at, filename, row_count, opportunities_added, opportunities_updated
+     FROM imports
+     WHERE status = 'success'
+     ORDER BY imported_at DESC
+     LIMIT 1`
+  );
+  res.json(ok(row));
+});
+
 // GET /opportunities/import/history  (Manager only)
 router.get('/import/history', auth, mgr, async (_req: Request, res: Response): Promise<void> => {
   const rows = await query(

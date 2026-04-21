@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Data Freshness Indicator — Preview</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      fontFamily: { sans: ['Poppins', 'system-ui', 'sans-serif'] },
+      colors: {
+        brand: {
+          purple: '#6A2CF5', 'purple-70': '#9C72F8', 'purple-30': '#DED0FD',
+          pink: '#F10090', 'pink-70': '#F655B5', 'pink-30': '#FCC6E6',
+          navy: '#1A0C42', 'navy-70': '#665D81', 'navy-30': '#CCC9D5',
+        },
+        status: { overdue: '#FF464C', warning: '#FFAB00', info: '#00DDFF', success: '#00E5B6' },
+      },
+    },
+  },
+}
+</script>
+<style>
+  body { background: #F5F5F7; }
+  .tooltip-pill {
+    position: absolute; top: 100%; right: 0; margin-top: 4px;
+    background: white; color: #1A0C42; font-size: 11px; font-weight: 500;
+    padding: 6px 10px; border-radius: 8px; white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(26,12,66,0.15); border: 1px solid rgba(204,201,213,0.6);
+    opacity: 0; pointer-events: none; transition: opacity .15s ease;
+  }
+  .has-tooltip:hover .tooltip-pill { opacity: 1; }
+</style>
+</head>
+<body class="font-sans text-brand-navy">
+
+<div class="max-w-[1200px] mx-auto px-6 py-10 space-y-10">
+
+  <!-- Intro -->
+  <div>
+    <h1 class="text-xl font-semibold text-brand-navy">Data freshness indicator — variants</h1>
+    <p class="text-[12px] text-brand-navy-70 mt-1 max-w-2xl leading-relaxed">
+      A subtle header readout of when the SF data was last imported. Source: max(<code class="bg-gray-100 px-1 rounded text-[11px]">imports.imported_at</code>) where <code class="bg-gray-100 px-1 rounded text-[11px]">status='success'</code>. Three styling options shown below at full width; picker at the bottom.
+    </p>
+  </div>
+
+  <!-- ==================== VARIANT A ==================== -->
+  <section>
+    <div class="flex items-center gap-2 mb-2">
+      <span class="text-[9px] font-semibold uppercase tracking-widest bg-brand-purple-30 text-brand-purple px-1.5 py-0.5 rounded">Variant A</span>
+      <span class="text-[12px] font-medium text-brand-navy">Text-only — most subtle</span>
+    </div>
+
+    <!-- Header -->
+    <header class="bg-brand-navy text-white h-[42px] px-4 flex items-center gap-4 border-b border-white/5 rounded-t-lg">
+      <div class="flex items-center gap-2">
+        <div class="w-6 h-6 rounded-md bg-brand-pink flex items-center justify-center">
+          <svg class="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+          </svg>
+        </div>
+        <span class="font-semibold text-[13px] tracking-tight">Pipeline Tracker</span>
+      </div>
+
+      <div class="flex-1"></div>
+
+      <!-- NEW: freshness readout (text only) -->
+      <div class="has-tooltip relative flex items-center text-[11px] text-white/60 hover:text-white/90 transition-colors cursor-default">
+        <span>Data loaded 2h ago</span>
+        <div class="tooltip-pill">
+          Last SF import: Today, 08:42<br>
+          <span class="text-brand-navy-70">ataccama_pipeline_2026-04-21.csv · 847 rows</span>
+        </div>
+      </div>
+
+      <div class="w-px h-5 bg-white/10 mx-2"></div>
+
+      <!-- Existing connection indicator shape -->
+      <div class="flex items-center gap-1.5 text-[11px] text-white/75">
+        <span class="w-1.5 h-1.5 rounded-full bg-status-success"></span>
+        <span>Live</span>
+      </div>
+      <div class="w-px h-5 bg-white/10 mx-1"></div>
+      <!-- Icon buttons placeholder -->
+      <div class="flex items-center gap-1">
+        <div class="w-8 h-8 rounded-md hover:bg-white/10 flex items-center justify-center">
+          <svg class="w-4 h-4 text-white/75" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+        </div>
+        <div class="w-8 h-8 rounded-md hover:bg-white/10 flex items-center justify-center">
+          <svg class="w-4 h-4 text-white/75" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+      </div>
+    </header>
+    <div class="bg-white border border-t-0 border-brand-navy-30/40 rounded-b-lg px-4 py-2 text-[11px] text-brand-navy-70">
+      <strong>Trade-off:</strong> Maximally unobtrusive. No freshness signal at a glance — you only notice it if you read the text. Fine if staleness is rare.
+    </div>
+  </section>
+
+  <!-- ==================== VARIANT B ==================== -->
+  <section>
+    <div class="flex items-center gap-2 mb-2">
+      <span class="text-[9px] font-semibold uppercase tracking-widest bg-brand-purple-30 text-brand-purple px-1.5 py-0.5 rounded">Variant B</span>
+      <span class="text-[12px] font-medium text-brand-navy">Clock icon + relative time</span>
+    </div>
+
+    <header class="bg-brand-navy text-white h-[42px] px-4 flex items-center gap-4 border-b border-white/5 rounded-t-lg">
+      <div class="flex items-center gap-2">
+        <div class="w-6 h-6 rounded-md bg-brand-pink flex items-center justify-center">
+          <svg class="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+          </svg>
+        </div>
+        <span class="font-semibold text-[13px] tracking-tight">Pipeline Tracker</span>
+      </div>
+
+      <div class="flex-1"></div>
+
+      <!-- NEW: freshness readout (icon + text) -->
+      <div class="has-tooltip relative flex items-center gap-1.5 text-[11px] text-white/70 hover:text-white/95 transition-colors cursor-default">
+        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <span>2h ago</span>
+        <div class="tooltip-pill">
+          SF data last loaded<br>
+          <span class="text-brand-navy-70">Today 08:42 · ataccama_pipeline_2026-04-21.csv · 847 rows</span>
+        </div>
+      </div>
+
+      <div class="w-px h-5 bg-white/10 mx-2"></div>
+
+      <div class="flex items-center gap-1.5 text-[11px] text-white/75">
+        <span class="w-1.5 h-1.5 rounded-full bg-status-success"></span>
+        <span>Live</span>
+      </div>
+      <div class="w-px h-5 bg-white/10 mx-1"></div>
+      <div class="flex items-center gap-1">
+        <div class="w-8 h-8 rounded-md hover:bg-white/10 flex items-center justify-center">
+          <svg class="w-4 h-4 text-white/75" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+        </div>
+        <div class="w-8 h-8 rounded-md hover:bg-white/10 flex items-center justify-center">
+          <svg class="w-4 h-4 text-white/75" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+      </div>
+    </header>
+    <div class="bg-white border border-t-0 border-brand-navy-30/40 rounded-b-lg px-4 py-2 text-[11px] text-brand-navy-70">
+      <strong>Trade-off:</strong> Clear signal of "this is a timestamp." No freshness status (nothing tells you 3-day-old data looks different from 2h-old data).
+    </div>
+  </section>
+
+  <!-- ==================== VARIANT C ==================== -->
+  <section>
+    <div class="flex items-center gap-2 mb-2">
+      <span class="text-[9px] font-semibold uppercase tracking-widest bg-brand-pink-30 text-brand-pink px-1.5 py-0.5 rounded">Variant C · recommended</span>
+      <span class="text-[12px] font-medium text-brand-navy">Colored dot + text — mirrors ConnectionIndicator pattern</span>
+    </div>
+
+    <!-- Fresh (≤24h) -->
+    <header class="bg-brand-navy text-white h-[42px] px-4 flex items-center gap-4 border-b border-white/5 rounded-t-lg">
+      <div class="flex items-center gap-2">
+        <div class="w-6 h-6 rounded-md bg-brand-pink flex items-center justify-center">
+          <svg class="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+          </svg>
+        </div>
+        <span class="font-semibold text-[13px] tracking-tight">Pipeline Tracker</span>
+      </div>
+
+      <div class="flex-1"></div>
+
+      <!-- NEW: freshness readout (dot + text) -->
+      <div class="has-tooltip relative flex items-center gap-1.5 text-[11px] text-white/75 hover:text-white/95 transition-colors cursor-default">
+        <span class="w-1.5 h-1.5 rounded-full bg-status-success"></span>
+        <span>Data · 2h ago</span>
+        <div class="tooltip-pill">
+          <div class="font-semibold mb-0.5">SF data is fresh</div>
+          <div class="text-brand-navy-70">Last imported: today 08:42</div>
+          <div class="text-brand-navy-70 text-[10px] mt-0.5">ataccama_pipeline_2026-04-21.csv · 847 rows</div>
+        </div>
+      </div>
+
+      <div class="w-px h-5 bg-white/10 mx-2"></div>
+
+      <div class="flex items-center gap-1.5 text-[11px] text-white/75">
+        <span class="w-1.5 h-1.5 rounded-full bg-status-success"></span>
+        <span>Live</span>
+      </div>
+      <div class="w-px h-5 bg-white/10 mx-1"></div>
+      <div class="flex items-center gap-1">
+        <div class="w-8 h-8 rounded-md hover:bg-white/10 flex items-center justify-center">
+          <svg class="w-4 h-4 text-white/75" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+        </div>
+        <div class="w-8 h-8 rounded-md hover:bg-white/10 flex items-center justify-center">
+          <svg class="w-4 h-4 text-white/75" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+      </div>
+    </header>
+
+    <!-- Stale (2d) — amber -->
+    <header class="bg-brand-navy text-white h-[42px] px-4 flex items-center gap-4 border-b border-white/5 mt-2 rounded-lg">
+      <div class="flex items-center gap-2">
+        <div class="w-6 h-6 rounded-md bg-brand-pink flex items-center justify-center">
+          <svg class="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+          </svg>
+        </div>
+        <span class="font-semibold text-[13px] tracking-tight">Pipeline Tracker</span>
+      </div>
+      <div class="flex-1"></div>
+      <div class="has-tooltip relative flex items-center gap-1.5 text-[11px] text-white/75 hover:text-white/95 cursor-default">
+        <span class="w-1.5 h-1.5 rounded-full bg-status-warning"></span>
+        <span>Data · 2d ago</span>
+        <div class="tooltip-pill">
+          <div class="font-semibold mb-0.5 text-amber-700">SF data is getting stale</div>
+          <div class="text-brand-navy-70">Last imported: Apr 19, 14:22</div>
+          <div class="text-brand-navy-70 text-[10px] mt-0.5">ataccama_pipeline_2026-04-19.csv · 842 rows</div>
+        </div>
+      </div>
+      <div class="w-px h-5 bg-white/10 mx-2"></div>
+      <div class="flex items-center gap-1.5 text-[11px] text-white/75">
+        <span class="w-1.5 h-1.5 rounded-full bg-status-success"></span>
+        <span>Live</span>
+      </div>
+      <div class="w-px h-5 bg-white/10 mx-1"></div>
+      <div class="flex items-center gap-1">
+        <div class="w-8 h-8 rounded-md hover:bg-white/10 flex items-center justify-center">
+          <svg class="w-4 h-4 text-white/75" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+        </div>
+      </div>
+    </header>
+
+    <!-- Very stale (5d) — red -->
+    <header class="bg-brand-navy text-white h-[42px] px-4 flex items-center gap-4 border-b border-white/5 mt-2 rounded-lg">
+      <div class="flex items-center gap-2">
+        <div class="w-6 h-6 rounded-md bg-brand-pink flex items-center justify-center">
+          <svg class="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+          </svg>
+        </div>
+        <span class="font-semibold text-[13px] tracking-tight">Pipeline Tracker</span>
+      </div>
+      <div class="flex-1"></div>
+      <div class="has-tooltip relative flex items-center gap-1.5 text-[11px] text-white/80 hover:text-white cursor-default">
+        <span class="w-1.5 h-1.5 rounded-full bg-status-overdue"></span>
+        <span>Data · 5d ago</span>
+        <div class="tooltip-pill">
+          <div class="font-semibold mb-0.5 text-red-700">SF data is stale</div>
+          <div class="text-brand-navy-70">Last imported: Apr 16, 09:11</div>
+          <div class="text-brand-navy-70 text-[10px] mt-0.5">Ask your manager to refresh.</div>
+        </div>
+      </div>
+      <div class="w-px h-5 bg-white/10 mx-2"></div>
+      <div class="flex items-center gap-1.5 text-[11px] text-white/75">
+        <span class="w-1.5 h-1.5 rounded-full bg-status-success"></span>
+        <span>Live</span>
+      </div>
+      <div class="w-px h-5 bg-white/10 mx-1"></div>
+      <div class="flex items-center gap-1">
+        <div class="w-8 h-8 rounded-md hover:bg-white/10 flex items-center justify-center">
+          <svg class="w-4 h-4 text-white/75" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+        </div>
+      </div>
+    </header>
+
+    <div class="bg-white border border-brand-navy-30/40 rounded-lg px-4 py-3 text-[11px] text-brand-navy-70 mt-2 space-y-1 leading-relaxed">
+      <p><strong>Trade-off:</strong> Most information at a glance. Mirrors the existing ConnectionIndicator's dot+text grammar (shown above as "Live"), so the header feels cohesive rather than double-dotted with two separate widgets.</p>
+      <p><strong>Freshness thresholds:</strong> green ≤ 24h · amber ≤ 3d · red &gt; 3d. Tunable per-team once we see usage.</p>
+      <p><strong>Manager click:</strong> clicking the readout jumps to <code class="bg-gray-100 px-1 rounded">/settings/import-history</code> so they can trigger a new import. SE view is non-clickable, just the tooltip.</p>
+      <p><strong>Mobile / &lt;768px:</strong> text collapses, dot-only shown; tooltip on tap.</p>
+    </div>
+  </section>
+
+  <!-- ==================== Picker summary ==================== -->
+  <section class="bg-white border border-brand-navy-30/40 rounded-xl p-5 space-y-3">
+    <h2 class="text-sm font-semibold text-brand-navy">Picker summary</h2>
+    <table class="w-full text-[11px] text-brand-navy">
+      <thead>
+        <tr class="text-left border-b border-brand-navy-30/40">
+          <th class="py-1.5 pr-3 font-semibold">Variant</th>
+          <th class="py-1.5 pr-3 font-semibold">Visual weight</th>
+          <th class="py-1.5 pr-3 font-semibold">Shows freshness state</th>
+          <th class="py-1.5 font-semibold">Best for</th>
+        </tr>
+      </thead>
+      <tbody class="text-brand-navy-70">
+        <tr class="border-b border-brand-navy-30/20"><td class="py-2 pr-3">A · text only</td><td class="pr-3">Lowest</td><td class="pr-3">No</td><td>Teams where imports are always on schedule</td></tr>
+        <tr class="border-b border-brand-navy-30/20"><td class="py-2 pr-3">B · clock + text</td><td class="pr-3">Medium</td><td class="pr-3">No</td><td>Want a clearly timestampy affordance but don't care about colouring</td></tr>
+        <tr><td class="py-2 pr-3 font-semibold text-brand-pink">C · dot + text <span class="text-[9px] font-semibold uppercase ml-1">rec</span></td><td class="pr-3">Medium</td><td class="pr-3 font-semibold text-brand-purple">Yes</td><td>Surfaces stale data without requiring hover, matches existing indicator grammar</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Backend notes -->
+  <section class="bg-white border border-brand-navy-30/40 rounded-xl p-5 space-y-2">
+    <h2 class="text-sm font-semibold text-brand-navy">Backend implementation</h2>
+    <p class="text-[11px] text-brand-navy-70 leading-relaxed">
+      One new endpoint <code class="bg-gray-100 px-1 rounded">GET /api/v1/opportunities/import/latest</code> (auth-only, not manager-gated). Returns the most recent successful import: <code class="bg-gray-100 px-1 rounded">{ imported_at, filename, row_count, opportunities_added, opportunities_updated }</code>. Polled once on page load + refreshed every 5 min. Source is <code class="bg-gray-100 px-1 rounded">SELECT ... FROM imports WHERE status = 'success' ORDER BY imported_at DESC LIMIT 1</code>. Offline-aware: cache the last known result in localStorage so the badge still renders without the round-trip.
+    </p>
+  </section>
+
+</div>
+</body>
+</html>

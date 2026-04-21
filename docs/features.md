@@ -2,6 +2,11 @@
 
 One section per page/route. Describes the behaviour, filters, and data rules — not the components (read the components for rendering details).
 
+## Top App Header (global)
+
+- **Data freshness indicator** — clock icon + relative time next to the connection indicator, showing the age of the last successful SF import. Colour-coded around the expected ~2×/day cadence: green < 6h, amber 6–12h, red > 12h, muted when no import on record. Hover tooltip shows exact timestamp, filename, and row counts (added/updated). Managers can click through to `/settings/import-history`; SEs get the tooltip only. Fetches `GET /opportunities/import/latest` on mount + on tab focus; local 60s tick keeps the "Nh ago" label advancing.
+- **Connection indicator** — Live / Syncing / Cached / Offline / Pending sync. Hover tooltip explains what each state means for the user's current session (what reads come from where, whether writes queue, etc.). Click opens the existing details dropdown in the non-live states.
+
 ## Pipeline View (`/pipeline`)
 
 - Paginated list of active (open) opportunities.

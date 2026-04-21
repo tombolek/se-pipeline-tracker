@@ -20,6 +20,7 @@ import { getChangelog } from '../api/changelog';
 import ChangelogModal from './ChangelogModal';
 import RecentActionsModal from './RecentActionsModal';
 import ConnectionIndicator from './ConnectionIndicator';
+import DataFreshnessIndicator from './DataFreshnessIndicator';
 
 /**
  * Pill tooltip shown on hover for icon-only header buttons. Reveals the
@@ -95,7 +96,8 @@ export default function AppHeader() {
 
         {/* Right — connection indicator + icon-only feature buttons + user pill */}
         <nav className="flex items-center gap-1 flex-shrink-0">
-          {/* Connection indicator — lives to the left of the feature buttons */}
+          {/* Data freshness (SF import age) + connection indicator — left of the feature buttons */}
+          <DataFreshnessIndicator />
           <ConnectionIndicator />
 
           <div className="w-px h-5 bg-white/10 mx-1" />
