@@ -739,7 +739,7 @@ router.post('/:id/summary', auth, write, async (req: Request, res: Response): Pr
   const notes = await query(
     `SELECT n.content, u.name AS author_name, n.created_at
      FROM notes n JOIN users u ON u.id = n.author_id
-     WHERE n.opportunity_id = $1 ORDER BY n.created_at DESC LIMIT 10`,
+     WHERE n.opportunity_id = $1 AND n.is_deleted = false ORDER BY n.created_at DESC LIMIT 10`,
     [id]
   );
 
@@ -873,7 +873,7 @@ router.post('/:id/meddpicc-coach', auth, write, async (req: Request, res: Respon
       query(
         `SELECT n.content, u.name AS author_name, n.created_at
          FROM notes n JOIN users u ON u.id = n.author_id
-         WHERE n.opportunity_id = $1 ORDER BY n.created_at DESC LIMIT 25`,
+         WHERE n.opportunity_id = $1 AND n.is_deleted = false ORDER BY n.created_at DESC LIMIT 25`,
         [id]
       ),
     ]);
@@ -1231,7 +1231,7 @@ router.get('/:id', auth, async (req: Request, res: Response): Promise<void> => {
   const notes = await query(
     `SELECT n.*, u.name AS author_name
      FROM notes n JOIN users u ON u.id = n.author_id
-     WHERE n.opportunity_id = $1 ORDER BY n.created_at ASC`,
+     WHERE n.opportunity_id = $1 AND n.is_deleted = false ORDER BY n.created_at ASC`,
     [id]
   );
 
@@ -1848,7 +1848,7 @@ router.get('/:id/timeline', auth, async (req: Request, res: Response): Promise<v
     query<{ id: number; content: string; author_name: string; created_at: string }>(
       `SELECT n.id, n.content, u.name AS author_name, n.created_at
        FROM notes n JOIN users u ON u.id = n.author_id
-       WHERE n.opportunity_id = $1 ORDER BY n.created_at DESC`,
+       WHERE n.opportunity_id = $1 AND n.is_deleted = false ORDER BY n.created_at DESC`,
       [id]
     ),
     query<{ id: number; title: string; status: string; is_next_step: boolean; assigned_to_name: string | null; created_at: string; updated_at: string }>(
@@ -2431,6 +2431,7 @@ router.post('/:id/call-prep/generate', auth, write, async (req: Request, res: Re
       `SELECT n.content, n.created_at, u.name as author_name
        FROM notes n JOIN users u ON u.id = n.author_id
        WHERE n.opportunity_id = $1
+         AND n.is_deleted = false
        ORDER BY n.created_at DESC LIMIT 10`,
       [id]
     );
@@ -2693,7 +2694,7 @@ router.post('/:id/demo-prep/generate', auth, write, async (req: Request, res: Re
       query(
         `SELECT n.content, u.name AS author_name, n.created_at
          FROM notes n JOIN users u ON u.id = n.author_id
-         WHERE n.opportunity_id = $1 ORDER BY n.created_at DESC LIMIT 25`,
+         WHERE n.opportunity_id = $1 AND n.is_deleted = false ORDER BY n.created_at DESC LIMIT 25`,
         [id]
       ),
     ]);

@@ -71,6 +71,7 @@ router.get('/digest', auth, async (req: Request, res: Response): Promise<void> =
         JOIN users u2 ON u2.id = n.author_id
         WHERE o.se_owner_id = $1
           AND n.author_id != $1
+          AND n.is_deleted = false
           AND n.created_at >= now() - interval '7 days'
           AND o.is_active = true
       )

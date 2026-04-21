@@ -35,7 +35,7 @@ One section per page/route. Describes the behaviour, filters, and data rules —
 - **AI Summary** — collapsible, persisted open/closed state, freshness indicator showing when last generated.
 - **MEDDPICC Gap Coach** — collapsible, persisted open/closed state, AI-powered analysis of MEDDPICC field gaps with coaching recommendations.
 
-**Work tab:** Next Steps (is_next_step = true, shown prominently), Tasks (full list, add/edit/complete), Notes (chronological, append-only, with author + timestamp).
+**Work tab:** Next Steps (is_next_step = true, shown prominently), Tasks (full list, add/edit/complete), Notes (chronological, no-UPDATE, **soft-delete by author or manager** — delete button appears on hover, confirmation inline, every delete is audited).
 
 **Timeline tab:** Chronological activity feed for the opportunity (OpportunityTimeline component).
 

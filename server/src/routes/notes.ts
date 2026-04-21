@@ -24,11 +24,63 @@ router.get('/', auth, async (req: Request, res: Response): Promise<void> => {
      FROM notes n
      JOIN users u ON u.id = n.author_id
      WHERE n.opportunity_id = $1
+       AND n.is_deleted = false
      ORDER BY n.created_at ASC`,
     [oppId]
   );
 
   res.json(ok(notes));
+});
+
+// DELETE /opportunities/:id/notes/:noteId — soft delete.
+// Permission: note author OR manager. Authored the audit log.
+router.delete('/:noteId', auth, write, async (req: Request, res: Response): Promise<void> => {
+  const { userId, role } = (req as AuthenticatedRequest).user;
+  const oppId = parseInt(req.params.id);
+  const noteId = parseInt(req.params.noteId);
+  if (isNaN(oppId) || isNaN(noteId)) { res.status(400).json(err('Invalid id')); return; }
+
+  const note = await queryOne<{ id: number; author_id: number; content: string; is_deleted: boolean; opportunity_id: number }>(
+    `SELECT id, author_id, content, is_deleted, opportunity_id FROM notes WHERE id = $1`,
+    [noteId]
+  );
+  if (!note || note.opportunity_id !== oppId) { res.status(404).json(err('Note not found')); return; }
+  if (note.is_deleted) { res.status(410).json(err('Note was already deleted')); return; }
+
+  const canDelete = role === 'manager' || note.author_id === userId;
+  if (!canDelete) {
+    logAudit(req, {
+      userId, userRole: role,
+      action: 'DELETE_NOTE_DENIED', resourceType: 'note',
+      resourceId: noteId,
+      resourceName: `Opportunity #${oppId}`,
+      before: { author_id: note.author_id },
+      success: false,
+      failureReason: 'Not author and not manager',
+    });
+    res.status(403).json(err('You can only delete your own notes. Managers can delete any note.'));
+    return;
+  }
+
+  await query(
+    `UPDATE notes SET is_deleted = true, deleted_at = now(), deleted_by_id = $1 WHERE id = $2`,
+    [userId, noteId]
+  );
+
+  logAudit(req, {
+    userId, userRole: role,
+    action: 'DELETE_NOTE', resourceType: 'note',
+    resourceId: noteId,
+    resourceName: `Opportunity #${oppId}`,
+    before: {
+      author_id: note.author_id,
+      content_preview: note.content.slice(0, 200),
+      content_length: note.content.length,
+    },
+    success: true,
+  });
+
+  res.json(ok({ id: noteId, deleted: true }));
 });
 
 // POST /opportunities/:id/notes  (append-only)

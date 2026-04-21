@@ -29,8 +29,9 @@ PATCH  /tasks/:id
 DELETE /tasks/:id                        (soft delete)
 
 # Notes
-GET    /opportunities/:id/notes
-POST   /opportunities/:id/notes          (append-only)
+GET    /opportunities/:id/notes          filters is_deleted=false
+POST   /opportunities/:id/notes          (no-UPDATE; soft-delete-only for removal)
+DELETE /opportunities/:id/notes/:noteId  (author or manager; soft delete + audit)
 
 # Manager Intelligence
 GET    /insights/stage-movement          ?days=7|14|30

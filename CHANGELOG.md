@@ -7,6 +7,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## 2026-04-21
 
+### Added
+- **Delete your own notes** — delete button appears on hover on each note row in the opportunity Work tab. SEs can delete their own notes; managers can delete any note. Notes can't be edited in place (still immutable — important for audit continuity), only soft-deleted. Every delete writes an entry to the audit log with action `DELETE_NOTE` (or `DELETE_NOTE_DENIED` on a permission-refused attempt) including author, content preview, and user who acted. Migration 046 adds `is_deleted` / `deleted_at` / `deleted_by_id` columns plus a partial index on the non-deleted rows. All 10+ reader sites — note list, home digest, mentions inbox, forecasting brief, call prep / demo prep prompts, AI summaries — now filter out deleted notes. Backup pipeline keeps deleted rows so a restore reproduces the deletion state.
+
 ### Changed
 - **Process Call Notes · Wizard is now the default layout** — results land in Wizard mode (breadcrumb + one section at a time) for new users. Users who already have Tabs or Scroll saved in localStorage keep their preference.
 

@@ -85,6 +85,16 @@ export async function createNote(
   }
 }
 
+/**
+ * Soft-delete a note. Permission is enforced server-side: a user can delete
+ * their own notes; managers can delete anyone's. The 403 response from the
+ * server (audited as DELETE_NOTE_DENIED) bubbles up here as a thrown Axios
+ * error — caller should surface the message.
+ */
+export async function deleteNote(opportunityId: number, noteId: number): Promise<void> {
+  await api.delete(`/opportunities/${opportunityId}/notes/${noteId}`);
+}
+
 function isNetworkError(e: unknown): boolean {
   const msg = (e as { message?: string })?.message ?? '';
   const code = (e as { code?: string })?.code ?? '';

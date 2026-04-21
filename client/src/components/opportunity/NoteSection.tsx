@@ -49,15 +49,63 @@ function renderContentWithMentions(content: string, mentions: NoteMention[] | un
   return out;
 }
 
-export function NoteItem({ note }: { note: Note }) {
+export function NoteItem({
+  note,
+  canDelete = false,
+  onDelete,
+}: {
+  note: Note;
+  /** Whether the current user may delete this note (author or manager). */
+  canDelete?: boolean;
+  onDelete?: (id: number) => void | Promise<void>;
+}) {
+  const [confirming, setConfirming] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   return (
-    <div className="py-3 border-b border-brand-navy-30/40 last:border-0">
+    <div className="group py-3 border-b border-brand-navy-30/40 last:border-0">
       <div className="flex items-center gap-2 mb-1">
         <div className="w-5 h-5 rounded-full bg-brand-purple flex items-center justify-center text-[9px] font-semibold text-white flex-shrink-0">
           {note.author_name?.[0]?.toUpperCase()}
         </div>
         <span className="text-xs font-medium text-brand-navy">{note.author_name}</span>
         <span className="text-[11px] text-brand-navy-70">{formatDateTime(note.created_at)}</span>
+        {canDelete && onDelete && (
+          <div className="ml-auto flex items-center gap-2">
+            {confirming ? (
+              <>
+                <span className="text-[10px] text-brand-navy-70">Delete this note?</span>
+                <button
+                  type="button"
+                  disabled={deleting}
+                  onClick={async () => {
+                    setDeleting(true);
+                    try { await onDelete(note.id); } finally { setDeleting(false); setConfirming(false); }
+                  }}
+                  className="text-[10px] font-semibold text-status-overdue hover:underline disabled:opacity-50"
+                >
+                  {deleting ? 'Deleting…' : 'Yes, delete'}
+                </button>
+                <button
+                  type="button"
+                  disabled={deleting}
+                  onClick={() => setConfirming(false)}
+                  className="text-[10px] text-brand-navy-70 hover:text-brand-navy disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirming(true)}
+                className="text-[10px] text-brand-navy-30 hover:text-status-overdue transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                title="Delete this note"
+              >
+                Delete
+              </button>
+            )}
+          </div>
+        )}
       </div>
       <p className="text-sm text-brand-navy leading-relaxed pl-7 whitespace-pre-wrap">
         {renderContentWithMentions(note.content, note.mentions)}

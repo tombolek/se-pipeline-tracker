@@ -328,7 +328,7 @@ router.post('/summaries/bulk-generate', auth, mgr, async (req: Request, res: Res
       const notes = await query(
         `SELECT n.content, u.name AS author_name, n.created_at
          FROM notes n JOIN users u ON u.id = n.author_id
-         WHERE n.opportunity_id = $1 ORDER BY n.created_at DESC LIMIT 10`,
+         WHERE n.opportunity_id = $1 AND n.is_deleted = false ORDER BY n.created_at DESC LIMIT 10`,
         [oppId]
       );
 

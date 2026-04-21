@@ -39,6 +39,7 @@ router.get('/', auth, async (req: Request, res: Response): Promise<void> => {
      JOIN users au ON au.id = n.author_id
      JOIN opportunities o ON o.id = n.opportunity_id
      WHERE nm.mentioned_user_id = $1
+       AND n.is_deleted = false
      ORDER BY nm.created_at DESC
      LIMIT $2`,
     [userId, limit],

@@ -6,7 +6,7 @@ import { computeHealthScore } from '../utils/healthScore';
 import { computeMeddpicc } from '../utils/meddpicc';
 import { getOpportunity, assignSeOwner, getFavoriteIds, addFavorite, removeFavorite } from '../api/opportunities';
 import { createTask, updateTask, deleteTask } from '../api/tasks';
-import { getNotes, createNote } from '../api/notes';
+import { getNotes, createNote, deleteNote } from '../api/notes';
 import { listUsers } from '../api/users';
 import { useAuthStore } from '../store/auth';
 import api from '../api/client';
@@ -898,7 +898,25 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
           {!isReadOnly && showAddNote && <AddNoteForm onAdd={handleAddNote} onCancel={() => setShowAddNote(false)} />}
           {notes.length > 0 && (
             <div className="bg-white rounded-xl border border-brand-navy-30 px-4 mt-3">
-              {[...notes].reverse().map(n => <NoteItem key={n.id} note={n} />)}
+              {[...notes].reverse().map(n => {
+                const canDelete = !isReadOnly && !!user && (user.role === 'manager' || n.author_id === user.id);
+                return (
+                  <NoteItem
+                    key={n.id}
+                    note={n}
+                    canDelete={canDelete}
+                    onDelete={canDelete ? async (id) => {
+                      try {
+                        await deleteNote(oppId, id);
+                        setNotes(prev => prev.filter(x => x.id !== id));
+                      } catch (e) {
+                        const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error ?? 'Failed to delete note';
+                        alert(msg);
+                      }
+                    } : undefined}
+                  />
+                );
+              })}
             </div>
           )}
         </div>

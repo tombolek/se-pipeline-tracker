@@ -69,7 +69,7 @@ se-pipeline-tracker/
 - Environment variables for ALL URLs, secrets, config — never hardcode, not even localhost.
 - Consistent API response envelope: `{ data, error, meta }`.
 - **Soft deletes only** — never `DELETE` from DB for users, opportunities, or tasks.
-- `notes` is append-only — no UPDATE, no DELETE.
+- `notes` is **no-UPDATE and soft-delete-only**. Content never gets edited in place (immutability matters for audit). Deletion is a soft-delete: set `is_deleted=true`, `deleted_at`, `deleted_by_id`. Permission: the author OR a manager. Every delete is logged via `logAudit` with `action: 'DELETE_NOTE'` (or `DELETE_NOTE_DENIED` on 403). All reader queries filter `n.is_deleted = false`; the `backup` pipeline is the one intentional exception — it mirrors the full table so a restore reproduces the deletion state.
 - `.env` is in `.gitignore`; `.env.example` stays up to date.
 
 ### Environment rules
