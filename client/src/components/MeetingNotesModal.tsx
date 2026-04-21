@@ -8,6 +8,13 @@ import type { ApiResponse } from '../types';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
+interface TechDiscoveryProposals {
+  tech_stack_additions: Record<string, string[]>;
+  enterprise_systems_additions: Record<string, string>;
+  existing_dmg_additions: Record<string, string>;
+  prose_proposals: Array<{ field: string; current: string; suggested: string; mode: 'replace' | 'append' }>;
+}
+
 interface ProcessResult {
   saved_note_id: number | null;
   tasks: Array<{ title: string; due_days: number }>;
@@ -15,6 +22,7 @@ interface ProcessResult {
   se_comment_draft: string;
   tech_blockers: string[];
   next_step: string;
+  tech_discovery: TechDiscoveryProposals;
 }
 
 interface Props {
@@ -29,6 +37,41 @@ const MEDDPICC_LABELS: Record<string, string> = {
   implicate_pain: 'Implicate the Pain', champion: 'Champion',
   engaged_competitors: 'Competitors', budget: 'Budget', authority: 'Authority',
   need: 'Need', timeline: 'Timeline', agentic_qual: 'Agentic Qual',
+};
+
+const TECH_STACK_CATEGORY_LABELS: Record<string, string> = {
+  data_infrastructure: 'Data Infrastructure',
+  data_lake: 'Data Lake',
+  data_lake_metastore: 'Data Lake Metastore',
+  data_warehouse: 'Data Warehouse',
+  database: 'Database',
+  datalake_processing: 'Datalake Processing',
+  etl: 'ETL/ELT',
+  business_intelligence: 'BI',
+  nosql: 'NoSQL',
+  streaming: 'Streaming',
+};
+
+const ENTERPRISE_SYSTEM_LABELS: Record<string, string> = {
+  crm: 'CRM', erp: 'ERP', finance: 'Finance System', hr: 'HR System',
+  claims: 'Claims System', marketing: 'Marketing', procurement: 'Procurement',
+  inventory_management: 'Inventory Management', order_management: 'Order Management',
+};
+
+const DMG_LABELS: Record<string, string> = {
+  catalog: 'Catalog', dq: 'DQ', mdm: 'MDM', lineage: 'Lineage',
+};
+
+const PROSE_FIELD_LABELS: Record<string, string> = {
+  current_incumbent_solutions: 'Current & Incumbent Solutions',
+  tier1_integrations: 'Priority (Tier 1) Integrations',
+  data_details_and_users: 'Data Details & Users',
+  ingestion_sources: 'Ingestion Sources',
+  planned_ingestion_sources: 'Planned Ingestion Sources',
+  data_cleansing_remediation: 'Data Cleansing & Remediation',
+  deployment_preference: 'Deployment Preference',
+  technical_constraints: 'Technical Constraints',
+  open_technical_requirements: 'Open Technical Requirements',
 };
 
 function dueDateStr(days: number): string {
@@ -120,6 +163,12 @@ export default function MeetingNotesModal({ opp, onClose, onRefresh }: Props) {
   const [commentCopied, setCommentCopied] = useState(false);
   const [blockersConfirmed, setBlockersConfirmed] = useState(false);
   const [nextStepConfirmed, setNextStepConfirmed] = useState(false);
+  const [techDiscoveryConfirmed, setTechDiscoveryConfirmed] = useState(false);
+
+  // Tech Discovery: per-item acceptance state. Default = all accepted; SE can
+  // click to dismiss individual items before confirming.
+  // Key shape: `stack:${category}:${item}`, `es:${key}`, `dmg:${key}`, `prose:${field}`.
+  const [techRejects, setTechRejects] = useState<Set<string>>(new Set());
 
   // Loading per section
   const [busySection, setBusySection] = useState<string | null>(null);
@@ -233,6 +282,81 @@ export default function MeetingNotesModal({ opp, onClose, onRefresh }: Props) {
     } finally { setBusySection(null); }
   }
 
+  // Does the tech-discovery section have any content to show at all?
+  const techDiscoveryHasContent = !!result?.tech_discovery && (
+    Object.keys(result.tech_discovery.tech_stack_additions ?? {}).some(k => (result.tech_discovery.tech_stack_additions[k] ?? []).length > 0) ||
+    Object.keys(result.tech_discovery.enterprise_systems_additions ?? {}).length > 0 ||
+    Object.keys(result.tech_discovery.existing_dmg_additions ?? {}).length > 0 ||
+    (result.tech_discovery.prose_proposals ?? []).length > 0
+  );
+
+  function toggleTechReject(key: string) {
+    setTechRejects(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
+  async function handleConfirmTechDiscovery() {
+    if (!result?.tech_discovery) return;
+    const td = result.tech_discovery;
+    setBusySection('techdiscovery');
+    try {
+      // Build a PATCH body that merges the ACCEPTED additions into the
+      // current opp's tech_discovery. We re-fetch current state to avoid
+      // clobbering edits the SE might have made between opening the modal
+      // and clicking confirm.
+      const currentResp = await api.get<ApiResponse<{
+        tech_stack: Record<string, string[] | Record<string, string>>;
+        enterprise_systems: Record<string, string>;
+        existing_dmg: Record<string, string>;
+      }>>(`/opportunities/${opp.id}/tech-discovery`);
+      const current = currentResp.data.data;
+
+      // Merge tech_stack_additions into current.tech_stack
+      const nextStack = { ...(current.tech_stack ?? {}) } as Record<string, string[] | Record<string, string>>;
+      for (const [cat, items] of Object.entries(td.tech_stack_additions ?? {})) {
+        const accepted = (items ?? []).filter(it => !techRejects.has(`stack:${cat}:${it}`));
+        if (accepted.length === 0) continue;
+        const existingArr = Array.isArray(nextStack[cat]) ? (nextStack[cat] as string[]) : [];
+        const merged = Array.from(new Set([...existingArr, ...accepted]));
+        nextStack[cat] = merged;
+      }
+
+      const nextEnterprise = { ...(current.enterprise_systems ?? {}) };
+      for (const [k, v] of Object.entries(td.enterprise_systems_additions ?? {})) {
+        if (techRejects.has(`es:${k}`)) continue;
+        if (v && v.trim() && !nextEnterprise[k]) nextEnterprise[k] = v.trim();
+      }
+
+      const nextDmg = { ...(current.existing_dmg ?? {}) };
+      for (const [k, v] of Object.entries(td.existing_dmg_additions ?? {})) {
+        if (techRejects.has(`dmg:${k}`)) continue;
+        if (v && v.trim() && !nextDmg[k]) nextDmg[k] = v.trim();
+      }
+
+      // Prose proposals — for each accepted one, write `suggested` directly
+      // (the server prompt is told to return COMPLETE merged text for appends).
+      const proseUpdates: Record<string, string> = {};
+      for (const p of td.prose_proposals ?? []) {
+        if (techRejects.has(`prose:${p.field}`)) continue;
+        if (p.suggested && p.suggested.trim()) proseUpdates[p.field] = p.suggested.trim();
+      }
+
+      await api.patch(`/opportunities/${opp.id}/tech-discovery`, {
+        tech_stack: nextStack,
+        enterprise_systems: nextEnterprise,
+        existing_dmg: nextDmg,
+        ...proseUpdates,
+      });
+
+      setTechDiscoveryConfirmed(true);
+      onRefresh();
+    } finally { setBusySection(null); }
+  }
+
   async function handleConfirmAll() {
     const work: Array<() => Promise<void>> = [];
     if (!tasksConfirmed && editedTasks.some(t => t.selected)) work.push(handleConfirmTasks);
@@ -240,6 +364,7 @@ export default function MeetingNotesModal({ opp, onClose, onRefresh }: Props) {
     if (!commentCopied) work.push(handleCopyComment);
     if (!blockersConfirmed && editedBlockers.some(b => b.trim())) work.push(handleConfirmBlockers);
     if (!nextStepConfirmed && editedNextStep.trim()) work.push(handleConfirmNextStep);
+    if (!techDiscoveryConfirmed && techDiscoveryHasContent) work.push(handleConfirmTechDiscovery);
     setBusySection('all');
     try { await Promise.all(work.map(fn => fn())); } finally { setBusySection(null); onClose(); }
   }
@@ -249,7 +374,8 @@ export default function MeetingNotesModal({ opp, onClose, onRefresh }: Props) {
     (meddpiccConfirmed || !result?.meddpicc_updates.length) &&
     (commentCopied     || !editedComment) &&
     (blockersConfirmed || editedBlockers.length === 0) &&
-    (nextStepConfirmed || !editedNextStep);
+    (nextStepConfirmed || !editedNextStep) &&
+    (techDiscoveryConfirmed || !techDiscoveryHasContent);
 
   // ── Render ──────────────────────────────────────────────────────────────────
   // Rendered via portal so that `position:fixed` escapes the Drawer's CSS
@@ -336,7 +462,7 @@ export default function MeetingNotesModal({ opp, onClose, onRefresh }: Props) {
             </div>
 
             <div className="flex items-center justify-between px-6 py-3 border-t border-brand-navy-30/40 bg-white">
-              <p className="text-[11px] text-brand-navy-30">Claude extracts tasks · MEDDPICC · SE comment · blockers · next step</p>
+              <p className="text-[11px] text-brand-navy-30">Claude extracts tasks · MEDDPICC · SE comment · blockers · Tech Discovery · next step</p>
               <div className="flex items-center gap-2">
                 <button onClick={onClose} className="px-3 py-1.5 rounded-lg border border-brand-navy-30 text-[12px] font-medium text-brand-navy-70 hover:text-brand-navy hover:border-brand-navy transition-colors">
                   Cancel
@@ -361,7 +487,7 @@ export default function MeetingNotesModal({ opp, onClose, onRefresh }: Props) {
           <div className="flex flex-col items-center justify-center gap-3 py-16">
             <div className="w-8 h-8 rounded-full border-[3px] border-brand-purple-30 border-t-brand-purple animate-spin" />
             <p className="text-[13px] font-medium text-brand-navy-70">Claude is reading your notes…</p>
-            <p className="text-[11px] text-brand-navy-30">Extracting tasks · MEDDPICC · SE comment · Tech blockers · Next step</p>
+            <p className="text-[11px] text-brand-navy-30">Extracting tasks · MEDDPICC · SE comment · Tech blockers · Tech Discovery · Next step</p>
           </div>
         )}
 
@@ -506,7 +632,150 @@ export default function MeetingNotesModal({ opp, onClose, onRefresh }: Props) {
               </div>
             )}
 
-            {/* ── 5. Suggested Next Step ── */}
+            {/* ── 5. Tech Discovery proposals ── */}
+            {techDiscoveryHasContent && result.tech_discovery && (() => {
+              const td = result.tech_discovery;
+              const stackEntries = Object.entries(td.tech_stack_additions ?? {})
+                .filter(([, items]) => (items ?? []).length > 0);
+              const esEntries = Object.entries(td.enterprise_systems_additions ?? {})
+                .filter(([, v]) => v && v.trim());
+              const dmgEntries = Object.entries(td.existing_dmg_additions ?? {})
+                .filter(([, v]) => v && v.trim());
+              const prose = td.prose_proposals ?? [];
+              const totalSignals = stackEntries.reduce((s, [, items]) => s + items.length, 0)
+                                 + esEntries.length + dmgEntries.length + prose.length;
+
+              return (
+                <div className="border-b border-brand-navy-30/35">
+                  <SectionHeader
+                    icon={<div className="w-6 h-6 rounded-lg bg-gradient-to-br from-brand-pink-30 to-brand-purple-30 flex items-center justify-center"><svg className="w-3.5 h-3.5 text-brand-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 7h16M4 12h16M4 17h10"/><circle cx="18" cy="17" r="2"/></svg></div>}
+                    label="Tech Discovery"
+                    count={totalSignals}
+                    action={techDiscoveryConfirmed
+                      ? <ConfirmedBadge label="Saved" />
+                      : <ActionBtn onClick={handleConfirmTechDiscovery} disabled={busySection === 'techdiscovery'}>
+                          {busySection === 'techdiscovery' ? 'Saving…' : 'Apply accepted items'}
+                        </ActionBtn>
+                    }
+                  />
+                  <div className="px-6 pb-3 space-y-3">
+
+                    {/* Tech stack chips */}
+                    {stackEntries.length > 0 && (
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-purple mb-1.5">Technology stack detected</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {stackEntries.flatMap(([cat, items]) =>
+                            items.map(it => {
+                              const key = `stack:${cat}:${it}`;
+                              const rejected = techRejects.has(key);
+                              return (
+                                <button
+                                  key={key}
+                                  type="button"
+                                  disabled={techDiscoveryConfirmed}
+                                  onClick={() => toggleTechReject(key)}
+                                  className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${
+                                    rejected
+                                      ? 'border-brand-navy-30 bg-white text-brand-navy-30 line-through'
+                                      : 'border-brand-purple/40 bg-brand-purple-30/40 text-brand-purple font-medium'
+                                  } disabled:opacity-60 disabled:cursor-not-allowed`}
+                                  title={rejected ? 'Click to accept' : 'Click to dismiss'}
+                                >
+                                  <span className="text-brand-navy-70 font-normal mr-1">{TECH_STACK_CATEGORY_LABELS[cat] ?? cat}</span>
+                                  {it}
+                                </button>
+                              );
+                            })
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Enterprise systems + DMG specify-value */}
+                    {(esEntries.length + dmgEntries.length) > 0 && (
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-purple mb-1.5">Enterprise systems &amp; existing tools</p>
+                        <div className="flex flex-col gap-1.5">
+                          {esEntries.map(([k, v]) => {
+                            const key = `es:${k}`;
+                            const rejected = techRejects.has(key);
+                            return (
+                              <div key={key} className={`grid grid-cols-[110px,1fr,auto] items-center gap-2 px-2.5 py-1.5 rounded-lg border ${rejected ? 'border-brand-navy-30 bg-white opacity-50' : 'border-brand-navy-30 bg-gray-50/80'}`}>
+                                <span className="text-[11px] text-brand-navy-70">{ENTERPRISE_SYSTEM_LABELS[k] ?? k}</span>
+                                <span className={`text-[12px] ${rejected ? 'line-through text-brand-navy-30' : 'text-brand-navy font-medium'}`}>{v}</span>
+                                <button type="button" disabled={techDiscoveryConfirmed} onClick={() => toggleTechReject(key)}
+                                  className="w-6 h-6 rounded-md flex items-center justify-center border border-brand-navy-30 hover:border-brand-navy text-brand-navy-70 disabled:opacity-50 disabled:cursor-not-allowed">
+                                  {rejected
+                                    ? <svg className="w-3 h-3 text-brand-navy-70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path d="M5 13l4 4L19 7"/></svg>
+                                    : <svg className="w-3 h-3 text-status-overdue" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path d="M6 18L18 6M6 6l12 12"/></svg>
+                                  }
+                                </button>
+                              </div>
+                            );
+                          })}
+                          {dmgEntries.map(([k, v]) => {
+                            const key = `dmg:${k}`;
+                            const rejected = techRejects.has(key);
+                            return (
+                              <div key={key} className={`grid grid-cols-[110px,1fr,auto] items-center gap-2 px-2.5 py-1.5 rounded-lg border ${rejected ? 'border-brand-navy-30 bg-white opacity-50' : 'border-brand-navy-30 bg-gray-50/80'}`}>
+                                <span className="text-[11px] text-brand-navy-70">{DMG_LABELS[k] ?? k}</span>
+                                <span className={`text-[12px] ${rejected ? 'line-through text-brand-navy-30' : 'text-brand-navy font-medium'}`}>{v}</span>
+                                <button type="button" disabled={techDiscoveryConfirmed} onClick={() => toggleTechReject(key)}
+                                  className="w-6 h-6 rounded-md flex items-center justify-center border border-brand-navy-30 hover:border-brand-navy text-brand-navy-70 disabled:opacity-50 disabled:cursor-not-allowed">
+                                  {rejected
+                                    ? <svg className="w-3 h-3 text-brand-navy-70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path d="M5 13l4 4L19 7"/></svg>
+                                    : <svg className="w-3 h-3 text-status-overdue" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path d="M6 18L18 6M6 6l12 12"/></svg>
+                                  }
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Prose proposals */}
+                    {prose.length > 0 && (
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-purple mb-1.5">Discovery notes proposed</p>
+                        <div className="flex flex-col gap-2">
+                          {prose.map(p => {
+                            const key = `prose:${p.field}`;
+                            const rejected = techRejects.has(key);
+                            return (
+                              <div key={key} className={`px-3 py-2.5 border rounded-xl ${rejected ? 'border-brand-navy-30/50 bg-white opacity-50' : 'border-brand-navy-30/60 bg-gray-50/80'}`}>
+                                <div className="flex items-center justify-between gap-2 mb-1">
+                                  <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-purple">
+                                    {PROSE_FIELD_LABELS[p.field] ?? p.field}
+                                    <span className={`ml-2 text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded ${p.mode === 'replace' ? 'bg-brand-purple-30/60 text-brand-purple' : 'bg-status-info/15 text-[#0088a8]'}`}>
+                                      {p.mode === 'replace' ? 'new' : 'append'}
+                                    </span>
+                                  </p>
+                                  <button type="button" disabled={techDiscoveryConfirmed} onClick={() => toggleTechReject(key)}
+                                    className="text-[10px] text-brand-navy-70 hover:text-brand-navy disabled:opacity-50">
+                                    {rejected ? 'Accept' : 'Dismiss'}
+                                  </button>
+                                </div>
+                                {p.mode === 'append' && p.current && (
+                                  <p className="text-[11px] text-brand-navy-30 italic leading-relaxed mb-1 border-l-2 border-brand-navy-30 pl-2">{p.current}</p>
+                                )}
+                                <p className={`text-[12px] leading-relaxed ${rejected ? 'line-through text-brand-navy-30' : 'text-brand-navy bg-status-success/10 border-l-2 border-status-success px-2 py-1 rounded-r-lg'}`}>
+                                  {p.suggested}
+                                </p>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* ── 6. Suggested Next Step ── */}
             {editedNextStep && (
               <div>
                 <SectionHeader

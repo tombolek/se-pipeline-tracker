@@ -2019,6 +2019,11 @@ router.post('/:id/process-notes', auth, write, async (req: Request, res: Respons
   );
   if (!opp) { res.status(404).json(err('Opportunity not found')); return; }
 
+  // 1b. Fetch current Tech Discovery so the prompt can avoid proposing stack
+  //     items that are already selected and can distinguish "append" from
+  //     "replace" on prose fields. Null if the opp has never been edited.
+  const existingTD = await getTechDiscovery(id);
+
   // 2. Auto-save raw notes immediately (with source URL)
   const savedNote = await queryOne<{ id: number }>(
     `INSERT INTO notes (opportunity_id, author_id, content, source_url)
@@ -2041,6 +2046,61 @@ router.post('/:id/process-notes', auth, write, async (req: Request, res: Respons
     ['need', 'Need'], ['timeline', 'Timeline'], ['agentic_qual', 'Agentic Qual'],
   ].map(([k, label]) => `  ${label}: ${(opp[k] as string) || '(not set)'}`).join('\n');
 
+  // Build Tech Discovery context — current stack selections + current prose
+  // values — so the AI knows what not to re-propose and whether each prose
+  // field is a "replace" (empty) or "append" (already has content) situation.
+  const techStackCtx = (() => {
+    const stack = (existingTD?.tech_stack ?? {}) as Record<string, unknown>;
+    const categoryLabels: Array<[string, string]> = [
+      ['data_infrastructure', 'Data Infrastructure'],
+      ['data_lake', 'Data Lake'],
+      ['data_lake_metastore', 'Data Lake Metastore'],
+      ['data_warehouse', 'Data Warehouse'],
+      ['database', 'Database'],
+      ['datalake_processing', 'Datalake Processing'],
+      ['etl', 'ETL/ELT/Ingestion'],
+      ['business_intelligence', 'Business Intelligence'],
+      ['nosql', 'NoSQL'],
+      ['streaming', 'Streaming'],
+    ];
+    const lines = categoryLabels.map(([k, label]) => {
+      const sel = Array.isArray(stack[k]) ? (stack[k] as string[]) : [];
+      return `  ${label}: ${sel.length ? sel.join(', ') : '(none)'}`;
+    });
+    return lines.join('\n');
+  })();
+
+  const enterpriseSystemsCtx = (() => {
+    const es = (existingTD?.enterprise_systems ?? {}) as Record<string, string>;
+    const keys: Array<[string, string]> = [
+      ['crm', 'CRM'], ['erp', 'ERP'], ['finance', 'Finance'], ['hr', 'HR'],
+      ['claims', 'Claims'], ['marketing', 'Marketing'], ['procurement', 'Procurement'],
+      ['inventory_management', 'Inventory Mgmt'], ['order_management', 'Order Mgmt'],
+    ];
+    return keys.map(([k, label]) => `  ${label}: ${es[k] || '(none)'}`).join('\n');
+  })();
+
+  const existingDmgCtx = (() => {
+    const dmg = (existingTD?.existing_dmg ?? {}) as Record<string, string>;
+    return ['catalog', 'dq', 'mdm', 'lineage'].map(k => `  ${k.toUpperCase()}: ${dmg[k] || '(none)'}`).join('\n');
+  })();
+
+  const proseFieldsCtx = [
+    ['current_incumbent_solutions', 'Current & Incumbent Solutions'],
+    ['tier1_integrations', 'Priority (Tier 1) Integrations'],
+    ['data_details_and_users', 'Data Details & Users'],
+    ['ingestion_sources', 'Ingestion Sources'],
+    ['planned_ingestion_sources', 'Planned Ingestion Sources'],
+    ['data_cleansing_remediation', 'Data Cleansing & Remediation'],
+    ['deployment_preference', 'Deployment Preference'],
+    ['technical_constraints', 'Technical Constraints'],
+    ['open_technical_requirements', 'Open Technical Requirements'],
+  ].map(([k, label]) => {
+    const val = existingTD ? ((existingTD as unknown as Record<string, string | null>)[k] ?? '') : '';
+    const preview = val ? val.slice(0, 160) + (val.length > 160 ? '…' : '') : '(empty)';
+    return `  ${label} [${k}]: ${preview}`;
+  }).join('\n');
+
   const prompt = `You are an SE (Sales Engineer) assistant. Analyse the call notes below and return a JSON object. Return ONLY valid JSON — no explanation, no markdown, no code fences.
 
 OPPORTUNITY CONTEXT
@@ -2052,17 +2112,33 @@ Current Technical Blockers: ${(opp.technical_blockers as string) || '(none)'}
 Current MEDDPICC / qualification fields:
 ${meddpiccCtx}
 
+CURRENT TECH DISCOVERY (do NOT re-propose items already selected)
+Technology Stack (already selected):
+${techStackCtx}
+Enterprise Systems (already specified):
+${enterpriseSystemsCtx}
+Existing Data Mgmt & Governance tools (already specified):
+${existingDmgCtx}
+Discovery Notes prose fields (current content):
+${proseFieldsCtx}
+
 RAW CALL NOTES
 ${raw_notes.trim()}
 
-INSTRUCTIONS — return a JSON object with exactly these five keys:
+INSTRUCTIONS — return a JSON object with exactly these six keys:
 
 {
   "tasks": [ { "title": "...", "due_days": <integer> } ],
   "meddpicc_updates": [ { "field": "<one of: metrics|economic_buyer|decision_criteria|decision_process|paper_process|implicate_pain|champion|engaged_competitors|budget|authority|need|timeline|agentic_qual>", "current": "<current value or empty string>", "suggested": "..." } ],
   "se_comment_draft": "...",
   "tech_blockers": [ "..." ],
-  "next_step": "..."
+  "next_step": "...",
+  "tech_discovery": {
+    "tech_stack_additions": { "<category_key>": ["<item>", ...] },
+    "enterprise_systems_additions": { "<key>": "<vendor/product>" },
+    "existing_dmg_additions": { "catalog": "...", "dq": "...", "mdm": "...", "lineage": "..." },
+    "prose_proposals": [ { "field": "<prose field key>", "current": "<current text>", "suggested": "<new text>", "mode": "replace" | "append" } ]
+  }
 }
 
 Rules:
@@ -2070,13 +2146,18 @@ Rules:
 - meddpicc_updates: only fields where the notes add NEW information not already in the current values. Omit fields that are already well-captured.
 - se_comment_draft: EXACTLY 1-2 sentences. Start with "${datePrefix} — ". Focus on: (a) the SE's immediate next action toward the technical win; (b) any notable risks from the technical evaluation, competitive situation, or evaluation process that could block progress (e.g. unresolved tech gap, competitor actively evaluating, blocked process). Do NOT mention buyer names, budget figures, or summarise MEDDPICC fields.
 - tech_blockers: ONLY technical/integration blockers — unvalidated connector or API support, missing product capabilities, infrastructure or security constraints, required technical information not yet obtained. Exclude business risks, timeline pressure, NDA/legal/commercial items. Return empty array if none.
-- next_step: single sentence — the most important next SE action to move toward the technical win.`;
+- next_step: single sentence — the most important next SE action to move toward the technical win.
+- tech_discovery.tech_stack_additions: use the exact category keys listed in "CURRENT TECH DISCOVERY" above (data_infrastructure, data_lake, data_lake_metastore, data_warehouse, database, datalake_processing, etl, business_intelligence, nosql, streaming). Only include items that are (a) clearly stated in the notes as part of the prospect's stack, and (b) NOT already in the current selection. Match the canonical names where possible (Snowflake, Databricks, dbt, Power BI, Azure, AWS, GCP, ADLS, S3, Oracle, SQL Server, Postgres, etc.). Use free-text for anything not in our standard list. Return empty objects for categories with no additions.
+- tech_discovery.enterprise_systems_additions: use the exact keys (crm, erp, finance, hr, claims, marketing, procurement, inventory_management, order_management). Only include keys where the notes reveal a vendor/product and the current value is empty. Skip keys already populated.
+- tech_discovery.existing_dmg_additions: use keys catalog, dq, mdm, lineage. Same rule — only if notes name a vendor and the current value is empty.
+- tech_discovery.prose_proposals: propose prose updates for ANY of the 9 prose fields listed above where the notes add substantive discovery content. Use mode="replace" when the current value is empty, mode="append" when the current value has content and the notes add new information on the same topic. When appending, "suggested" should be the COMPLETE merged text (not just the new part). Keep each suggestion tight — 1-3 sentences per field.
+- Be conservative. If the notes don't mention a topic, leave that section of tech_discovery empty. Prefer missing a detail over hallucinating one.`;
 
   console.log(`[process-notes] calling Claude API, prompt length=${prompt.length} chars`);
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   const response = await client.messages.create({
     model: 'claude-sonnet-4-6',
-    max_tokens: 2048,
+    max_tokens: 3072,
     messages: [{ role: 'user', content: prompt }],
   });
 
@@ -2094,6 +2175,18 @@ Rules:
     return;
   }
 
+  // Defensive normalization of tech_discovery — missing keys default to empty
+  // structures so the client doesn't need to null-guard everywhere.
+  const td = (parsed.tech_discovery && typeof parsed.tech_discovery === 'object')
+    ? parsed.tech_discovery as Record<string, unknown>
+    : {};
+  const tech_discovery = {
+    tech_stack_additions:         (td.tech_stack_additions && typeof td.tech_stack_additions === 'object')         ? td.tech_stack_additions         : {},
+    enterprise_systems_additions: (td.enterprise_systems_additions && typeof td.enterprise_systems_additions === 'object') ? td.enterprise_systems_additions : {},
+    existing_dmg_additions:       (td.existing_dmg_additions && typeof td.existing_dmg_additions === 'object')       ? td.existing_dmg_additions       : {},
+    prose_proposals:              Array.isArray(td.prose_proposals) ? td.prose_proposals : [],
+  };
+
   res.json(ok({
     saved_note_id: savedNote?.id ?? null,
     tasks:            Array.isArray(parsed.tasks)            ? parsed.tasks            : [],
@@ -2101,6 +2194,7 @@ Rules:
     se_comment_draft: typeof parsed.se_comment_draft === 'string' ? parsed.se_comment_draft : '',
     tech_blockers:    Array.isArray(parsed.tech_blockers)    ? parsed.tech_blockers    : [],
     next_step:        typeof parsed.next_step === 'string'   ? parsed.next_step        : '',
+    tech_discovery,
   }));
 
   } catch (e) {

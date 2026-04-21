@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Process Call Notes — Tech Discovery extraction</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --purple: #6A2CF5; --purple-70: #9C72F8; --purple-30: #DED0FD;
+      --pink: #F10090; --pink-30: #FCC6E6;
+      --navy: #1A0C42; --navy-70: #665D81; --navy-30: #CCC9D5;
+      --success: #00E5B6; --warning: #FFAB00; --overdue: #FF464C; --info: #00DDFF;
+      --bg: #F5F5F7;
+    }
+    body { font-family: 'Poppins', system-ui, sans-serif; background: var(--bg); color: var(--navy); padding: 20px; min-height: 100vh; }
+
+    .caption { max-width: 860px; margin: 0 auto 14px; font-size: 12px; color: var(--navy-70); line-height: 1.5; }
+    .caption strong { color: var(--navy); }
+
+    /* scenario switcher */
+    .scenario-bar { max-width: 860px; margin: 0 auto 16px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .scenario-bar > span { font-size: 11px; color: var(--navy-70); font-weight: 500; }
+    .scenario-btn { padding: 5px 12px; border-radius: 6px; border: 1px solid var(--navy-30); background: white; color: var(--navy-70); font-size: 11px; font-weight: 500; cursor: pointer; font-family: inherit; transition: all .15s; }
+    .scenario-btn:hover { border-color: var(--purple); color: var(--navy); }
+    .scenario-btn.active { background: var(--purple); border-color: var(--purple); color: white; }
+
+    /* modal shell */
+    .modal { max-width: 860px; margin: 0 auto; background: white; border-radius: 20px; box-shadow: 0 8px 32px rgba(26,12,66,.1); overflow: hidden; }
+    .modal-header { padding: 18px 24px 14px; border-bottom: 1px solid rgba(204,201,213,.5); display: flex; align-items: flex-start; justify-content: space-between; }
+    .modal-header h2 { font-size: 15px; font-weight: 600; }
+    .modal-header .sub { font-size: 12px; color: var(--navy-70); margin-top: 2px; }
+    .source-pill { font-size: 10px; color: var(--navy-70); padding: 3px 8px; border-radius: 14px; background: rgba(204,201,213,.3); display: inline-flex; align-items: center; gap: 4px; }
+
+    /* autosave banner */
+    .autosave-banner { margin: 14px 24px 0; padding: 10px 14px; background: rgba(0,229,182,.07); border: 1px solid rgba(0,229,182,.28); border-radius: 10px; display: flex; align-items: center; gap: 10px; }
+    .autosave-banner .label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: #00a880; }
+    .autosave-banner .text { font-size: 12px; color: var(--navy-70); margin-top: 2px; }
+
+    /* result section */
+    .result-section { border-bottom: 1px solid rgba(204,201,213,.4); }
+    .result-section:last-child { border-bottom: none; }
+    .rs-header { padding: 13px 24px; display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: pointer; }
+    .rs-header:hover { background: rgba(204,201,213,.08); }
+    .rs-title { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; }
+    .rs-icon { width: 26px; height: 26px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .icon-tasks    { background: rgba(0,229,182,.14); color: #009e75; }
+    .icon-meddpicc { background: rgba(106,44,245,.11); color: var(--purple); }
+    .icon-comment  { background: rgba(255,171,0,.13);  color: #b87800; }
+    .icon-blockers { background: rgba(255,70,76,.12);  color: #cc2d32; }
+    .icon-nextstep { background: rgba(0,221,255,.12);  color: #0088a8; }
+    .icon-tech     { background: linear-gradient(135deg, var(--pink-30) 0%, var(--purple-30) 100%); color: var(--purple); }
+    .rs-count { font-size: 10px; font-weight: 500; padding: 2px 7px; border-radius: 20px; background: rgba(204,201,213,.35); color: var(--navy-70); }
+    .rs-new { font-size: 9px; font-weight: 600; padding: 2px 6px; border-radius: 10px; background: var(--pink-30); color: var(--pink); text-transform: uppercase; letter-spacing: .06em; }
+    .rs-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+    .rs-body { padding: 0 24px 14px; }
+    .btn-sm { padding: 4px 10px; font-size: 11px; border-radius: 6px; font-weight: 500; cursor: pointer; font-family: inherit; border: 1px solid var(--navy-30); background: white; color: var(--navy-70); transition: all .15s; white-space: nowrap; }
+    .btn-sm:hover { border-color: var(--navy); color: var(--navy); }
+    .btn-primary-sm { background: var(--purple); color: white; border-color: var(--purple); }
+    .btn-primary-sm:hover { background: var(--purple-70); border-color: var(--purple-70); color: white; }
+    .confirmed-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: #009e75; font-weight: 500; }
+
+    .caret { width: 14px; height: 14px; color: var(--navy-30); transition: transform .15s; }
+    .rs-header[data-open="true"] .caret { transform: rotate(90deg); }
+
+    /* collapsed result sections */
+    .rs-body[data-open="false"] { display: none; }
+
+    /* tech discovery sub-sections */
+    .td-sub { margin-bottom: 14px; }
+    .td-sub:last-child { margin-bottom: 0; }
+    .td-sub-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--purple); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+    .td-sub-label .count { background: var(--purple-30); color: var(--purple); padding: 1px 6px; border-radius: 10px; font-size: 9px; }
+
+    /* chip detected */
+    .chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip-detected { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 14px; border: 1px dashed var(--purple); background: rgba(106,44,245,.06); color: var(--purple); font-size: 11px; font-weight: 500; cursor: pointer; transition: all .15s; }
+    .chip-detected:hover { background: rgba(106,44,245,.12); }
+    .chip-detected .cat { color: var(--navy-70); font-weight: 400; font-size: 10px; }
+    .chip-detected .tick { display: none; }
+    .chip-detected.accepted { border-style: solid; border-color: var(--success); background: rgba(0,229,182,.08); color: #009e75; }
+    .chip-detected.accepted .cat { color: #009e75; }
+    .chip-detected.accepted .tick { display: inline; }
+    .chip-detected.accepted .add { display: none; }
+    .chip-detected.rejected { opacity: .3; text-decoration: line-through; }
+
+    /* specify-value diff */
+    .specify-list { display: flex; flex-direction: column; gap: 7px; }
+    .specify-row { display: grid; grid-template-columns: 120px 1fr auto; align-items: center; gap: 10px; padding: 8px 12px; border: 1px solid var(--navy-30); border-radius: 8px; background: #fafafa; }
+    .specify-row.accepted { background: rgba(0,229,182,.05); border-color: rgba(0,229,182,.35); }
+    .specify-label { font-size: 11px; color: var(--navy-70); font-weight: 500; }
+    .specify-value { font-size: 12px; color: var(--navy); }
+    .specify-value .was { color: var(--navy-30); text-decoration: line-through; font-size: 11px; font-style: italic; }
+    .specify-value .arrow { color: var(--navy-30); margin: 0 4px; }
+    .specify-value .new { font-weight: 500; }
+    .specify-actions { display: flex; gap: 4px; }
+    .mini-btn { width: 22px; height: 22px; border-radius: 5px; border: 1px solid var(--navy-30); background: white; cursor: pointer; font-family: inherit; display: flex; align-items: center; justify-content: center; transition: all .12s; }
+    .mini-btn:hover { border-color: var(--navy); }
+    .mini-btn.accept { color: #009e75; }
+    .mini-btn.accept:hover { background: rgba(0,229,182,.1); border-color: var(--success); }
+    .mini-btn.reject { color: var(--overdue); }
+    .mini-btn.reject:hover { background: rgba(255,70,76,.08); border-color: var(--overdue); }
+    .specify-row.accepted .mini-btn.accept { background: var(--success); color: white; border-color: var(--success); }
+
+    /* prose diff block */
+    .prose-list { display: flex; flex-direction: column; gap: 9px; }
+    .prose-item { padding: 10px 12px; border: 1px solid var(--navy-30); border-radius: 10px; background: #fafafa; }
+    .prose-item.accepted { background: rgba(0,229,182,.05); border-color: rgba(0,229,182,.35); }
+    .prose-field { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--purple); margin-bottom: 5px; display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+    .prose-field .status { font-size: 9px; background: rgba(204,201,213,.4); color: var(--navy-70); padding: 1px 6px; border-radius: 10px; text-transform: uppercase; font-weight: 500; letter-spacing: .05em; }
+    .prose-field .status.new-section { background: var(--purple-30); color: var(--purple); }
+    .prose-field .status.appended { background: rgba(0,221,255,.12); color: #0088a8; }
+    .prose-old { font-size: 11px; color: var(--navy-30); line-height: 1.45; font-style: italic; text-decoration: line-through; padding-left: 10px; border-left: 2px solid var(--navy-30); margin-bottom: 4px; }
+    .prose-new { font-size: 12px; color: var(--navy); line-height: 1.5; background: rgba(0,229,182,.1); border-left: 2px solid var(--success); padding: 6px 10px; border-radius: 0 6px 6px 0; }
+    .prose-item .row-actions { margin-top: 7px; display: flex; justify-content: flex-end; gap: 5px; }
+
+    /* summary footer */
+    .results-footer { padding: 14px 24px 18px; border-top: 1px solid rgba(204,201,213,.4); display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #fafafa; }
+    .results-footer-note { font-size: 11px; color: var(--navy-70); }
+    .btn-primary { background: var(--purple); color: white; padding: 8px 16px; font-size: 12px; font-weight: 500; border: none; border-radius: 8px; cursor: pointer; font-family: inherit; }
+    .btn-primary:hover { background: var(--purple-70); }
+
+    /* source notes box */
+    .source-notes { max-width: 860px; margin: 0 auto 16px; background: white; border: 1px solid var(--navy-30); border-radius: 14px; padding: 14px 18px; font-size: 12px; color: var(--navy-70); line-height: 1.55; }
+    .source-notes .header { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--navy); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+    .source-notes pre { font-family: inherit; white-space: pre-wrap; font-size: 11.5px; color: var(--navy-70); line-height: 1.55; }
+
+    /* before/after hover */
+    .view-after .before-only { display: none; }
+    .view-before .after-only { display: none; }
+    .view-before .rs-new { display: none; }
+  </style>
+</head>
+<body>
+
+<div class="caption">
+  <strong>Process Call Notes — expanded to extract Tech Discovery signals.</strong>
+  Today the AI extracts tasks, MEDDPICC updates, an SE-comment draft, tech blockers, and next step. This preview adds a sixth section: <strong>Tech Discovery</strong>, which writes directly into the structured fields on the new tab (tech stack chips, enterprise-system names, existing-DMG tools, and prose sections like Current Incumbent or Technical Constraints). Each proposal is independently reviewable; accepting a chip auto-toggles it in the Tech Discovery tab, accepting a prose update appends to (or replaces) the existing text.
+</div>
+
+<div class="scenario-bar">
+  <span>Compare:</span>
+  <button class="scenario-btn" onclick="setView('before')">Before — current 5 sections</button>
+  <button class="scenario-btn active" onclick="setView('after')">After — with Tech Discovery</button>
+</div>
+
+<!-- Source notes for context -->
+<div class="source-notes">
+  <div class="header">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+    Source notes (pasted into the modal)
+  </div>
+<pre>Discovery call — Anna Fischer (Data Architect) + Thomas Bayer (CTO), 45 min
+
+Current stack:
+  - Collibra for data governance (not DQ) — 3 failed DQ projects in 2 years
+  - Informatica PowerCenter for ETL (legacy, being phased out)
+  - Azure ADLS Gen2 data lake
+  - Databricks Lakehouse for processing
+  - Snowflake warehouse being piloted for new use cases
+  - Power BI for reporting
+  - SAP ERP + Salesforce CRM
+
+Pain: execs losing trust in data. ~€2M wasted.
+Target: live before Q3 board review in Sept. Hard deadline.
+
+Tech concerns: need to confirm our connector support for ADLS Gen2 and
+Databricks Unity Catalog. They won't deploy outside Azure (data residency
+requirement — they've been hit by GDPR audits).
+
+Competing with Informatica's new IDMC suite.
+
+Action items:
+  - Send ONE DQ architecture doc this week
+  - Schedule deep-dive with data engineering team (3 people)
+  - Get NDA signed before sharing the roadmap</pre>
+</div>
+
+<!-- MODAL -->
+<div class="modal view-after" id="modal">
+
+  <div class="modal-header">
+    <div>
+      <h2>Process Call Notes · results ready</h2>
+      <div class="sub">[ES] Banco Bilbao Vizcaya Argentaria (BBVA) — DQG</div>
+    </div>
+    <span class="source-pill">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+      notion.so/…discovery-apr21
+    </span>
+  </div>
+
+  <div class="autosave-banner">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00a880" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg>
+    <div>
+      <div class="label">Note saved to deal</div>
+      <div class="text">Raw notes attached with source link. Review and accept the extractions below.</div>
+    </div>
+  </div>
+
+  <!-- 1. Tasks (existing) -->
+  <div class="result-section">
+    <div class="rs-header" data-open="false" onclick="toggleSection(this)">
+      <div class="rs-title"><div class="rs-icon icon-tasks"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m0 9l-2 2-1-1"/></svg></div>Tasks<span class="rs-count">3</span></div>
+      <svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
+    </div>
+    <div class="rs-body" data-open="false">(collapsed — 3 tasks proposed)</div>
+  </div>
+
+  <!-- 2. MEDDPICC (existing) -->
+  <div class="result-section">
+    <div class="rs-header" data-open="false" onclick="toggleSection(this)">
+      <div class="rs-title"><div class="rs-icon icon-meddpicc"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg></div>MEDDPICC updates<span class="rs-count">2</span></div>
+      <svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
+    </div>
+    <div class="rs-body" data-open="false">(collapsed — Economic Buyer + Timeline updates proposed)</div>
+  </div>
+
+  <!-- 3. SE Comment (existing) -->
+  <div class="result-section">
+    <div class="rs-header" data-open="false" onclick="toggleSection(this)">
+      <div class="rs-title"><div class="rs-icon icon-comment"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg></div>SE comment draft</div>
+      <svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
+    </div>
+    <div class="rs-body" data-open="false">(collapsed — draft ready, 2 sentences)</div>
+  </div>
+
+  <!-- 4. Tech Blockers (existing) -->
+  <div class="result-section">
+    <div class="rs-header" data-open="false" onclick="toggleSection(this)">
+      <div class="rs-title"><div class="rs-icon icon-blockers"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 9v2m0 4h.01M4.062 21h15.876c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L2.33 18c-.77 1.333.192 3 1.732 3z"/></svg></div>Tech blockers<span class="rs-count">2</span></div>
+      <svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
+    </div>
+    <div class="rs-body" data-open="false">(collapsed — ADLS Gen2 connector + Databricks Unity Catalog support)</div>
+  </div>
+
+  <!-- 5. NEW: Tech Discovery -->
+  <div class="result-section after-only">
+    <div class="rs-header" data-open="true">
+      <div class="rs-title">
+        <div class="rs-icon icon-tech">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M4 12h16M4 17h10"/><circle cx="18" cy="17" r="2"/></svg>
+        </div>
+        Tech Discovery <span class="rs-count">14 signals</span>
+        <span class="rs-new">new</span>
+      </div>
+      <div class="rs-actions">
+        <button class="btn-sm btn-primary-sm" onclick="acceptAllTech(event)">Accept all</button>
+      </div>
+    </div>
+    <div class="rs-body" data-open="true">
+
+      <!-- Sub 1: Technology Stack -->
+      <div class="td-sub">
+        <div class="td-sub-label">Technology Stack detected <span class="count">6</span></div>
+        <div class="chip-row" id="stackChips">
+          <button class="chip-detected" onclick="toggleChip(this)">
+            <span class="cat">Data Infrastructure ·</span> Azure
+            <span class="add">+</span><span class="tick">✓</span>
+          </button>
+          <button class="chip-detected" onclick="toggleChip(this)">
+            <span class="cat">Data Lake ·</span> ADLS
+            <span class="add">+</span><span class="tick">✓</span>
+          </button>
+          <button class="chip-detected" onclick="toggleChip(this)">
+            <span class="cat">Data Warehouse ·</span> Snowflake
+            <span class="add">+</span><span class="tick">✓</span>
+          </button>
+          <button class="chip-detected" onclick="toggleChip(this)">
+            <span class="cat">Data Warehouse ·</span> Databricks
+            <span class="add">+</span><span class="tick">✓</span>
+          </button>
+          <button class="chip-detected" onclick="toggleChip(this)">
+            <span class="cat">ETL/ELT ·</span> PowerCenter
+            <span class="add">+</span><span class="tick">✓</span>
+          </button>
+          <button class="chip-detected" onclick="toggleChip(this)">
+            <span class="cat">BI ·</span> Power BI
+            <span class="add">+</span><span class="tick">✓</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Sub 2: Enterprise Systems + Existing DMG -->
+      <div class="td-sub">
+        <div class="td-sub-label">Enterprise systems &amp; existing tools <span class="count">4</span></div>
+        <div class="specify-list">
+          <div class="specify-row" onclick="toggleSpecify(this)">
+            <span class="specify-label">CRM</span>
+            <span class="specify-value"><span class="new">Salesforce</span></span>
+            <div class="specify-actions">
+              <button class="mini-btn accept" onclick="event.stopPropagation(); toggleSpecifyRow(this)">✓</button>
+              <button class="mini-btn reject" onclick="event.stopPropagation(); rejectSpecifyRow(this)">✕</button>
+            </div>
+          </div>
+          <div class="specify-row" onclick="toggleSpecify(this)">
+            <span class="specify-label">ERP</span>
+            <span class="specify-value"><span class="new">SAP</span></span>
+            <div class="specify-actions">
+              <button class="mini-btn accept" onclick="event.stopPropagation(); toggleSpecifyRow(this)">✓</button>
+              <button class="mini-btn reject" onclick="event.stopPropagation(); rejectSpecifyRow(this)">✕</button>
+            </div>
+          </div>
+          <div class="specify-row" onclick="toggleSpecify(this)">
+            <span class="specify-label">Catalog</span>
+            <span class="specify-value"><span class="new">Collibra</span></span>
+            <div class="specify-actions">
+              <button class="mini-btn accept" onclick="event.stopPropagation(); toggleSpecifyRow(this)">✓</button>
+              <button class="mini-btn reject" onclick="event.stopPropagation(); rejectSpecifyRow(this)">✕</button>
+            </div>
+          </div>
+          <div class="specify-row" onclick="toggleSpecify(this)">
+            <span class="specify-label">DQ</span>
+            <span class="specify-value"><span class="was">Informatica (legacy)</span><span class="arrow">→</span><span class="new">Informatica PowerCenter (being phased out)</span></span>
+            <div class="specify-actions">
+              <button class="mini-btn accept" onclick="event.stopPropagation(); toggleSpecifyRow(this)">✓</button>
+              <button class="mini-btn reject" onclick="event.stopPropagation(); rejectSpecifyRow(this)">✕</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sub 3: Prose updates -->
+      <div class="td-sub">
+        <div class="td-sub-label">Discovery notes proposed <span class="count">4</span></div>
+        <div class="prose-list">
+          <!-- Current Incumbent -->
+          <div class="prose-item">
+            <div class="prose-field">Current &amp; Incumbent Solutions <span class="status new-section">new</span></div>
+            <div class="prose-new">Collibra for governance only (no DQ layer). Informatica PowerCenter for ETL (legacy, being phased out). Three failed internal DQ projects over the last two years; execs have lost trust in the data. Approx. €2M spend to date.</div>
+            <div class="row-actions">
+              <button class="btn-sm" onclick="rejectProse(this)">Dismiss</button>
+              <button class="btn-sm btn-primary-sm" onclick="acceptProse(this)">Accept</button>
+            </div>
+          </div>
+          <!-- Deployment Preference (append) -->
+          <div class="prose-item">
+            <div class="prose-field">Deployment Preference <span class="status appended">appended</span></div>
+            <div class="prose-old">On-premise or SaaS flexible per Thomas.</div>
+            <div class="prose-new">On-premise or SaaS flexible per Thomas. <strong>Azure-only</strong> — data residency requirement after GDPR audit findings; won't deploy outside Azure.</div>
+            <div class="row-actions">
+              <button class="btn-sm" onclick="rejectProse(this)">Dismiss</button>
+              <button class="btn-sm btn-primary-sm" onclick="acceptProse(this)">Accept</button>
+            </div>
+          </div>
+          <!-- Technical Constraints (append) -->
+          <div class="prose-item">
+            <div class="prose-field">Technical Constraints <span class="status appended">appended</span></div>
+            <div class="prose-old">SOC 2 compliance required.</div>
+            <div class="prose-new">SOC 2 compliance required. Data residency in Azure (GDPR audit fallout). Must confirm connector support for <strong>ADLS Gen2</strong> and <strong>Databricks Unity Catalog</strong>.</div>
+            <div class="row-actions">
+              <button class="btn-sm" onclick="rejectProse(this)">Dismiss</button>
+              <button class="btn-sm btn-primary-sm" onclick="acceptProse(this)">Accept</button>
+            </div>
+          </div>
+          <!-- Open Technical Requirements -->
+          <div class="prose-item">
+            <div class="prose-field">Open Technical Requirements <span class="status new-section">new</span></div>
+            <div class="prose-new">Validate ADLS Gen2 connector throughput for their volumes. Confirm Databricks Unity Catalog lineage ingestion. Competing evaluation against Informatica IDMC — need parity on data-quality-in-Databricks story.</div>
+            <div class="row-actions">
+              <button class="btn-sm" onclick="rejectProse(this)">Dismiss</button>
+              <button class="btn-sm btn-primary-sm" onclick="acceptProse(this)">Accept</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 6. Next Step (existing) -->
+  <div class="result-section">
+    <div class="rs-header" data-open="false" onclick="toggleSection(this)">
+      <div class="rs-title"><div class="rs-icon icon-nextstep"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg></div>Next step</div>
+      <svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
+    </div>
+    <div class="rs-body" data-open="false">(collapsed — "Send ONE DQ architecture doc and get NDA signed this week")</div>
+  </div>
+
+  <div class="results-footer">
+    <div class="results-footer-note after-only"><strong>14 Tech Discovery signals</strong> land directly in the Tech Discovery tab — stack chips toggle on, specify-value fields fill in, prose fields append or create.</div>
+    <div class="results-footer-note before-only">Tasks · MEDDPICC · SE Comment · Tech Blockers · Next Step queued up.</div>
+    <button class="btn-primary">Confirm all remaining</button>
+  </div>
+
+</div>
+
+<div class="caption" style="margin-top: 20px;">
+  <strong>How it writes back:</strong> stack chips call <code style="background:#f0f0f3; padding:1px 5px; border-radius:4px; font-size:11px;">PATCH /opportunities/:id/tech-discovery</code> with the new <code style="background:#f0f0f3; padding:1px 5px; border-radius:4px; font-size:11px;">tech_stack</code> JSONB; specify-value rows update <code style="background:#f0f0f3; padding:1px 5px; border-radius:4px; font-size:11px;">enterprise_systems</code> / <code style="background:#f0f0f3; padding:1px 5px; border-radius:4px; font-size:11px;">existing_dmg</code>; prose proposals either replace (for empty fields) or append with a separator. Each "Accept" is independent — no all-or-nothing — mirroring the existing Tasks / MEDDPICC / Blockers review flow.
+</div>
+
+<script>
+  function setView(which) {
+    const modal = document.getElementById('modal');
+    modal.classList.remove('view-before', 'view-after');
+    modal.classList.add('view-' + which);
+    document.querySelectorAll('.scenario-btn').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+  }
+  function toggleSection(header) {
+    const open = header.dataset.open === 'true';
+    header.dataset.open = (!open).toString();
+    const body = header.nextElementSibling;
+    body.dataset.open = (!open).toString();
+  }
+  function toggleChip(el) {
+    el.classList.toggle('accepted');
+  }
+  function toggleSpecifyRow(btn) {
+    const row = btn.closest('.specify-row');
+    row.classList.toggle('accepted');
+  }
+  function rejectSpecifyRow(btn) {
+    const row = btn.closest('.specify-row');
+    row.style.opacity = .3;
+    row.style.textDecoration = 'line-through';
+  }
+  function acceptProse(btn) {
+    btn.closest('.prose-item').classList.add('accepted');
+  }
+  function rejectProse(btn) {
+    const item = btn.closest('.prose-item');
+    item.style.opacity = .3;
+    item.style.textDecoration = 'line-through';
+  }
+  function acceptAllTech(e) {
+    e.stopPropagation();
+    document.querySelectorAll('#stackChips .chip-detected').forEach(c => c.classList.add('accepted'));
+    document.querySelectorAll('.specify-row').forEach(r => r.classList.add('accepted'));
+    document.querySelectorAll('.prose-item').forEach(p => p.classList.add('accepted'));
+  }
+</script>
+
+</body>
+</html>

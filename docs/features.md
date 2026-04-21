@@ -55,7 +55,7 @@ Ranks similar deals for the open opportunity from three tiers: (a) closed-won/lo
 
 **Account History panel:** Click account name in header to open a slide-out panel showing all opportunities and activity for that account (AccountTimelinePanel).
 
-**Meeting Notes Processor:** Modal to paste or upload meeting notes; AI extracts action items, key decisions, and follow-ups, then creates tasks and notes on the opportunity.
+**Meeting Notes Processor:** Modal to paste or upload meeting notes; AI extracts action items, key decisions, and follow-ups, then creates tasks and notes on the opportunity. Six review-and-accept sections: Tasks, MEDDPICC updates, SE comment draft, Technical Blockers, **Tech Discovery** (stack chips detected, enterprise-system/existing-DMG specify-value suggestions, and prose proposals for the 9 discovery-notes fields with `replace` vs `append` mode indicators), and Next Step. Tech Discovery proposals write through to the structured `opportunity_tech_discovery` row via PATCH — additions are merged with whatever's already there (never overwritten for specify-value fields; prose `append` proposals return the full merged text so the client just writes it as-is). Each item can be dismissed individually before confirming. Prompt feeds the AI the current Tech Discovery state so it doesn't re-propose items already on the deal. Issue #111 follow-up.
 
 ## Home / Daily Digest (`/`)
 

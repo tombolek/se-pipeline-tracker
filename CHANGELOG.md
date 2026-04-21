@@ -7,6 +7,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## 2026-04-17
 
+### Added
+- **Process Call Notes: Tech Discovery extraction** — the Meeting Notes Processor now extracts a sixth section from pasted call notes: **Tech Discovery signals**. The AI is fed the current Tech Discovery state for the opp and proposes only *new* additions — technology-stack items (Snowflake / dbt / ADLS / etc. mapped to the 10 standard category keys), enterprise-system specify-values (CRM = Salesforce, ERP = SAP), existing-DMG tool specify-values (Catalog / DQ / MDM / Lineage), and prose updates for the 9 Discovery Notes fields (each tagged `replace` for empty fields or `append` for fields that already have content — appended proposals return the complete merged text so the client writes it as-is). SE reviews each item inline: click to dismiss any chip, specify-row, or prose proposal before confirming. Accepted items flow through one `PATCH /opportunities/:id/tech-discovery` call that merges with the current row (specify-value fields never clobber an existing value). The "Confirm all" button now also covers Tech Discovery. Same UX grammar as Tasks / MEDDPICC / Blockers / SE comment / Next Step. Issue #111 follow-up, precursor to #139 (RFP upload).
+
 ### Changed
 - **Tech Discovery — Data Initiatives section removed** — dropped the toggle-chip checklist of data initiatives (Data Mesh / Data Fabric / Cloud Migration / privacy-laws flags etc.). Kept overlapping too much with what MEDDPICC and SF fields already capture, and the SE workflow on it was thin. Tech Discovery now stays focused on the technical stack + prose discovery notes. Migration 045 drops the column and its GIN index; Similar Deals scoring loses the 5-point initiatives-overlap signal but tech-stack overlap (10 pts) stays.
 
