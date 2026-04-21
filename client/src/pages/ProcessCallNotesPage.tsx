@@ -827,11 +827,13 @@ export default function ProcessCallNotesPage() {
                   <div key={key} className={`grid grid-cols-[110px,1fr,auto] items-center gap-2 px-3 py-2 rounded-lg border ${rejected ? 'border-brand-navy-30 bg-white opacity-50' : 'border-brand-navy-30 bg-gray-50/80'}`}>
                     <span className="text-[11px] text-brand-navy-70">{label}</span>
                     <span className={`text-[12px] ${rejected ? 'line-through text-brand-navy-30' : 'text-brand-navy font-medium'}`}>{v}</span>
-                    <button type="button" disabled={techDiscoveryConfirmed} onClick={() => toggleTechReject(key)} className="w-6 h-6 rounded-md flex items-center justify-center border border-brand-navy-30 hover:border-brand-navy text-brand-navy-70 disabled:opacity-50 disabled:cursor-not-allowed">
-                      {rejected
-                        ? <svg className="w-3 h-3 text-brand-navy-70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path d="M5 13l4 4L19 7"/></svg>
-                        : <svg className="w-3 h-3 text-status-overdue" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path d="M6 18L18 6M6 6l12 12"/></svg>
-                      }
+                    <button
+                      type="button"
+                      disabled={techDiscoveryConfirmed}
+                      onClick={() => toggleTechReject(key)}
+                      className="text-[10px] text-brand-navy-70 hover:text-brand-navy disabled:opacity-50"
+                    >
+                      {rejected ? 'Accept' : 'Dismiss'}
                     </button>
                   </div>
                 );
