@@ -7,6 +7,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## 2026-04-17
 
+### Changed
+- **Home · PoC Alerts rule tightened** — the card now covers "ending this or next week" **plus** any overdue PoC still in an active status (`Identified` / `In Deployment` / `In Progress` / `Wrapping Up`). Previously overdue PoCs dropped off the card after 3 days, which hid e.g. a "Wrapping Up" PoC that was 11 days past its end date — the SE only saw it in Needs Attention. Also excludes closed PoC statuses from the card so finished PoCs don't linger. The existing `Nd overdue` red label on each row is unchanged.
+
 ### Added
 - **Top header: data freshness indicator** — clock icon + "Nh ago" to the left of the connection indicator, showing when the SF data was last imported. Colour-coded for a ~2×/day import cadence: green under 6h, amber 6–12h, red over 12h. Hover tooltip gives the exact timestamp and added/updated counts, plus a legend reminding you what the colours mean. Managers click through to Import History; SEs hover only. Backed by a new `GET /opportunities/import/latest` endpoint (auth-only, no manager gate) that returns the top row of `imports WHERE status='success'`. Auto-refreshes on tab focus and ticks every 60s so the relative time stays current.
 - **Top header: connection indicator tooltip** — hovering the Live / Syncing / Cached / Offline / Pending-sync chip now shows a short explanation of what that state actually means for the session — where reads come from, whether writes queue, and what happens on reconnect. The existing click-to-open details panel still fires on click for the non-live states.

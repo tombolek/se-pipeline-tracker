@@ -34,7 +34,10 @@ router.get('/digest', auth, async (req: Request, res: Response): Promise<void> =
       [uid]
     ),
 
-    // 2. PoC alerts: my deals with PoC ending within 7 days
+    // 2. PoC alerts: my deals with PoCs ending within the next two weeks, OR
+    //    overdue PoCs in an active status (Identified / In Deployment / In Progress
+    //    / Wrapping Up). Closed PoC statuses drop out so the card doesn't carry
+    //    long-finished PoCs forever.
     query(
       `SELECT o.id, o.name, o.account_name, o.poc_status,
               o.poc_end_date,
@@ -42,10 +45,9 @@ router.get('/digest', auth, async (req: Request, res: Response): Promise<void> =
        FROM opportunities o
        WHERE o.se_owner_id = $1
          AND o.is_active = true AND o.is_closed_lost = false
-         AND o.poc_status IS NOT NULL AND o.poc_status != ''
+         AND o.poc_status = ANY(ARRAY['Identified', 'In Deployment', 'In Progress', 'Wrapping Up'])
          AND o.poc_end_date IS NOT NULL
-         AND o.poc_end_date::date <= CURRENT_DATE + 7
-         AND o.poc_end_date::date >= CURRENT_DATE - 3
+         AND o.poc_end_date::date <= CURRENT_DATE + 14
        ORDER BY o.poc_end_date ASC`,
       [uid]
     ),
