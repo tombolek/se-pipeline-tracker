@@ -1046,7 +1046,7 @@ export default function ProcessCallNotesPage() {
           <button onClick={() => setWizardStep(Math.max(0, wizardStepClamped - 1))} disabled={wizardStepClamped === 0} className="px-3 py-1.5 rounded-lg border border-brand-navy-30 text-[12px] font-medium text-brand-navy-70 hover:text-brand-navy hover:border-brand-navy disabled:opacity-40 disabled:cursor-not-allowed transition-colors">← Previous</button>
           {wizardStepClamped < sectionsWithContent.length - 1
             ? <button onClick={() => setWizardStep(wizardStepClamped + 1)} className="px-4 py-1.5 rounded-lg bg-brand-purple text-white text-[12px] font-medium hover:bg-brand-purple-70 transition-colors">Next →</button>
-            : <button onClick={confirmAllAndFinish} disabled={busy === 'all'} className="px-4 py-1.5 rounded-lg bg-brand-purple text-white text-[12px] font-medium hover:bg-brand-purple-70 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">{busy === 'all' ? 'Applying…' : 'Apply all &amp; finish'}</button>
+            : <button onClick={confirmAllAndFinish} disabled={busy === 'all'} className="px-4 py-1.5 rounded-lg bg-brand-purple text-white text-[12px] font-medium hover:bg-brand-purple-70 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">{busy === 'all' ? 'Applying…' : 'Apply all & finish'}</button>
           }
         </div>
       </div>
