@@ -208,6 +208,10 @@ export default function ProcessCallNotesPage() {
 
   // Tabs / Wizard indices
   const [activeTab, setActiveTab] = useState<Section>('tasks');
+  // Tabs mode is forced-linear: we track the furthest section reached so the
+  // user can backtrack to a previous section but can't jump ahead. Advances
+  // only via the "Next section →" footer button.
+  const [maxTabIndex, setMaxTabIndex] = useState(0);
   const [wizardStep, setWizardStep] = useState(0);
 
   // Summary of what was applied (for the success screen)
@@ -255,6 +259,7 @@ export default function ProcessCallNotesPage() {
     // Reset tab / wizard to the first selected section
     const firstSel = result.sections_requested.find(s => ALL_SECTIONS.includes(s));
     if (firstSel) setActiveTab(firstSel);
+    setMaxTabIndex(0);
     setWizardStep(0);
   }, [result]);
 
@@ -928,20 +933,37 @@ export default function ProcessCallNotesPage() {
     next_step: nextStepConfirmed,
   };
 
-  // Tabs view
+  // Tabs view — forced-linear progression. User can click any tab at or
+  // before the furthest reached (`maxTabIndex`) for backward review, but must
+  // advance through sections one at a time via the "Next section →" button.
+  const currentTabIndex = Math.max(0, sectionsWithContent.findIndex(s => s === activeTab));
+  const isLastTab = currentTabIndex === sectionsWithContent.length - 1;
   const tabsView = (
     <Card>
       <div className="flex items-center gap-0.5 px-3 pt-3 border-b border-brand-navy-30/50 overflow-x-auto flex-nowrap">
-        {sectionsWithContent.map(s => {
+        {sectionsWithContent.map((s, i) => {
           const active = activeTab === s;
+          const unlocked = i <= maxTabIndex;
           return (
             <button
               key={s}
-              onClick={() => setActiveTab(s)}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-t-lg text-[12px] font-medium whitespace-nowrap transition-colors ${active ? 'bg-white text-brand-purple border border-brand-navy-30/50 border-b-0 -mb-px' : 'text-brand-navy-70 hover:text-brand-navy hover:bg-brand-purple-30/10'}`}
+              onClick={() => { if (unlocked) setActiveTab(s); }}
+              disabled={!unlocked}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-t-lg text-[12px] font-medium whitespace-nowrap transition-colors ${
+                active
+                  ? 'bg-white text-brand-purple border border-brand-navy-30/50 border-b-0 -mb-px'
+                  : unlocked
+                    ? 'text-brand-navy-70 hover:text-brand-navy hover:bg-brand-purple-30/10'
+                    : 'text-brand-navy-30 cursor-not-allowed'
+              }`}
+              title={unlocked ? undefined : 'Complete the current section first'}
             >
               {SECTION_LABELS[s]}
-              {sectionConfirmed[s] && <svg className="w-3 h-3 text-status-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>}
+              {sectionConfirmed[s]
+                ? <svg className="w-3 h-3 text-status-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
+                : !unlocked
+                  ? <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                  : null}
             </button>
           );
         })}
@@ -952,10 +974,39 @@ export default function ProcessCallNotesPage() {
           : sectionRenderers[activeTab]()}
       </div>
       <div className="px-5 py-3 bg-[#F5F5F7] border-t border-brand-navy-30/40 flex items-center justify-between">
-        <p className="text-[11px] text-brand-navy-70">{sectionsWithContent.length} section{sectionsWithContent.length === 1 ? '' : 's'} with content · {sectionsWithContent.filter(s => sectionConfirmed[s]).length} confirmed</p>
+        <p className="text-[11px] text-brand-navy-70">
+          Section {currentTabIndex + 1} of {sectionsWithContent.length}
+          {' · '}
+          {sectionsWithContent.filter(s => sectionConfirmed[s]).length} confirmed
+        </p>
         <div className="flex items-center gap-2">
           <button onClick={backToOpp} className="px-3 py-1.5 rounded-lg border border-brand-navy-30 text-[12px] font-medium text-brand-navy-70 hover:text-brand-navy hover:border-brand-navy transition-colors">Leave</button>
-          <button onClick={confirmAllAndFinish} disabled={busy === 'all'} className="px-4 py-1.5 rounded-lg bg-brand-purple text-white text-[12px] font-medium hover:bg-brand-purple-70 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">{busy === 'all' ? 'Applying…' : 'Apply all accepted'}</button>
+          {!isLastTab
+            ? (
+              <button
+                onClick={() => {
+                  const nextIdx = currentTabIndex + 1;
+                  const nextSection = sectionsWithContent[nextIdx];
+                  if (!nextSection) return;
+                  setActiveTab(nextSection);
+                  setMaxTabIndex(prev => Math.max(prev, nextIdx));
+                }}
+                className="px-4 py-1.5 rounded-lg bg-brand-purple text-white text-[12px] font-medium hover:bg-brand-purple-70 transition-colors inline-flex items-center gap-1.5"
+              >
+                Next section
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+              </button>
+            )
+            : (
+              <button
+                onClick={confirmAllAndFinish}
+                disabled={busy === 'all'}
+                className="px-4 py-1.5 rounded-lg bg-brand-purple text-white text-[12px] font-medium hover:bg-brand-purple-70 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                {busy === 'all' ? 'Applying…' : 'Apply all & finish'}
+              </button>
+            )
+          }
         </div>
       </div>
     </Card>
