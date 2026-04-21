@@ -15,6 +15,7 @@ import HomePage from './pages/HomePage';
 import SettingsPage from './pages/SettingsPage';
 import AuditPage from './pages/AuditPage';
 import ReviewOfflineChangesPage from './pages/ReviewOfflineChangesPage';
+import ProcessCallNotesPage from './pages/ProcessCallNotesPage';
 import { useAuthStore } from './store/auth';
 import { usePipelineStore } from './store/pipeline';
 import { usePageTracking } from './hooks/useTracking';
@@ -106,6 +107,7 @@ export default function App() {
             <Route path="/settings/*" element={<AppShell><SettingsPage /></AppShell>} />
             <Route path="/audit"      element={<AppShell><AuditPage /></AppShell>} />
             <Route path="/review-offline-changes" element={<AppShell><ReviewOfflineChangesPage /></AppShell>} />
+            <Route path="/opportunities/:sfid/process-notes" element={<AppShell><ProcessCallNotesPage /></AppShell>} />
             <Route path="/" element={<Navigate to="/home" replace />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />

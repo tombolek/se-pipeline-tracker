@@ -2000,11 +2000,32 @@ router.post('/:id/process-notes', auth, write, async (req: Request, res: Respons
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json(err('Invalid opportunity id')); return; }
 
-  const { raw_notes, source_url } = req.body as { raw_notes?: string; source_url?: string };
+  // Sections the user wants extracted. Missing or empty ⇒ all six (back-compat).
+  // save_raw_notes: when false, raw notes are sent to Claude but NOT saved as a
+  // note on the opportunity. Defaults true.
+  const {
+    raw_notes,
+    source_url,
+    sections: rawSections,
+    save_raw_notes: rawSaveNotes,
+  } = req.body as {
+    raw_notes?: string;
+    source_url?: string;
+    sections?: string[];
+    save_raw_notes?: boolean;
+  };
   if (!raw_notes?.trim()) { res.status(400).json(err('raw_notes is required')); return; }
 
+  const VALID_SECTIONS = ['tasks', 'se_comment', 'tech_blockers', 'tech_discovery', 'meddpicc', 'next_step'] as const;
+  type Section = typeof VALID_SECTIONS[number];
+  const requestedSections: Section[] = Array.isArray(rawSections) && rawSections.length > 0
+    ? (rawSections.filter((s): s is Section => (VALID_SECTIONS as readonly string[]).includes(s)))
+    : [...VALID_SECTIONS];
+  const wants = (s: Section) => requestedSections.includes(s);
+  const saveRawNotes = rawSaveNotes !== false;
+
   const userId = (req as AuthenticatedRequest).user!.userId;
-  console.log(`[process-notes] START opp=${id} user=${userId}`);
+  console.log(`[process-notes] START opp=${id} user=${userId} sections=[${requestedSections.join(',')}] save_notes=${saveRawNotes}`);
 
   try {
 
@@ -2022,20 +2043,41 @@ router.post('/:id/process-notes', auth, write, async (req: Request, res: Respons
   // 1b. Fetch current Tech Discovery so the prompt can avoid proposing stack
   //     items that are already selected and can distinguish "append" from
   //     "replace" on prose fields. Null if the opp has never been edited.
-  const existingTD = await getTechDiscovery(id);
+  const existingTD = wants('tech_discovery') ? await getTechDiscovery(id) : null;
 
-  // 2. Auto-save raw notes immediately (with source URL)
-  const savedNote = await queryOne<{ id: number }>(
-    `INSERT INTO notes (opportunity_id, author_id, content, source_url)
-     VALUES ($1, $2, $3, $4) RETURNING id`,
-    [id, userId, raw_notes.trim(), source_url?.trim() || null],
+  // 1c. Fetch current user's display name so we can derive their initials for
+  //     the SE-comment prefix (was hardcoded "BM_" — a genuine bug carried over
+  //     from the original prompt author).
+  const userRow = await queryOne<{ name: string | null }>(
+    `SELECT name FROM users WHERE id = $1`,
+    [userId],
   );
-  await query(`UPDATE opportunities SET last_note_at = now() WHERE id = $1`, [id]);
 
-  // 3. Build prompt
+  // 2. Auto-save raw notes as a note on the opp — unless the user opted out.
+  //    Regardless, we always return `saved_note_id` (may be null) so the client
+  //    can show "note saved" affordance when appropriate.
+  let savedNote: { id: number } | null = null;
+  if (saveRawNotes) {
+    savedNote = await queryOne<{ id: number }>(
+      `INSERT INTO notes (opportunity_id, author_id, content, source_url)
+       VALUES ($1, $2, $3, $4) RETURNING id`,
+      [id, userId, raw_notes.trim(), source_url?.trim() || null],
+    );
+    await query(`UPDATE opportunities SET last_note_at = now() WHERE id = $1`, [id]);
+  }
+
+  // 3. Build prompt pieces
   const today = new Date();
   const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
-  const datePrefix = `BM_${today.getDate()}${months[today.getMonth()]}${String(today.getFullYear()).slice(2)}`;
+  // Current user's initials — up to 3 letters from first letters of their name
+  // words ("Tomas Bolek" → TB, "Jean-Luc Picard" → JP). Fallback "SE" if empty.
+  const userInitials = (userRow?.name ?? '')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 3)
+    .map(w => w[0]?.toUpperCase() ?? '')
+    .join('') || 'SE';
+  const datePrefix = `${userInitials}_${today.getDate()}${months[today.getMonth()]}${String(today.getFullYear()).slice(2)}`;
 
   const meddpiccCtx = [
     ['metrics', 'Metrics'], ['economic_buyer', 'Economic Buyer'],
@@ -2101,18 +2143,58 @@ router.post('/:id/process-notes', auth, write, async (req: Request, res: Respons
     return `  ${label} [${k}]: ${preview}`;
   }).join('\n');
 
-  const prompt = `You are an SE (Sales Engineer) assistant. Analyse the call notes below and return a JSON object. Return ONLY valid JSON — no explanation, no markdown, no code fences.
+  // Assemble prompt dynamically — we only ask Claude for the sections the user
+  // actually selected, which keeps the output shorter, faster, cheaper, and
+  // higher quality per section.
+  const schemaLines: string[] = [];
+  const ruleLines: string[] = [];
 
-OPPORTUNITY CONTEXT
+  if (wants('tasks')) {
+    schemaLines.push('  "tasks": [ { "title": "...", "due_days": <integer> } ]');
+    ruleLines.push('- tasks: all clearly actionable action items from the notes. due_days = days from today (e.g. 3, 5, 7).');
+  }
+  if (wants('meddpicc')) {
+    schemaLines.push('  "meddpicc_updates": [ { "field": "<one of: metrics|economic_buyer|decision_criteria|decision_process|paper_process|implicate_pain|champion|engaged_competitors|budget|authority|need|timeline|agentic_qual>", "current": "<current value or empty string>", "suggested": "..." } ]');
+    ruleLines.push('- meddpicc_updates: ONLY include a field when the notes add a SUBSTANTIVE new fact or correction not already captured in the current value — new names, numbers, dates, events, blockers. Do NOT propose reworded or paraphrased versions of existing content. If "suggested" would be >70% similar to "current", DO NOT include that field. If the notes don\'t add anything materially new for a given field, omit it. Empty array is an acceptable and often-correct answer.');
+  }
+  if (wants('se_comment')) {
+    schemaLines.push('  "se_comment_draft": "..."');
+    ruleLines.push(`- se_comment_draft: EXACTLY 1-2 sentences. MUST start with "${datePrefix} — " (those are the current user's initials + today's date). Focus on: (a) the SE's immediate next action toward the technical win; (b) any notable risks from the technical evaluation, competitive situation, or evaluation process that could block progress. Do NOT mention buyer names, budget figures, or summarise MEDDPICC fields.`);
+  }
+  if (wants('tech_blockers')) {
+    schemaLines.push('  "tech_blockers": [ "..." ]');
+    ruleLines.push('- tech_blockers: ONLY technical/integration blockers — unvalidated connector or API support, missing product capabilities, infrastructure or security constraints, required technical information not yet obtained. Exclude business risks, timeline pressure, NDA/legal/commercial items. Return empty array if none.');
+  }
+  if (wants('next_step')) {
+    schemaLines.push('  "next_step": "..."');
+    ruleLines.push('- next_step: single sentence — the most important next SE action to move toward the technical win.');
+  }
+  if (wants('tech_discovery')) {
+    schemaLines.push(
+      '  "tech_discovery": {\n' +
+      '    "tech_stack_additions": { "<category_key>": ["<item>", ...] },\n' +
+      '    "enterprise_systems_additions": { "<key>": "<vendor/product>" },\n' +
+      '    "existing_dmg_additions": { "catalog": "...", "dq": "...", "mdm": "...", "lineage": "..." },\n' +
+      '    "prose_proposals": [ { "field": "<prose field key>", "current": "<current text>", "suggested": "<new text>", "mode": "replace" | "append" } ]\n' +
+      '  }'
+    );
+    ruleLines.push('- tech_discovery.tech_stack_additions: use exact category keys (data_infrastructure, data_lake, data_lake_metastore, data_warehouse, database, datalake_processing, etl, business_intelligence, nosql, streaming). Only include items (a) clearly stated in the notes as part of the prospect\'s stack and (b) NOT already in the current selection. Canonical names where possible (Snowflake, Databricks, dbt, Power BI, Azure, AWS, GCP, ADLS, S3, Oracle, SQL Server, Postgres, etc.). Return empty objects for categories with no additions.');
+    ruleLines.push('- tech_discovery.enterprise_systems_additions: use exact keys (crm, erp, finance, hr, claims, marketing, procurement, inventory_management, order_management). Only include keys where the notes reveal a vendor/product AND the current value is empty. Skip keys already populated.');
+    ruleLines.push('- tech_discovery.existing_dmg_additions: use keys catalog, dq, mdm, lineage. Same rule — only if notes name a vendor and the current value is empty.');
+    ruleLines.push('- tech_discovery.prose_proposals: propose prose updates for ANY of the 9 prose fields where the notes add substantive discovery content. Use mode="replace" when the current value is empty, mode="append" when the current value has content and the notes add new information on the same topic. When appending, "suggested" MUST be the COMPLETE merged text (not just the new part). Keep suggestions tight — 1-3 sentences per field.');
+    ruleLines.push('- Be conservative throughout tech_discovery. If the notes don\'t mention a topic, leave that section empty. Prefer missing a detail over hallucinating one.');
+  }
+
+  // Context blocks — only include the ones relevant to the requested sections.
+  const contextBlocks: string[] = [
+    `OPPORTUNITY CONTEXT
 Name: ${opp.name}
 Account: ${opp.account_name ?? 'N/A'}
-Stage: ${opp.stage}
-Current SE Comments: ${(opp.se_comments as string) || '(none)'}
-Current Technical Blockers: ${(opp.technical_blockers as string) || '(none)'}
-Current MEDDPICC / qualification fields:
-${meddpiccCtx}
-
-CURRENT TECH DISCOVERY (do NOT re-propose items already selected)
+Stage: ${opp.stage}`,
+    wants('se_comment')    ? `Current SE Comments: ${(opp.se_comments as string) || '(none)'}` : '',
+    wants('tech_blockers') ? `Current Technical Blockers: ${(opp.technical_blockers as string) || '(none)'}` : '',
+    wants('meddpicc')      ? `Current MEDDPICC / qualification fields:\n${meddpiccCtx}` : '',
+    wants('tech_discovery') ? `CURRENT TECH DISCOVERY (do NOT re-propose items already selected)
 Technology Stack (already selected):
 ${techStackCtx}
 Enterprise Systems (already specified):
@@ -2120,38 +2202,24 @@ ${enterpriseSystemsCtx}
 Existing Data Mgmt & Governance tools (already specified):
 ${existingDmgCtx}
 Discovery Notes prose fields (current content):
-${proseFieldsCtx}
+${proseFieldsCtx}` : '',
+  ].filter(Boolean);
+
+  const prompt = `You are an SE (Sales Engineer) assistant. Analyse the call notes below and return a JSON object. Return ONLY valid JSON — no explanation, no markdown, no code fences.
+
+${contextBlocks.join('\n\n')}
 
 RAW CALL NOTES
 ${raw_notes.trim()}
 
-INSTRUCTIONS — return a JSON object with exactly these six keys:
+INSTRUCTIONS — return a JSON object with exactly these keys (and ONLY these keys):
 
 {
-  "tasks": [ { "title": "...", "due_days": <integer> } ],
-  "meddpicc_updates": [ { "field": "<one of: metrics|economic_buyer|decision_criteria|decision_process|paper_process|implicate_pain|champion|engaged_competitors|budget|authority|need|timeline|agentic_qual>", "current": "<current value or empty string>", "suggested": "..." } ],
-  "se_comment_draft": "...",
-  "tech_blockers": [ "..." ],
-  "next_step": "...",
-  "tech_discovery": {
-    "tech_stack_additions": { "<category_key>": ["<item>", ...] },
-    "enterprise_systems_additions": { "<key>": "<vendor/product>" },
-    "existing_dmg_additions": { "catalog": "...", "dq": "...", "mdm": "...", "lineage": "..." },
-    "prose_proposals": [ { "field": "<prose field key>", "current": "<current text>", "suggested": "<new text>", "mode": "replace" | "append" } ]
-  }
+${schemaLines.join(',\n')}
 }
 
 Rules:
-- tasks: all clearly actionable action items from the notes. due_days = days from today (e.g. 3, 5, 7).
-- meddpicc_updates: only fields where the notes add NEW information not already in the current values. Omit fields that are already well-captured.
-- se_comment_draft: EXACTLY 1-2 sentences. Start with "${datePrefix} — ". Focus on: (a) the SE's immediate next action toward the technical win; (b) any notable risks from the technical evaluation, competitive situation, or evaluation process that could block progress (e.g. unresolved tech gap, competitor actively evaluating, blocked process). Do NOT mention buyer names, budget figures, or summarise MEDDPICC fields.
-- tech_blockers: ONLY technical/integration blockers — unvalidated connector or API support, missing product capabilities, infrastructure or security constraints, required technical information not yet obtained. Exclude business risks, timeline pressure, NDA/legal/commercial items. Return empty array if none.
-- next_step: single sentence — the most important next SE action to move toward the technical win.
-- tech_discovery.tech_stack_additions: use the exact category keys listed in "CURRENT TECH DISCOVERY" above (data_infrastructure, data_lake, data_lake_metastore, data_warehouse, database, datalake_processing, etl, business_intelligence, nosql, streaming). Only include items that are (a) clearly stated in the notes as part of the prospect's stack, and (b) NOT already in the current selection. Match the canonical names where possible (Snowflake, Databricks, dbt, Power BI, Azure, AWS, GCP, ADLS, S3, Oracle, SQL Server, Postgres, etc.). Use free-text for anything not in our standard list. Return empty objects for categories with no additions.
-- tech_discovery.enterprise_systems_additions: use the exact keys (crm, erp, finance, hr, claims, marketing, procurement, inventory_management, order_management). Only include keys where the notes reveal a vendor/product and the current value is empty. Skip keys already populated.
-- tech_discovery.existing_dmg_additions: use keys catalog, dq, mdm, lineage. Same rule — only if notes name a vendor and the current value is empty.
-- tech_discovery.prose_proposals: propose prose updates for ANY of the 9 prose fields listed above where the notes add substantive discovery content. Use mode="replace" when the current value is empty, mode="append" when the current value has content and the notes add new information on the same topic. When appending, "suggested" should be the COMPLETE merged text (not just the new part). Keep each suggestion tight — 1-3 sentences per field.
-- Be conservative. If the notes don't mention a topic, leave that section of tech_discovery empty. Prefer missing a detail over hallucinating one.`;
+${ruleLines.join('\n')}`;
 
   console.log(`[process-notes] calling Claude API, prompt length=${prompt.length} chars`);
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -2187,14 +2255,49 @@ Rules:
     prose_proposals:              Array.isArray(td.prose_proposals) ? td.prose_proposals : [],
   };
 
+  // Server-side MEDDPICC dedupe: drop suggestions whose text is ≥ 80% Jaccard-
+  // similar to the current value — those are rewordings, not substantive
+  // updates. Cheap insurance on top of the prompt rule.
+  function tokenize(s: string): Set<string> {
+    return new Set(
+      s.toLowerCase()
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .split(/\s+/)
+        .filter(t => t.length >= 3)
+    );
+  }
+  function jaccard(a: Set<string>, b: Set<string>): number {
+    if (a.size === 0 || b.size === 0) return 0;
+    let inter = 0;
+    for (const x of a) if (b.has(x)) inter++;
+    const union = a.size + b.size - inter;
+    return union === 0 ? 0 : inter / union;
+  }
+  const rawMeddUpdates = Array.isArray(parsed.meddpicc_updates) ? parsed.meddpicc_updates : [];
+  const meddpicc_updates = rawMeddUpdates.filter((u: unknown) => {
+    if (typeof u !== 'object' || !u) return false;
+    const r = u as Record<string, unknown>;
+    const current = typeof r.current === 'string' ? r.current : '';
+    const suggested = typeof r.suggested === 'string' ? r.suggested : '';
+    if (!suggested.trim()) return false;
+    if (!current.trim()) return true;  // empty current → any suggestion is additive
+    return jaccard(tokenize(current), tokenize(suggested)) < 0.8;
+  });
+  if (rawMeddUpdates.length !== meddpicc_updates.length) {
+    console.log(`[process-notes] MEDDPICC dedupe: dropped ${rawMeddUpdates.length - meddpicc_updates.length} near-duplicate suggestion(s)`);
+  }
+
   res.json(ok({
     saved_note_id: savedNote?.id ?? null,
-    tasks:            Array.isArray(parsed.tasks)            ? parsed.tasks            : [],
-    meddpicc_updates: Array.isArray(parsed.meddpicc_updates) ? parsed.meddpicc_updates : [],
-    se_comment_draft: typeof parsed.se_comment_draft === 'string' ? parsed.se_comment_draft : '',
-    tech_blockers:    Array.isArray(parsed.tech_blockers)    ? parsed.tech_blockers    : [],
-    next_step:        typeof parsed.next_step === 'string'   ? parsed.next_step        : '',
-    tech_discovery,
+    sections_requested: requestedSections,
+    tasks:            wants('tasks')          && Array.isArray(parsed.tasks)            ? parsed.tasks            : [],
+    meddpicc_updates: wants('meddpicc')       ? meddpicc_updates                                                   : [],
+    se_comment_draft: wants('se_comment')     && typeof parsed.se_comment_draft === 'string' ? parsed.se_comment_draft : '',
+    tech_blockers:    wants('tech_blockers')  && Array.isArray(parsed.tech_blockers)    ? parsed.tech_blockers    : [],
+    next_step:        wants('next_step')      && typeof parsed.next_step === 'string'   ? parsed.next_step        : '',
+    tech_discovery:   wants('tech_discovery') ? tech_discovery : {
+      tech_stack_additions: {}, enterprise_systems_additions: {}, existing_dmg_additions: {}, prose_proposals: [],
+    },
   }));
 
   } catch (e) {

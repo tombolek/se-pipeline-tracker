@@ -210,18 +210,24 @@ export default function HomePage() {
   function openAiFeature(oppId: number, feature: 'call-prep' | 'notes-processor' | 'summary' | 'demo-prep') {
     setAiPickerOpen(null);
     setAiSearch('');
+    if (feature === 'notes-processor') {
+      // Process Call Notes is now a full page, not a drawer action. Resolve the
+      // sfid from the loaded opps list and navigate directly.
+      const opp = allOpps.find(o => o.id === oppId);
+      if (opp?.sf_opportunity_id) {
+        navigate(`/opportunities/${opp.sf_opportunity_id}/process-notes`);
+      }
+      return;
+    }
     if (feature === 'call-prep') {
       setDrawerInitialTab('call-prep');
       setDrawerInitialAction(undefined);
     } else if (feature === 'demo-prep') {
       setDrawerInitialTab('demo-prep');
       setDrawerInitialAction(undefined);
-    } else if (feature === 'summary') {
-      setDrawerInitialTab('work');
-      setDrawerInitialAction('summary');
     } else {
       setDrawerInitialTab('work');
-      setDrawerInitialAction('notes-processor');
+      setDrawerInitialAction('summary');
     }
     setSelectedOppId(oppId);
   }

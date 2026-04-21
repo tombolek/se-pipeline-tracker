@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Process Call Notes — redesign preview</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --purple:#6A2CF5; --purple-70:#9C72F8; --purple-30:#DED0FD;
+      --pink:#F10090; --pink-30:#FCC6E6;
+      --navy:#1A0C42; --navy-70:#665D81; --navy-30:#CCC9D5;
+      --success:#00E5B6; --warning:#FFAB00; --overdue:#FF464C; --info:#00DDFF;
+      --bg:#F5F5F7;
+    }
+    body { font-family:'Poppins', system-ui, sans-serif; background:var(--bg); color:var(--navy); min-height:100vh; }
+
+    /* scenario bar */
+    .sbar { background:var(--navy); padding:10px 18px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; position:sticky; top:0; z-index:50; }
+    .sbar-label { font-size:11px; color:rgba(255,255,255,.45); font-weight:500; }
+    .sb-btn { padding:5px 11px; border-radius:6px; border:1px solid rgba(255,255,255,.15); background:transparent; color:rgba(255,255,255,.65); font-size:11px; font-weight:500; cursor:pointer; font-family:inherit; transition:all .15s; }
+    .sb-btn:hover { background:rgba(255,255,255,.08); color:white; }
+    .sb-btn.active { background:var(--purple); border-color:var(--purple); color:white; }
+
+    /* browser chrome */
+    .chrome { background:white; border-bottom:1px solid rgba(204,201,213,.6); padding:8px 16px; display:flex; align-items:center; gap:10px; font-size:11px; }
+    .dot { width:10px; height:10px; border-radius:50%; background:var(--navy-30); }
+    .dot.r { background:#ff6159; } .dot.y { background:#ffbd2e; } .dot.g { background:#28c941; }
+    .url { background:var(--bg); border:1px solid var(--navy-30); border-radius:14px; padding:4px 14px; color:var(--navy-70); flex:1; max-width:600px; font-size:11px; font-family:monospace; }
+
+    /* app header stub */
+    .app-header { background:var(--navy); padding:7px 18px; color:white; display:flex; align-items:center; justify-content:space-between; font-size:12px; }
+    .app-header-left { display:flex; align-items:center; gap:8px; }
+    .app-icon { width:20px; height:20px; border-radius:5px; background:var(--pink); }
+
+    /* page */
+    .page { max-width:1160px; margin:0 auto; padding:20px; }
+    .page-header { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:18px; flex-wrap:wrap; }
+    .page-title { display:flex; align-items:center; gap:12px; }
+    .back-btn { width:36px; height:36px; border-radius:10px; border:1px solid var(--navy-30); background:white; display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--navy-70); }
+    .back-btn:hover { border-color:var(--navy); color:var(--navy); }
+    .page-title h1 { font-size:18px; font-weight:600; }
+    .page-title .sub { font-size:12px; color:var(--navy-70); margin-top:2px; }
+    .opp-chip { background:var(--purple-30); color:var(--purple); padding:3px 10px; border-radius:14px; font-size:11px; font-weight:500; display:inline-flex; align-items:center; gap:5px; }
+
+    /* view-mode toggle */
+    .view-toggle { display:flex; align-items:center; background:white; border:1px solid var(--navy-30); border-radius:10px; padding:3px; gap:2px; }
+    .view-toggle button { padding:5px 10px; border-radius:7px; border:none; background:transparent; color:var(--navy-70); font-size:11px; font-weight:500; cursor:pointer; font-family:inherit; display:flex; align-items:center; gap:5px; }
+    .view-toggle button.active { background:var(--purple); color:white; }
+
+    /* cards */
+    .card { background:white; border:1px solid rgba(204,201,213,.6); border-radius:16px; overflow:hidden; }
+    .card-header { padding:16px 20px; border-bottom:1px solid rgba(204,201,213,.5); display:flex; align-items:center; justify-content:space-between; gap:10px; }
+    .card-title { display:flex; align-items:center; gap:9px; font-size:14px; font-weight:600; }
+    .card-title .step { width:22px; height:22px; border-radius:50%; background:var(--purple); color:white; font-size:11px; display:flex; align-items:center; justify-content:center; font-weight:600; }
+    .card-body { padding:18px 20px; }
+
+    /* checkboxes */
+    .check-row { display:flex; align-items:flex-start; gap:10px; padding:10px 12px; border:1px solid transparent; border-radius:10px; cursor:pointer; transition:border-color .12s, background .12s; }
+    .check-row:hover { background:rgba(204,201,213,.12); }
+    .check-row.disabled { opacity:.55; cursor:not-allowed; }
+    .check-row input[type=checkbox] { width:16px; height:16px; accent-color:var(--purple); cursor:pointer; flex-shrink:0; margin-top:1px; }
+    .check-row .label { font-size:13px; font-weight:500; color:var(--navy); }
+    .check-row .hint { font-size:11px; color:var(--navy-70); margin-top:2px; line-height:1.45; }
+    .check-row .off-chip { display:none; font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; background:var(--navy-30); color:white; padding:1px 6px; border-radius:8px; margin-left:6px; }
+    .check-row.disabled .off-chip { display:inline-block; }
+
+    /* input / textarea */
+    label.fld { display:block; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--navy-70); margin-bottom:6px; }
+    .input, textarea.input { width:100%; padding:9px 12px; border:1px solid var(--navy-30); border-radius:10px; font-size:13px; color:var(--navy); font-family:inherit; outline:none; transition:border-color .12s, box-shadow .12s; }
+    .input:focus, textarea.input:focus { border-color:var(--purple); box-shadow:0 0 0 3px rgba(106,44,245,.12); }
+    textarea.input { min-height:360px; resize:vertical; line-height:1.6; }
+    .input-hint { font-size:10px; color:var(--navy-30); margin-top:5px; }
+
+    /* btn */
+    .btn { display:inline-flex; align-items:center; gap:6px; padding:8px 14px; border-radius:9px; font-size:12px; font-weight:500; cursor:pointer; border:none; font-family:inherit; transition:all .12s; }
+    .btn-primary { background:var(--purple); color:white; }
+    .btn-primary:hover { background:var(--purple-70); }
+    .btn-primary:disabled { opacity:.4; cursor:not-allowed; }
+    .btn-outline { background:white; color:var(--navy-70); border:1px solid var(--navy-30); }
+    .btn-outline:hover { border-color:var(--navy); color:var(--navy); }
+    .btn-ghost { background:transparent; color:var(--navy-70); }
+    .btn-ghost:hover { color:var(--navy); }
+    .btn-danger { background:var(--overdue); color:white; }
+    .btn-sm { padding:5px 11px; font-size:11px; }
+
+    /* footer */
+    .flow-footer { display:flex; align-items:center; justify-content:space-between; padding:14px 20px; border-top:1px solid rgba(204,201,213,.5); background:#fafafa; }
+    .flow-footer .left { font-size:11px; color:var(--navy-70); }
+
+    /* processing */
+    .proc { display:flex; flex-direction:column; align-items:center; gap:14px; padding:80px 20px; }
+    .spinner { width:36px; height:36px; border-radius:50%; border:3px solid var(--purple-30); border-top-color:var(--purple); animation:spin .75s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    /* tabs view */
+    .tabs-bar { display:flex; gap:2px; border-bottom:1px solid var(--navy-30); padding:0 20px; background:var(--bg); border-radius:16px 16px 0 0; overflow-x:auto; }
+    .tab-btn { padding:11px 16px; border:1px solid transparent; border-bottom:none; background:transparent; color:var(--navy-70); font-size:12px; font-weight:500; cursor:pointer; font-family:inherit; display:flex; align-items:center; gap:7px; border-radius:8px 8px 0 0; margin-bottom:-1px; }
+    .tab-btn:hover { color:var(--navy); background:rgba(255,255,255,.5); }
+    .tab-btn.active { background:white; color:var(--purple); border-color:var(--navy-30); border-bottom:1px solid white; }
+    .tab-btn .count { font-size:10px; padding:1px 6px; border-radius:10px; background:var(--navy-30); color:white; font-weight:600; }
+    .tab-btn.active .count { background:var(--purple); }
+    .tab-btn.skipped { opacity:.45; }
+    .tab-icon { width:14px; height:14px; }
+    .tab-done { color:var(--success); }
+
+    /* wizard breadcrumb */
+    .wiz-crumbs { display:flex; align-items:center; gap:6px; padding:14px 20px; border-bottom:1px solid rgba(204,201,213,.5); flex-wrap:wrap; }
+    .wiz-step { font-size:11px; padding:5px 10px; border-radius:14px; background:var(--bg); color:var(--navy-70); font-weight:500; display:flex; align-items:center; gap:5px; }
+    .wiz-step.done { background:rgba(0,229,182,.15); color:#009e75; }
+    .wiz-step.active { background:var(--purple); color:white; font-weight:600; }
+    .wiz-step .num { font-size:10px; width:16px; height:16px; border-radius:50%; background:rgba(255,255,255,.2); display:inline-flex; align-items:center; justify-content:center; }
+    .wiz-step.done .num { background:rgba(0,158,117,.25); }
+    .wiz-step:not(.active):not(.done) .num { background:var(--navy-30); color:white; }
+    .wiz-sep { color:var(--navy-30); font-size:11px; }
+
+    /* section content */
+    .sec-body { padding:20px; }
+    .sec-header { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
+    .sec-header h3 { font-size:14px; font-weight:600; }
+    .sec-header .sub { font-size:11px; color:var(--navy-70); margin-top:2px; }
+
+    /* long scroll mode */
+    .ls-section { border-bottom:1px solid rgba(204,201,213,.5); }
+    .ls-section:last-child { border-bottom:none; }
+    .ls-header { padding:14px 20px; display:flex; align-items:center; justify-content:space-between; gap:10px; cursor:pointer; }
+    .ls-header:hover { background:rgba(204,201,213,.08); }
+    .ls-title { display:flex; align-items:center; gap:9px; font-size:13px; font-weight:600; }
+    .ls-icon { width:26px; height:26px; border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .ic-tasks { background:rgba(0,229,182,.14); color:#009e75; }
+    .ic-comment { background:rgba(255,171,0,.14); color:#b87800; }
+    .ic-blockers { background:rgba(255,70,76,.12); color:#cc2d32; }
+    .ic-tech { background:linear-gradient(135deg, var(--pink-30) 0%, var(--purple-30) 100%); color:var(--purple); }
+    .ic-meddpicc { background:rgba(106,44,245,.11); color:var(--purple); }
+    .ic-nextstep { background:rgba(0,221,255,.12); color:#0088a8; }
+    .count-chip { font-size:10px; font-weight:500; padding:2px 7px; border-radius:20px; background:rgba(204,201,213,.4); color:var(--navy-70); }
+
+    /* task item */
+    .task-list { display:flex; flex-direction:column; gap:8px; }
+    .task-item { display:flex; align-items:flex-start; gap:10px; padding:10px 12px; border:1px solid var(--navy-30); border-radius:10px; background:#fafafa; transition:border-color .12s, background .12s; }
+    .task-item.selected { border-color:var(--purple); background:rgba(106,44,245,.04); }
+    .task-item input[type=checkbox] { margin-top:2px; width:14px; height:14px; accent-color:var(--purple); cursor:pointer; flex-shrink:0; }
+    .task-content { flex:1; min-width:0; }
+    .task-title { font-size:13px; font-weight:500; color:var(--navy); }
+    .task-meta { font-size:10px; color:var(--navy-70); margin-top:3px; }
+
+    /* meddpicc with note banner */
+    .info-banner { padding:11px 14px; background:rgba(0,221,255,.08); border:1px solid rgba(0,221,255,.3); border-radius:10px; display:flex; gap:9px; align-items:flex-start; margin-bottom:14px; }
+    .info-banner .label { font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:#0088a8; }
+    .info-banner .text { font-size:12px; color:var(--navy-70); line-height:1.5; margin-top:2px; }
+    .meddpicc-item { padding:11px 14px; border:1px solid var(--navy-30); border-radius:10px; background:#fafafa; margin-bottom:8px; }
+    .meddpicc-field { font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--purple); margin-bottom:5px; }
+    .meddpicc-old { font-size:11px; color:var(--navy-30); font-style:italic; text-decoration:line-through; line-height:1.5; margin-bottom:3px; }
+    .meddpicc-new { font-size:12px; color:var(--navy); line-height:1.5; background:rgba(0,229,182,.1); border-left:2px solid var(--success); padding:5px 9px; border-radius:0 6px 6px 0; }
+    .note-tag { display:inline-flex; align-items:center; gap:4px; font-size:10px; font-weight:500; padding:1px 7px; border-radius:11px; background:var(--purple-30); color:var(--purple); margin-left:6px; vertical-align:middle; }
+
+    /* se comment */
+    .comment-box { background:#fafafa; border:1px solid var(--navy-30); border-radius:10px; padding:11px 13px; font-size:13px; color:var(--navy); line-height:1.6; }
+    .comment-box .initials-hl { background:rgba(0,229,182,.15); padding:1px 4px; border-radius:3px; font-weight:600; }
+
+    /* tech discovery mini */
+    .td-sub-label { font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--purple); margin-bottom:7px; }
+    .chip-row { display:flex; flex-wrap:wrap; gap:5px; }
+    .chip-td { display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:13px; border:1px solid var(--purple); background:rgba(106,44,245,.06); color:var(--purple); font-size:10px; font-weight:500; }
+    .chip-td .cat { color:var(--navy-70); font-weight:400; font-size:9px; }
+
+    /* blocker */
+    .blocker-item { display:flex; gap:10px; align-items:flex-start; padding:9px 12px; border:1px solid rgba(255,70,76,.22); border-radius:10px; background:rgba(255,70,76,.03); margin-bottom:6px; }
+    .blocker-dot { width:16px; height:16px; border-radius:5px; background:rgba(255,70,76,.14); color:#cc2d32; font-size:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px; }
+    .blocker-text { font-size:12px; color:var(--navy); line-height:1.45; }
+
+    /* modal overlay / leave guard */
+    .overlay { position:fixed; inset:0; background:rgba(26,12,66,.55); backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; z-index:40; padding:20px; }
+    .guard { max-width:440px; background:white; border-radius:16px; overflow:hidden; box-shadow:0 12px 48px rgba(26,12,66,.24); }
+    .guard-body { padding:22px 24px 18px; }
+    .guard-icon { width:38px; height:38px; border-radius:10px; background:rgba(255,171,0,.18); color:#b87800; display:flex; align-items:center; justify-content:center; margin-bottom:12px; }
+    .guard h2 { font-size:15px; font-weight:600; margin-bottom:6px; }
+    .guard p { font-size:12px; color:var(--navy-70); line-height:1.55; }
+    .guard-footer { padding:14px 24px; background:#fafafa; display:flex; align-items:center; justify-content:flex-end; gap:8px; border-top:1px solid rgba(204,201,213,.4); }
+
+    /* scroll behavior */
+    .scene { display:none; }
+    .scene.active { display:block; }
+
+    /* caption */
+    .caption { max-width:1160px; margin:20px auto; padding:0 20px; font-size:12px; color:var(--navy-70); line-height:1.6; }
+    .caption strong { color:var(--navy); }
+
+    /* hide utilities */
+    .hidden { display:none; }
+  </style>
+</head>
+<body>
+
+<!-- SCENARIO BAR -->
+<div class="sbar">
+  <span class="sbar-label">Preview state:</span>
+  <button class="sb-btn active" onclick="showScene('configure', this)">1 · Configure &amp; paste</button>
+  <button class="sb-btn"        onclick="showScene('processing', this)">2 · Processing</button>
+  <button class="sb-btn"        onclick="showScene('tabs', this)">3a · Results — Tabs</button>
+  <button class="sb-btn"        onclick="showScene('wizard', this)">3b · Results — Wizard</button>
+  <button class="sb-btn"        onclick="showScene('scroll', this)">3c · Results — Scroll</button>
+  <button class="sb-btn"        onclick="showScene('guard', this)">4 · Leave guard</button>
+</div>
+
+<!-- BROWSER CHROME -->
+<div class="chrome">
+  <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+  <div class="url">d2ychcrwno1r6b.cloudfront.net/opportunities/006JQ00000n6ObK/process-notes</div>
+</div>
+
+<!-- APP HEADER -->
+<div class="app-header">
+  <div class="app-header-left">
+    <div class="app-icon"></div>
+    <span style="font-weight:600;">Pipeline Tracker</span>
+  </div>
+  <div style="display:flex; align-items:center; gap:10px; color:rgba(255,255,255,.6); font-size:11px;">
+    <span>⏱ 2h ago</span>
+    <span>● Live</span>
+    <span>Tomas Bolek</span>
+  </div>
+</div>
+
+<div class="page">
+  <!-- Page header -->
+  <div class="page-header">
+    <div class="page-title">
+      <button class="back-btn" title="Back to opportunity">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+      </button>
+      <div>
+        <h1>Process Call Notes</h1>
+        <div class="sub"><span class="opp-chip">BBVA — DQG</span> Develop Solution · $375K · Close Sep 2026</div>
+      </div>
+    </div>
+
+    <!-- View mode toggle — only shown on results scenes -->
+    <div class="view-toggle results-only hidden">
+      <button class="tabs-vm active" onclick="switchView('tabs', this)" title="Tabs view">
+        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        Tabs
+      </button>
+      <button class="wiz-vm" onclick="switchView('wizard', this)" title="Wizard">
+        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
+        Wizard
+      </button>
+      <button class="scr-vm" onclick="switchView('scroll', this)" title="Long scroll">
+        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 6h16M8 12h12M4 18h16"/></svg>
+        Scroll
+      </button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!-- SCENE 1: CONFIGURE                                          -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <div class="scene active" id="scene-configure">
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+
+      <!-- LEFT: section selector -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><span class="step">1</span>What would you like to extract?</div>
+        </div>
+        <div class="card-body">
+          <div style="display:flex; flex-direction:column; gap:2px;">
+            <label class="check-row">
+              <input type="checkbox" checked>
+              <div>
+                <div class="label">Tasks <span style="font-size:10px; color:var(--navy-70); font-weight:400;">action items</span></div>
+                <div class="hint">Extract clear action items with suggested due dates. You pick which to add (default: none selected).</div>
+              </div>
+            </label>
+            <label class="check-row">
+              <input type="checkbox" checked>
+              <div>
+                <div class="label">SE Comment draft</div>
+                <div class="hint">A 1–2 sentence update prefixed with your initials (<code style="background:#f0f0f3; padding:1px 5px; border-radius:4px; font-size:11px;">TB_21APR26</code>) ready to paste into Salesforce.</div>
+              </div>
+            </label>
+            <label class="check-row">
+              <input type="checkbox" checked>
+              <div>
+                <div class="label">Technical Blockers</div>
+                <div class="hint">Technical, integration, connector, security, or capability gaps. Saved to the Technical Blockers field.</div>
+              </div>
+            </label>
+            <label class="check-row">
+              <input type="checkbox" checked>
+              <div>
+                <div class="label">Tech Discovery <span class="note-tag">structured</span></div>
+                <div class="hint">Stack items detected, enterprise-system / DMG tool names, and prose proposals for the 9 Discovery Notes fields.</div>
+              </div>
+            </label>
+            <label class="check-row disabled">
+              <input type="checkbox">
+              <div>
+                <div class="label">MEDDPICC updates <span class="off-chip">off by default</span></div>
+                <div class="hint">Saved as a structured note on the opportunity, flagged to consider updating in Salesforce. SF is not modified.</div>
+              </div>
+            </label>
+            <label class="check-row">
+              <input type="checkbox" checked>
+              <div>
+                <div class="label">Suggested next step</div>
+                <div class="hint">A single sentence for the most important follow-up, created as a next-step task.</div>
+              </div>
+            </label>
+          </div>
+
+          <div style="height:1px; background:rgba(204,201,213,.5); margin:16px 0;"></div>
+
+          <label class="check-row">
+            <input type="checkbox" checked>
+            <div>
+              <div class="label">Save raw notes as a note on the opportunity</div>
+              <div class="hint">Attaches the pasted notes + source URL to this deal's Notes tab, timestamped. Turn off for throwaway processing.</div>
+            </div>
+          </label>
+
+          <div style="margin-top:10px; font-size:10px; color:var(--navy-30);">Your choices are remembered for next time.</div>
+        </div>
+      </div>
+
+      <!-- RIGHT: paste notes -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><span class="step">2</span>Paste the call notes</div>
+        </div>
+        <div class="card-body">
+          <div>
+            <label class="fld">Source URL <span style="font-weight:400; color:var(--navy-30); text-transform:none;">optional</span></label>
+            <input class="input" type="url" placeholder="Notion page, Slack canvas, recording transcript…" value="https://notion.so/ataccama/BBVA-Discovery-Apr21">
+            <div class="input-hint">Saved alongside the auto-captured note · Notion · Slack canvas · Any URL</div>
+          </div>
+          <div style="height:14px;"></div>
+          <div>
+            <label class="fld">Raw call notes</label>
+            <textarea class="input" rows="9">Discovery call — Anna Fischer (Data Architect) + Thomas Bayer (CTO), 45 min
+
+Current stack:
+  - Collibra for governance, Informatica PowerCenter ETL (legacy), ADLS Gen2, Databricks, Snowflake being piloted, Power BI
+  - SAP ERP + Salesforce CRM
+
+Pain: 3 failed internal DQ projects in 2 years. €2M wasted. Execs lost trust.
+Target: live before Q3 board review in Sept. Hard deadline.
+
+Tech concerns: confirm ADLS Gen2 + Databricks Unity Catalog connectors.
+Won't deploy outside Azure (GDPR audit fallout). Competing with Informatica IDMC.
+
+Action items:
+  - Send ONE DQ architecture doc this week
+  - Schedule deep-dive with data eng team (3 people)
+  - Get NDA signed before sharing roadmap</textarea>
+          </div>
+        </div>
+        <div class="flow-footer">
+          <div class="left">5 of 6 extraction types selected</div>
+          <div style="display:flex; gap:8px;">
+            <button class="btn btn-outline btn-sm">Cancel</button>
+            <button class="btn btn-primary btn-sm" onclick="showScene('processing', null); var btns=document.querySelectorAll('.sbar .sb-btn'); btns.forEach(b=>b.classList.remove('active')); btns[1].classList.add('active');">
+              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+              Process with Claude
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!-- SCENE 2: PROCESSING                                         -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <div class="scene" id="scene-processing">
+    <div class="card">
+      <div class="proc">
+        <div class="spinner"></div>
+        <p style="font-size:13px; font-weight:500; color:var(--navy-70);">Claude is reading your notes…</p>
+        <p style="font-size:11px; color:var(--navy-30);">Extracting Tasks · SE Comment · Tech Blockers · Tech Discovery · Next Step</p>
+        <p style="font-size:10px; color:var(--navy-30); margin-top:4px;">MEDDPICC skipped (not selected)</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!-- SCENE 3a: TABS MODE                                         -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <div class="scene" id="scene-tabs">
+    <div class="card" style="padding:0;">
+      <div class="tabs-bar">
+        <button class="tab-btn active">
+          <svg class="tab-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2"/></svg>
+          Tasks <span class="count">3</span>
+        </button>
+        <button class="tab-btn">
+          <svg class="tab-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/></svg>
+          SE Comment
+        </button>
+        <button class="tab-btn">
+          <svg class="tab-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M4.062 21h15.876c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L2.33 18c-.77 1.333.192 3 1.732 3z"/></svg>
+          Tech Blockers <span class="count">2</span>
+        </button>
+        <button class="tab-btn">
+          <svg class="tab-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M4 12h16M4 17h10"/><circle cx="18" cy="17" r="2"/></svg>
+          Tech Discovery <span class="count">14</span>
+        </button>
+        <button class="tab-btn skipped" title="Skipped — not selected in step 1">
+          <svg class="tab-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg>
+          MEDDPICC
+        </button>
+        <button class="tab-btn">
+          <svg class="tab-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7"/></svg>
+          Next Step
+        </button>
+      </div>
+
+      <div class="sec-body">
+        <div class="sec-header">
+          <div>
+            <h3>Extracted Tasks</h3>
+            <div class="sub"><strong>0</strong> of 3 selected · pick any you want to create on this deal</div>
+          </div>
+          <div style="display:flex; gap:6px;">
+            <button class="btn btn-outline btn-sm">Select all</button>
+            <button class="btn btn-primary btn-sm" disabled>Add 0 tasks</button>
+          </div>
+        </div>
+        <div class="task-list">
+          <label class="task-item">
+            <input type="checkbox">
+            <div class="task-content">
+              <div class="task-title">Send ONE DQ architecture doc</div>
+              <div class="task-meta">Due in 3 days · April 24</div>
+            </div>
+          </label>
+          <label class="task-item">
+            <input type="checkbox">
+            <div class="task-content">
+              <div class="task-title">Schedule deep-dive with data engineering team (3 people)</div>
+              <div class="task-meta">Due in 7 days · April 28</div>
+            </div>
+          </label>
+          <label class="task-item">
+            <input type="checkbox">
+            <div class="task-content">
+              <div class="task-title">Get NDA signed before sharing roadmap</div>
+              <div class="task-meta">Due in 5 days · April 26</div>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <div class="flow-footer">
+        <div class="left"><strong>Tab 1 of 5</strong> · Next: SE Comment</div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-outline btn-sm">Save &amp; close</button>
+          <button class="btn btn-primary btn-sm">Apply all accepted</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!-- SCENE 3b: WIZARD MODE                                       -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <div class="scene" id="scene-wizard">
+    <div class="card" style="padding:0;">
+      <div class="wiz-crumbs">
+        <span class="wiz-step done"><span class="num">✓</span>Tasks</span>
+        <span class="wiz-sep">›</span>
+        <span class="wiz-step active"><span class="num">2</span>SE Comment</span>
+        <span class="wiz-sep">›</span>
+        <span class="wiz-step"><span class="num">3</span>Tech Blockers</span>
+        <span class="wiz-sep">›</span>
+        <span class="wiz-step"><span class="num">4</span>Tech Discovery</span>
+        <span class="wiz-sep">›</span>
+        <span class="wiz-step"><span class="num">5</span>Next Step</span>
+      </div>
+
+      <div class="sec-body">
+        <div class="sec-header">
+          <div>
+            <h3>Draft SE Comment</h3>
+            <div class="sub">Review and edit — then copy for Salesforce. Your initials are prefixed automatically.</div>
+          </div>
+        </div>
+        <div class="comment-box">
+          <span class="initials-hl">TB_21APR26</span> — Confirmed ADLS Gen2 + Databricks Unity Catalog connectors are P0 gate for PoC; competing with Informatica IDMC, need data-quality-in-Databricks story. Next: get NDA signed and send ONE DQ architecture doc this week.
+        </div>
+        <div class="input-hint">Starts with <strong>TB_</strong> — your initials (Tomas Bolek), pulled from your user profile. No longer hardcoded.</div>
+      </div>
+
+      <div class="flow-footer">
+        <div class="left"><strong>Step 2 of 5</strong></div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-outline btn-sm">← Previous</button>
+          <button class="btn btn-ghost btn-sm">Skip</button>
+          <button class="btn btn-primary btn-sm">Copy &amp; next →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!-- SCENE 3c: LONG SCROLL                                       -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <div class="scene" id="scene-scroll">
+    <div class="card" style="padding:0;">
+
+      <!-- Tasks -->
+      <div class="ls-section">
+        <div class="ls-header">
+          <div class="ls-title">
+            <div class="ls-icon ic-tasks"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2"/></svg></div>
+            Extracted Tasks <span class="count-chip">3</span>
+            <span style="font-size:10px; color:var(--navy-70); margin-left:4px;">0 of 3 selected</span>
+          </div>
+          <div style="display:flex; gap:6px;">
+            <button class="btn btn-outline btn-sm">Select all</button>
+            <button class="btn btn-primary btn-sm" disabled>Add 0 tasks</button>
+          </div>
+        </div>
+        <div style="padding:0 20px 14px;">
+          <div class="task-list">
+            <label class="task-item"><input type="checkbox"><div class="task-content"><div class="task-title">Send ONE DQ architecture doc</div><div class="task-meta">Due in 3 days</div></div></label>
+            <label class="task-item"><input type="checkbox"><div class="task-content"><div class="task-title">Schedule deep-dive with data eng team</div><div class="task-meta">Due in 7 days</div></div></label>
+            <label class="task-item"><input type="checkbox"><div class="task-content"><div class="task-title">Get NDA signed before sharing roadmap</div><div class="task-meta">Due in 5 days</div></div></label>
+          </div>
+        </div>
+      </div>
+
+      <!-- SE Comment -->
+      <div class="ls-section">
+        <div class="ls-header">
+          <div class="ls-title"><div class="ls-icon ic-comment"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/></svg></div>Draft SE Comment</div>
+          <button class="btn btn-outline btn-sm">Copy to clipboard</button>
+        </div>
+        <div style="padding:0 20px 14px;">
+          <div class="comment-box"><span class="initials-hl">TB_21APR26</span> — Confirmed ADLS Gen2 + Databricks Unity Catalog connectors are P0 gate for PoC; competing with Informatica IDMC, need data-quality-in-Databricks story. Next: get NDA signed and send ONE DQ architecture doc this week.</div>
+        </div>
+      </div>
+
+      <!-- Tech Blockers -->
+      <div class="ls-section">
+        <div class="ls-header">
+          <div class="ls-title"><div class="ls-icon ic-blockers"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 9v2m0 4h.01M4.062 21h15.876c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L2.33 18c-.77 1.333.192 3 1.732 3z"/></svg></div>Technical Blockers <span class="count-chip">2</span></div>
+          <button class="btn btn-outline btn-sm">Save to opp</button>
+        </div>
+        <div style="padding:0 20px 14px;">
+          <div class="blocker-item"><div class="blocker-dot">!</div><div class="blocker-text">ADLS Gen2 connector support unconfirmed — must validate before PoC kickoff</div></div>
+          <div class="blocker-item"><div class="blocker-dot">!</div><div class="blocker-text">Databricks Unity Catalog lineage ingestion — parity story needed vs. Informatica IDMC</div></div>
+        </div>
+      </div>
+
+      <!-- Tech Discovery -->
+      <div class="ls-section">
+        <div class="ls-header">
+          <div class="ls-title"><div class="ls-icon ic-tech"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M4 12h16M4 17h10"/><circle cx="18" cy="17" r="2"/></svg></div>Tech Discovery <span class="count-chip">14 signals</span></div>
+          <button class="btn btn-primary btn-sm">Apply accepted items</button>
+        </div>
+        <div style="padding:0 20px 14px;">
+          <div class="td-sub-label">Technology stack detected (6)</div>
+          <div class="chip-row" style="margin-bottom:12px;">
+            <span class="chip-td"><span class="cat">Data Infra ·</span>Azure</span>
+            <span class="chip-td"><span class="cat">Data Lake ·</span>ADLS</span>
+            <span class="chip-td"><span class="cat">Data Warehouse ·</span>Snowflake</span>
+            <span class="chip-td"><span class="cat">Data Warehouse ·</span>Databricks</span>
+            <span class="chip-td"><span class="cat">ETL ·</span>PowerCenter</span>
+            <span class="chip-td"><span class="cat">BI ·</span>Power BI</span>
+          </div>
+          <div class="td-sub-label">Enterprise systems &amp; existing tools (4)</div>
+          <div style="font-size:11px; color:var(--navy-70); line-height:1.6;">CRM: <strong>Salesforce</strong> · ERP: <strong>SAP</strong> · Catalog: <strong>Collibra</strong> · DQ: <strong>Informatica PowerCenter</strong></div>
+          <div style="font-size:10px; color:var(--navy-30); margin-top:6px;">+ 4 prose proposals collapsed — click to expand</div>
+        </div>
+      </div>
+
+      <!-- MEDDPICC (skipped indicator) -->
+      <div class="ls-section">
+        <div class="ls-header" style="opacity:.5;">
+          <div class="ls-title"><div class="ls-icon ic-meddpicc"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg></div>MEDDPICC <span class="count-chip">skipped</span></div>
+          <span style="font-size:10px; color:var(--navy-30);">Not selected in step 1</span>
+        </div>
+      </div>
+
+      <!-- Next Step -->
+      <div class="ls-section">
+        <div class="ls-header">
+          <div class="ls-title"><div class="ls-icon ic-nextstep"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M13 5l7 7-7 7M5 5l7 7-7 7"/></svg></div>Suggested Next Step</div>
+          <button class="btn btn-outline btn-sm">Create task</button>
+        </div>
+        <div style="padding:0 20px 14px;">
+          <input class="input" value="Send ONE DQ architecture doc and get NDA signed — unblocks the deep-dive with their data engineering team">
+        </div>
+      </div>
+
+      <div class="flow-footer">
+        <div class="left">5 of 5 sections — scroll to review, accept per section or all at once</div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-outline btn-sm">Save &amp; close</button>
+          <button class="btn btn-primary btn-sm">Apply all accepted</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Example: MEDDPICC section AS IT APPEARS if selected in step 1 -->
+    <div style="margin-top:20px;">
+      <div class="caption" style="margin:0 0 8px; padding:0;">
+        <strong>Illustrative · MEDDPICC section when selected in step 1</strong> — reshaped to save a note, not patch SF columns.
+      </div>
+      <div class="card">
+        <div class="sec-body">
+          <div class="sec-header">
+            <div><h3>MEDDPICC — proposed updates <span class="note-tag">saved as note</span></h3></div>
+            <button class="btn btn-primary btn-sm">Save as note</button>
+          </div>
+          <div class="info-banner">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0088a8" stroke-width="2" style="flex-shrink:0; margin-top:1px;"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <div>
+              <div class="label">Salesforce is not modified</div>
+              <div class="text">MEDDPICC in this app mirrors Salesforce. Accepted proposals are saved as a structured note on the opportunity and flagged <em>"Consider updating SF"</em> — the score/pill won't shift until you (or the AE) make the SF edit.</div>
+            </div>
+          </div>
+          <div class="meddpicc-item">
+            <div class="meddpicc-field">Economic Buyer</div>
+            <div class="meddpicc-old">Thomas Bayer (CTO)</div>
+            <div class="meddpicc-new">Thomas Bayer (CTO) with CDO Markus Klein backing per call 21-Apr.</div>
+          </div>
+          <div class="meddpicc-item">
+            <div class="meddpicc-field">Timeline</div>
+            <div class="meddpicc-old">— not set</div>
+            <div class="meddpicc-new">Hard deadline: live before Q3 board review in September.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!-- SCENE 4: LEAVE GUARD                                        -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <div class="scene" id="scene-guard">
+    <!-- Render the tabs content underneath as context -->
+    <div class="card" style="padding:0; opacity:.4;">
+      <div class="tabs-bar" style="pointer-events:none;">
+        <button class="tab-btn active">Tasks <span class="count">3</span></button>
+        <button class="tab-btn">SE Comment</button>
+        <button class="tab-btn">Tech Blockers <span class="count">2</span></button>
+        <button class="tab-btn">Tech Discovery <span class="count">14</span></button>
+        <button class="tab-btn">Next Step</button>
+      </div>
+      <div class="sec-body" style="min-height:240px;">
+        <div class="sec-header"><h3>Extracted Tasks</h3></div>
+        <div style="font-size:12px; color:var(--navy-30);">(tasks list rendered here — greyed for context)</div>
+      </div>
+    </div>
+
+    <!-- Overlay dialog -->
+    <div class="overlay">
+      <div class="guard">
+        <div class="guard-body">
+          <div class="guard-icon">
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>
+          </div>
+          <h2>Unsaved proposals</h2>
+          <p>You have <strong>3 tasks</strong>, <strong>2 tech blockers</strong>, <strong>a draft SE comment</strong>, and <strong>14 Tech Discovery signals</strong> that haven't been applied yet. Navigating away will discard them.</p>
+          <p style="margin-top:8px;">Your raw notes are already saved on the deal — only the AI proposals would be lost.</p>
+        </div>
+        <div class="guard-footer">
+          <button class="btn btn-ghost btn-sm">Discard &amp; leave</button>
+          <button class="btn btn-outline btn-sm">Apply all, then leave</button>
+          <button class="btn btn-primary btn-sm">Stay &amp; review</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- CAPTION -->
+<div class="caption">
+  <strong>Preview covers the full post-redesign flow.</strong> Scene 1 = section selector + paste combined on one page; 2 = processing; 3a/3b/3c = the three layout modes for reviewing results (user picks via the toggle in the page header, persisted per-user); 4 = the leave-guard dialog when trying to navigate away with unsaved AI proposals. The MEDDPICC section at the bottom of the Scroll view shows the Group-B treatment: saved as a structured note with a "Consider updating SF" flag, no SF-column PATCH.
+</div>
+
+<script>
+  function showScene(name, btn) {
+    document.querySelectorAll('.scene').forEach(s => s.classList.remove('active'));
+    document.getElementById('scene-' + name).classList.add('active');
+    // toggle view-mode chip visibility — only show on results scenes
+    const isResults = ['tabs', 'wizard', 'scroll', 'guard'].includes(name);
+    document.querySelectorAll('.results-only').forEach(el => el.classList.toggle('hidden', !isResults));
+    // sync the view-mode toggle highlight
+    document.querySelectorAll('.view-toggle button').forEach(b => b.classList.remove('active'));
+    if (name === 'tabs')   document.querySelector('.tabs-vm')?.classList.add('active');
+    if (name === 'wizard') document.querySelector('.wiz-vm')?.classList.add('active');
+    if (name === 'scroll') document.querySelector('.scr-vm')?.classList.add('active');
+    // sync scenario bar
+    if (btn) {
+      document.querySelectorAll('.sbar .sb-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  function switchView(which, el) {
+    showScene(which, null);
+    document.querySelectorAll('.view-toggle button').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    // sync scenario bar too
+    const idx = { tabs: 2, wizard: 3, scroll: 4 }[which];
+    const btns = document.querySelectorAll('.sbar .sb-btn');
+    btns.forEach(b => b.classList.remove('active'));
+    btns[idx].classList.add('active');
+  }
+</script>
+
+</body>
+</html>

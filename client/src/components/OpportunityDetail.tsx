@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { track } from '../hooks/useTracking';
 import type { Opportunity, Task, Note, User } from '../types';
 import { computeHealthScore } from '../utils/healthScore';
@@ -20,7 +21,6 @@ import OwnerSelector from './opportunity/OwnerSelector';
 import OpportunityTimeline from './OpportunityTimeline';
 import CallPrepTab from './CallPrepTab';
 import AccountTimelinePanel from './AccountTimelinePanel';
-import MeetingNotesModal from './MeetingNotesModal';
 import DealInfoTab from './opportunity/DealInfoTab';
 import DemoPrepTab from './DemoPrepTab';
 import SimilarDealsTab from './SimilarDealsTab';
@@ -165,6 +165,7 @@ interface Props {
 
 export default function OpportunityDetail({ oppId, onRefreshList, initialTab, initialAction }: Props) {
   const { user } = useAuthStore();
+  const navigate = useNavigate();
   const [opp, setOpp] = useState<Opportunity | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
   const [activeUsers, setActiveUsers] = useState<User[]>([]);
@@ -185,7 +186,6 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
   const [coachCollapsed, setCoachCollapsed] = useState(true);
   const coachPanelRef = useRef<HTMLDivElement>(null);
   const [showAccountPanel, setShowAccountPanel] = useState(false);
-  const [showNotesModal, setShowNotesModal] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const initialLoadDone = useRef(false);
@@ -235,7 +235,12 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
     if (!initialAction || initialActionFired.current || !opp || loading) return;
     initialActionFired.current = true;
     if (initialAction === 'summary') handleGetSummary();
-    if (initialAction === 'notes-processor') setShowNotesModal(true);
+    // Note: 'notes-processor' action now navigates to /opportunities/:sfid/process-notes
+    // directly from the invoking surface (HomePage AI quick link). The drawer
+    // no longer handles it — left here for older deep links that may still fire.
+    if (initialAction === 'notes-processor' && opp?.sf_opportunity_id) {
+      navigate(`/opportunities/${opp.sf_opportunity_id}/process-notes`);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialAction, opp, loading]);
 
@@ -878,14 +883,14 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
                   + Add note
                 </button>
                 <button
-                  onClick={() => setShowNotesModal(true)}
+                  onClick={() => opp && navigate(`/opportunities/${opp.sf_opportunity_id}/process-notes`)}
                   className="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-medium bg-brand-purple text-white rounded-lg hover:bg-brand-purple-70 transition-colors"
-                  title="Import call notes with Claude"
+                  title="Process call notes with Claude"
                 >
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
-                  Import with Claude
+                  Process with Claude
                 </button>
               </div>
             )}
@@ -914,15 +919,6 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
         )}
 
         </div>{/* end scrollable work area */}
-
-      {/* ── Meeting Notes Modal ── */}
-      {showNotesModal && (
-        <MeetingNotesModal
-          opp={opp}
-          onClose={() => setShowNotesModal(false)}
-          onRefresh={reload}
-        />
-      )}
 
       {/* ── Account Timeline Panel ── */}
       {showAccountPanel && opp.account_name && (
