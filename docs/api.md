@@ -44,6 +44,10 @@ POST   /opportunities/:id/summary        (calls Claude API)
 # Similarity (no AI)
 GET    /opportunities/:id/similar-deals  (top closed-won/lost matches, SQL+TS scoring, issue #111)
 
+# Tech Discovery (structured technical-side capture per opp)
+GET    /opportunities/:id/tech-discovery  returns current row or default empty shape
+PATCH  /opportunities/:id/tech-discovery  partial update; JSONB fields replaced wholesale
+
 # Similar Deals — AI fallback (issue #111 lever 3)
 GET    /opportunities/:id/kb-playbook/cached     cached playbook + source count
 POST   /opportunities/:id/kb-playbook/generate   synthesize from KB via Claude, cache 7d

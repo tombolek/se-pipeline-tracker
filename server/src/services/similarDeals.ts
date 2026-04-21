@@ -31,6 +31,13 @@ interface DealRow {
   se_owner_name: string | null;
 }
 
+interface TechDiscoveryLite {
+  opportunity_id: number;
+  tech_stack: Record<string, unknown>;
+  initiatives: Record<string, unknown>;
+  existing_dmg: Record<string, unknown>;
+}
+
 interface KbRow {
   id: number;
   customer_name: string;
@@ -99,6 +106,22 @@ const LOOKBACK_MONTHS = 18;
 const MAX_RESULTS = 8;
 const MIN_SCORE = 40;
 const MAX_PER_QUERY = 200;
+
+// Known tech-stack category keys that match on overlap. Kept in sync with the
+// frontend checklist groups. Enterprise systems and existing DMG tools use a
+// different shape (specify-value) — scored separately.
+const TECH_STACK_CATEGORIES = [
+  'data_infrastructure',
+  'data_lake',
+  'data_lake_metastore',
+  'data_warehouse',
+  'database',
+  'datalake_processing',
+  'etl',
+  'business_intelligence',
+  'nosql',
+  'streaming',
+];
 
 // In-flight stages we count as "playbook is ripe enough to mine"
 const IN_FLIGHT_STAGES = ['Negotiate', 'Proposal Sent', 'Submitted for Booking'];
@@ -198,6 +221,64 @@ function dealOutcome(row: DealRow): Outcome {
 interface ScoreBreakdown {
   total: number;
   chips: MatchChip[];
+}
+
+/**
+ * Tech-stack Jaccard across all categories. Same-vendor same-category
+ * overlap is a strong signal ("this deal uses Snowflake + dbt, so does that
+ * one"). Initiatives overlap catches strategic alignment (both are Cloud
+ * Migration + Data Mesh).
+ *
+ * Max contribution: 15 points (10 stack + 5 initiatives), pushed on top of
+ * the base 100 and clamped at 100 by the caller — keeps v1 simple at the
+ * cost of losing some resolution at the high end.
+ */
+function scoreTechDiscoveryPair(
+  active: TechDiscoveryLite | undefined,
+  historical: TechDiscoveryLite | undefined,
+): ScoreBreakdown {
+  let total = 0;
+  const chips: MatchChip[] = [];
+  if (!active || !historical) return { total, chips };
+
+  const aStack = active.tech_stack ?? {};
+  const hStack = historical.tech_stack ?? {};
+
+  // Aggregate overlap across all categories, not per-category (we don't want
+  // to quadruple-count a deal that shares four tools in four categories).
+  const aItems = new Set<string>();
+  const hItems = new Set<string>();
+  const perCategoryOverlaps: Array<{ category: string; items: string[] }> = [];
+  for (const cat of TECH_STACK_CATEGORIES) {
+    const a = Array.isArray((aStack as Record<string, unknown>)[cat]) ? ((aStack as Record<string, string[]>)[cat] ?? []) : [];
+    const h = Array.isArray((hStack as Record<string, unknown>)[cat]) ? ((hStack as Record<string, string[]>)[cat] ?? []) : [];
+    a.forEach(x => aItems.add(`${cat}:${x.toLowerCase()}`));
+    h.forEach(x => hItems.add(`${cat}:${x.toLowerCase()}`));
+    const catOverlap = a.filter(x => h.map(y => y.toLowerCase()).includes(x.toLowerCase()));
+    if (catOverlap.length > 0) perCategoryOverlaps.push({ category: cat, items: catOverlap });
+  }
+  const stackJacc = jaccard(aItems, hItems);
+  total += Math.round(stackJacc * 10);
+  if (perCategoryOverlaps.length > 0) {
+    // Pick the most informative category for the chip label — prefer
+    // data_warehouse > etl > database; fall back to the first one.
+    const priority = ['data_warehouse', 'etl', 'database', 'data_infrastructure'];
+    const picked = priority.map(p => perCategoryOverlaps.find(o => o.category === p)).find(x => x)
+                   ?? perCategoryOverlaps[0];
+    if (picked) {
+      chips.push({ label: `Same stack: ${picked.items.join('+')}`, kind: 'product' });
+    }
+  }
+
+  // Initiatives overlap — only boolean true flags count.
+  const aInit = active.initiatives ?? {};
+  const hInit = historical.initiatives ?? {};
+  const aFlags = new Set(Object.keys(aInit).filter(k => (aInit as Record<string, unknown>)[k] === true));
+  const hFlags = new Set(Object.keys(hInit).filter(k => (hInit as Record<string, unknown>)[k] === true));
+  const initJacc = jaccard(aFlags, hFlags);
+  total += Math.round(initJacc * 5);
+
+  return { total, chips };
 }
 
 function scoreDealPair(active: DealRow, historical: DealRow): ScoreBreakdown {
@@ -430,10 +511,30 @@ export async function findSimilarDeals(oppId: number): Promise<SimilarDealsRespo
     []
   );
 
+  // Fetch Tech Discovery rows for the active opp + every candidate in one
+  // query so tech-stack overlap scoring is cheap. Candidates without a row
+  // in this table simply contribute 0 — the feature is forward-compatible
+  // with the existing corpus that has never filled it out.
+  const allCandidateIds = [oppId, ...closedCorpus.map(c => c.id), ...inFlightCorpus.map(c => c.id)];
+  const techDiscoveryRows = await query<TechDiscoveryLite>(
+    `SELECT opportunity_id, tech_stack, initiatives, existing_dmg
+     FROM opportunity_tech_discovery
+     WHERE opportunity_id = ANY($1::int[])`,
+    [allCandidateIds]
+  );
+  const techDiscoveryById = new Map(techDiscoveryRows.map(r => [r.opportunity_id, r]));
+  const activeTechDiscovery = techDiscoveryById.get(oppId);
+
   // Score each corpus and merge.
   const scoredDeals: SimilarDealResult[] = [];
   for (const h of [...closedCorpus, ...inFlightCorpus]) {
-    const { total, chips } = scoreDealPair(active, h);
+    const { total: baseTotal, chips } = scoreDealPair(active, h);
+    const { total: techTotal, chips: techChips } = scoreTechDiscoveryPair(
+      activeTechDiscovery,
+      techDiscoveryById.get(h.id)
+    );
+    const total = Math.min(baseTotal + techTotal, 100);
+    const allChips = [...chips, ...techChips];
     const { why, snippets } = buildWhyForDeal(h);
     const outcome = dealOutcome(h);
     scoredDeals.push({
@@ -449,7 +550,7 @@ export async function findSimilarDeals(oppId: number): Promise<SimilarDealsRespo
       se_owner_name: h.se_owner_name,
       account_industry: h.account_industry,
       score: total,
-      match_chips: chips,
+      match_chips: allChips,
       why_text: why,
       snippets,
     });

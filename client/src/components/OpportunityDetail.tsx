@@ -24,6 +24,7 @@ import MeetingNotesModal from './MeetingNotesModal';
 import DealInfoTab from './opportunity/DealInfoTab';
 import DemoPrepTab from './DemoPrepTab';
 import SimilarDealsTab from './SimilarDealsTab';
+import TechDiscoveryTab from './TechDiscoveryTab';
 
 // ── MEDDPICC Coach types ──────────────────────────────────────────────────────
 export interface CoachElement {
@@ -158,7 +159,7 @@ function MeddpiccPill({ opp, onClick }: { opp: Opportunity; onClick?: () => void
 interface Props {
   oppId: number;
   onRefreshList?: () => void;
-  initialTab?: 'work' | 'timeline' | 'call-prep' | 'demo-prep' | 'similar-deals' | 'deal-info';
+  initialTab?: 'work' | 'timeline' | 'call-prep' | 'demo-prep' | 'similar-deals' | 'tech-discovery' | 'deal-info';
   initialAction?: 'summary' | 'notes-processor';
 }
 
@@ -171,7 +172,7 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
   const [showAddTask, setShowAddTask] = useState(false);
   const [showAddNote, setShowAddNote] = useState(false);
   const [assigningOwner, setAssigningOwner] = useState(false);
-  const [activeTab, setActiveTab] = useState<'work' | 'timeline' | 'call-prep' | 'demo-prep' | 'similar-deals' | 'deal-info'>(initialTab ?? 'work');
+  const [activeTab, setActiveTab] = useState<'work' | 'timeline' | 'call-prep' | 'demo-prep' | 'similar-deals' | 'tech-discovery' | 'deal-info'>(initialTab ?? 'work');
   const [scrollToSection, setScrollToSection] = useState<string | null>(null);
 
   const [summary, setSummary] = useState<string | null>(null);
@@ -719,6 +720,7 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
             { key: 'call-prep' as const, label: 'Call Prep', icon: true },
             { key: 'demo-prep' as const, label: 'Demo Prep', icon: 'demo' as const },
             { key: 'similar-deals' as const, label: 'Similar Deals', icon: 'similar' as const },
+            { key: 'tech-discovery' as const, label: 'Tech Discovery', icon: 'tech' as const },
             { key: 'deal-info' as const, label: 'Deal Info' },
           ]).map(tab => {
             const isActive = activeTab === tab.key;
@@ -749,6 +751,12 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
                     <circle cx="17" cy="17" r="4"/>
                   </svg>
                 )}
+                {tab.icon === 'tech' && (
+                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 7h16M4 12h16M4 17h10"/>
+                    <circle cx="18" cy="17" r="2"/>
+                  </svg>
+                )}
                 {tab.label}
               </button>
             );
@@ -771,6 +779,9 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
 
         {/* Similar Deals tab */}
         {activeTab === 'similar-deals' && <SimilarDealsTab oppId={oppId} oppName={opp?.name} />}
+
+        {/* Tech Discovery tab */}
+        {activeTab === 'tech-discovery' && <TechDiscoveryTab oppId={oppId} oppName={opp?.name} readOnly={isReadOnly} />}
 
         {/* Work tab content */}
         {activeTab === 'work' && <>

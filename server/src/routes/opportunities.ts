@@ -10,6 +10,7 @@ import { runAiJob, startJob, completeJob, failJob } from '../services/aiJobs.js'
 import { findSimilarDeals } from '../services/similarDeals.js';
 import { getCachedPlaybook, generatePlaybook } from '../services/kbPlaybook.js';
 import { getCachedInsights, generateInsights } from '../services/similarDealsInsights.js';
+import { getTechDiscovery, upsertTechDiscovery, emptyTechDiscovery, type TechDiscoveryPatch } from '../services/techDiscovery.js';
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
@@ -1754,6 +1755,47 @@ router.get('/:id/similar-deals/insights/cached', auth, async (req: Request, res:
   } catch (e) {
     console.error('[similar-deals insights cached] error:', e);
     res.status(500).json(err('Failed to load insights'));
+  }
+});
+
+// GET /opportunities/:id/tech-discovery
+// Returns the structured Technical Discovery row for an opp, or a default
+// empty shape when nothing's been filled in yet.
+router.get('/:id/tech-discovery', auth, async (req: Request, res: Response): Promise<void> => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) { res.status(400).json(err('Invalid opportunity id')); return; }
+  try {
+    const existing = await getTechDiscovery(id);
+    res.json(ok(existing ?? emptyTechDiscovery(id)));
+  } catch (e) {
+    console.error('[tech-discovery get] error:', e);
+    res.status(500).json(err('Failed to load Tech Discovery'));
+  }
+});
+
+// PATCH /opportunities/:id/tech-discovery
+// Partial update. Creates the row on first edit. Only fields present in the
+// body are touched; JSONB fields are replaced wholesale, not merged — the
+// client always sends the full object for those.
+router.patch('/:id/tech-discovery', auth, write, async (req: Request, res: Response): Promise<void> => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) { res.status(400).json(err('Invalid opportunity id')); return; }
+  const userId = (req as AuthenticatedRequest).user.userId;
+
+  // Validate the opp exists before inserting to avoid creating orphan rows.
+  const opp = await queryOne<{ id: number }>(
+    'SELECT id FROM opportunities WHERE id = $1 AND is_active = true',
+    [id]
+  );
+  if (!opp) { res.status(404).json(err('Opportunity not found')); return; }
+
+  const patch = (req.body ?? {}) as TechDiscoveryPatch;
+  try {
+    const updated = await upsertTechDiscovery(id, patch, userId);
+    res.json(ok(updated));
+  } catch (e) {
+    console.error('[tech-discovery patch] error:', e);
+    res.status(500).json(err(`Failed to save Tech Discovery: ${(e as Error).message}`));
   }
 });
 

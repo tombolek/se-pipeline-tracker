@@ -7,6 +7,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## 2026-04-17
 
+### Added
+- **Tech Discovery tab** — new tab in the opportunity drawer (between Similar Deals and Deal Info) for structured capture of the technical side of a deal, inspired by the internal Technical Discovery Document template. Four sections: **Discovery Notes** (9 prose fields — current incumbent solutions, Tier 1 integrations, data details & users, ingestion sources, planned ingestion sources, data cleansing & remediation, deployment preference, technical constraints, open technical requirements), **Data Initiatives** (toggle chips — Data Mesh, Data Fabric, cloud migration, regulatory exposure, etc.), **Technology Stack** (10 categorised multi-select groups from Data Infrastructure through Streaming, each with "Other (specify)" fallback), and **Enterprise Systems & Existing Data Mgmt Tools** (specify-value fields for CRM / ERP / Catalog / DQ / MDM etc.). Auto-saves on blur. New `opportunity_tech_discovery` table (migration 044) with TEXT columns for prose and JSONB + GIN indexes for the checklist sections so the option list can evolve without migrations. **Feeds Similar Deals scoring** — shared tech-stack items (e.g. same Snowflake + dbt) and shared initiatives contribute up to ~15 extra points on top of the existing 100-pt rubric, capped at 100. Forward-compat with empty data — the feature is invisible on opps that haven't filled it in. Next step: auto-seed from meeting notes and RFPs (issue #139). (Issue #111 follow-up)
+
 ### Changed
 - **Home · swapped position of PoC Alerts and Upcoming This Week** — PoC Alerts now lives in the right column (sitting with Needs Attention), and Upcoming This Week moves to the left column under Today's Tasks. Puts the actionable "what's expiring right now" card closer to the SE hygiene signals.
 
