@@ -119,7 +119,7 @@ interface Prefs {
 function loadPrefs(): Prefs {
   try {
     const raw = localStorage.getItem(PREFS_KEY);
-    if (!raw) return { sections: [...DEFAULT_SECTIONS], save_raw_notes: true, view_mode: 'tabs' };
+    if (!raw) return { sections: [...DEFAULT_SECTIONS], save_raw_notes: true, view_mode: 'wizard' };
     const parsed = JSON.parse(raw) as Partial<Prefs>;
     const sections = Array.isArray(parsed.sections) && parsed.sections.length > 0
       ? (parsed.sections.filter((s): s is Section => ALL_SECTIONS.includes(s as Section)))
@@ -127,9 +127,9 @@ function loadPrefs(): Prefs {
     return {
       sections,
       save_raw_notes: parsed.save_raw_notes !== false,
-      view_mode: parsed.view_mode === 'wizard' || parsed.view_mode === 'scroll' ? parsed.view_mode : 'tabs',
+      view_mode: parsed.view_mode === 'tabs' || parsed.view_mode === 'scroll' ? parsed.view_mode : 'wizard',
     };
-  } catch { return { sections: [...DEFAULT_SECTIONS], save_raw_notes: true, view_mode: 'tabs' }; }
+  } catch { return { sections: [...DEFAULT_SECTIONS], save_raw_notes: true, view_mode: 'wizard' }; }
 }
 function savePrefs(prefs: Prefs) {
   try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch { /* ignore */ }

@@ -8,6 +8,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## 2026-04-21
 
 ### Changed
+- **Process Call Notes · Wizard is now the default layout** — results land in Wizard mode (breadcrumb + one section at a time) for new users. Users who already have Tabs or Scroll saved in localStorage keep their preference.
+
+### Changed
 - **Process Call Notes · Tabs mode is now forced-linear** — the bottom "Apply all accepted" button became "Next section →" that walks the SE through each selected section one at a time. On the last section it becomes "Apply all & finish". Tabs are clickable backwards for review but greyed-out forward until reached, so no one accidentally fires a blanket "apply" without reviewing each extraction. Wizard and Scroll modes unchanged.
 
 ### Changed
