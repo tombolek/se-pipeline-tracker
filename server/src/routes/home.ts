@@ -14,6 +14,9 @@ router.get('/digest', auth, async (req: Request, res: Response): Promise<void> =
 
   const [myTasks, pocAlerts, recentActivity, closedLost, staleDeals, upcoming, hygieneRaw] = await Promise.all([
     // 1. My tasks: overdue + due today + due this week (open/in_progress/blocked)
+    // "Today's Tasks" card: overdue + due today only. Tasks due tomorrow
+    // through 7 days out are covered by the "Upcoming This Week" section.
+    // Tasks with no due_date are viewable from /my-tasks.
     query(
       `SELECT t.id, t.title, t.status, t.due_date, t.is_next_step,
               t.opportunity_id,
@@ -24,12 +27,13 @@ router.get('/digest', auth, async (req: Request, res: Response): Promise<void> =
          AND t.is_deleted = false
          AND t.status IN ('open', 'in_progress', 'blocked')
          AND o.is_active = true AND o.is_closed_lost = false
+         AND t.due_date IS NOT NULL
+         AND t.due_date <= CURRENT_DATE
        ORDER BY
          CASE WHEN t.due_date < CURRENT_DATE THEN 0
-              WHEN t.due_date = CURRENT_DATE THEN 1
-              ELSE 2
+              ELSE 1
          END,
-         t.due_date ASC NULLS LAST,
+         t.due_date ASC,
          t.created_at DESC`,
       [uid]
     ),

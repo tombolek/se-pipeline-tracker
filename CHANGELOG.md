@@ -8,6 +8,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## 2026-04-17
 
 ### Fixed
+- **Home · "Today's Tasks" card now actually shows today's tasks** — the card was listing every open task (overdue, today, and future) because the server query had no date filter. Tasks due tomorrow–7 days out were slipping in alongside truly due-today items. Fixed: server filter now only returns tasks with a `due_date` of today or earlier. Future tasks still show in "Upcoming This Week"; tasks with no due date are visible on `/my-tasks`.
 - **Edit task — due date field now pre-populates** — opening the inline task editor was showing an empty `mm/dd/yyyy` placeholder instead of the task's actual due date. `<input type="date">` only accepts `YYYY-MM-DD`, but the API returns `due_date` as a full ISO timestamp — which the input silently rejects. Sliced to the date portion. The save roundtrip was never broken (hence "it was still there when I saved") — only the edit form's initial display.
 
 ### Changed
