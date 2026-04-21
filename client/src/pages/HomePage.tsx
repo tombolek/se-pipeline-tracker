@@ -447,34 +447,39 @@ export default function HomePage() {
               )}
             </SectionCard>
 
-            {/* PoC Alerts */}
+            {/* Upcoming This Week */}
             <SectionCard
-              icon={<svg className="w-4 h-4 text-brand-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>}
-              title="PoC Alerts"
-              badge={data.poc_alerts.length > 0 ? <span className="text-[10px] font-semibold bg-brand-purple/10 text-brand-purple px-1.5 py-0.5 rounded-full">{data.poc_alerts.length}</span> : undefined}
+              icon={<svg className="w-4 h-4 text-brand-navy-70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>}
+              title="Upcoming This Week"
+              footer={<button onClick={() => navigate('/calendar')} className="text-[11px] font-medium text-brand-purple hover:text-brand-purple-70 transition-colors">Open calendar &rarr;</button>}
             >
-              {data.poc_alerts.length === 0 ? (
-                <AllClear text="No PoCs ending soon" />
+              {data.upcoming.length === 0 ? (
+                <AllClear text="Nothing upcoming this week" />
               ) : (
                 <div className="divide-y divide-brand-navy-30/15">
-                  {data.poc_alerts.map(p => (
-                    <div key={p.id} onClick={() => openOpp(p.id)} className="px-5 py-3 hover:bg-brand-purple-30/20 cursor-pointer transition-colors">
-                      <div className="flex items-start gap-3">
-                        <span className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ring-2 ${p.days_remaining <= 0 ? 'bg-status-overdue ring-status-overdue/20' : p.days_remaining <= 3 ? 'bg-status-warning ring-status-warning/20' : 'bg-brand-purple ring-brand-purple/20'}`} />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium text-brand-navy leading-snug">{p.name}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="text-[10px] text-brand-navy-70">PoC ends {formatEventDate(p.poc_end_date)}</span>
-                            <span className={`text-[10px] font-semibold ${p.days_remaining <= 0 ? 'text-status-overdue' : p.days_remaining <= 3 ? 'text-status-warning' : 'text-brand-navy-70'}`}>
-                              {p.days_remaining <= 0 ? `${Math.abs(p.days_remaining)}d overdue` : `${p.days_remaining}d left`}
-                            </span>
-                            <span className="text-brand-navy-30">&middot;</span>
-                            <span className="text-[10px] text-brand-navy-70">{p.poc_status}</span>
+                  {data.upcoming.map((ev, i) => {
+                    const typeBadge = ev.event_type === 'poc_end'
+                      ? { text: 'PoC', cls: 'text-status-overdue bg-status-overdue/10' }
+                      : ev.event_type === 'rfx_submission'
+                      ? { text: 'RFx', cls: 'text-status-warning bg-status-warning/10' }
+                      : ev.is_next_step
+                      ? { text: 'Next Step', cls: 'text-brand-purple bg-brand-purple-30/50' }
+                      : null;
+                    return (
+                      <div key={i} onClick={() => openOpp(ev.opportunity_id)} className="px-5 py-3 hover:bg-brand-purple-30/20 cursor-pointer transition-colors">
+                        <div className="flex items-center gap-3">
+                          <span className="text-[10px] font-semibold text-brand-navy-70 w-12 flex-shrink-0">{formatEventDate(ev.event_date)}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-brand-navy">{ev.label}</p>
+                            <span className="text-[10px] text-brand-navy-70">{ev.opportunity_name}</span>
                           </div>
+                          {typeBadge && (
+                            <span className={`text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded flex-shrink-0 ${typeBadge.cls}`}>{typeBadge.text}</span>
+                          )}
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </SectionCard>
@@ -634,39 +639,34 @@ export default function HomePage() {
               </SectionCard>
             )}
 
-            {/* Upcoming This Week */}
+            {/* PoC Alerts */}
             <SectionCard
-              icon={<svg className="w-4 h-4 text-brand-navy-70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>}
-              title="Upcoming This Week"
-              footer={<button onClick={() => navigate('/calendar')} className="text-[11px] font-medium text-brand-purple hover:text-brand-purple-70 transition-colors">Open calendar &rarr;</button>}
+              icon={<svg className="w-4 h-4 text-brand-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>}
+              title="PoC Alerts"
+              badge={data.poc_alerts.length > 0 ? <span className="text-[10px] font-semibold bg-brand-purple/10 text-brand-purple px-1.5 py-0.5 rounded-full">{data.poc_alerts.length}</span> : undefined}
             >
-              {data.upcoming.length === 0 ? (
-                <AllClear text="Nothing upcoming this week" />
+              {data.poc_alerts.length === 0 ? (
+                <AllClear text="No PoCs ending soon" />
               ) : (
                 <div className="divide-y divide-brand-navy-30/15">
-                  {data.upcoming.map((ev, i) => {
-                    const typeBadge = ev.event_type === 'poc_end'
-                      ? { text: 'PoC', cls: 'text-status-overdue bg-status-overdue/10' }
-                      : ev.event_type === 'rfx_submission'
-                      ? { text: 'RFx', cls: 'text-status-warning bg-status-warning/10' }
-                      : ev.is_next_step
-                      ? { text: 'Next Step', cls: 'text-brand-purple bg-brand-purple-30/50' }
-                      : null;
-                    return (
-                      <div key={i} onClick={() => openOpp(ev.opportunity_id)} className="px-5 py-3 hover:bg-brand-purple-30/20 cursor-pointer transition-colors">
-                        <div className="flex items-center gap-3">
-                          <span className="text-[10px] font-semibold text-brand-navy-70 w-12 flex-shrink-0">{formatEventDate(ev.event_date)}</span>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium text-brand-navy">{ev.label}</p>
-                            <span className="text-[10px] text-brand-navy-70">{ev.opportunity_name}</span>
+                  {data.poc_alerts.map(p => (
+                    <div key={p.id} onClick={() => openOpp(p.id)} className="px-5 py-3 hover:bg-brand-purple-30/20 cursor-pointer transition-colors">
+                      <div className="flex items-start gap-3">
+                        <span className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ring-2 ${p.days_remaining <= 0 ? 'bg-status-overdue ring-status-overdue/20' : p.days_remaining <= 3 ? 'bg-status-warning ring-status-warning/20' : 'bg-brand-purple ring-brand-purple/20'}`} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium text-brand-navy leading-snug">{p.name}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-[10px] text-brand-navy-70">PoC ends {formatEventDate(p.poc_end_date)}</span>
+                            <span className={`text-[10px] font-semibold ${p.days_remaining <= 0 ? 'text-status-overdue' : p.days_remaining <= 3 ? 'text-status-warning' : 'text-brand-navy-70'}`}>
+                              {p.days_remaining <= 0 ? `${Math.abs(p.days_remaining)}d overdue` : `${p.days_remaining}d left`}
+                            </span>
+                            <span className="text-brand-navy-30">&middot;</span>
+                            <span className="text-[10px] text-brand-navy-70">{p.poc_status}</span>
                           </div>
-                          {typeBadge && (
-                            <span className={`text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded flex-shrink-0 ${typeBadge.cls}`}>{typeBadge.text}</span>
-                          )}
                         </div>
                       </div>
-                    );
-                  })}
+                    </div>
+                  ))}
                 </div>
               )}
             </SectionCard>
