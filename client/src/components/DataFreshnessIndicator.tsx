@@ -136,11 +136,8 @@ export default function DataFreshnessIndicator() {
                 · {age.label}
               </span>
             </p>
-            {data.filename && (
-              <p className="text-brand-navy-70 text-[10px] mt-1 truncate">{data.filename}</p>
-            )}
             {data.row_count != null && (
-              <p className="text-brand-navy-70 text-[10px] mt-0.5">
+              <p className="text-brand-navy-70 text-[10px] mt-1">
                 {data.row_count} rows
                 {data.opportunities_added != null && <> · {data.opportunities_added} added</>}
                 {data.opportunities_updated != null && <> · {data.opportunities_updated} updated</>}
