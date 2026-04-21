@@ -17,7 +17,10 @@ function EditTaskForm({
 }) {
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description ?? '');
-  const [dueDate, setDueDate] = useState(task.due_date ?? '');
+  // <input type="date"> only accepts YYYY-MM-DD; task.due_date arrives as a
+  // full ISO timestamp ("2026-04-30T00:00:00.000Z"), which the input silently
+  // rejects → placeholder shows. Slice to the date portion.
+  const [dueDate, setDueDate] = useState(task.due_date ? task.due_date.slice(0, 10) : '');
   const [saving, setSaving] = useState(false);
 
   async function submit(e: React.FormEvent) {

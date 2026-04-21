@@ -7,6 +7,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## 2026-04-17
 
+### Fixed
+- **Edit task — due date field now pre-populates** — opening the inline task editor was showing an empty `mm/dd/yyyy` placeholder instead of the task's actual due date. `<input type="date">` only accepts `YYYY-MM-DD`, but the API returns `due_date` as a full ISO timestamp — which the input silently rejects. Sliced to the date portion. The save roundtrip was never broken (hence "it was still there when I saved") — only the edit form's initial display.
+
 ### Changed
 - **Home · PoC Alerts rule tightened** — the card now covers "ending this or next week" **plus** any overdue PoC still in an active status (`Identified` / `In Deployment` / `In Progress` / `Wrapping Up`). Previously overdue PoCs dropped off the card after 3 days, which hid e.g. a "Wrapping Up" PoC that was 11 days past its end date — the SE only saw it in Needs Attention. Also excludes closed PoC statuses from the card so finished PoCs don't linger. The existing `Nd overdue` red label on each row is unchanged.
 
