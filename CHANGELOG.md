@@ -8,6 +8,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## 2026-04-22
 
 ### Added
+- **Insights → SE Contribution (Issue #73)** — new manager-only page at `/insights/se-contribution` showing per-SE performance signal for review prep and headcount conversations. Four metrics per SE: BV→DS conversion rate, DS→PS conversion rate, Closed ARR (as owner) + Contributed ARR (as contributor on closed-won), PoC conversion (ended PoCs → Closed Won), and 14-day data-hygiene rate. Strict stage transitions only — skipping stages is tracked but excluded from the rate denominator. Deals stuck in a stage for ≥180 days are counted as *assumed lost*, with an inline caveat under the table. Rates computed from fewer than 5 resolved deals are visually dampened (small dot marker) to signal "directional only". Row order: Team total → active SEs → inactive SEs → "No current SE owner" (orphan deals stay visible for attribution honesty). Period selector: Last 90d / 12mo / 2y. Network-only (manager-only report; rarely needed off-VPN). Migration 048 seeds manager role access.
+
+### Added
 - **Weekly Digest surfaces Lost Reason + Next Step context as columns** — each Closed Lost row now has dedicated **Lost Reason** (reason · sub-reason), **Lost To** (competitor) and **Comment** columns so managers can scan *why* deals lost without opening every drawer. Stage Progressions and Stale Deals rows now include **Next Step** and **SE Comment** columns. Long text clamps to two lines with a full-text tooltip on hover; empty cells render as a muted em-dash so the grid stays aligned. Backend `/insights/weekly-digest` query extended to return these fields on the three sections.
 
 ### Added

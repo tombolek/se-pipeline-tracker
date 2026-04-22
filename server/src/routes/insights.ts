@@ -1807,5 +1807,251 @@ router.get('/competitive', auth, mgr, async (req: Request, res: Response): Promi
 });
 */
 
+// GET /insights/se-contribution?days=365
+//
+// Per-SE contribution report for manager performance reviews. Four metrics:
+//   • BV→DS conversion rate (strict forward transition)
+//   • DS→PS conversion rate (strict forward transition)
+//   • Closed ARR (owner) + Contributed ARR (non-owner contributor on closed-won)
+//   • PoC conversion (deals that reached a PoC end date → Closed Won)
+//   • Data hygiene (% of owned open deals with note/SE-comments update in 14d)
+//
+// Conversion bucket logic (per deal, per source stage):
+//   progressed          — destination stage date > source stage date (strict)
+//   lost                — closed lost after entering source stage
+//   skipped             — jumped past destination (dest NULL, later stage dated)
+//   stuck_assumed_lost  — source entered ≥180d ago, no progression, not lost
+//   in_flight           — still resolving
+// Rate denominator = progressed + lost + stuck_assumed_lost.
+router.get('/se-contribution', auth, mgr, async (req: Request, res: Response): Promise<void> => {
+  const days = Math.max(1, parseInt((req.query.days as string) ?? '365') || 365);
+  const STUCK_CUTOFF_DAYS = 180;
+
+  // BV cohort per SE — using current se_owner (attribution caveat: historical handoffs).
+  const bvRows = await query<{ se_owner_id: number | null; bucket: string; cnt: string }>(
+    `SELECT o.se_owner_id,
+       CASE
+         WHEN o.stage_date_develop_solution > o.stage_date_build_value        THEN 'progressed'
+         WHEN o.is_closed_lost
+              AND o.stage_date_closed_lost > o.stage_date_build_value         THEN 'lost'
+         WHEN o.stage_date_develop_solution IS NULL
+              AND (o.stage_date_proposal_sent         > o.stage_date_build_value
+                OR o.stage_date_submitted_for_booking > o.stage_date_build_value
+                OR o.stage_date_negotiate             > o.stage_date_build_value
+                OR o.stage_date_closed_won            > o.stage_date_build_value) THEN 'skipped'
+         WHEN o.stage_date_build_value <= CURRENT_DATE - $2::int              THEN 'stuck_assumed_lost'
+         ELSE                                                                      'in_flight'
+       END AS bucket,
+       COUNT(*) AS cnt
+     FROM opportunities o
+     WHERE o.is_active
+       AND o.stage_date_build_value IS NOT NULL
+       AND o.stage_date_build_value >= CURRENT_DATE - $1::int
+     GROUP BY o.se_owner_id, bucket`,
+    [days, STUCK_CUTOFF_DAYS],
+  );
+
+  const dsRows = await query<{ se_owner_id: number | null; bucket: string; cnt: string }>(
+    `SELECT o.se_owner_id,
+       CASE
+         WHEN o.stage_date_proposal_sent > o.stage_date_develop_solution      THEN 'progressed'
+         WHEN o.is_closed_lost
+              AND o.stage_date_closed_lost > o.stage_date_develop_solution    THEN 'lost'
+         WHEN o.stage_date_proposal_sent IS NULL
+              AND (o.stage_date_submitted_for_booking > o.stage_date_develop_solution
+                OR o.stage_date_negotiate             > o.stage_date_develop_solution
+                OR o.stage_date_closed_won            > o.stage_date_develop_solution) THEN 'skipped'
+         WHEN o.stage_date_develop_solution <= CURRENT_DATE - $2::int         THEN 'stuck_assumed_lost'
+         ELSE                                                                      'in_flight'
+       END AS bucket,
+       COUNT(*) AS cnt
+     FROM opportunities o
+     WHERE o.is_active
+       AND o.stage_date_develop_solution IS NOT NULL
+       AND o.stage_date_develop_solution >= CURRENT_DATE - $1::int
+     GROUP BY o.se_owner_id, bucket`,
+    [days, STUCK_CUTOFF_DAYS],
+  );
+
+  // Closed ARR (as owner) + Contributed ARR (as contributor, not owner).
+  // Both scoped to closed-won within the lookback. arr_converted is the USD
+  // normalised ARR (preferred) with fallback to arr when converted is null.
+  const arrOwnerRows = await query<{ se_owner_id: number | null; closed_arr: string; deal_count: string }>(
+    `SELECT o.se_owner_id,
+       COALESCE(SUM(COALESCE(o.arr_converted, o.arr)), 0) AS closed_arr,
+       COUNT(*) AS deal_count
+     FROM opportunities o
+     WHERE o.is_closed_won
+       AND o.stage_date_closed_won IS NOT NULL
+       AND o.stage_date_closed_won >= CURRENT_DATE - $1::int
+     GROUP BY o.se_owner_id`,
+    [days],
+  );
+
+  const arrContribRows = await query<{ user_id: number; contributed_arr: string; deal_count: string }>(
+    `SELECT c.user_id,
+       COALESCE(SUM(COALESCE(o.arr_converted, o.arr)), 0) AS contributed_arr,
+       COUNT(*) AS deal_count
+     FROM opportunity_se_contributors c
+     JOIN opportunities o ON o.id = c.opportunity_id
+     WHERE o.is_closed_won
+       AND o.stage_date_closed_won IS NOT NULL
+       AND o.stage_date_closed_won >= CURRENT_DATE - $1::int
+       AND (o.se_owner_id IS DISTINCT FROM c.user_id)
+     GROUP BY c.user_id`,
+    [days],
+  );
+
+  // PoC conversion — deals whose PoC has ended (poc_end_date in the past) grouped
+  // by whether they reached Closed Won. Denominator excludes PoCs still in progress.
+  const pocRows = await query<{ se_owner_id: number | null; ended: string; won: string }>(
+    `SELECT o.se_owner_id,
+       COUNT(*) FILTER (WHERE o.poc_end_date <= CURRENT_DATE) AS ended,
+       COUNT(*) FILTER (WHERE o.poc_end_date <= CURRENT_DATE AND o.is_closed_won) AS won
+     FROM opportunities o
+     WHERE o.poc_end_date IS NOT NULL
+       AND o.poc_end_date >= CURRENT_DATE - $1::int
+     GROUP BY o.se_owner_id`,
+    [days],
+  );
+
+  // Data hygiene — % of open owned deals with a note or SE-comments update in 14d.
+  // Counts apply to the *current* state, not the lookback (hygiene is a "today" metric).
+  const hygieneRows = await query<{ se_owner_id: number | null; owned_open: string; fresh: string }>(
+    `SELECT o.se_owner_id,
+       COUNT(*) AS owned_open,
+       COUNT(*) FILTER (
+         WHERE o.se_comments_updated_at >= now() - interval '14 days'
+            OR o.last_note_at          >= now() - interval '14 days'
+       ) AS fresh
+     FROM opportunities o
+     WHERE o.is_active AND NOT o.is_closed_won AND NOT o.is_closed_lost
+       AND o.stage != 'Qualify'
+     GROUP BY o.se_owner_id`,
+  );
+
+  // Active SE users form the baseline row set.
+  const users = await query<{ id: number; name: string; email: string; is_active: boolean }>(
+    `SELECT id, name, email, is_active FROM users WHERE role = 'se' ORDER BY is_active DESC, name`,
+  );
+
+  // Assemble. Include a "no_owner" synthetic row for orphan deals so the table
+  // doesn't silently drop them (attribution honesty).
+  type Buckets = { progressed: number; lost: number; stuck_assumed_lost: number; skipped: number; in_flight: number };
+  const emptyBuckets = (): Buckets => ({ progressed: 0, lost: 0, stuck_assumed_lost: 0, skipped: 0, in_flight: 0 });
+
+  function toMap<T extends { se_owner_id: number | null }>(rows: T[]): Map<number | null, T[]> {
+    const m = new Map<number | null, T[]>();
+    for (const r of rows) {
+      const k = r.se_owner_id;
+      if (!m.has(k)) m.set(k, []);
+      m.get(k)!.push(r);
+    }
+    return m;
+  }
+
+  const bvByOwner = toMap(bvRows);
+  const dsByOwner = toMap(dsRows);
+  const arrOwnerByOwner = new Map(arrOwnerRows.map(r => [r.se_owner_id, r]));
+  const arrContribByUser = new Map(arrContribRows.map(r => [r.user_id, r]));
+  const pocByOwner = new Map(pocRows.map(r => [r.se_owner_id, r]));
+  const hygieneByOwner = new Map(hygieneRows.map(r => [r.se_owner_id, r]));
+
+  function foldBuckets(rows: { bucket: string; cnt: string }[] | undefined): Buckets {
+    const out = emptyBuckets();
+    for (const r of rows ?? []) {
+      const n = parseInt(r.cnt);
+      if (r.bucket === 'progressed') out.progressed += n;
+      else if (r.bucket === 'lost') out.lost += n;
+      else if (r.bucket === 'stuck_assumed_lost') out.stuck_assumed_lost += n;
+      else if (r.bucket === 'skipped') out.skipped += n;
+      else if (r.bucket === 'in_flight') out.in_flight += n;
+    }
+    return out;
+  }
+  function rate(b: Buckets): number | null {
+    const denom = b.progressed + b.lost + b.stuck_assumed_lost;
+    if (denom === 0) return null;
+    return Math.round((100 * b.progressed) / denom);
+  }
+  function pct(num: number, denom: number): number | null {
+    return denom === 0 ? null : Math.round((100 * num) / denom);
+  }
+
+  function buildRow(seId: number | null, seName: string, isActive: boolean) {
+    const bv = foldBuckets(bvByOwner.get(seId));
+    const ds = foldBuckets(dsByOwner.get(seId));
+    const arrOwn = arrOwnerByOwner.get(seId);
+    const arrCon = seId != null ? arrContribByUser.get(seId) : undefined;
+    const poc = pocByOwner.get(seId);
+    const hyg = hygieneByOwner.get(seId);
+
+    const pocEnded = poc ? parseInt(poc.ended) : 0;
+    const pocWon = poc ? parseInt(poc.won) : 0;
+    const hygOpen = hyg ? parseInt(hyg.owned_open) : 0;
+    const hygFresh = hyg ? parseInt(hyg.fresh) : 0;
+
+    return {
+      se_id: seId,
+      se_name: seName,
+      is_active: isActive,
+      bv, bv_to_ds_pct: rate(bv),
+      ds, ds_to_ps_pct: rate(ds),
+      closed_arr: arrOwn ? parseFloat(arrOwn.closed_arr) : 0,
+      closed_deal_count: arrOwn ? parseInt(arrOwn.deal_count) : 0,
+      contributed_arr: arrCon ? parseFloat(arrCon.contributed_arr) : 0,
+      contributed_deal_count: arrCon ? parseInt(arrCon.deal_count) : 0,
+      poc_ended: pocEnded,
+      poc_won: pocWon,
+      poc_conversion_pct: pct(pocWon, pocEnded),
+      open_owned: hygOpen,
+      fresh_owned: hygFresh,
+      hygiene_pct: pct(hygFresh, hygOpen),
+    };
+  }
+
+  const perSe = users.map(u => buildRow(u.id, u.name, u.is_active));
+  const noOwner = buildRow(null, 'No current SE owner', false);
+
+  // Team totals — sum raw buckets (not average of rates) to avoid Simpson's paradox.
+  function sumBuckets(...bs: Buckets[]): Buckets {
+    const out = emptyBuckets();
+    for (const b of bs) {
+      out.progressed += b.progressed;
+      out.lost += b.lost;
+      out.stuck_assumed_lost += b.stuck_assumed_lost;
+      out.skipped += b.skipped;
+      out.in_flight += b.in_flight;
+    }
+    return out;
+  }
+  const teamBv = sumBuckets(...perSe.map(r => r.bv), noOwner.bv);
+  const teamDs = sumBuckets(...perSe.map(r => r.ds), noOwner.ds);
+  const teamPocEnded = perSe.reduce((s, r) => s + r.poc_ended, 0) + noOwner.poc_ended;
+  const teamPocWon = perSe.reduce((s, r) => s + r.poc_won, 0) + noOwner.poc_won;
+  const teamOpen = perSe.reduce((s, r) => s + r.open_owned, 0) + noOwner.open_owned;
+  const teamFresh = perSe.reduce((s, r) => s + r.fresh_owned, 0) + noOwner.fresh_owned;
+
+  const team = {
+    bv: teamBv, bv_to_ds_pct: rate(teamBv),
+    ds: teamDs, ds_to_ps_pct: rate(teamDs),
+    closed_arr: perSe.reduce((s, r) => s + r.closed_arr, 0) + noOwner.closed_arr,
+    contributed_arr: perSe.reduce((s, r) => s + r.contributed_arr, 0),
+    poc_ended: teamPocEnded,
+    poc_won: teamPocWon,
+    poc_conversion_pct: pct(teamPocWon, teamPocEnded),
+    open_owned: teamOpen,
+    fresh_owned: teamFresh,
+    hygiene_pct: pct(teamFresh, teamOpen),
+  };
+
+  res.json(ok({
+    config: { lookback_days: days, stuck_cutoff_days: STUCK_CUTOFF_DAYS },
+    team,
+    per_se: perSe,
+    no_owner: noOwner,
+  }));
+});
+
 export default router;
 

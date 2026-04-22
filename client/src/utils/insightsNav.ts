@@ -22,6 +22,7 @@ export const DEFAULT_INSIGHTS_NAV: InsightsNavItem[] = [
   { id: 'closed-won', label: 'Closed Won', to: '/insights/closed-won', icon: 'insight', visible: true },
   { id: 'percent-to-target', label: '% to Target', to: '/insights/percent-to-target', icon: 'insight', visible: true },
   { id: 'win-rate', label: 'Win Rate', to: '/insights/win-rate', icon: 'insight', visible: true },
+  { id: 'se-contribution', label: 'SE Contribution', to: '/insights/se-contribution', icon: 'insight', visible: true },
   { id: 'tech-blockers',       label: 'Tech Blockers',       to: '/insights/tech-blockers',       icon: 'insight', visible: true },
   { id: 'agentic-qual',        label: 'Agentic Qual',        to: '/insights/agentic-qual',        icon: 'insight', visible: true },
   { id: 'analytics',            label: 'Pipeline Analytics',  to: '/insights/analytics',           icon: 'insight', visible: true },

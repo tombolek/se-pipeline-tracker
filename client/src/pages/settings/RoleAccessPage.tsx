@@ -41,6 +41,7 @@ const PAGE_REGISTRY: PageDef[] = [
   { key: 'insights/closed-won', label: 'Closed Won', section: 'Insights' },
   { key: 'insights/percent-to-target', label: '% to Target', section: 'Insights' },
   { key: 'insights/win-rate', label: 'Win Rate', section: 'Insights' },
+  { key: 'insights/se-contribution', label: 'SE Contribution', section: 'Insights' },
   { key: 'insights/tech-blockers', label: 'Tech Blockers', section: 'Insights' },
   { key: 'insights/agentic-qual', label: 'Agentic Qual', section: 'Insights' },
   { key: 'insights/analytics', label: 'Pipeline Analytics', section: 'Insights' },

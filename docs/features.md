@@ -82,6 +82,7 @@ Ranks similar deals for the open opportunity from three tiers: (a) closed-won/lo
 | Missing SE Notes | `/insights/missing-notes` | Opps where `se_comments_updated_at` is null or older than threshold — sorted by most stale first. Threshold configurable (default 21d) |
 | Team Workload | `/insights/workload` | Per-SE: # opps, open tasks, overdue tasks, next steps |
 | Overdue Tasks | `/insights/overdue-tasks` | All overdue tasks across team, grouped by SE |
+| SE Contribution | `/insights/se-contribution` | Per-SE performance report for reviews: BV→DS and DS→PS strict conversion rates, Closed ARR (owner) + Contributed ARR (contributor on closed-won), PoC conversion, 14-day data-hygiene rate. Deals in a stage ≥180d counted as *assumed lost*; rates with <5 resolved deals visually dampened. Includes a "No current SE owner" row so orphan deals stay visible for attribution honesty. Period selector: 90d / 12mo / 2y. Manager-only |
 
 ## Inbox (`/inbox`)
 

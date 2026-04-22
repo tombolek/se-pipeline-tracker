@@ -20,6 +20,7 @@ import ForecastingBriefPage from './insights/ForecastingBriefPage';
 import OneOnOnePrepPage from './insights/OneOnOnePrepPage';
 import AnalyticsDashboardPage from './insights/AnalyticsDashboardPage';
 import WinRatePage from './insights/WinRatePage';
+import SeContributionPage from './insights/SeContributionPage';
 
 function ScopeBar() {
   const { user } = useAuthStore();
@@ -118,6 +119,16 @@ export default function InsightsPage() {
       <div className="flex-1 bg-[#F5F5F7] flex flex-col overflow-hidden">
         <div className="flex-1 overflow-y-auto px-8 py-6">
           <WinRatePage />
+        </div>
+      </div>
+    );
+  }
+  if (pathname.includes('se-contribution')) {
+    // Per-SE performance report; team scoping would hide the comparison that is the point.
+    return (
+      <div className="flex-1 bg-[#F5F5F7] flex flex-col overflow-hidden">
+        <div className="flex-1 overflow-y-auto px-8 py-6">
+          <SeContributionPage />
         </div>
       </div>
     );
