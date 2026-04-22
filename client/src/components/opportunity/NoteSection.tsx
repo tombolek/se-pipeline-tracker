@@ -34,7 +34,7 @@ function renderContentWithMentions(content: string, mentions: NoteMention[] | un
       out.push(
         <span
           key={`mention-${start}`}
-          className="inline-block px-1 rounded bg-brand-purple-30 text-brand-purple font-medium"
+          className="inline-block px-1 rounded bg-brand-purple-30 text-brand-purple dark:text-accent-purple font-medium"
           title={user.email}
         >
           @{user.name}
@@ -62,18 +62,18 @@ export function NoteItem({
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
   return (
-    <div className="group py-3 px-2 -mx-2 border-b border-brand-navy-30/40 last:border-0" data-cite-target={`note:${note.id}`}>
+    <div className="group py-3 px-2 -mx-2 border-b border-brand-navy-30/40 dark:border-ink-border-soft last:border-0" data-cite-target={`note:${note.id}`}>
       <div className="flex items-center gap-2 mb-1">
-        <div className="w-5 h-5 rounded-full bg-brand-purple flex items-center justify-center text-[9px] font-semibold text-white flex-shrink-0">
+        <div className="w-5 h-5 rounded-full bg-brand-purple dark:bg-accent-purple flex items-center justify-center text-[9px] font-semibold text-white flex-shrink-0">
           {note.author_name?.[0]?.toUpperCase()}
         </div>
-        <span className="text-xs font-medium text-brand-navy">{note.author_name}</span>
-        <span className="text-[11px] text-brand-navy-70">{formatDateTime(note.created_at)}</span>
+        <span className="text-xs font-medium text-brand-navy dark:text-fg-1">{note.author_name}</span>
+        <span className="text-[11px] text-brand-navy-70 dark:text-fg-2">{formatDateTime(note.created_at)}</span>
         {canDelete && onDelete && (
           <div className="ml-auto flex items-center gap-2">
             {confirming ? (
               <>
-                <span className="text-[10px] text-brand-navy-70">Delete this note?</span>
+                <span className="text-[10px] text-brand-navy-70 dark:text-fg-2">Delete this note?</span>
                 <button
                   type="button"
                   disabled={deleting}
@@ -81,7 +81,7 @@ export function NoteItem({
                     setDeleting(true);
                     try { await onDelete(note.id); } finally { setDeleting(false); setConfirming(false); }
                   }}
-                  className="text-[10px] font-semibold text-status-overdue hover:underline disabled:opacity-50"
+                  className="text-[10px] font-semibold text-status-overdue dark:text-status-d-overdue hover:underline disabled:opacity-50"
                 >
                   {deleting ? 'Deleting…' : 'Yes, delete'}
                 </button>
@@ -89,7 +89,7 @@ export function NoteItem({
                   type="button"
                   disabled={deleting}
                   onClick={() => setConfirming(false)}
-                  className="text-[10px] text-brand-navy-70 hover:text-brand-navy disabled:opacity-50"
+                  className="text-[10px] text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:text-fg-1 disabled:opacity-50"
                 >
                   Cancel
                 </button>
@@ -98,7 +98,7 @@ export function NoteItem({
               <button
                 type="button"
                 onClick={() => setConfirming(true)}
-                className="text-[10px] text-brand-navy-30 hover:text-status-overdue transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                className="text-[10px] text-brand-navy-30 dark:text-fg-4 hover:text-status-overdue dark:text-status-d-overdue transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
                 title="Delete this note"
               >
                 Delete
@@ -107,7 +107,7 @@ export function NoteItem({
           </div>
         )}
       </div>
-      <p className="text-sm text-brand-navy leading-relaxed pl-7 whitespace-pre-wrap">
+      <p className="text-sm text-brand-navy dark:text-fg-1 leading-relaxed pl-7 whitespace-pre-wrap">
         {renderContentWithMentions(note.content, note.mentions)}
       </p>
     </div>
@@ -259,7 +259,7 @@ export function AddNoteForm({ onAdd, onCancel }: { onAdd: (content: string) => P
   }
 
   return (
-    <form onSubmit={submit} className="mt-2 p-3 bg-gray-50 rounded-lg border border-brand-navy-30 space-y-2">
+    <form onSubmit={submit} className="mt-2 p-3 bg-gray-50 dark:bg-ink-0 rounded-lg border border-brand-navy-30 space-y-2">
       <div className="relative">
         <textarea
           ref={textareaRef}
@@ -269,11 +269,11 @@ export function AddNoteForm({ onAdd, onCancel }: { onAdd: (content: string) => P
           placeholder="Add a note… use @ to mention a teammate (shift+enter for newline)"
           rows={3}
           onKeyDown={onKeyDown}
-          className="w-full px-3 py-2 rounded border border-brand-navy-30 text-sm text-brand-navy placeholder:text-brand-navy-70 resize-none focus:outline-none focus:ring-2 focus:ring-brand-purple"
+          className="w-full px-3 py-2 rounded border border-brand-navy-30 text-sm text-brand-navy dark:text-fg-1 placeholder:text-brand-navy-70 dark:text-fg-2 resize-none focus:outline-none focus:ring-2 focus:ring-brand-purple"
         />
         {mention && candidates.length > 0 && (
           <ul
-            className="absolute left-2 bottom-full mb-1 z-30 w-64 bg-white rounded-lg border border-brand-navy-30 shadow-xl overflow-hidden"
+            className="absolute left-2 bottom-full mb-1 z-30 w-64 bg-white dark:bg-ink-1 rounded-lg border border-brand-navy-30 shadow-xl overflow-hidden"
             onMouseDown={e => e.preventDefault() /* keep textarea focus */}
           >
             {candidates.map((u, i) => {
@@ -285,11 +285,11 @@ export function AddNoteForm({ onAdd, onCancel }: { onAdd: (content: string) => P
                     onClick={() => applyMention(u)}
                     onMouseEnter={() => setMention(m => m ? { ...m, index: i } : m)}
                     className={`w-full px-3 py-1.5 text-left text-xs transition-colors ${
-                      i === mention.index ? 'bg-brand-purple-30/40' : 'hover:bg-gray-50'
+                      i === mention.index ? 'bg-brand-purple-30/40 dark:bg-accent-purple-soft' : 'hover:bg-gray-50 dark:bg-ink-0'
                     }`}
                   >
-                    <div className="font-medium text-brand-navy">{u.name}</div>
-                    <div className="text-brand-navy-70">@{handle}</div>
+                    <div className="font-medium text-brand-navy dark:text-fg-1">{u.name}</div>
+                    <div className="text-brand-navy-70 dark:text-fg-2">@{handle}</div>
                   </button>
                 </li>
               );
@@ -301,11 +301,11 @@ export function AddNoteForm({ onAdd, onCancel }: { onAdd: (content: string) => P
         <button
           type="submit"
           disabled={saving || !content.trim()}
-          className="px-3 py-1 bg-brand-purple text-white text-xs font-medium rounded hover:bg-brand-purple-70 disabled:opacity-50 transition-colors"
+          className="px-3 py-1 bg-brand-purple dark:bg-accent-purple text-white text-xs font-medium rounded hover:bg-brand-purple-70 dark:hover:opacity-90 disabled:opacity-50 transition-colors"
         >
           {saving ? 'Saving…' : 'Add note'}
         </button>
-        <button type="button" onClick={onCancel} className="px-3 py-1 text-xs text-brand-navy-70 hover:text-brand-navy transition-colors">
+        <button type="button" onClick={onCancel} className="px-3 py-1 text-xs text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:text-fg-1 transition-colors">
           Cancel
         </button>
       </div>

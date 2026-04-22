@@ -53,9 +53,9 @@ function SectionHeader({ title, count, action }: { title: string; count?: number
   return (
     <div className="flex items-center justify-between mb-3">
       <div className="flex items-center gap-2">
-        <h3 className="text-xs font-semibold uppercase tracking-widest text-brand-navy-70">{title}</h3>
+        <h3 className="text-xs font-semibold uppercase tracking-widest text-brand-navy-70 dark:text-fg-2">{title}</h3>
         {count !== undefined && count > 0 && (
-          <span className="text-[10px] bg-brand-navy-30 text-brand-navy-70 rounded-full px-1.5 py-px font-medium">{count}</span>
+          <span className="text-[10px] bg-brand-navy-30 text-brand-navy-70 dark:text-fg-2 rounded-full px-1.5 py-px font-medium">{count}</span>
         )}
       </div>
       {action}
@@ -65,15 +65,15 @@ function SectionHeader({ title, count, action }: { title: string; count?: number
 
 function FreshnessTag({ updatedAt }: { updatedAt: string | null }) {
   const days = daysSince(updatedAt);
-  if (days === null) return <span className="text-[10px] text-brand-navy-30">never</span>;
-  const color = days <= 7 ? 'text-status-success' : days <= 21 ? 'text-status-warning' : 'text-status-overdue';
+  if (days === null) return <span className="text-[10px] text-brand-navy-30 dark:text-fg-4">never</span>;
+  const color = days <= 7 ? 'text-status-success dark:text-status-d-success' : days <= 21 ? 'text-status-warning dark:text-status-d-warning' : 'text-status-overdue dark:text-status-d-overdue';
   return <span className={`text-[10px] font-medium ${color}`}>{days}d ago</span>;
 }
 
 const HEALTH_PILL_STYLES = {
-  green: { pill: 'bg-emerald-50 border-emerald-200/60 hover:border-emerald-300', dot: 'bg-status-success', text: 'text-emerald-700', chevron: 'text-emerald-400' },
-  amber: { pill: 'bg-amber-50 border-amber-200/60 hover:border-amber-400', dot: 'bg-status-warning', text: 'text-amber-700', chevron: 'text-amber-400' },
-  red:   { pill: 'bg-red-50 border-red-200/60 hover:border-red-400', dot: 'bg-status-overdue', text: 'text-red-700', chevron: 'text-red-300' },
+  green: { pill: 'bg-emerald-50 dark:bg-status-d-success-soft border-emerald-200/60 dark:border-status-d-success/30 hover:border-emerald-300 dark:hover:border-status-d-success/50', dot: 'bg-status-success', text: 'text-emerald-700 dark:text-status-d-success', chevron: 'text-emerald-400 dark:text-status-d-success/60' },
+  amber: { pill: 'bg-amber-50 dark:bg-status-d-warning-soft border-amber-200/60 dark:border-status-d-warning/30 hover:border-amber-400 dark:hover:border-status-d-warning/50', dot: 'bg-status-warning', text: 'text-amber-700 dark:text-status-d-warning', chevron: 'text-amber-400 dark:text-status-d-warning/60' },
+  red:   { pill: 'bg-red-50 dark:bg-status-d-overdue-soft border-red-200/60 dark:border-status-d-overdue/30 hover:border-red-400 dark:hover:border-status-d-overdue/50', dot: 'bg-status-overdue', text: 'text-red-700 dark:text-status-d-overdue', chevron: 'text-red-300 dark:text-status-d-overdue/60' },
 };
 
 function HealthScorePill({ opp, onClick }: { opp: Opportunity; onClick?: () => void }) {
@@ -84,27 +84,27 @@ function HealthScorePill({ opp, onClick }: { opp: Opportunity; onClick?: () => v
     <div className="relative group/health">
       <button onClick={onClick} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border transition-colors ${s.pill}`}>
         <div className={`w-2 h-2 rounded-full ${s.dot}`} />
-        <span className={`text-[10px] font-medium text-brand-navy-70`}>Health</span>
+        <span className={`text-[10px] font-medium text-brand-navy-70 dark:text-fg-2`}>Health</span>
         <span className={`text-[11px] font-semibold tabular-nums ${s.text}`}>{score}</span>
         <svg className={`w-2.5 h-2.5 ${s.chevron}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
       </button>
       {/* Hover popover */}
       <div className="absolute top-full right-0 mt-1.5 z-50 hidden group-hover/health:block">
-        <div className="bg-white border border-brand-navy-30 rounded-xl shadow-lg p-3 w-[240px]">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-navy-70 mb-2">Health Score Breakdown</p>
+        <div className="bg-white dark:bg-ink-1 border border-brand-navy-30 rounded-xl shadow-lg p-3 w-[240px]">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-navy-70 dark:text-fg-2 mb-2">Health Score Breakdown</p>
           <div className="space-y-1.5">
             {factors.length === 0 ? (
-              <p className="text-[11px] text-status-success">No issues detected</p>
+              <p className="text-[11px] text-status-success dark:text-status-d-success">No issues detected</p>
             ) : (
               factors.map(f => (
                 <div key={f.label} className="flex items-center justify-between text-[12px]">
-                  <span className="text-brand-navy-70">{f.label}</span>
-                  <span className="font-semibold text-status-overdue">-{f.deduction}</span>
+                  <span className="text-brand-navy-70 dark:text-fg-2">{f.label}</span>
+                  <span className="font-semibold text-status-overdue dark:text-status-d-overdue">-{f.deduction}</span>
                 </div>
               ))
             )}
           </div>
-          <div className="mt-2 pt-2 border-t border-brand-navy-30/30">
+          <div className="mt-2 pt-2 border-t border-brand-navy-30/30 dark:border-ink-border-soft">
             <p className={`text-[10px] ${s.text} font-medium`}>{rag === 'green' ? 'Healthy' : rag === 'amber' ? 'Needs attention' : 'At risk'} · {score}/100</p>
           </div>
         </div>
@@ -114,15 +114,15 @@ function HealthScorePill({ opp, onClick }: { opp: Opportunity; onClick?: () => v
 }
 
 const MEDDPICC_PILL_STYLES = {
-  green: { pill: 'bg-emerald-50 border-emerald-200/60 hover:border-emerald-300', text: 'text-emerald-700', chevron: 'text-emerald-400' },
-  amber: { pill: 'bg-amber-50 border-amber-200/60 hover:border-amber-400', text: 'text-amber-700', chevron: 'text-amber-400' },
-  red:   { pill: 'bg-red-50 border-red-200/60 hover:border-red-400', text: 'text-red-600', chevron: 'text-red-300' },
+  green: { pill: 'bg-emerald-50 dark:bg-status-d-success-soft border-emerald-200/60 dark:border-status-d-success/30 hover:border-emerald-300 dark:hover:border-status-d-success/50', text: 'text-emerald-700 dark:text-status-d-success', chevron: 'text-emerald-400 dark:text-status-d-success/60' },
+  amber: { pill: 'bg-amber-50 dark:bg-status-d-warning-soft border-amber-200/60 dark:border-status-d-warning/30 hover:border-amber-400 dark:hover:border-status-d-warning/50', text: 'text-amber-700 dark:text-status-d-warning', chevron: 'text-amber-400 dark:text-status-d-warning/60' },
+  red:   { pill: 'bg-red-50 dark:bg-status-d-overdue-soft border-red-200/60 dark:border-status-d-overdue/30 hover:border-red-400 dark:hover:border-status-d-overdue/50', text: 'text-red-600 dark:text-status-d-overdue', chevron: 'text-red-300 dark:text-status-d-overdue/60' },
 };
 
 const QUALITY_ICON = {
-  strong: <span className="text-status-success font-bold">✓</span>,
-  weak:   <span className="text-status-warning">◐</span>,
-  empty:  <span className="text-brand-navy-30">○</span>,
+  strong: <span className="text-status-success dark:text-status-d-success font-bold">✓</span>,
+  weak:   <span className="text-status-warning dark:text-status-d-warning">◐</span>,
+  empty:  <span className="text-brand-navy-30 dark:text-fg-4">○</span>,
 };
 
 function MeddpiccPill({ opp, onClick }: { opp: Opportunity; onClick?: () => void }) {
@@ -132,26 +132,26 @@ function MeddpiccPill({ opp, onClick }: { opp: Opportunity; onClick?: () => void
   return (
     <div className="relative group/medd">
       <button onClick={onClick} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border transition-colors ${s.pill}`}>
-        <span className={`text-[10px] font-medium text-brand-navy-70`}>MEDDPICC</span>
+        <span className={`text-[10px] font-medium text-brand-navy-70 dark:text-fg-2`}>MEDDPICC</span>
         <span className={`text-[11px] font-semibold tabular-nums ${s.text}`}>{strong}/9</span>
         <svg className={`w-2.5 h-2.5 ${s.chevron}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
       </button>
       {/* Hover popover */}
       <div className="absolute top-full right-0 mt-1.5 z-50 hidden group-hover/medd:block">
-        <div className="bg-white border border-brand-navy-30 rounded-xl shadow-lg p-3 w-[240px]">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-navy-70 mb-2">MEDDPICC Fields</p>
+        <div className="bg-white dark:bg-ink-1 border border-brand-navy-30 rounded-xl shadow-lg p-3 w-[240px]">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-navy-70 dark:text-fg-2 mb-2">MEDDPICC Fields</p>
           <div className="space-y-1">
             {fields.map(f => (
               <div key={f.key as string} className="flex items-center gap-1.5">
                 <span className="text-[11px] w-3.5 text-center flex-shrink-0">{QUALITY_ICON[f.quality]}</span>
-                <span className={`text-[11px] ${f.quality === 'empty' ? 'text-brand-navy-30' : 'text-brand-navy'}`}>{f.label}</span>
+                <span className={`text-[11px] ${f.quality === 'empty' ? 'text-brand-navy-30 dark:text-fg-4' : 'text-brand-navy'}`}>{f.label}</span>
                 {f.quality === 'weak' && (
-                  <span className="ml-auto text-[9px] text-status-warning">short</span>
+                  <span className="ml-auto text-[9px] text-status-warning dark:text-status-d-warning">short</span>
                 )}
               </div>
             ))}
           </div>
-          <div className="mt-2 pt-2 border-t border-brand-navy-30/30">
+          <div className="mt-2 pt-2 border-t border-brand-navy-30/30 dark:border-ink-border-soft">
             <p className={`text-[10px] ${s.text} font-medium`}>{rag === 'green' ? 'Well qualified' : rag === 'amber' ? 'Partially qualified' : 'Under-qualified'} · {strong}/9 fields filled</p>
           </div>
         </div>
@@ -422,8 +422,8 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
 
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-[#F5F5F7]">
-        <p className="text-sm text-brand-navy-70">Loading…</p>
+      <div className="flex-1 flex items-center justify-center bg-[#F5F5F7] dark:bg-ink-0">
+        <p className="text-sm text-brand-navy-70 dark:text-fg-2">Loading…</p>
       </div>
     );
   }
@@ -438,10 +438,10 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
   const notesFreshnessDays = daysSince(opp.last_note_at);
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-[#F5F5F7] relative">
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-[#F5F5F7] dark:bg-ink-0 relative">
 
         {/* Compact header — pl-12 leaves space for Drawer close button */}
-        <div className="pl-12 pr-5 pt-4 pb-3 bg-white border-b border-brand-navy-30/30 flex-shrink-0">
+        <div className="pl-12 pr-5 pt-4 pb-3 bg-white dark:bg-ink-1 border-b border-brand-navy-30/30 dark:border-ink-border-soft flex-shrink-0">
           {/* Row 1: Title + badges + Summarize */}
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
@@ -453,14 +453,14 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
                   title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
                 >
                   {isFavorite ? (
-                    <svg className="w-5 h-5 text-amber-400" viewBox="0 0 20 20" fill="currentColor"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                    <svg className="w-5 h-5 text-amber-400 dark:text-status-d-warning/60" viewBox="0 0 20 20" fill="currentColor"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
                   ) : (
-                    <svg className="w-5 h-5 text-brand-navy-30 hover:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"/></svg>
+                    <svg className="w-5 h-5 text-brand-navy-30 dark:text-fg-4 hover:text-amber-400 dark:text-status-d-warning/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"/></svg>
                   )}
                 </button>
-                <h2 className="text-lg font-semibold text-brand-navy leading-snug truncate">{opp.name}</h2>
+                <h2 className="text-lg font-semibold text-brand-navy dark:text-fg-1 leading-snug truncate">{opp.name}</h2>
                 {isReadOnly && (
-                  <span className="text-[9px] font-semibold bg-brand-pink/10 text-brand-pink px-1.5 py-px rounded-full uppercase tracking-wide">Closed Lost</span>
+                  <span className="text-[9px] font-semibold bg-brand-pink/10 dark:bg-accent-pink-soft text-brand-pink dark:text-accent-pink px-1.5 py-px rounded-full uppercase tracking-wide">Closed Lost</span>
                 )}
                 {opp.key_deal && (
                   <span className="text-[9px] font-semibold bg-yellow-100 text-yellow-700 px-1.5 py-px rounded-full uppercase tracking-wide">Key Deal</span>
@@ -472,7 +472,7 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
                 <button
                   onClick={handleAssignSelf}
                   disabled={assigningOwner}
-                  className="px-2.5 py-1.5 text-[11px] font-medium bg-brand-purple text-white rounded-lg hover:bg-brand-purple-70 disabled:opacity-50 transition-colors"
+                  className="px-2.5 py-1.5 text-[11px] font-medium bg-brand-purple dark:bg-accent-purple text-white rounded-lg hover:bg-brand-purple-70 dark:hover:opacity-90 disabled:opacity-50 transition-colors"
                 >
                   Assign to me
                 </button>
@@ -481,14 +481,14 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
               <button
                 onClick={handleGetSummary}
                 disabled={summaryLoading}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-brand-navy-30 hover:border-brand-purple hover:bg-brand-purple-30/30 transition-colors group/ai disabled:opacity-50"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-brand-navy-30 hover:border-brand-purple hover:bg-brand-purple-30/30 dark:hover:bg-accent-purple-soft transition-colors group/ai disabled:opacity-50"
                 title="AI Summary"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
                   <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="url(#ai-sparkle-grad)" className="group-hover/ai:opacity-80"/>
                   <defs><linearGradient id="ai-sparkle-grad" x1="2" y1="2" x2="22" y2="22"><stop stopColor="#F10090"/><stop offset="1" stopColor="#6A2CF5"/></linearGradient></defs>
                 </svg>
-                <span className="text-[11px] font-medium text-brand-navy-70 group-hover/ai:text-brand-navy">
+                <span className="text-[11px] font-medium text-brand-navy-70 dark:text-fg-2 group-hover/ai:text-brand-navy dark:text-fg-1">
                   {summaryLoading ? 'Thinking…' : 'Summarize'}
                 </span>
               </button>
@@ -500,7 +500,7 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
             {opp.account_name ? (
               <button
                 onClick={() => setShowAccountPanel(v => !v)}
-                className="flex items-center gap-1 text-[12px] text-brand-purple font-medium hover:text-brand-purple-70 transition-colors"
+                className="flex items-center gap-1 text-[12px] text-brand-purple dark:text-accent-purple font-medium hover:text-brand-purple-70 dark:text-accent-purple transition-colors"
                 title="View account history"
               >
                 <svg className="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -509,24 +509,24 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
                 {opp.account_name}
               </button>
             ) : (
-              <span className="text-[11px] text-brand-navy-70">—</span>
+              <span className="text-[11px] text-brand-navy-70 dark:text-fg-2">—</span>
             )}
-            <span className="text-brand-navy-30">|</span>
-            <span className="text-[11px] text-brand-navy-70">{opp.stage}</span>
+            <span className="text-brand-navy-30 dark:text-fg-4">|</span>
+            <span className="text-[11px] text-brand-navy-70 dark:text-fg-2">{opp.stage}</span>
             {opp.arr != null && <>
-              <span className="text-brand-navy-30">|</span>
-              <span className="text-[11px] text-brand-navy-70">{formatARR(opp.arr)}</span>
+              <span className="text-brand-navy-30 dark:text-fg-4">|</span>
+              <span className="text-[11px] text-brand-navy-70 dark:text-fg-2">{formatARR(opp.arr)}</span>
             </>}
             {opp.close_date && <>
-              <span className="text-brand-navy-30">|</span>
-              <span className="text-[11px] text-brand-navy-70">Close {formatDate(opp.close_date)}</span>
+              <span className="text-brand-navy-30 dark:text-fg-4">|</span>
+              <span className="text-[11px] text-brand-navy-70 dark:text-fg-2">Close {formatDate(opp.close_date)}</span>
             </>}
-            <span className="text-brand-navy-30">|</span>
-            <span className={`text-[11px] font-medium ${opp.poc_status ? 'text-brand-navy' : 'text-brand-navy-30'}`}>
+            <span className="text-brand-navy-30 dark:text-fg-4">|</span>
+            <span className={`text-[11px] font-medium ${opp.poc_status ? 'text-brand-navy' : 'text-brand-navy-30 dark:text-fg-4'}`}>
               PoC {opp.poc_status ?? 'N/A'}
             </span>
-            <span className="text-brand-navy-30">|</span>
-            <span className={`text-[11px] font-medium ${opp.rfx_status ? 'text-brand-navy' : 'text-brand-navy-30'}`}>
+            <span className="text-brand-navy-30 dark:text-fg-4">|</span>
+            <span className={`text-[11px] font-medium ${opp.rfx_status ? 'text-brand-navy' : 'text-brand-navy-30 dark:text-fg-4'}`}>
               RFx {opp.rfx_status ?? 'N/A'}
             </span>
 
@@ -538,11 +538,11 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
               <button
                 onClick={handleGetCoach}
                 disabled={coachLoading}
-                className="w-6 h-6 rounded-full flex items-center justify-center border border-brand-purple/30 bg-brand-purple-30/40 hover:bg-brand-purple-30 hover:border-brand-purple transition-colors disabled:opacity-50"
+                className="w-6 h-6 rounded-full flex items-center justify-center border border-brand-purple/30 dark:border-accent-purple/30 bg-brand-purple-30/40 dark:bg-accent-purple-soft hover:bg-brand-purple-30 hover:border-brand-purple transition-colors disabled:opacity-50"
                 title="MEDDPICC Gap Coach"
               >
                 {coachLoading ? (
-                  <svg className="w-3 h-3 animate-spin text-brand-purple" fill="none" viewBox="0 0 24 24">
+                  <svg className="w-3 h-3 animate-spin text-brand-purple dark:text-accent-purple" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
@@ -564,7 +564,7 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
               readOnly={isReadOnly}
               onChange={next => setOpp(prev => prev ? { ...prev, se_owner: next.se_owner ?? null } : prev)}
             />
-            <span className="text-brand-navy-30">|</span>
+            <span className="text-brand-navy-30 dark:text-fg-4">|</span>
             <ContributorsStrip
               oppId={oppId}
               ownerId={opp.se_owner?.id ?? null}
@@ -584,13 +584,13 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
                 onClick={() => setSummaryCollapsed(c => !c)}
                 className="w-full flex items-center gap-1.5 px-4 py-2.5 text-left"
               >
-                <svg className="w-3.5 h-3.5 text-brand-purple flex-shrink-0" viewBox="0 0 24 24" fill="none">
+                <svg className="w-3.5 h-3.5 text-brand-purple dark:text-accent-purple flex-shrink-0" viewBox="0 0 24 24" fill="none">
                   <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="#6A2CF5"/>
                 </svg>
-                <span className="text-[10px] font-semibold uppercase tracking-widest text-brand-purple">AI Summary</span>
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-brand-purple dark:text-accent-purple">AI Summary</span>
                 {summaryGeneratedAt && (() => {
                   const days = Math.floor((Date.now() - new Date(summaryGeneratedAt).getTime()) / 86400000);
-                  const color = days <= 3 ? 'text-status-success' : days <= 14 ? 'text-status-warning' : 'text-status-overdue';
+                  const color = days <= 3 ? 'text-status-success dark:text-status-d-success' : days <= 14 ? 'text-status-warning dark:text-status-d-warning' : 'text-status-overdue dark:text-status-d-overdue';
                   return (
                     <span className={`text-[10px] font-medium ${color} ml-1`}>
                       {days === 0 ? 'today' : `${days}d ago`}
@@ -598,14 +598,14 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
                   );
                 })()}
                 <div className="ml-auto flex items-center gap-1">
-                  <svg className={`w-3 h-3 text-brand-navy-70 transition-transform ${summaryCollapsed ? '' : 'rotate-180'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <svg className={`w-3 h-3 text-brand-navy-70 dark:text-fg-2 transition-transform ${summaryCollapsed ? '' : 'rotate-180'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                   </svg>
                 </div>
               </button>
               {/* Body — collapsible */}
               {!summaryCollapsed && (
-                <div className="px-4 pb-3 text-sm text-brand-navy leading-relaxed space-y-2">
+                <div className="px-4 pb-3 text-sm text-brand-navy dark:text-fg-1 leading-relaxed space-y-2">
                   {summaryLowConf.length > 0 && (
                     <LowConfidenceBanner spans={summaryLowConf} />
                   )}
@@ -615,11 +615,11 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
                     const parts = stripped.split(/\*\*(.+?)\*\*/g);
                     const rendered = parts.map((part, j) =>
                       j % 2 === 1
-                        ? <strong key={j} className="font-semibold text-brand-navy"><TextWithCitations text={part} citations={summaryCitations} onJump={citeJumper} /></strong>
+                        ? <strong key={j} className="font-semibold text-brand-navy dark:text-fg-1"><TextWithCitations text={part} citations={summaryCitations} onJump={citeJumper} /></strong>
                         : <TextWithCitations key={j} text={part} citations={summaryCitations} onJump={citeJumper} />
                     );
                     if (isHeader) {
-                      return <p key={i} className="font-semibold text-brand-navy text-xs uppercase tracking-wide mt-2 first:mt-0">{rendered}</p>;
+                      return <p key={i} className="font-semibold text-brand-navy dark:text-fg-1 text-xs uppercase tracking-wide mt-2 first:mt-0">{rendered}</p>;
                     }
                     return <p key={i}>{rendered}</p>;
                   })}
@@ -628,7 +628,7 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
                     <button
                       onClick={(e) => { e.stopPropagation(); handleGetSummary(); }}
                       disabled={summaryLoading}
-                      className="text-[10px] font-medium text-brand-purple hover:text-brand-purple-70 transition-colors disabled:opacity-50"
+                      className="text-[10px] font-medium text-brand-purple dark:text-accent-purple hover:text-brand-purple-70 dark:text-accent-purple transition-colors disabled:opacity-50"
                     >
                       {summaryLoading ? 'Regenerating...' : 'Regenerate'}
                     </button>
@@ -638,7 +638,7 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
             </div>
           )}
           {notesFreshnessDays !== null && notesFreshnessDays > 21 && (
-            <div className="mt-2 flex items-center gap-1.5 text-xs text-status-overdue bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+            <div className="mt-2 flex items-center gap-1.5 text-xs text-status-overdue dark:text-status-d-overdue bg-red-50 border border-red-100 rounded-lg px-3 py-2">
               <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
@@ -656,10 +656,10 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
                 <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none">
                   <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" stroke="#6A2CF5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
-                <span className="text-[10px] font-semibold uppercase tracking-widest text-brand-purple">MEDDPICC Gap Coach</span>
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-brand-purple dark:text-accent-purple">MEDDPICC Gap Coach</span>
                 {coachGeneratedAt && (() => {
                   const days = Math.floor((Date.now() - new Date(coachGeneratedAt).getTime()) / 86400000);
-                  const color = days <= 3 ? 'text-status-success' : days <= 14 ? 'text-status-warning' : 'text-status-overdue';
+                  const color = days <= 3 ? 'text-status-success dark:text-status-d-success' : days <= 14 ? 'text-status-warning dark:text-status-d-warning' : 'text-status-overdue dark:text-status-d-overdue';
                   return (
                     <span className={`text-[10px] font-medium ${color} ml-1`}>
                       {days === 0 ? 'today' : `${days}d ago`}
@@ -667,12 +667,12 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
                   );
                 })()}
                 {coachResult.counts && (
-                  <span className="text-[10px] text-brand-navy-70 ml-1">
+                  <span className="text-[10px] text-brand-navy-70 dark:text-fg-2 ml-1">
                     {coachResult.counts.green}✓ {coachResult.counts.amber}◐ {coachResult.counts.red}✗
                   </span>
                 )}
                 <div className="ml-auto flex items-center gap-1">
-                  <svg className={`w-3 h-3 text-brand-navy-70 transition-transform ${coachCollapsed ? '' : 'rotate-180'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <svg className={`w-3 h-3 text-brand-navy-70 dark:text-fg-2 transition-transform ${coachCollapsed ? '' : 'rotate-180'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                   </svg>
                 </div>
@@ -682,14 +682,14 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
               {!coachCollapsed && (
                 <div className="max-h-[50vh] overflow-y-auto">
                   {/* Element rows */}
-                  <div className="divide-y divide-brand-purple/10 border-t border-brand-purple/10">
+                  <div className="divide-y divide-brand-purple/10 border-t border-brand-purple/10 dark:border-accent-purple/20">
                     {coachResult.elements.map(el => {
                       const dotColor = el.status === 'green' ? 'bg-status-success ring-status-success/20'
                         : el.status === 'amber' ? 'bg-status-warning ring-status-warning/20'
                         : 'bg-status-overdue ring-status-overdue/20';
-                      const badgeColor = el.status === 'green' ? 'text-status-success bg-emerald-50'
-                        : el.status === 'amber' ? 'text-status-warning bg-amber-50'
-                        : 'text-status-overdue bg-red-50';
+                      const badgeColor = el.status === 'green' ? 'text-status-success dark:text-status-d-success bg-emerald-50'
+                        : el.status === 'amber' ? 'text-status-warning dark:text-status-d-warning bg-amber-50'
+                        : 'text-status-overdue dark:text-status-d-overdue bg-red-50';
                       const badgeLabel = el.status === 'green' ? 'Strong'
                         : el.status === 'amber' ? 'Gap'
                         : 'No evidence';
@@ -699,23 +699,23 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
                             <span className={`mt-0.5 w-2.5 h-2.5 rounded-full flex-shrink-0 ring-2 ${dotColor}`} />
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
-                                <span className="text-xs font-semibold text-brand-navy">{el.label}</span>
+                                <span className="text-xs font-semibold text-brand-navy dark:text-fg-1">{el.label}</span>
                                 <span className={`text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded ${badgeColor}`}>{badgeLabel}</span>
                               </div>
                               {el.evidence && (
-                                <p className="text-[11px] text-brand-navy-70 mt-1 leading-relaxed">
+                                <p className="text-[11px] text-brand-navy-70 dark:text-fg-2 mt-1 leading-relaxed">
                                   <TextWithCitations text={el.evidence} citations={el.citations} onJump={citeJumper} />
                                 </p>
                               )}
                               {el.gap && (
-                                <p className="text-[11px] text-brand-navy-70 mt-1 leading-relaxed">
+                                <p className="text-[11px] text-brand-navy-70 dark:text-fg-2 mt-1 leading-relaxed">
                                   <TextWithCitations text={el.gap} citations={el.citations} onJump={citeJumper} />
                                 </p>
                               )}
                               {el.suggested_question && (
-                                <div className="mt-2 bg-white/60 rounded-lg px-3 py-2 border border-brand-purple/10">
-                                  <p className="text-[10px] font-semibold text-brand-purple uppercase tracking-wide mb-0.5">Suggested question</p>
-                                  <p className="text-[11px] text-brand-navy italic leading-relaxed">
+                                <div className="mt-2 bg-white/60 dark:bg-ink-2 rounded-lg px-3 py-2 border border-brand-purple/10 dark:border-accent-purple/20">
+                                  <p className="text-[10px] font-semibold text-brand-purple dark:text-accent-purple uppercase tracking-wide mb-0.5">Suggested question</p>
+                                  <p className="text-[11px] text-brand-navy dark:text-fg-1 italic leading-relaxed">
                                     <TextWithCitations text={el.suggested_question} citations={el.citations} onJump={citeJumper} />
                                   </p>
                                 </div>
@@ -728,25 +728,25 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
                   </div>
 
                   {/* Overall assessment */}
-                  <div className="px-4 py-3 bg-white/40 border-t border-brand-purple/10">
+                  <div className="px-4 py-3 bg-white/40 dark:bg-ink-2/50 border-t border-brand-purple/10 dark:border-accent-purple/20">
                     <div className="flex items-center gap-1.5 mb-1.5">
-                      <svg className="w-3.5 h-3.5 text-brand-purple flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <svg className="w-3.5 h-3.5 text-brand-purple dark:text-accent-purple flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                       </svg>
-                      <span className="text-[10px] font-semibold uppercase tracking-widest text-brand-purple">Overall Assessment</span>
+                      <span className="text-[10px] font-semibold uppercase tracking-widest text-brand-purple dark:text-accent-purple">Overall Assessment</span>
                     </div>
-                    <p className="text-[11px] text-brand-navy leading-relaxed">
+                    <p className="text-[11px] text-brand-navy dark:text-fg-1 leading-relaxed">
                       <TextWithCitations
                         text={coachResult.overall_assessment}
                         citations={coachResult.overall_assessment_citations}
                         onJump={citeJumper}
                       />
                     </p>
-                    <div className="flex items-center gap-3 mt-2 pt-2 border-t border-brand-purple/10">
+                    <div className="flex items-center gap-3 mt-2 pt-2 border-t border-brand-purple/10 dark:border-accent-purple/20">
                       <button
                         onClick={(e) => { e.stopPropagation(); handleGetCoach(); }}
                         disabled={coachLoading}
-                        className="text-[10px] font-medium text-brand-purple hover:text-brand-purple-70 transition-colors disabled:opacity-50"
+                        className="text-[10px] font-medium text-brand-purple dark:text-accent-purple hover:text-brand-purple-70 dark:text-accent-purple transition-colors disabled:opacity-50"
                       >
                         {coachLoading ? 'Analyzing…' : 'Regenerate'}
                       </button>
@@ -759,7 +759,7 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
         </div>
 
         {/* Tab bar — real tab style with active tab connected to content */}
-        <div className="flex px-5 bg-[#F5F5F7] pt-1 flex-shrink-0">
+        <div className="flex px-5 bg-[#F5F5F7] dark:bg-ink-0 pt-1 flex-shrink-0">
           {([
             { key: 'work' as const, label: 'Work' },
             { key: 'timeline' as const, label: 'Timeline' },
@@ -776,8 +776,8 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
                 onClick={() => setActiveTab(tab.key)}
                 className={`relative px-5 py-2 text-xs font-semibold transition-colors flex items-center gap-1.5 rounded-t-lg border border-b-0 ${
                   isActive
-                    ? 'bg-white text-brand-purple border-brand-navy-30/40 z-10'
-                    : 'bg-transparent text-brand-navy-70 border-transparent hover:text-brand-navy hover:bg-white/50'
+                    ? 'bg-white dark:bg-ink-1 text-brand-purple dark:text-accent-purple border-brand-navy-30/40 dark:border-ink-border-soft z-10'
+                    : 'bg-transparent text-brand-navy-70 dark:text-fg-2 border-transparent hover:text-brand-navy dark:text-fg-1 hover:bg-white/50'
                 }`}
                 style={isActive ? { marginBottom: '-1px' } : undefined}
               >
@@ -809,10 +809,10 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
           })}
         </div>
         {/* Divider line under tabs — active tab overlaps it */}
-        <div className="border-t border-brand-navy-30/40 flex-shrink-0" />
+        <div className="border-t border-brand-navy-30/40 dark:border-ink-border-soft flex-shrink-0" />
 
         {/* Scrollable work area */}
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-6 bg-white">
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-6 bg-white dark:bg-ink-1">
 
         {/* Timeline tab */}
         {activeTab === 'timeline' && <OpportunityTimeline oppId={oppId} />}
@@ -836,7 +836,7 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
         {nextSteps.length > 0 && (
           <div>
             <SectionHeader title="Next Steps" count={nextSteps.length} />
-            <div className="bg-white rounded-xl border border-brand-navy-30 px-4 divide-y-0">
+            <div className="bg-white dark:bg-ink-1 rounded-xl border border-brand-navy-30 px-4 divide-y-0">
               {nextSteps.map(t => (
                 <TaskRow key={t.id} task={t} onStatusChange={handleTaskStatusChange} onDelete={handleTaskDelete} onEdit={handleTaskEdit} readOnly={isReadOnly} />
               ))}
@@ -858,10 +858,10 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
                     kind="task_pack"
                     onApplied={handleTemplateApplied}
                   />
-                  <span className="text-brand-navy-30">·</span>
+                  <span className="text-brand-navy-30 dark:text-fg-4">·</span>
                   <button
                     onClick={() => setShowAddTask(!showAddTask)}
-                    className="text-xs text-brand-purple hover:text-brand-navy font-medium transition-colors"
+                    className="text-xs text-brand-purple dark:text-accent-purple hover:text-brand-navy dark:text-fg-1 font-medium transition-colors"
                   >
                     + Add task
                   </button>
@@ -871,21 +871,21 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
           />
           {!isReadOnly && showAddTask && <AddTaskForm onAdd={handleAddTask} onCancel={() => setShowAddTask(false)} users={activeUsers} defaultAssigneeId={opp?.se_owner?.id} />}
           {openTasks.length > 0 && (
-            <div className="bg-white rounded-xl border border-brand-navy-30 px-4 mt-2 divide-y-0">
+            <div className="bg-white dark:bg-ink-1 rounded-xl border border-brand-navy-30 px-4 mt-2 divide-y-0">
               {openTasks.map(t => (
                 <TaskRow key={t.id} task={t} onStatusChange={handleTaskStatusChange} onDelete={handleTaskDelete} onEdit={handleTaskEdit} readOnly={isReadOnly} />
               ))}
             </div>
           )}
           {openTasks.length === 0 && !showAddTask && (
-            <p className="text-xs text-brand-navy-70 italic">No open tasks</p>
+            <p className="text-xs text-brand-navy-70 dark:text-fg-2 italic">No open tasks</p>
           )}
           {doneTasks.length > 0 && (
             <details className="mt-2">
-              <summary className="text-[11px] text-brand-navy-70 cursor-pointer hover:text-brand-navy">
+              <summary className="text-[11px] text-brand-navy-70 dark:text-fg-2 cursor-pointer hover:text-brand-navy dark:text-fg-1">
                 {doneTasks.length} completed task{doneTasks.length !== 1 ? 's' : ''}
               </summary>
-              <div className="bg-white rounded-xl border border-brand-navy-30 px-4 mt-1.5">
+              <div className="bg-white dark:bg-ink-1 rounded-xl border border-brand-navy-30 px-4 mt-1.5">
                 {doneTasks.map(t => (
                   <TaskRow key={t.id} task={t} onStatusChange={handleTaskStatusChange} onDelete={handleTaskDelete} onEdit={handleTaskEdit} readOnly={isReadOnly} />
                 ))}
@@ -898,9 +898,9 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
         <div>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <h3 className="text-xs font-semibold uppercase tracking-widest text-brand-navy-70">Notes</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-widest text-brand-navy-70 dark:text-fg-2">Notes</h3>
               {notes.length > 0 && (
-                <span className="text-[10px] bg-brand-navy-30 text-brand-navy-70 rounded-full px-1.5 py-px font-medium">{notes.length}</span>
+                <span className="text-[10px] bg-brand-navy-30 text-brand-navy-70 dark:text-fg-2 rounded-full px-1.5 py-px font-medium">{notes.length}</span>
               )}
               {notesFreshnessDays !== null && (
                 <div className="flex items-center gap-1 ml-1">
@@ -916,16 +916,16 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
                   kind="note"
                   onApplied={handleTemplateApplied}
                 />
-                <span className="text-brand-navy-30">·</span>
+                <span className="text-brand-navy-30 dark:text-fg-4">·</span>
                 <button
                   onClick={() => setShowAddNote(!showAddNote)}
-                  className="text-xs text-brand-purple hover:text-brand-navy font-medium transition-colors"
+                  className="text-xs text-brand-purple dark:text-accent-purple hover:text-brand-navy dark:text-fg-1 font-medium transition-colors"
                 >
                   + Add note
                 </button>
                 <button
                   onClick={() => opp && navigate(`/opportunities/${opp.sf_opportunity_id}/process-notes`)}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-medium bg-brand-purple text-white rounded-lg hover:bg-brand-purple-70 transition-colors"
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-medium bg-brand-purple dark:bg-accent-purple text-white rounded-lg hover:bg-brand-purple-70 dark:hover:opacity-90 transition-colors"
                   title="Process call notes with Claude"
                 >
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -938,7 +938,7 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
           </div>
           {!isReadOnly && showAddNote && <AddNoteForm onAdd={handleAddNote} onCancel={() => setShowAddNote(false)} />}
           {notes.length > 0 && (
-            <div className="bg-white rounded-xl border border-brand-navy-30 px-4 mt-3">
+            <div className="bg-white dark:bg-ink-1 rounded-xl border border-brand-navy-30 px-4 mt-3">
               {[...notes].reverse().map(n => {
                 const canDelete = !isReadOnly && !!user && (user.role === 'manager' || n.author_id === user.id);
                 return (

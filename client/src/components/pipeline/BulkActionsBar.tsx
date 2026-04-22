@@ -134,7 +134,7 @@ export default function BulkActionsBar({
   return (
     <div
       ref={rootRef}
-      className="sticky top-0 z-20 bg-brand-purple text-white px-4 py-2 flex items-center gap-3 shadow-sm border-b border-brand-purple-70"
+      className="sticky top-0 z-20 bg-brand-purple dark:bg-accent-purple text-white px-4 py-2 flex items-center gap-3 shadow-sm border-b border-brand-purple-70"
     >
       <span className="text-[12px] font-semibold">
         {count} selected
@@ -155,8 +155,8 @@ export default function BulkActionsBar({
           </svg>
         </button>
         {menu === 'reassign' && (
-          <div className="absolute left-0 top-full mt-1 z-30 w-72 bg-white text-brand-navy rounded-lg border border-brand-navy-30 shadow-xl overflow-hidden">
-            <div className="p-2 border-b border-brand-navy-30/40">
+          <div className="absolute left-0 top-full mt-1 z-30 w-72 bg-white dark:bg-ink-1 text-brand-navy dark:text-fg-1 rounded-lg border border-brand-navy-30 shadow-xl overflow-hidden">
+            <div className="p-2 border-b border-brand-navy-30/40 dark:border-ink-border-soft">
               <input
                 autoFocus
                 value={filter}
@@ -172,14 +172,14 @@ export default function BulkActionsBar({
                     type="button"
                     onClick={() => doReassign(null)}
                     disabled={busy}
-                    className="w-full px-3 py-1.5 text-left text-xs text-status-warning hover:bg-amber-50 transition-colors disabled:opacity-50 border-b border-brand-navy-30/30"
+                    className="w-full px-3 py-1.5 text-left text-xs text-status-warning dark:text-status-d-warning hover:bg-amber-50 transition-colors disabled:opacity-50 border-b border-brand-navy-30/30 dark:border-ink-border-soft"
                   >
                     Unassign all
                   </button>
                 </li>
               )}
               {candidates.length === 0 ? (
-                <li className="px-3 py-2 text-xs text-brand-navy-70">No matches.</li>
+                <li className="px-3 py-2 text-xs text-brand-navy-70 dark:text-fg-2">No matches.</li>
               ) : (
                 candidates.slice(0, 30).map(u => (
                   <li key={u.id}>
@@ -187,10 +187,10 @@ export default function BulkActionsBar({
                       type="button"
                       onClick={() => doReassign(u.id)}
                       disabled={busy}
-                      className="w-full px-3 py-1.5 text-left text-xs hover:bg-brand-purple-30/40 transition-colors disabled:opacity-50"
+                      className="w-full px-3 py-1.5 text-left text-xs hover:bg-brand-purple-30/40 dark:hover:bg-accent-purple-soft transition-colors disabled:opacity-50"
                     >
                       <span className="font-medium">{u.name}</span>
-                      <span className="ml-2 text-brand-navy-70">{u.email}</span>
+                      <span className="ml-2 text-brand-navy-70 dark:text-fg-2">{u.email}</span>
                     </button>
                   </li>
                 ))

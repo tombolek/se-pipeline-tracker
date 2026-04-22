@@ -97,16 +97,16 @@ function daysSince(dateStr: string | null): number | null {
 function FieldRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between gap-2 py-1 text-xs">
-      <span className="text-brand-navy-70 flex-shrink-0">{label}</span>
-      <span className="text-brand-navy text-right font-medium">{value}</span>
+      <span className="text-brand-navy-70 dark:text-fg-2 flex-shrink-0">{label}</span>
+      <span className="text-brand-navy dark:text-fg-1 text-right font-medium">{value}</span>
     </div>
   );
 }
 
 function FreshnessTag({ updatedAt }: { updatedAt: string | null }) {
   const days = daysSince(updatedAt);
-  if (days === null) return <span className="text-[10px] text-brand-navy-30">never</span>;
-  const color = days <= 7 ? 'text-status-success' : days <= 21 ? 'text-status-warning' : 'text-status-overdue';
+  if (days === null) return <span className="text-[10px] text-brand-navy-30 dark:text-fg-4">never</span>;
+  const color = days <= 7 ? 'text-status-success dark:text-status-d-success' : days <= 21 ? 'text-status-warning dark:text-status-d-warning' : 'text-status-overdue dark:text-status-d-overdue';
   return <span className={`text-[10px] font-medium ${color}`}>{days}d ago</span>;
 }
 
@@ -115,8 +115,8 @@ function Collapsible({ title, defaultOpen = false, children }: { title: string; 
   return (
     <div>
       <button onClick={() => setOpen(!open)} className="flex items-center justify-between w-full py-2.5 text-left">
-        <span className="text-xs font-semibold uppercase tracking-widest text-brand-navy-70">{title}</span>
-        <svg className={`w-3.5 h-3.5 text-brand-navy-70 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <span className="text-xs font-semibold uppercase tracking-widest text-brand-navy-70 dark:text-fg-2">{title}</span>
+        <svg className={`w-3.5 h-3.5 text-brand-navy-70 dark:text-fg-2 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
         </svg>
       </button>
@@ -145,7 +145,7 @@ function FieldHistory({ oppId, field }: { oppId: number; field: string }) {
 
   return (
     <div className="mt-2">
-      <button onClick={toggle} className="text-[10px] text-brand-navy-70 hover:text-brand-navy transition-colors flex items-center gap-1">
+      <button onClick={toggle} className="text-[10px] text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:text-fg-1 transition-colors flex items-center gap-1">
         <svg className={`w-2.5 h-2.5 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
         </svg>
@@ -155,16 +155,16 @@ function FieldHistory({ oppId, field }: { oppId: number; field: string }) {
         <div className="mt-1.5 space-y-2 pl-2 border-l-2 border-brand-navy-30/50">
           {entries.map(e => (
             <div key={e.id}>
-              <p className="text-[10px] text-brand-navy-70">{formatDate(e.changed_at)}</p>
-              <p className="text-[10px] text-brand-navy leading-relaxed line-clamp-3">
-                {e.new_value || <span className="italic text-brand-navy-30">cleared</span>}
+              <p className="text-[10px] text-brand-navy-70 dark:text-fg-2">{formatDate(e.changed_at)}</p>
+              <p className="text-[10px] text-brand-navy dark:text-fg-1 leading-relaxed line-clamp-3">
+                {e.new_value || <span className="italic text-brand-navy-30 dark:text-fg-4">cleared</span>}
               </p>
             </div>
           ))}
         </div>
       )}
       {open && entries?.length === 0 && (
-        <p className="text-[10px] text-brand-navy-30 mt-1 italic">No history yet</p>
+        <p className="text-[10px] text-brand-navy-30 dark:text-fg-4 mt-1 italic">No history yet</p>
       )}
     </div>
   );
@@ -193,11 +193,11 @@ function ProductsField({ products, oppId, readOnly, onUpdate }: { products: stri
   if (!editing) {
     return (
       <div className="flex justify-between gap-2 py-1 text-xs">
-        <span className="text-brand-navy-70 flex-shrink-0">Products</span>
-        <span className="text-brand-navy text-right font-medium flex items-center gap-1">
+        <span className="text-brand-navy-70 dark:text-fg-2 flex-shrink-0">Products</span>
+        <span className="text-brand-navy dark:text-fg-1 text-right font-medium flex items-center gap-1">
           {products.length > 0 ? products.join(', ') : '—'}
           {!readOnly && (
-            <button onClick={() => { setSelected(products); setEditing(true); }} className="text-brand-purple hover:text-brand-navy ml-1">
+            <button onClick={() => { setSelected(products); setEditing(true); }} className="text-brand-purple dark:text-accent-purple hover:text-brand-navy dark:text-fg-1 ml-1">
               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
             </button>
           )}
@@ -208,23 +208,23 @@ function ProductsField({ products, oppId, readOnly, onUpdate }: { products: stri
 
   return (
     <div className="py-1.5">
-      <span className="text-[10px] text-brand-navy-70 block mb-1">Products</span>
+      <span className="text-[10px] text-brand-navy-70 dark:text-fg-2 block mb-1">Products</span>
       <div className="flex flex-wrap gap-1 mb-1.5">
         {ALL_PRODUCTS.map(p => (
           <button key={p} onClick={() => toggle(p)}
             className={`px-2 py-0.5 text-[10px] rounded-full border transition-colors ${
               selected.includes(p)
-                ? 'bg-brand-purple text-white border-brand-purple'
-                : 'bg-white text-brand-navy-70 border-brand-navy-30 hover:border-brand-purple'
+                ? 'bg-brand-purple dark:bg-accent-purple text-white border-brand-purple'
+                : 'bg-white dark:bg-ink-1 text-brand-navy-70 dark:text-fg-2 border-brand-navy-30 hover:border-brand-purple'
             }`}
           >{p}</button>
         ))}
       </div>
       <div className="flex gap-1.5">
-        <button onClick={save} disabled={saving} className="px-2 py-0.5 text-[10px] font-medium bg-brand-purple text-white rounded hover:bg-brand-purple-70 disabled:opacity-50">
+        <button onClick={save} disabled={saving} className="px-2 py-0.5 text-[10px] font-medium bg-brand-purple dark:bg-accent-purple text-white rounded hover:bg-brand-purple-70 dark:hover:opacity-90 disabled:opacity-50">
           {saving ? 'Saving…' : 'Save'}
         </button>
-        <button onClick={() => setEditing(false)} className="px-2 py-0.5 text-[10px] text-brand-navy-70 hover:text-brand-navy">Cancel</button>
+        <button onClick={() => setEditing(false)} className="px-2 py-0.5 text-[10px] text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:text-fg-1">Cancel</button>
       </div>
     </div>
   );
@@ -237,9 +237,9 @@ const HEALTH_PILL_STYLES = {
 };
 
 const QUALITY_ICON = {
-  strong: <span className="text-status-success font-bold">✓</span>,
-  weak:   <span className="text-status-warning">◐</span>,
-  empty:  <span className="text-brand-navy-30">○</span>,
+  strong: <span className="text-status-success dark:text-status-d-success font-bold">✓</span>,
+  weak:   <span className="text-status-warning dark:text-status-d-warning">◐</span>,
+  empty:  <span className="text-brand-navy-30 dark:text-fg-4">○</span>,
 };
 
 /* ── Section renderers ── */
@@ -248,8 +248,8 @@ function GridSection({ section, opp, oppId, readOnly, onUpdate }: {
   section: DealInfoSection; opp: Opportunity; oppId: number; readOnly: boolean; onUpdate: () => void;
 }) {
   return (
-    <div className="bg-white rounded-xl border border-brand-navy-30 px-5 py-4">
-      <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-navy-70 mb-3">{section.label}</p>
+    <div className="bg-white dark:bg-ink-1 rounded-xl border border-brand-navy-30 px-5 py-4">
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-navy-70 dark:text-fg-2 mb-3">{section.label}</p>
       <div className="grid grid-cols-2 gap-x-8">
         {section.fields?.filter(f => f.format !== 'products').map(f => (
           <FieldRow key={f.key} label={f.label} value={formatFieldValue(resolveFieldValue(opp, f), f.format)} />
@@ -257,7 +257,7 @@ function GridSection({ section, opp, oppId, readOnly, onUpdate }: {
       </div>
       {/* Products field (special interactive widget) */}
       {section.fields?.some(f => f.format === 'products') && (
-        <div className="mt-2 pt-2 border-t border-brand-navy-30/30">
+        <div className="mt-2 pt-2 border-t border-brand-navy-30/30 dark:border-ink-border-soft">
           <ProductsField products={opp.products ?? []} oppId={oppId} readOnly={readOnly} onUpdate={onUpdate} />
         </div>
       )}
@@ -280,7 +280,7 @@ function CollapsibleSection({ section, opp, oppId }: {
   const singleField = section.fields && section.fields.length === 1 ? section.fields[0] : null;
 
   return (
-    <div className="bg-white rounded-xl border border-brand-navy-30 px-5 py-1">
+    <div className="bg-white dark:bg-ink-1 rounded-xl border border-brand-navy-30 px-5 py-1">
       <Collapsible title={section.label} defaultOpen={section.defaultOpen}>
         {hasFreshness && freshnessField && (
           <div className="flex items-center gap-1.5 mb-1.5">
@@ -288,7 +288,7 @@ function CollapsibleSection({ section, opp, oppId }: {
           </div>
         )}
         {singleField && (
-          <p className="text-xs text-brand-navy leading-relaxed whitespace-pre-wrap">
+          <p className="text-xs text-brand-navy dark:text-fg-1 leading-relaxed whitespace-pre-wrap">
             {resolveFieldValue(opp, singleField) ?? '—'}
           </p>
         )}
@@ -305,21 +305,21 @@ function HealthBreakdownSection({ opp }: { opp: Opportunity }) {
   const { score, rag, factors } = computeHealthScore(opp);
   const s = HEALTH_PILL_STYLES[rag];
   return (
-    <div id="health-breakdown" className="bg-white rounded-xl border border-brand-navy-30 px-5 py-4">
-      <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-navy-70 mb-3">Health Score Breakdown</p>
+    <div id="health-breakdown" className="bg-white dark:bg-ink-1 rounded-xl border border-brand-navy-30 px-5 py-4">
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-navy-70 dark:text-fg-2 mb-3">Health Score Breakdown</p>
       <div className="flex items-center gap-2 mb-3">
         <div className={`w-3 h-3 rounded-full ${s.dot}`} />
         <span className={`text-sm font-semibold ${s.text}`}>{score}/100</span>
         <span className={`text-xs ${s.text}`}>{rag === 'green' ? 'Healthy' : rag === 'amber' ? 'Needs attention' : 'At risk'}</span>
       </div>
       {factors.length === 0 ? (
-        <p className="text-xs text-status-success">No issues detected</p>
+        <p className="text-xs text-status-success dark:text-status-d-success">No issues detected</p>
       ) : (
         <div className="space-y-1.5">
           {factors.map(f => (
             <div key={f.label} className="flex items-center justify-between text-xs">
-              <span className="text-brand-navy-70">{f.label}</span>
-              <span className="font-semibold text-status-overdue">-{f.deduction}</span>
+              <span className="text-brand-navy-70 dark:text-fg-2">{f.label}</span>
+              <span className="font-semibold text-status-overdue dark:text-status-d-overdue">-{f.deduction}</span>
             </div>
           ))}
         </div>
@@ -340,16 +340,16 @@ function MeddpiccSection({ opp, coachResult }: { opp: Opportunity; coachResult?:
   const hasCoach = Object.keys(coachByKey).length > 0;
 
   return (
-    <div id="meddpicc" className="bg-white rounded-xl border border-brand-navy-30 px-5 py-4">
+    <div id="meddpicc" className="bg-white dark:bg-ink-1 rounded-xl border border-brand-navy-30 px-5 py-4">
       <div className="flex items-center justify-between mb-3">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-navy-70">MEDDPICC</p>
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-navy-70 dark:text-fg-2">MEDDPICC</p>
         {hasCoach && (
           <button
             onClick={() => setShowCoachNotes(v => !v)}
             className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-colors border ${
               showCoachNotes
-                ? 'bg-brand-purple text-white border-brand-purple hover:bg-brand-purple-70'
-                : 'bg-brand-purple-30/60 text-brand-purple border-brand-purple/30 hover:bg-brand-purple-30 hover:border-brand-purple/50'
+                ? 'bg-brand-purple dark:bg-accent-purple text-white border-brand-purple hover:bg-brand-purple-70 dark:hover:opacity-90'
+                : 'bg-brand-purple-30/60 dark:bg-accent-purple-soft text-brand-purple dark:text-accent-purple border-brand-purple/30 dark:border-accent-purple/30 hover:bg-brand-purple-30 hover:border-brand-purple/50'
             }`}
           >
             <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none">
@@ -370,32 +370,32 @@ function MeddpiccSection({ opp, coachResult }: { opp: Opportunity; coachResult?:
             <div key={f.key as string}>
               <div className="flex items-center gap-1.5 mb-0.5">
                 <span className="text-[10px]">{QUALITY_ICON[f.quality]}</span>
-                <span className="text-[10px] font-semibold uppercase tracking-wide text-brand-navy-70">{f.label}</span>
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-brand-navy-70 dark:text-fg-2">{f.label}</span>
                 {showCoachNotes && coach && (
                   <span className={`w-1.5 h-1.5 rounded-full ${coachDotColor}`} />
                 )}
                 {f.quality === 'weak' && (
-                  <span className="text-[9px] text-status-warning font-medium ml-auto">short</span>
+                  <span className="text-[9px] text-status-warning dark:text-status-d-warning font-medium ml-auto">short</span>
                 )}
               </div>
-              <p className={`text-xs leading-relaxed ${val ? 'text-brand-navy' : 'text-brand-navy-30 italic'}`}>
+              <p className={`text-xs leading-relaxed ${val ? 'text-brand-navy' : 'text-brand-navy-30 dark:text-fg-4 italic'}`}>
                 {val ?? 'Not filled'}
               </p>
               {/* Inline coach insight */}
               {showCoachNotes && coach && (coach.gap || coach.evidence || coach.suggested_question) && (
                 <div className="mt-1.5 ml-5 pl-3 border-l-2 border-brand-purple/20 space-y-1">
                   {coach.evidence && (
-                    <p className="text-[11px] text-brand-navy-70 leading-relaxed">
-                      <span className="font-medium text-brand-navy">Evidence:</span> {coach.evidence}
+                    <p className="text-[11px] text-brand-navy-70 dark:text-fg-2 leading-relaxed">
+                      <span className="font-medium text-brand-navy dark:text-fg-1">Evidence:</span> {coach.evidence}
                     </p>
                   )}
                   {coach.gap && (
-                    <p className="text-[11px] text-brand-navy-70 leading-relaxed">
-                      <span className="font-medium text-status-warning">Gap:</span> {coach.gap}
+                    <p className="text-[11px] text-brand-navy-70 dark:text-fg-2 leading-relaxed">
+                      <span className="font-medium text-status-warning dark:text-status-d-warning">Gap:</span> {coach.gap}
                     </p>
                   )}
                   {coach.suggested_question && (
-                    <p className="text-[11px] text-brand-purple italic leading-relaxed">
+                    <p className="text-[11px] text-brand-purple dark:text-accent-purple italic leading-relaxed">
                       💡 {coach.suggested_question}
                     </p>
                   )}
@@ -431,19 +431,19 @@ function PocRfxSection({ opp }: { opp: Opportunity }) {
   }
 
   return (
-    <div className="bg-white rounded-xl border border-brand-navy-30 px-5 py-4">
-      <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-navy-70 mb-3">PoC &amp; RFx</p>
+    <div className="bg-white dark:bg-ink-1 rounded-xl border border-brand-navy-30 px-5 py-4">
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-navy-70 dark:text-fg-2 mb-3">PoC &amp; RFx</p>
       <div className="grid grid-cols-2 gap-x-10">
         {/* PoC column */}
         <div>
-          <p className="text-[10px] font-semibold text-brand-purple mb-1.5">PoC</p>
+          <p className="text-[10px] font-semibold text-brand-purple dark:text-accent-purple mb-1.5">PoC</p>
           {pocFields.map(f => (
             <FieldRow key={f.key} label={f.label} value={val(f.key, f.format)} />
           ))}
         </div>
         {/* RFx column */}
         <div>
-          <p className="text-[10px] font-semibold text-brand-purple mb-1.5">RFx</p>
+          <p className="text-[10px] font-semibold text-brand-purple dark:text-accent-purple mb-1.5">RFx</p>
           {rfxFields.map(f => (
             <FieldRow key={f.key} label={f.label} value={val(f.key, f.format)} />
           ))}
@@ -457,19 +457,19 @@ function SeeAllFieldsSection({ opp }: { opp: Opportunity }) {
   const [open, setOpen] = useState(false);
   const sfRaw = (opp as unknown as Record<string, unknown>).sf_raw_fields as Record<string, unknown> | undefined;
   return (
-    <div className="bg-white rounded-xl border border-brand-navy-30 px-5 py-4">
-      <button onClick={() => setOpen(v => !v)} className="flex items-center gap-1.5 text-[11px] text-brand-navy-70 hover:text-brand-navy transition-colors">
+    <div className="bg-white dark:bg-ink-1 rounded-xl border border-brand-navy-30 px-5 py-4">
+      <button onClick={() => setOpen(v => !v)} className="flex items-center gap-1.5 text-[11px] text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:text-fg-1 transition-colors">
         <svg className={`w-3 h-3 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
         </svg>
         {open ? 'Hide all fields' : 'See all fields'}
       </button>
       {open && sfRaw && (
-        <div className="mt-2 border border-brand-navy-30/40 rounded-lg overflow-hidden">
+        <div className="mt-2 border border-brand-navy-30/40 dark:border-ink-border-soft rounded-lg overflow-hidden">
           {Object.entries(sfRaw).map(([key, val]) => (
-            <div key={key} className="flex justify-between gap-2 px-3 py-1.5 text-xs border-b border-brand-navy-30/20 last:border-0 even:bg-gray-50/60">
-              <span className="text-brand-navy-70 flex-shrink-0 max-w-[45%]">{key}</span>
-              <span className="text-brand-navy font-medium text-right break-words">{val === null || val === undefined || val === '' ? '—' : String(val)}</span>
+            <div key={key} className="flex justify-between gap-2 px-3 py-1.5 text-xs border-b border-brand-navy-30/20 dark:border-ink-border-soft last:border-0 even:bg-gray-50 dark:bg-ink-0/60">
+              <span className="text-brand-navy-70 dark:text-fg-2 flex-shrink-0 max-w-[45%]">{key}</span>
+              <span className="text-brand-navy dark:text-fg-1 font-medium text-right break-words">{val === null || val === undefined || val === '' ? '—' : String(val)}</span>
             </div>
           ))}
         </div>
@@ -571,7 +571,7 @@ export default function DealInfoTab({ opp, oppId, readOnly, onUpdate, scrollToSe
           href={`https://ataccama.lightning.force.com/lightning/r/Opportunity/${(opp as unknown as Record<string, unknown>).sf_opportunity_id}/view`}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-brand-navy-30 text-[11px] font-medium text-brand-navy-70 hover:text-brand-navy hover:border-brand-navy transition-colors"
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-brand-navy-30 text-[11px] font-medium text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:text-fg-1 hover:border-brand-navy transition-colors"
         >
           <svg className="w-3.5 h-3.5 text-[#00A1E0]" viewBox="0 0 24 24" fill="currentColor">
             <path d="M15.8 5.4c-.7-.7-1.6-1.1-2.6-1.1-1.3 0-2.5.7-3.2 1.7C9.4 5.4 8.6 5 7.7 5 5.7 5 4 6.7 4 8.8c0 .4.1.8.2 1.2C3 10.7 2 12 2 13.5 2 15.4 3.6 17 5.5 17c.3 0 .5 0 .8-.1.5 1.4 1.8 2.4 3.4 2.4 1.3 0 2.4-.7 3-1.8.6.4 1.2.6 2 .6 1.3 0 2.4-.7 3-1.8.3.1.7.1 1.1.1C21 16.4 23 14.5 23 12c0-2-1.3-3.7-3.1-4.3-.7-1.3-2.1-2.3-3.6-2.3h-.5z"/>

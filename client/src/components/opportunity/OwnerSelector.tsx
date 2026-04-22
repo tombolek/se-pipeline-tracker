@@ -79,7 +79,7 @@ export default function OwnerSelector({ oppId, owner, readOnly, onChange }: Prop
 
   return (
     <div className="flex items-center gap-1.5" ref={ref}>
-      <span className="text-[10px] font-semibold uppercase tracking-wide text-brand-navy-70">Owner</span>
+      <span className="text-[10px] font-semibold uppercase tracking-wide text-brand-navy-70 dark:text-fg-2">Owner</span>
       {canChange ? (
         <button
           type="button"
@@ -87,8 +87,8 @@ export default function OwnerSelector({ oppId, owner, readOnly, onChange }: Prop
           disabled={saving}
           className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full transition-colors disabled:opacity-50 ${
             owner
-              ? 'bg-brand-purple text-white hover:bg-brand-purple-70'
-              : 'bg-amber-50 text-status-warning border border-amber-200 hover:bg-amber-100'
+              ? 'bg-brand-purple dark:bg-accent-purple text-white hover:bg-brand-purple-70 dark:hover:opacity-90'
+              : 'bg-amber-50 text-status-warning dark:text-status-d-warning border border-amber-200 hover:bg-amber-100'
           }`}
           title="Change SE Owner"
         >
@@ -99,15 +99,15 @@ export default function OwnerSelector({ oppId, owner, readOnly, onChange }: Prop
         </button>
       ) : (
         <span className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full ${
-          owner ? 'bg-brand-purple/15 text-brand-purple' : 'bg-gray-100 text-brand-navy-70'
+          owner ? 'bg-brand-purple/15 text-brand-purple' : 'bg-gray-100 dark:bg-ink-3 text-brand-navy-70 dark:text-fg-2'
         }`}>
           {owner?.name ?? 'Unassigned'}
         </span>
       )}
 
       {open && canChange && (
-        <div className="absolute left-0 top-5 z-30 w-72 bg-white rounded-lg border border-brand-navy-30 shadow-xl overflow-hidden" style={{ position: 'absolute', top: '100%', marginTop: '0.25rem' }}>
-          <div className="p-2 border-b border-brand-navy-30/40">
+        <div className="absolute left-0 top-5 z-30 w-72 bg-white dark:bg-ink-1 rounded-lg border border-brand-navy-30 shadow-xl overflow-hidden" style={{ position: 'absolute', top: '100%', marginTop: '0.25rem' }}>
+          <div className="p-2 border-b border-brand-navy-30/40 dark:border-ink-border-soft">
             <input
               autoFocus
               value={filter}
@@ -116,7 +116,7 @@ export default function OwnerSelector({ oppId, owner, readOnly, onChange }: Prop
               className="w-full px-2 py-1 text-xs border border-brand-navy-30 rounded focus:outline-none focus:ring-1 focus:ring-brand-purple"
             />
           </div>
-          {error && <p className="px-3 py-2 text-[11px] text-status-overdue bg-red-50">{error}</p>}
+          {error && <p className="px-3 py-2 text-[11px] text-status-overdue dark:text-status-d-overdue bg-red-50">{error}</p>}
           <ul className="max-h-56 overflow-y-auto">
             {(isManager || isOwner) && owner && (
               <li>
@@ -124,14 +124,14 @@ export default function OwnerSelector({ oppId, owner, readOnly, onChange }: Prop
                   type="button"
                   onClick={() => assign(null)}
                   disabled={saving}
-                  className="w-full px-3 py-1.5 text-left text-xs text-status-warning hover:bg-amber-50 transition-colors disabled:opacity-50 border-b border-brand-navy-30/30"
+                  className="w-full px-3 py-1.5 text-left text-xs text-status-warning dark:text-status-d-warning hover:bg-amber-50 transition-colors disabled:opacity-50 border-b border-brand-navy-30/30 dark:border-ink-border-soft"
                 >
                   Unassign
                 </button>
               </li>
             )}
             {candidates.length === 0 ? (
-              <li className="px-3 py-2 text-xs text-brand-navy-70">No matches.</li>
+              <li className="px-3 py-2 text-xs text-brand-navy-70 dark:text-fg-2">No matches.</li>
             ) : (
               candidates.slice(0, 20).map(u => (
                 <li key={u.id}>
@@ -139,10 +139,10 @@ export default function OwnerSelector({ oppId, owner, readOnly, onChange }: Prop
                     type="button"
                     onClick={() => assign(u.id)}
                     disabled={saving}
-                    className="w-full px-3 py-1.5 text-left text-xs hover:bg-brand-purple-30/40 transition-colors disabled:opacity-50"
+                    className="w-full px-3 py-1.5 text-left text-xs hover:bg-brand-purple-30/40 dark:hover:bg-accent-purple-soft transition-colors disabled:opacity-50"
                   >
-                    <span className="font-medium text-brand-navy">{u.name}</span>
-                    <span className="ml-2 text-brand-navy-70">{u.email}</span>
+                    <span className="font-medium text-brand-navy dark:text-fg-1">{u.name}</span>
+                    <span className="ml-2 text-brand-navy-70 dark:text-fg-2">{u.email}</span>
                   </button>
                 </li>
               ))

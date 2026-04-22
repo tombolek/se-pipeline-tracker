@@ -64,24 +64,24 @@ function OppSearchPopover({ onSelect, onClose }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-32" onClick={onClose}>
-      <div className="bg-white rounded-lg shadow-lg border border-brand-navy-30/40 w-[480px] overflow-hidden"
+      <div className="bg-white dark:bg-ink-1 rounded-lg shadow-lg border border-brand-navy-30/40 dark:border-ink-border-soft w-[480px] overflow-hidden"
         onClick={e => e.stopPropagation()}>
-        <div className="px-4 py-3 border-b border-brand-navy-30/30">
+        <div className="px-4 py-3 border-b border-brand-navy-30/30 dark:border-ink-border-soft">
           <input ref={inputRef} value={q} onChange={e => setQ(e.target.value)}
             placeholder="Search opportunities…"
-            className="w-full text-sm text-brand-navy placeholder:text-brand-navy-30 focus:outline-none" />
+            className="w-full text-sm text-brand-navy dark:text-fg-1 placeholder:text-brand-navy-30 dark:text-fg-4 focus:outline-none" />
         </div>
         <div className="max-h-72 overflow-y-auto">
-          {loading && <p className="px-4 py-3 text-xs text-brand-navy-70">Searching…</p>}
+          {loading && <p className="px-4 py-3 text-xs text-brand-navy-70 dark:text-fg-2">Searching…</p>}
           {!loading && q.trim() && results.length === 0 && (
-            <p className="px-4 py-3 text-xs text-brand-navy-70">No open deals match this search. Closed deals aren't shown here.</p>
+            <p className="px-4 py-3 text-xs text-brand-navy-70 dark:text-fg-2">No open deals match this search. Closed deals aren't shown here.</p>
           )}
           {results.map(o => (
             <button key={o.id} onClick={() => onSelect(o)}
-              className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-brand-purple-30/30 text-left transition-colors">
+              className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-brand-purple-30/30 dark:hover:bg-accent-purple-soft text-left transition-colors">
               <div className="min-w-0">
-                <p className="text-sm font-medium text-brand-navy truncate">{o.name}</p>
-                <p className="text-xs text-brand-navy-70 truncate">{o.account_name} · {o.stage}</p>
+                <p className="text-sm font-medium text-brand-navy dark:text-fg-1 truncate">{o.name}</p>
+                <p className="text-xs text-brand-navy-70 dark:text-fg-2 truncate">{o.account_name} · {o.stage}</p>
               </div>
             </button>
           ))}
@@ -127,40 +127,40 @@ function InboxCard({ item, onUpdate, onDelete, onConverted }: {
   return (
     <>
       {converting && <OppSearchPopover onSelect={handleConvert} onClose={() => setConverting(false)} />}
-      <div className={`group flex items-start gap-3 bg-white rounded-xl border px-4 py-3 transition-opacity ${
-        isDone ? 'opacity-50 border-brand-navy-30/40' : 'border-brand-navy-30/60 shadow-sm'
+      <div className={`group flex items-start gap-3 bg-white dark:bg-ink-1 rounded-xl border px-4 py-3 transition-opacity ${
+        isDone ? 'opacity-50 border-brand-navy-30/40 dark:border-ink-border-soft' : 'border-brand-navy-30/60 dark:border-ink-border shadow-sm'
       }`}>
         <span className={`mt-0.5 flex-shrink-0 text-[9px] font-semibold px-1.5 py-0.5 rounded-full uppercase tracking-wide ${
-          item.type === 'todo' ? 'bg-brand-purple/10 text-brand-purple' : 'bg-brand-navy-30/40 text-brand-navy-70'
+          item.type === 'todo' ? 'bg-brand-purple/10 dark:bg-accent-purple-soft text-brand-purple' : 'bg-brand-navy-30/40 text-brand-navy-70 dark:text-fg-2'
         }`}>
           {item.type}
         </span>
         <div className="flex-1 min-w-0">
-          <p className={`text-sm text-brand-navy leading-snug ${isDone ? 'line-through' : ''}`}>
+          <p className={`text-sm text-brand-navy dark:text-fg-1 leading-snug ${isDone ? 'line-through' : ''}`}>
             {convertingTo
-              ? <span className="text-brand-navy-70">Adding to {convertingTo}…</span>
+              ? <span className="text-brand-navy-70 dark:text-fg-2">Adding to {convertingTo}…</span>
               : item.text}
           </p>
-          <p className="text-[11px] text-brand-navy-30 mt-0.5">{relativeTime(item.created_at)}</p>
+          <p className="text-[11px] text-brand-navy-30 dark:text-fg-4 mt-0.5">{relativeTime(item.created_at)}</p>
         </div>
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
           <button onClick={() => setConverting(true)} disabled={!!convertingTo}
             title="Link to opportunity"
-            className="text-brand-navy-30 hover:text-brand-purple transition-colors">
+            className="text-brand-navy-30 dark:text-fg-4 hover:text-brand-purple dark:hover:text-accent-purple transition-colors">
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
             </svg>
           </button>
           {item.type === 'todo' && (
             <button onClick={toggleDone} title={isDone ? 'Reopen' : 'Mark done'}
-              className={`transition-colors ${isDone ? 'text-status-success' : 'text-brand-navy-30 hover:text-status-success'}`}>
+              className={`transition-colors ${isDone ? 'text-status-success dark:text-status-d-success' : 'text-brand-navy-30 dark:text-fg-4 hover:text-status-success dark:text-status-d-success'}`}>
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
             </button>
           )}
           <button onClick={handleDelete} title="Delete"
-            className="text-brand-navy-30 hover:text-status-overdue transition-colors">
+            className="text-brand-navy-30 dark:text-fg-4 hover:text-status-overdue dark:text-status-d-overdue transition-colors">
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -216,22 +216,22 @@ function TaskCard({ task, onUpdate, onDelete }: {
 
   if (editing) {
     return (
-      <div className="bg-white rounded-xl border border-brand-purple/40 px-4 py-3 shadow-sm">
+      <div className="bg-white dark:bg-ink-1 rounded-xl border border-brand-purple/40 dark:border-accent-purple/40 px-4 py-3 shadow-sm">
         <form onSubmit={submitEdit} className="space-y-2">
           <input autoFocus value={editTitle} onChange={e => setEditTitle(e.target.value)}
-            className="w-full px-2 py-1.5 rounded border border-brand-navy-30 text-sm text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-purple" />
+            className="w-full px-2 py-1.5 rounded border border-brand-navy-30 text-sm text-brand-navy dark:text-fg-1 focus:outline-none focus:ring-2 focus:ring-brand-purple" />
           <textarea value={editDesc} onChange={e => setEditDesc(e.target.value)}
             placeholder="Description (optional)" rows={3}
-            className="w-full px-2 py-1 rounded border border-brand-navy-30 text-xs text-brand-navy placeholder:text-brand-navy-30 focus:outline-none focus:ring-1 focus:ring-brand-purple resize-none" />
+            className="w-full px-2 py-1 rounded border border-brand-navy-30 text-xs text-brand-navy dark:text-fg-1 placeholder:text-brand-navy-30 dark:text-fg-4 focus:outline-none focus:ring-1 focus:ring-brand-purple resize-none" />
           <div className="flex items-center gap-2 flex-wrap">
             <input type="date" value={editDue} onChange={e => setEditDue(e.target.value)}
-              className="px-2 py-1 rounded border border-brand-navy-30 text-xs text-brand-navy focus:outline-none focus:ring-1 focus:ring-brand-purple" />
+              className="px-2 py-1 rounded border border-brand-navy-30 text-xs text-brand-navy dark:text-fg-1 focus:outline-none focus:ring-1 focus:ring-brand-purple" />
             <button type="submit" disabled={saving || !editTitle.trim()}
-              className="px-3 py-1 bg-brand-purple text-white text-xs font-medium rounded hover:bg-brand-purple-70 disabled:opacity-50 transition-colors">
+              className="px-3 py-1 bg-brand-purple dark:bg-accent-purple text-white text-xs font-medium rounded hover:bg-brand-purple-70 dark:hover:opacity-90 disabled:opacity-50 transition-colors">
               {saving ? 'Saving…' : 'Save'}
             </button>
             <button type="button" onClick={() => setEditing(false)}
-              className="px-2 py-1 text-xs text-brand-navy-70 hover:text-brand-navy transition-colors">Cancel</button>
+              className="px-2 py-1 text-xs text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:text-fg-1 transition-colors">Cancel</button>
           </div>
         </form>
       </div>
@@ -239,8 +239,8 @@ function TaskCard({ task, onUpdate, onDelete }: {
   }
 
   return (
-    <div className={`group flex items-start gap-3 bg-white rounded-xl border px-4 py-3 transition-opacity ${
-      task.status === 'done' ? 'opacity-50 border-brand-navy-30/40' : 'border-brand-navy-30/60 shadow-sm'
+    <div className={`group flex items-start gap-3 bg-white dark:bg-ink-1 rounded-xl border px-4 py-3 transition-opacity ${
+      task.status === 'done' ? 'opacity-50 border-brand-navy-30/40 dark:border-ink-border-soft' : 'border-brand-navy-30/60 dark:border-ink-border shadow-sm'
     }`}>
       <button onClick={toggleDone}
         className={`mt-0.5 w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition-colors ${
@@ -255,18 +255,18 @@ function TaskCard({ task, onUpdate, onDelete }: {
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <p className={`text-sm font-medium text-brand-navy leading-snug ${task.status === 'done' ? 'line-through' : ''}`}>
+            <p className={`text-sm font-medium text-brand-navy dark:text-fg-1 leading-snug ${task.status === 'done' ? 'line-through' : ''}`}>
               {task.title}
             </p>
             {task.opportunity_name && (
-              <p className="text-xs text-brand-navy-70 mt-0.5 truncate">{task.opportunity_name}</p>
+              <p className="text-xs text-brand-navy-70 dark:text-fg-2 mt-0.5 truncate">{task.opportunity_name}</p>
             )}
             {task.description && (
-              <p className="text-xs text-brand-navy-70 mt-0.5 line-clamp-2">{task.description}</p>
+              <p className="text-xs text-brand-navy-70 dark:text-fg-2 mt-0.5 line-clamp-2">{task.description}</p>
             )}
           </div>
           {task.is_next_step && (
-            <span className="flex-shrink-0 text-[9px] font-semibold bg-brand-purple/10 text-brand-purple px-1.5 py-0.5 rounded-full uppercase tracking-wide">
+            <span className="flex-shrink-0 text-[9px] font-semibold bg-brand-purple/10 dark:bg-accent-purple-soft text-brand-purple dark:text-accent-purple px-1.5 py-0.5 rounded-full uppercase tracking-wide">
               Next step
             </span>
           )}
@@ -279,19 +279,19 @@ function TaskCard({ task, onUpdate, onDelete }: {
             ))}
           </select>
           {task.due_date && (
-            <span className={`text-[11px] ${isOverdue ? 'text-status-overdue font-medium' : 'text-brand-navy-70'}`}>
+            <span className={`text-[11px] ${isOverdue ? 'text-status-overdue dark:text-status-d-overdue font-medium' : 'text-brand-navy-70 dark:text-fg-2'}`}>
               {isOverdue ? 'Overdue · ' : 'Due '}{formatDate(task.due_date)}
             </span>
           )}
         </div>
       </div>
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity mt-0.5 flex-shrink-0">
-        <button onClick={() => setEditing(true)} title="Edit" className="text-brand-navy-30 hover:text-brand-purple">
+        <button onClick={() => setEditing(true)} title="Edit" className="text-brand-navy-30 dark:text-fg-4 hover:text-brand-purple dark:hover:text-accent-purple">
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
           </svg>
         </button>
-        <button onClick={handleDelete} title="Delete" className="text-brand-navy-30 hover:text-status-overdue">
+        <button onClick={handleDelete} title="Delete" className="text-brand-navy-30 dark:text-fg-4 hover:text-status-overdue dark:text-status-d-overdue">
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
@@ -323,10 +323,10 @@ function Section({ title, count, color, tasks, onUpdate, onDelete, collapsible =
       <button onClick={() => collapsible && setOpen(!open)} disabled={!collapsible}
         className="flex items-center gap-2 mb-3 w-full text-left">
         <span className={`w-2 h-2 rounded-full flex-shrink-0 ${color}`} />
-        <h2 className="text-xs font-semibold uppercase tracking-widest text-brand-navy-70">{title}</h2>
-        {count > 0 && <span className="text-[10px] bg-brand-navy-30/60 text-brand-navy-70 rounded-full px-1.5 py-px font-medium">{count}</span>}
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-brand-navy-70 dark:text-fg-2">{title}</h2>
+        {count > 0 && <span className="text-[10px] bg-brand-navy-30/60 text-brand-navy-70 dark:text-fg-2 rounded-full px-1.5 py-px font-medium">{count}</span>}
         {collapsible && (
-          <svg className={`w-3.5 h-3.5 text-brand-navy-30 ml-auto transition-transform ${open ? 'rotate-180' : ''}`}
+          <svg className={`w-3.5 h-3.5 text-brand-navy-30 dark:text-fg-4 ml-auto transition-transform ${open ? 'rotate-180' : ''}`}
             fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
           </svg>
@@ -335,7 +335,7 @@ function Section({ title, count, color, tasks, onUpdate, onDelete, collapsible =
       {open && (
         <div className="space-y-2 mb-6">
           {count === 0
-            ? <p className="text-xs text-brand-navy-30 pl-4">{SECTION_EMPTY[title] ?? 'All clear.'}</p>
+            ? <p className="text-xs text-brand-navy-30 dark:text-fg-4 pl-4">{SECTION_EMPTY[title] ?? 'All clear.'}</p>
             : tasks.map(t => <TaskCard key={t.id} task={t} onUpdate={onUpdate} onDelete={onDelete} />)
           }
         </div>
@@ -396,24 +396,24 @@ export default function MyTasksPage() {
   const isEmpty = activeTaskCount === 0 && groups.done.length === 0 && openInbox.length === 0 && doneInbox.length === 0;
 
   return (
-    <div className="flex-1 overflow-y-auto bg-[#F5F5F7] px-8 py-6">
+    <div className="flex-1 overflow-y-auto bg-[#F5F5F7] dark:bg-ink-0 px-8 py-6">
       <div className="flex items-baseline gap-3 mb-6">
-        <h1 className="text-xl font-semibold text-brand-navy">My Tasks</h1>
+        <h1 className="text-xl font-semibold text-brand-navy dark:text-fg-1">My Tasks</h1>
         {!loading && activeTaskCount > 0 && (
-          <span className="text-sm text-brand-navy-70">{activeTaskCount} open</span>
+          <span className="text-sm text-brand-navy-70 dark:text-fg-2">{activeTaskCount} open</span>
         )}
       </div>
 
       {loading && (
-        <div className="flex items-center justify-center py-20 text-sm text-brand-navy-70">Loading…</div>
+        <div className="flex items-center justify-center py-20 text-sm text-brand-navy-70 dark:text-fg-2">Loading…</div>
       )}
 
       {!loading && isEmpty && (
         <div className="flex flex-col items-center justify-center py-20 gap-2">
-          <svg className="w-10 h-10 text-brand-navy-30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <svg className="w-10 h-10 text-brand-navy-30 dark:text-fg-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
           </svg>
-          <p className="text-sm text-brand-navy-70">Nothing on your plate — nice work!</p>
+          <p className="text-sm text-brand-navy-70 dark:text-fg-2">Nothing on your plate — nice work!</p>
         </div>
       )}
 
@@ -424,14 +424,14 @@ export default function MyTasksPage() {
           {(openInbox.length > 0 || doneInbox.length > 0) && (
             <div className="mb-8">
               <div className="flex items-center gap-2 mb-3">
-                <span className="w-2 h-2 rounded-full flex-shrink-0 bg-brand-purple" />
-                <h2 className="text-xs font-semibold uppercase tracking-widest text-brand-navy-70">Inbox</h2>
+                <span className="w-2 h-2 rounded-full flex-shrink-0 bg-brand-purple dark:bg-accent-purple" />
+                <h2 className="text-xs font-semibold uppercase tracking-widest text-brand-navy-70 dark:text-fg-2">Inbox</h2>
                 {openInbox.length > 0 && (
-                  <span className="text-[10px] bg-brand-purple/20 text-brand-purple rounded-full px-1.5 py-px font-medium">
+                  <span className="text-[10px] bg-brand-purple/20 text-brand-purple dark:text-accent-purple rounded-full px-1.5 py-px font-medium">
                     {openInbox.length}
                   </span>
                 )}
-                <span className="text-[11px] text-brand-navy-30 ml-1">Quick captures to process</span>
+                <span className="text-[11px] text-brand-navy-30 dark:text-fg-4 ml-1">Quick captures to process</span>
               </div>
               <div className="space-y-2">
                 {openInbox.map(i => (
@@ -454,10 +454,10 @@ export default function MyTasksPage() {
 
           {/* Task sections */}
           <Section title="Overdue"     count={groups.overdue.length} color="bg-status-overdue" tasks={groups.overdue} onUpdate={handleTaskUpdate} onDelete={handleTaskDelete} />
-          <Section title="Today"       count={groups.today.length}   color="bg-brand-purple"   tasks={groups.today}   onUpdate={handleTaskUpdate} onDelete={handleTaskDelete} />
+          <Section title="Today"       count={groups.today.length}   color="bg-brand-purple dark:bg-accent-purple"   tasks={groups.today}   onUpdate={handleTaskUpdate} onDelete={handleTaskDelete} />
           <Section title="This Week"   count={groups.week.length}    color="bg-status-warning" tasks={groups.week}    onUpdate={handleTaskUpdate} onDelete={handleTaskDelete} />
           <Section title="Later"       count={groups.later.length}   color="bg-blue-400"       tasks={groups.later}   onUpdate={handleTaskUpdate} onDelete={handleTaskDelete} />
-          <Section title="No Due Date" count={groups.noDue.length}   color="bg-brand-navy-30"  tasks={groups.noDue}   onUpdate={handleTaskUpdate} onDelete={handleTaskDelete} />
+          <Section title="No Due Date" count={groups.noDue.length}   color="bg-brand-navy-30 dark:bg-fg-4"  tasks={groups.noDue}   onUpdate={handleTaskUpdate} onDelete={handleTaskDelete} />
           <Section title="Completed"   count={groups.done.length}    color="bg-status-success" tasks={groups.done}    onUpdate={handleTaskUpdate} onDelete={handleTaskDelete} collapsible />
         </div>
       )}

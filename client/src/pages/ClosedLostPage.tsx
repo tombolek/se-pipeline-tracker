@@ -24,10 +24,10 @@ function ClosedRow({ item, selected, onClick, visibleColumns }: {
   return (
     <tr
       onClick={onClick}
-      className={`border-b border-brand-navy-30/30 cursor-pointer transition-colors ${
+      className={`border-b border-brand-navy-30/30 dark:border-ink-border-soft cursor-pointer transition-colors ${
         selected
           ? 'bg-brand-purple/[0.04] border-l-2 border-l-brand-purple-70'
-          : 'hover:bg-brand-navy/[0.025]'
+          : 'hover:bg-brand-navy/[0.025] dark:hover:bg-white/[0.025]'
       }`}
     >
       {visibleColumns.map(col => (
@@ -36,11 +36,11 @@ function ClosedRow({ item, selected, onClick, visibleColumns }: {
         </td>
       ))}
       {/* Pinned: Closed date */}
-      <td className="px-3 py-3 text-xs text-brand-navy-70 whitespace-nowrap">
+      <td className="px-3 py-3 text-xs text-brand-navy-70 dark:text-fg-2 whitespace-nowrap">
         {item.closed_at ? formatDateTime(item.closed_at) : '—'}
       </td>
       {/* Chevron */}
-      <td className="px-3 py-3 text-brand-navy-30">
+      <td className="px-3 py-3 text-brand-navy-30 dark:text-fg-4">
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
         </svg>
@@ -102,14 +102,14 @@ export default function ClosedLostPage() {
   return (
     <div className="flex flex-col h-full relative overflow-hidden">
       {/* Header bar */}
-      <div className="flex items-center gap-3 px-5 py-3 border-b border-brand-navy-30/40 bg-white flex-shrink-0">
-        <h1 className="text-base font-semibold text-brand-navy">Closed Lost</h1>
+      <div className="flex items-center gap-3 px-5 py-3 border-b border-brand-navy-30/40 dark:border-ink-border-soft bg-white dark:bg-ink-1 flex-shrink-0">
+        <h1 className="text-base font-semibold text-brand-navy dark:text-fg-1">Closed Lost</h1>
         {!loading && items.length > 0 && (
-          <span className="text-[10px] bg-brand-navy-30 text-brand-navy-70 rounded-full px-1.5 py-px font-medium">
+          <span className="text-[10px] bg-brand-navy-30 text-brand-navy-70 dark:text-fg-2 rounded-full px-1.5 py-px font-medium">
             {items.length}
           </span>
         )}
-        <span className="text-xs text-brand-navy-70">{sortKey ? 'Sorted by column' : 'Sorted by most recently closed'}</span>
+        <span className="text-xs text-brand-navy-70 dark:text-fg-2">{sortKey ? 'Sorted by column' : 'Sorted by most recently closed'}</span>
         <div className="ml-auto">
           <ColumnPicker
             visibleColumns={visibleColumns}
@@ -120,21 +120,21 @@ export default function ClosedLostPage() {
       </div>
 
       {/* Table */}
-      <div className="flex-1 overflow-y-auto overflow-x-auto bg-white">
+      <div className="flex-1 overflow-y-auto overflow-x-auto bg-white dark:bg-ink-1">
         {loading && (
-          <div className="flex items-center justify-center py-20 text-sm text-brand-navy-70">Loading…</div>
+          <div className="flex items-center justify-center py-20 text-sm text-brand-navy-70 dark:text-fg-2">Loading…</div>
         )}
         {error && (
-          <div className="px-5 py-4 text-sm text-status-overdue">{error}</div>
+          <div className="px-5 py-4 text-sm text-status-overdue dark:text-status-d-overdue">{error}</div>
         )}
         {!loading && !error && items.length === 0 && (
-          <div className="flex items-center justify-center py-20 text-sm text-brand-navy-70">
+          <div className="flex items-center justify-center py-20 text-sm text-brand-navy-70 dark:text-fg-2">
             No closed opportunities yet.
           </div>
         )}
         {!loading && items.length > 0 && (
           <table className="w-full border-collapse">
-            <thead className="sticky top-0 bg-white border-b border-brand-navy-30/40 z-10">
+            <thead className="sticky top-0 bg-white dark:bg-ink-1 border-b border-brand-navy-30/40 dark:border-ink-border-soft z-10">
               <tr>
                 {visibleColumns.map(col => (
                   <SortableHeader
@@ -144,7 +144,7 @@ export default function ClosedLostPage() {
                     currentKey={sortKey}
                     currentDir={sortDir}
                     onSort={handleSort}
-                    className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide whitespace-nowrap"
+                    className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide whitespace-nowrap"
                   />
                 ))}
                 {/* Pinned: Closed date column header */}
@@ -154,7 +154,7 @@ export default function ClosedLostPage() {
                   currentKey={sortKey}
                   currentDir={sortDir}
                   onSort={handleSort}
-                  className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide whitespace-nowrap"
+                  className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide whitespace-nowrap"
                 />
                 <th className="w-8" />
               </tr>
