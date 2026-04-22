@@ -578,7 +578,7 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
         {/* Summary callout (below header, above tabs) */}
         <div className="px-5 flex-shrink-0">
           {summary && (
-            <div className="mt-3 bg-brand-purple-30 border border-brand-purple/20 rounded-xl overflow-hidden">
+            <div className="mt-3 bg-brand-purple-30 border border-brand-purple/20 rounded-xl overflow-visible">
               {/* Header — always visible, clickable to collapse */}
               <button
                 onClick={() => setSummaryCollapsed(c => !c)}
@@ -647,7 +647,7 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
           )}
           {/* MEDDPICC Gap Coach panel — collapsed by default, above tabs */}
           {coachResult && (
-            <div ref={coachPanelRef} className="mt-3 bg-gradient-to-br from-brand-purple-30/80 to-brand-purple-30/40 border border-brand-purple/20 rounded-xl overflow-hidden">
+            <div ref={coachPanelRef} className="mt-3 bg-gradient-to-br from-brand-purple-30/80 to-brand-purple-30/40 border border-brand-purple/20 rounded-xl overflow-visible">
               {/* Header — always visible, clickable to collapse */}
               <button
                 onClick={() => setCoachCollapsed(c => !c)}
