@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { callAnthropic } from './aiClient.js';
 import { query, queryOne } from '../db/index.js';
 import type { CitationSource, ResolvedCitation } from '../types/citations.js';
 import { CITATION_INSTRUCTIONS, resolveCitations } from './citations.js';
@@ -244,15 +244,11 @@ export async function generatePlaybook(oppId: number): Promise<KbPlaybookRespons
   }
 
   const prompt = buildPrompt(active, sources);
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-  const response = await client.messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 800,
-    messages: [{ role: 'user', content: prompt }],
+  const { text: raw } = await callAnthropic({
+    feature: 'kb-playbook',
+    prompt,
+    maxTokens: 800,
   });
-
-  const textBlock = response.content.find(b => b.type === 'text');
-  const raw = textBlock && textBlock.type === 'text' ? textBlock.text : '';
   const playbook = parseResponse(raw);
   if (!playbook) {
     throw new Error('KB playbook response failed to parse as JSON');

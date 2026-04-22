@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { callAnthropic } from '../services/aiClient.js';
 import { Router, Request, Response } from 'express';
 import { query, queryOne } from '../db/index.js';
 import { requireAuth, requireManager } from '../middleware/auth.js';
@@ -786,13 +786,10 @@ router.post('/tech-blockers/ai-summary', auth, mgr, async (req: Request, res: Re
   const redCount = rows.filter(r => r.blocker_status === 'red').length;
   const orangeCount = rows.filter(r => r.blocker_status === 'orange').length;
 
-  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 1500,
-    messages: [{
-      role: 'user',
-      content: `You are analyzing technical blockers across a software sales engineering pipeline (${rows.length} opportunities total: ${redCount} critical 🔴, ${orangeCount} high 🟠, rest medium/low/unrated).
+  const { text: summary } = await callAnthropic({
+    feature: 'tech-blockers',
+    maxTokens: 1500,
+    prompt: `You are analyzing technical blockers across a software sales engineering pipeline (${rows.length} opportunities total: ${redCount} critical 🔴, ${orangeCount} high 🟠, rest medium/low/unrated).
 
 Each entry is prefixed with its severity: [CRITICAL], [HIGH], [MEDIUM], [LOW/NONE], or [UNRATED]. Weight your analysis accordingly — critical and high blockers should drive the conclusions.
 
@@ -810,10 +807,7 @@ Paragraph analysis of which deployment modes (Agentic, SaaS, Self-managed, etc.)
 
 ## Top Priorities for SE Manager
 A numbered list of the 2-3 highest-leverage actions the SE manager should take, with brief rationale. Focus on systemic issues rather than account-by-account firefighting. Cite the specific deals [N] driving each priority.`,
-    }],
   });
-
-  const summary = response.content.find(b => b.type === 'text')?.text ?? '';
   const { citations } = resolveCitations(summary, oppCitationSources);
 
   // Persist cache as JSON { summary, citations } for #135 pills. Legacy plain
@@ -908,13 +902,10 @@ router.post('/agentic-qual/ai-summary', auth, mgr, async (req: Request, res: Res
     `${r.name} (${r.account_name}) — SE: ${r.se_owner_name ?? 'Unassigned'}, Stage: ${r.stage}, Deploy: ${r.deploy_mode ?? 'N/A'}\n  ${r.agentic_qual}`
   ).join('\n\n');
 
-  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 1500,
-    messages: [{
-      role: 'user',
-      content: `You are analyzing Agentic Qualification data across a software sales engineering pipeline (${rows.length} opportunities). The "Agentic Qual" field explains why a deal is NOT an Agentic opportunity — i.e., why the customer would use the Core platform (PaaS/PaaS+/Self-managed) instead of the Agentic (cloud-only, AI-native) product.
+  const { text: summary } = await callAnthropic({
+    feature: 'agentic-qual',
+    maxTokens: 1500,
+    prompt: `You are analyzing Agentic Qualification data across a software sales engineering pipeline (${rows.length} opportunities). The "Agentic Qual" field explains why a deal is NOT an Agentic opportunity — i.e., why the customer would use the Core platform (PaaS/PaaS+/Self-managed) instead of the Agentic (cloud-only, AI-native) product.
 
 ${context}
 
@@ -928,10 +919,7 @@ Paragraph analysis of which deployment modes and pipeline stages have the most n
 
 ## Opportunities to Revisit
 A numbered list of 2-3 accounts or situations where the Agentic qualification might be re-evaluated, with brief rationale based on their current stage and notes.`,
-    }],
   });
-
-  const summary = response.content.find(b => b.type === 'text')?.text ?? '';
 
   await query(
     `INSERT INTO ai_summary_cache (key, content, generated_at)
@@ -1496,15 +1484,11 @@ Keep it under 350 words total. Use deal names and ARR figures. Be direct and act
 
   const job = await startJob({ key: jobKey, feature: 'one-on-one-narrative', userId });
   try {
-    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-    const response = await client.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 900,
-      messages: [{ role: 'user', content: prompt }],
+    const { text: content } = await callAnthropic({
+      feature: 'one-on-one-narrative',
+      prompt,
+      maxTokens: 900,
     });
-
-    const textBlock = response.content.find(b => b.type === 'text');
-    const content = textBlock && textBlock.type === 'text' ? textBlock.text : '';
 
     // Resolve [N] → ResolvedCitation. Cache JSON { content, citations } so
     // the read endpoint can restore both. Legacy plain-text rows continue to

@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { callAnthropic } from '../services/aiClient.js';
 import { Router, Request, Response } from 'express';
 import { query, queryOne } from '../db/index.js';
 import { requireAuth, requireManager } from '../middleware/auth.js';
@@ -289,15 +289,11 @@ BE CONCISE. Each section should be 2-4 sentences. Use deal names and dollar amou
   const cacheKey = narrativeCacheKey(fq, region);
   const job = await startJob({ key: cacheKey, feature: 'forecast-narrative', userId });
   try {
-    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-    const response = await client.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 800,
-      messages: [{ role: 'user', content: prompt }],
+    const { text: content } = await callAnthropic({
+      feature: 'forecast-narrative',
+      prompt,
+      maxTokens: 800,
     });
-
-    const textBlock = response.content.find(b => b.type === 'text');
-    const content = textBlock && textBlock.type === 'text' ? textBlock.text : '';
 
     // Resolve [N] → ResolvedCitation and cache as JSON { content, citations }.
     // Legacy plain-text cache rows still render (without pills). #135.
@@ -335,7 +331,6 @@ router.post('/summaries/bulk-generate', auth, mgr, async (req: Request, res: Res
   }
 
   const userId = (req as AuthenticatedRequest).user?.userId ?? null;
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   const results: { id: number; status: 'ok' | 'error'; error?: string }[] = [];
 
   for (const oppId of oppIds) {
@@ -405,14 +400,11 @@ ${taskLines}
 Recent Notes (oldest to newest):
 ${noteLines}`;
 
-      const response = await client.messages.create({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 400,
-        messages: [{ role: 'user', content: prompt }],
+      const { text: summary } = await callAnthropic({
+        feature: 'forecast-bulk-summary',
+        prompt,
+        maxTokens: 400,
       });
-
-      const summaryBlock = response.content.find(b => b.type === 'text');
-      const summary = summaryBlock && summaryBlock.type === 'text' ? summaryBlock.text : '';
 
       await query(
         `INSERT INTO ai_summary_cache (key, content, generated_at)

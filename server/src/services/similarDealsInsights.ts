@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { callAnthropic } from './aiClient.js';
 import { query, queryOne } from '../db/index.js';
 import { findSimilarDeals, type SimilarDealResult } from './similarDeals.js';
 
@@ -173,15 +173,11 @@ export async function generateInsights(oppId: number): Promise<InsightsResponse>
       : [],
   }, candidates);
 
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-  const response = await client.messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 1500,
-    messages: [{ role: 'user', content: prompt }],
+  const { text: raw } = await callAnthropic({
+    feature: 'similar-deals-insights',
+    prompt,
+    maxTokens: 1500,
   });
-
-  const textBlock = response.content.find(b => b.type === 'text');
-  const raw = textBlock && textBlock.type === 'text' ? textBlock.text : '';
   const cleaned = raw.trim().replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
 
   let parsed: unknown;

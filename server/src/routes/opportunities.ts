@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import multer from 'multer';
-import Anthropic from '@anthropic-ai/sdk';
+import { callAnthropic } from '../services/aiClient.js';
 import { query, queryOne } from '../db/index.js';
 import { requireAuth, requireManager, requireWriteAccess } from '../middleware/auth.js';
 import { parseImportFile, reconcileImport, previewImport } from '../services/importService.js';
@@ -825,15 +825,11 @@ ${noteLines}`;
     opportunityId: id,
     userId,
     work: async () => {
-      const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-      const response = await client.messages.create({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 400,
-        messages: [{ role: 'user', content: prompt }],
+      const { text: summaryText } = await callAnthropic({
+        feature: 'summary',
+        prompt,
+        maxTokens: 400,
       });
-
-      const summaryBlock = response.content.find(b => b.type === 'text');
-      const summaryText = summaryBlock && summaryBlock.type === 'text' ? summaryBlock.text : '';
 
       // Resolve [N] citation markers against the sources list we fed in.
       // Cache as JSON { text, citations } so the cached-read can restore
@@ -1020,16 +1016,11 @@ Respond in this exact JSON format (no markdown fences, just raw JSON):
 Include all 9 MEDDPICC elements in the elements array, in this order: metrics, economic_buyer, decision_criteria, decision_process, paper_process, implicate_pain, champion, authority, need.`;
 
     console.log(`[meddpicc-coach] Calling Anthropic API for opp ${id}...`);
-    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-    const response = await client.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 4096,
-      messages: [{ role: 'user', content: prompt }],
+    const { text: raw } = await callAnthropic({
+      feature: 'meddpicc-coach',
+      prompt,
+      maxTokens: 4096,
     });
-    console.log(`[meddpicc-coach] API response received for opp ${id}, stop_reason=${response.stop_reason}`);
-
-    const text = response.content.find(b => b.type === 'text');
-    const raw = text && text.type === 'text' ? text.text : '';
 
     let parsed: unknown;
     try {
@@ -2295,15 +2286,12 @@ Rules:
 ${ruleLines.join('\n')}`;
 
   console.log(`[process-notes] calling Claude API, prompt length=${prompt.length} chars`);
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-  const response = await client.messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 3072,
-    messages: [{ role: 'user', content: prompt }],
+  const { text } = await callAnthropic({
+    feature: 'process-notes',
+    prompt,
+    maxTokens: 3072,
   });
-
-  const textBlock = response.content.find(b => b.type === 'text');
-  const rawJson = (textBlock && textBlock.type === 'text' ? textBlock.text : '{}').trim()
+  const rawJson = (text || '{}').trim()
     .replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
   console.log(`[process-notes] Claude raw response (first 500 chars): ${rawJson.slice(0, 500)}`);
 
@@ -2676,15 +2664,12 @@ CRITICAL RULES:
 - Be concise. No filler. Every sentence actionable.
 - Return ONLY valid JSON, no markdown fences.`;
 
-    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-    const response = await client.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 3000,
-      messages: [{ role: 'user', content: prompt }],
+    const { text } = await callAnthropic({
+      feature: 'call-prep',
+      prompt,
+      maxTokens: 3000,
     });
-
-    const textBlock = response.content.find(b => b.type === 'text');
-    const raw = (textBlock && textBlock.type === 'text' ? textBlock.text : '{}').trim()
+    const raw = (text || '{}').trim()
       .replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
 
     let parsed: Record<string, unknown>;
@@ -2931,16 +2916,11 @@ Respond in this exact JSON format (no markdown fences, just raw JSON):
 }`;
 
     console.log(`[demo-prep] Calling Anthropic API for opp ${id}...`);
-    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-    const response = await client.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 8192,
-      messages: [{ role: 'user', content: prompt }],
+    const { text: raw } = await callAnthropic({
+      feature: 'demo-prep',
+      prompt,
+      maxTokens: 8192,
     });
-
-    const text = response.content.find(b => b.type === 'text');
-    const raw = text && text.type === 'text' ? text.text : '';
-    console.log(`[demo-prep] Response received for opp ${id}, length=${raw.length}, stop_reason=${response.stop_reason}`);
 
     let parsed: unknown;
     try {
