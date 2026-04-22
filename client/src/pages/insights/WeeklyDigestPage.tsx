@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import api from '../../api/client';
 import type { Opportunity } from '../../types';
 import StageBadge from '../../components/shared/StageBadge';
@@ -177,33 +177,18 @@ function MutedCell({ children }: { children: React.ReactNode }) {
   return <td className="px-4 py-3 text-xs text-brand-navy-70">{children}</td>;
 }
 
-// Compact label + value pair used inside ContextRow. Falls back to "—" when
-// the value is missing. Used for Next Step / SE Comment / lost-reason sub-row.
-function ContextField({ label, value, accent }: { label: string; value: string | null; accent?: 'red' | 'purple' }) {
-  if (!value || !value.trim()) return null;
-  const tone = accent === 'red' ? 'text-status-overdue'
-             : accent === 'purple' ? 'text-brand-purple'
-             : 'text-brand-navy';
+// Inline cell for longer free-text fields (Next Step / SE Comment / Lost
+// Reason comment). Clamps to 2 lines, caps width, and exposes the full
+// string via a native tooltip. Renders a muted em-dash when empty so the
+// column grid stays aligned across rows.
+function TextCell({ value, accent, width = 'w-60' }: { value: string | null; accent?: 'red'; width?: string }) {
+  const tone = accent === 'red' ? 'text-status-overdue' : 'text-brand-navy';
   return (
-    <div className="min-w-0 flex-1">
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-navy-70 mb-0.5">{label}</p>
-      <p className={`text-xs ${tone} line-clamp-2`} title={value}>{value}</p>
-    </div>
-  );
-}
-
-// Full-width secondary row rendered beneath a primary opportunity row. Shows
-// up to a handful of contextual fields side-by-side; collapses to nothing
-// when all fields are empty so we don't leave dangling blank rows.
-function ContextRow({ colSpan, children }: { colSpan: number; children: React.ReactNode }) {
-  const kids = Array.isArray(children) ? children.filter(Boolean) : children ? [children] : [];
-  if (kids.length === 0) return null;
-  return (
-    <tr className="border-b border-brand-navy-30/20 last:border-0 bg-gray-50/40">
-      <td colSpan={colSpan} className="px-4 pt-0 pb-3 pl-10">
-        <div className="flex items-start gap-6">{kids}</div>
-      </td>
-    </tr>
+    <td className={`px-4 py-3 align-top ${width}`}>
+      {value && value.trim()
+        ? <p className={`text-xs ${tone} line-clamp-2`} title={value}>{value}</p>
+        : <span className="text-xs text-brand-navy-30">—</span>}
+    </td>
   );
 }
 
@@ -357,31 +342,27 @@ export default function WeeklyDigestPage() {
         renderItems={rows => (
           <table className="w-full">
             <thead className="border-b border-brand-navy-30/40">
-              <tr><TH>Opportunity</TH><TH>Stage Change</TH><TH>ARR</TH><TH>Moved</TH><TH>SE Owner</TH></tr>
+              <tr><TH>Opportunity</TH><TH>Stage Change</TH><TH>Next Step</TH><TH>SE Comment</TH><TH>ARR</TH><TH>Moved</TH><TH>SE Owner</TH></tr>
             </thead>
             <tbody>
               {rows.map(r => (
-                <React.Fragment key={r.id}>
-                  <TR>
-                    <OppCell name={r.name} account={r.account_name} onClick={() => setSelectedOppId(r.id)} />
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-xs text-brand-navy-70">{r.previous_stage ?? '—'}</span>
-                        <svg className="w-3 h-3 text-brand-navy-30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                        </svg>
-                        <StageBadge stage={r.current_stage} />
-                      </div>
-                    </td>
-                    <ArrCell arr={r.arr} />
-                    <MutedCell>{formatDate(r.stage_changed_at)}</MutedCell>
-                    <MutedCell>{r.se_owner_name ?? <span className="text-status-warning">Unassigned</span>}</MutedCell>
-                  </TR>
-                  <ContextRow colSpan={5}>
-                    <ContextField label="Next Step" value={r.next_step_sf} />
-                    <ContextField label="SE Comment" value={r.se_comments} />
-                  </ContextRow>
-                </React.Fragment>
+                <TR key={r.id}>
+                  <OppCell name={r.name} account={r.account_name} onClick={() => setSelectedOppId(r.id)} />
+                  <td className="px-4 py-3 align-top">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-xs text-brand-navy-70">{r.previous_stage ?? '—'}</span>
+                      <svg className="w-3 h-3 text-brand-navy-30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                      </svg>
+                      <StageBadge stage={r.current_stage} />
+                    </div>
+                  </td>
+                  <TextCell value={r.next_step_sf} />
+                  <TextCell value={r.se_comments} />
+                  <ArrCell arr={r.arr} />
+                  <MutedCell>{formatDate(r.stage_changed_at)}</MutedCell>
+                  <MutedCell>{r.se_owner_name ?? <span className="text-status-warning">Unassigned</span>}</MutedCell>
+                </TR>
               ))}
             </tbody>
           </table>
@@ -399,27 +380,23 @@ export default function WeeklyDigestPage() {
         renderItems={rows => (
           <table className="w-full">
             <thead className="border-b border-brand-navy-30/40">
-              <tr><TH>Opportunity</TH><TH>Stage</TH><TH>ARR</TH><TH>Last Activity</TH><TH>SE Owner</TH></tr>
+              <tr><TH>Opportunity</TH><TH>Stage</TH><TH>Next Step</TH><TH>SE Comment</TH><TH>ARR</TH><TH>Last Activity</TH><TH>SE Owner</TH></tr>
             </thead>
             <tbody>
               {rows.map(r => (
-                <React.Fragment key={r.id}>
-                  <TR>
-                    <OppCell name={r.name} account={r.account_name} onClick={() => setSelectedOppId(r.id)} />
-                    <td className="px-4 py-3"><StageBadge stage={r.stage} /></td>
-                    <ArrCell arr={r.arr} />
-                    <td className="px-4 py-3">
-                      <span className="text-xs text-status-warning font-medium">
-                        {r.days_stale != null ? `${r.days_stale}d ago` : 'Never'}
-                      </span>
-                    </td>
-                    <MutedCell>{r.se_owner_name ?? <span className="text-status-warning">Unassigned</span>}</MutedCell>
-                  </TR>
-                  <ContextRow colSpan={5}>
-                    <ContextField label="Next Step" value={r.next_step_sf} />
-                    <ContextField label="SE Comment" value={r.se_comments} />
-                  </ContextRow>
-                </React.Fragment>
+                <TR key={r.id}>
+                  <OppCell name={r.name} account={r.account_name} onClick={() => setSelectedOppId(r.id)} />
+                  <td className="px-4 py-3 align-top"><StageBadge stage={r.stage} /></td>
+                  <TextCell value={r.next_step_sf} />
+                  <TextCell value={r.se_comments} />
+                  <ArrCell arr={r.arr} />
+                  <td className="px-4 py-3 align-top">
+                    <span className="text-xs text-status-warning font-medium">
+                      {r.days_stale != null ? `${r.days_stale}d ago` : 'Never'}
+                    </span>
+                  </td>
+                  <MutedCell>{r.se_owner_name ?? <span className="text-status-warning">Unassigned</span>}</MutedCell>
+                </TR>
               ))}
             </tbody>
           </table>
@@ -532,26 +509,31 @@ export default function WeeklyDigestPage() {
         renderItems={rows => (
           <table className="w-full">
             <thead className="border-b border-brand-navy-30/40">
-              <tr><TH>Opportunity</TH><TH>Stage When Closed</TH><TH>ARR</TH><TH>Closed</TH><TH>SE Owner</TH></tr>
+              <tr>
+                <TH>Opportunity</TH>
+                <TH>Stage When Closed</TH>
+                <TH>Lost Reason</TH>
+                <TH>Lost To</TH>
+                <TH>Comment</TH>
+                <TH>ARR</TH>
+                <TH>Closed</TH>
+                <TH>SE Owner</TH>
+              </tr>
             </thead>
             <tbody>
               {rows.map(r => {
                 const reasonLine = [r.lost_reason, r.lost_sub_reason].filter(Boolean).join(' · ');
                 return (
-                  <React.Fragment key={r.id}>
-                    <tr className="border-b border-brand-navy-30/20 hover:bg-gray-50 border-l-2 border-l-status-overdue">
-                      <OppCell name={r.name} account={r.account_name} onClick={() => setSelectedOppId(r.id)} />
-                      <td className="px-4 py-3"><StageBadge stage={r.previous_stage ?? r.stage} /></td>
-                      <td className="px-4 py-3 text-sm font-medium text-status-overdue">{formatARR(r.arr)}</td>
-                      <MutedCell>{formatDate(r.closed_at)}</MutedCell>
-                      <MutedCell>{r.se_owner_name ?? <span className="text-status-warning">Unassigned</span>}</MutedCell>
-                    </tr>
-                    <ContextRow colSpan={5}>
-                      <ContextField label="Lost Reason" value={reasonLine || null} accent="red" />
-                      <ContextField label="Lost To" value={r.lost_to_competitor} accent="red" />
-                      <ContextField label="Comment" value={r.lost_reason_comments} />
-                    </ContextRow>
-                  </React.Fragment>
+                  <tr key={r.id} className="border-b border-brand-navy-30/20 last:border-0 hover:bg-gray-50 border-l-2 border-l-status-overdue">
+                    <OppCell name={r.name} account={r.account_name} onClick={() => setSelectedOppId(r.id)} />
+                    <td className="px-4 py-3 align-top"><StageBadge stage={r.previous_stage ?? r.stage} /></td>
+                    <TextCell value={reasonLine || null} accent="red" width="w-52" />
+                    <TextCell value={r.lost_to_competitor} accent="red" width="w-32" />
+                    <TextCell value={r.lost_reason_comments} width="w-72" />
+                    <td className="px-4 py-3 text-sm font-medium text-status-overdue align-top">{formatARR(r.arr)}</td>
+                    <MutedCell>{formatDate(r.closed_at)}</MutedCell>
+                    <MutedCell>{r.se_owner_name ?? <span className="text-status-warning">Unassigned</span>}</MutedCell>
+                  </tr>
                 );
               })}
             </tbody>
