@@ -69,6 +69,10 @@ export interface Opportunity {
   last_note_at: string | null;
   stage_changed_at: string | null;
   previous_stage: string | null;
+  lost_reason: string | null;
+  lost_sub_reason: string | null;
+  lost_reason_comments: string | null;
+  lost_to_competitor: string | null;
   // Detail only
   tasks?: Task[];
   notes?: Note[];

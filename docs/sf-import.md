@@ -65,6 +65,10 @@ All 55 columns must be ingested. Map them to the `opportunities` table as define
 | PoC Type | `poc_type` |
 | PoC Deployment Type | `poc_deploy_type` |
 | RFx Status | `rfx_status` |
+| Lost Reason | `lost_reason` |
+| Lost Sub Reason | `lost_sub_reason` |
+| Lost Reason (Comments) | `lost_reason_comments` |
+| (Lost to) Competitor | `lost_to_competitor` |
 
 ## Reconciliation Logic
 

@@ -75,6 +75,10 @@ const COLUMN_MAP: Record<string, string | null> = {
   'stage date: submitted for booking':  'stage_date_submitted_for_booking',
   'stage date: closed - won':           'stage_date_closed_won',
   'stage date: closed - lost':          'stage_date_closed_lost',
+  'lost reason':                        'lost_reason',
+  'lost sub reason':                    'lost_sub_reason',
+  'lost reason (comments)':             'lost_reason_comments',
+  '(lost to) competitor':               'lost_to_competitor',
 };
 
 // DB fields that are booleans in the opportunities table

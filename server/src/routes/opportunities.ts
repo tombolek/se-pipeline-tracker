@@ -264,6 +264,7 @@ router.get('/closed-lost', auth, async (req: Request, res: Response): Promise<vo
        o.poc_status, o.poc_start_date, o.poc_end_date, o.poc_type, o.poc_deploy_type,
        o.rfx_status,
        o.sourcing_partner, o.sourcing_partner_tier, o.influencing_partner, o.partner_manager,
+       o.lost_reason, o.lost_sub_reason, o.lost_reason_comments, o.lost_to_competitor,
        o.closed_at, o.closed_lost_seen,
        COALESCE(
          CASE o.stage
@@ -344,6 +345,10 @@ router.get('/closed-lost', auth, async (req: Request, res: Response): Promise<vo
     sourcing_partner_tier: r.sourcing_partner_tier,
     influencing_partner: r.influencing_partner,
     partner_manager: r.partner_manager,
+    lost_reason: r.lost_reason,
+    lost_sub_reason: r.lost_sub_reason,
+    lost_reason_comments: r.lost_reason_comments,
+    lost_to_competitor: r.lost_to_competitor,
     open_task_count: 0,
     next_step_count: 0,
     is_closed_lost: true,
@@ -566,6 +571,7 @@ router.get('/paginated', auth, async (req: Request, res: Response): Promise<void
         o.poc_status, o.poc_start_date, o.poc_end_date, o.poc_type, o.poc_deploy_type,
         o.rfx_status,
         o.sourcing_partner, o.sourcing_partner_tier, o.influencing_partner, o.partner_manager,
+        o.lost_reason, o.lost_sub_reason, o.lost_reason_comments, o.lost_to_competitor,
         ${stageChangedEffExpr} AS stage_changed_at,
         o.last_note_at,
         u.name  AS se_owner_name,
@@ -636,6 +642,8 @@ router.get('/paginated', auth, async (req: Request, res: Response): Promise<void
     poc_type: r.poc_type, poc_deploy_type: r.poc_deploy_type, rfx_status: r.rfx_status,
     sourcing_partner: r.sourcing_partner, sourcing_partner_tier: r.sourcing_partner_tier,
     influencing_partner: r.influencing_partner, partner_manager: r.partner_manager,
+    lost_reason: r.lost_reason, lost_sub_reason: r.lost_sub_reason,
+    lost_reason_comments: r.lost_reason_comments, lost_to_competitor: r.lost_to_competitor,
     open_task_count: Number(r.open_task_count),
     next_step_count: Number(r.next_step_count),
     overdue_task_count: Number(r.overdue_task_count),
@@ -1146,6 +1154,7 @@ router.get('/', auth, async (req: Request, res: Response): Promise<void> => {
        o.poc_status, o.poc_start_date, o.poc_end_date, o.poc_type, o.poc_deploy_type,
        o.rfx_status,
        o.sourcing_partner, o.sourcing_partner_tier, o.influencing_partner, o.partner_manager,
+       o.lost_reason, o.lost_sub_reason, o.lost_reason_comments, o.lost_to_competitor,
        COALESCE(
          CASE o.stage
            WHEN 'Qualify'                THEN o.stage_date_qualify
@@ -1231,6 +1240,10 @@ router.get('/', auth, async (req: Request, res: Response): Promise<void> => {
     sourcing_partner_tier: r.sourcing_partner_tier,
     influencing_partner: r.influencing_partner,
     partner_manager: r.partner_manager,
+    lost_reason: r.lost_reason,
+    lost_sub_reason: r.lost_sub_reason,
+    lost_reason_comments: r.lost_reason_comments,
+    lost_to_competitor: r.lost_to_competitor,
     open_task_count: Number(r.open_task_count),
     next_step_count: Number(r.next_step_count),
     overdue_task_count: Number(r.overdue_task_count),

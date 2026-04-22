@@ -8,6 +8,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## 2026-04-22
 
 ### Added
+- **Salesforce Lost Reason fields now ingested + stored** — the SF Opportunities export added four new columns that explain *why* a deal was lost: **Lost Reason**, **Lost Sub Reason**, **Lost Reason (Comments)**, and **(Lost to) Competitor**. The import mapper now promotes each to a dedicated column on `opportunities` so future win/loss analysis (ClosedLostStats, reporting) can aggregate on structured values instead of parsing `sf_raw_fields` JSON. Migration 047 adds the four text columns; existing rows stay `NULL` until the next SF import backfills them. Ingestion only — the values are not yet surfaced in any screen.
+
+### Added
 - **Quick Capture tasks now default to the SE owner and allow reassignment** — opening Quick Capture (Ctrl/Cmd-K), picking an opportunity, and switching to the Task tab now pre-selects the opportunity's SE owner as the assignee. The assignee dropdown lists all users so the task can be reassigned inline. If the chosen assignee is not the SE owner and not already on the opportunity, they are automatically added to the deal's **SE Contributors** so the task shows up in their workspace.
 
 ### Added
