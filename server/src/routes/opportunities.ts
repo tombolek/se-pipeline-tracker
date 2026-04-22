@@ -701,6 +701,21 @@ router.post('/:id/tasks', auth, write, async (req: Request, res: Response): Prom
   });
 });
 
+// Parse an AI-summary cache row. Newer rows are JSON `{ text, citations }`;
+// legacy rows are raw text with no citations. Detect and normalize. #135.
+function parseCachedSummary(content: string): { text: string; citations: import('../types/citations.js').ResolvedCitation[] } {
+  try {
+    const parsed = JSON.parse(content);
+    if (parsed && typeof parsed === 'object' && typeof parsed.text === 'string') {
+      return {
+        text: parsed.text,
+        citations: Array.isArray(parsed.citations) ? parsed.citations : [],
+      };
+    }
+  } catch { /* fall through to plain-text */ }
+  return { text: content, citations: [] };
+}
+
 // GET /opportunities/:id/summary/cached — return cached AI summary
 router.get('/:id/summary/cached', auth, async (req: Request, res: Response): Promise<void> => {
   const id = parseInt(req.params.id);
@@ -712,7 +727,8 @@ router.get('/:id/summary/cached', auth, async (req: Request, res: Response): Pro
   );
   if (rows.length === 0) { res.json(ok(null)); return; }
 
-  res.json(ok({ summary: rows[0].content, generated_at: rows[0].generated_at }));
+  const { text, citations } = parseCachedSummary(rows[0].content);
+  res.json(ok({ summary: text, citations, generated_at: rows[0].generated_at }));
 });
 
 // POST /opportunities/:id/summary  — AI deal summary
@@ -759,7 +775,17 @@ router.post('/:id/summary', auth, write, async (req: Request, res: Response): Pr
       ).join('\n')
     : 'No notes yet.';
 
+  // Citation sources — Phase 2 of #135. Every factual claim in the summary
+  // gets a [N] marker that the client renders as a hoverable pill.
+  const summaryCitationSources = await buildCitationSources(id);
+  const summarySourcesBlock = formatSourcesForPrompt(summaryCitationSources);
+
   const prompt = `You are an SE deal intelligence assistant. Write a concise deal summary in 3 short paragraphs using plain text with **bold** for emphasis on key names, numbers, and actions. Do NOT use markdown headers (#), bullet points, or lists. Keep it conversational and direct.
+
+CITABLE SOURCES (cite factual claims with [N] inline):
+${summarySourcesBlock}
+
+${CITATION_INSTRUCTIONS}
 
 Paragraph 1: Current deal status and momentum (1-2 sentences).
 Paragraph 2: Key risks or blockers (1-2 sentences).
@@ -801,17 +827,21 @@ ${noteLines}`;
       const summaryBlock = response.content.find(b => b.type === 'text');
       const summaryText = summaryBlock && summaryBlock.type === 'text' ? summaryBlock.text : '';
 
+      // Resolve [N] citation markers against the sources list we fed in.
+      // Cache as JSON { text, citations } so the cached-read can restore
+      // both fields; the parseCachedSummary() helper handles legacy rows.
+      const { citations } = resolveCitations(summaryText, summaryCitationSources);
       await query(
         `INSERT INTO ai_summary_cache (key, content, generated_at)
          VALUES ($1, $2, now())
          ON CONFLICT (key) DO UPDATE SET content = $2, generated_at = now()`,
-        [`summary-${id}`, summaryText]
+        [`summary-${id}`, JSON.stringify({ text: summaryText, citations })]
       );
-      return summaryText;
+      return { text: summaryText, citations };
     },
   });
 
-  res.json(ok({ summary, generated_at: new Date().toISOString() }));
+  res.json(ok({ summary: summary.text, citations: summary.citations, generated_at: new Date().toISOString() }));
 });
 
 // ── MEDDPICC Gap Coach ──────────────────────────────────────────────────────
@@ -2776,7 +2806,19 @@ router.post('/:id/demo-prep/generate', auth, write, async (req: Request, res: Re
         ).join('\n')
       : 'No notes yet.';
 
+    // Citation sources for [N] markers inside answer / coaching_tip /
+    // overall_assessment. The existing `evidence` array stays — it's a
+    // separate, structured "list of findings" concept; [N] pills are for
+    // inline provenance on prose. #135 Phase 2.
+    const demoCitationSources = await buildCitationSources(id);
+    const demoSourcesBlock = formatSourcesForPrompt(demoCitationSources);
+
     const prompt = `You are an expert presales demo coach for an enterprise B2B data management software company (Ataccama). You are evaluating how prepared a Sales Engineer (SE) is to deliver a high-impact demo.
+
+CITABLE SOURCES (cite factual claims in "answer", "coaching_tip", and "overall_assessment" with [N] inline; don't add [N] markers inside "evidence[].text" — that array has its own "source" labels):
+${demoSourcesBlock}
+
+${CITATION_INSTRUCTIONS}
 
 Your framework is the "Golden Standard Informed Demo (L2)" — the 6-Question Demo Check. For each question, analyze ALL available deal data (MEDDPICC fields, notes, tasks, SF comments) and extract the best possible answer, or identify what's missing.
 
@@ -2898,17 +2940,33 @@ Respond in this exact JSON format (no markdown fences, just raw JSON):
       return;
     }
 
-    // Cache result
+    // Resolve citations per question (from answer + coaching_tip) and at the
+    // top level (from overall_assessment). #135 Phase 2.
+    type DemoQ = { answer?: string; coaching_tip?: string; citations?: unknown[] };
+    const parsedObj = (parsed && typeof parsed === 'object') ? parsed as Record<string, unknown> : {};
+    const demoQuestions = Array.isArray(parsedObj.questions) ? parsedObj.questions : [];
+    for (const q of demoQuestions) {
+      const d = q as DemoQ;
+      const combined = [d.answer ?? '', d.coaching_tip ?? ''].join(' ');
+      const { citations } = resolveCitations(combined, demoCitationSources);
+      d.citations = citations;
+    }
+    if (typeof parsedObj.overall_assessment === 'string') {
+      const { citations } = resolveCitations(parsedObj.overall_assessment, demoCitationSources);
+      (parsedObj as Record<string, unknown>).overall_assessment_citations = citations;
+    }
+
+    // Cache result (with citations attached)
     await query(
       `INSERT INTO ai_summary_cache (key, content, generated_at)
        VALUES ($1, $2, now())
        ON CONFLICT (key) DO UPDATE SET content = $2, generated_at = now()`,
-      [`demo-prep-${id}`, JSON.stringify(parsed)]
+      [`demo-prep-${id}`, JSON.stringify(parsedObj)]
     );
 
     await completeJob(job.id);
     console.log(`[demo-prep] Success for opp ${id}`);
-    res.json(ok({ demo_prep: parsed, generated_at: new Date().toISOString() }));
+    res.json(ok({ demo_prep: parsedObj, generated_at: new Date().toISOString() }));
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
     await failJob(job.id, msg);

@@ -194,6 +194,7 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
   }, []);
 
   const [summary, setSummary] = useState<string | null>(null);
+  const [summaryCitations, setSummaryCitations] = useState<import('../types/citations').ResolvedCitation[]>([]);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryGeneratedAt, setSummaryGeneratedAt] = useState<string | null>(null);
   const [summaryCollapsed, setSummaryCollapsed] = useState(false);
@@ -315,8 +316,9 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
     setSummary(null);
     setSummaryCollapsed(false);
     try {
-      const { data } = await api.post<ApiResponse<{ summary: string; generated_at: string }>>(`/opportunities/${oppId}/summary`);
+      const { data } = await api.post<ApiResponse<{ summary: string; citations?: import('../types/citations').ResolvedCitation[]; generated_at: string }>>(`/opportunities/${oppId}/summary`);
       setSummary(data.data.summary);
+      setSummaryCitations(data.data.citations ?? []);
       setSummaryGeneratedAt(data.data.generated_at);
     } finally {
       setSummaryLoading(false);
@@ -325,10 +327,11 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
 
   // Load cached summary + coach result on mount
   useEffect(() => {
-    api.get<ApiResponse<{ summary: string; generated_at: string } | null>>(`/opportunities/${oppId}/summary/cached`)
+    api.get<ApiResponse<{ summary: string; citations?: import('../types/citations').ResolvedCitation[]; generated_at: string } | null>>(`/opportunities/${oppId}/summary/cached`)
       .then(r => {
         if (r.data.data) {
           setSummary(r.data.data.summary);
+          setSummaryCitations(r.data.data.citations ?? []);
           setSummaryGeneratedAt(r.data.data.generated_at);
         }
       })
@@ -355,11 +358,12 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
     },
     onRunning: () => { setSummaryLoading(true); setSummaryCollapsed(false); },
     onFresh: async () => {
-      const r = await api.get<ApiResponse<{ summary: string; generated_at: string } | null>>(
+      const r = await api.get<ApiResponse<{ summary: string; citations?: import('../types/citations').ResolvedCitation[]; generated_at: string } | null>>(
         `/opportunities/${oppId}/summary/cached`
       );
       if (r.data.data) {
         setSummary(r.data.data.summary);
+        setSummaryCitations(r.data.data.citations ?? []);
         setSummaryGeneratedAt(r.data.data.generated_at);
       }
       setSummaryLoading(false);
@@ -603,8 +607,8 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
                     const parts = stripped.split(/\*\*(.+?)\*\*/g);
                     const rendered = parts.map((part, j) =>
                       j % 2 === 1
-                        ? <strong key={j} className="font-semibold text-brand-navy">{part}</strong>
-                        : <span key={j}>{part}</span>
+                        ? <strong key={j} className="font-semibold text-brand-navy"><TextWithCitations text={part} citations={summaryCitations} onJump={citeJumper} /></strong>
+                        : <TextWithCitations key={j} text={part} citations={summaryCitations} onJump={citeJumper} />
                     );
                     if (isHeader) {
                       return <p key={i} className="font-semibold text-brand-navy text-xs uppercase tracking-wide mt-2 first:mt-0">{rendered}</p>;

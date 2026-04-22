@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '../api/client';
 import type { ApiResponse } from '../types';
+import type { ResolvedCitation } from '../types/citations';
+import { TextWithCitations, makeScrollJumper } from './Citation';
 import { useAiJobAttach } from '../hooks/useAiJob';
 
 /* ── Types ── */
@@ -13,6 +15,8 @@ interface DemoQuestion {
   missing?: { category: string; detail: string }[];
   coaching_tip: string;
   suggested_commitments?: string[];
+  /** #135 — citations referenced by [N] markers in answer + coaching_tip. */
+  citations?: ResolvedCitation[];
 }
 
 interface DemoPrepData {
@@ -23,6 +27,7 @@ interface DemoPrepData {
   total_questions: number;
   questions: DemoQuestion[];
   overall_assessment: string;
+  overall_assessment_citations?: ResolvedCitation[];
   before_you_demo: { text: string; done: boolean }[];
 }
 
@@ -50,6 +55,23 @@ function highlightBold(text: string): React.ReactNode {
     i % 2 === 1
       ? <strong key={i} className="text-brand-navy font-semibold">{part}</strong>
       : <React.Fragment key={i}>{part}</React.Fragment>
+  );
+}
+
+/** Bold-parse + [N] citation pills. Pass citations + onJump for full
+ *  provenance wiring; omit both to get equivalent output to highlightBold. */
+function highlightBoldCited(
+  text: string,
+  citations: ResolvedCitation[] | undefined,
+  onJump: ((c: ResolvedCitation) => void) | undefined,
+): React.ReactNode {
+  const parts = text.split(/\*\*(.+?)\*\*/g);
+  return parts.map((part, i) =>
+    i % 2 === 1
+      ? <strong key={i} className="text-brand-navy font-semibold">
+          <TextWithCitations text={part} citations={citations} onJump={onJump} />
+        </strong>
+      : <TextWithCitations key={i} text={part} citations={citations} onJump={onJump} />
   );
 }
 
@@ -164,6 +186,7 @@ export default function DemoPrepTab({ oppId, oppName }: { oppId: number; oppName
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expandedQ, setExpandedQ] = useState<number | null>(null);
+  const citeJumper = useCallback(makeScrollJumper(), []);
 
   const fetchData = useCallback(async () => {
     try {
@@ -432,7 +455,7 @@ export default function DemoPrepTab({ oppId, oppName }: { oppId: number; oppName
                     <span className="text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wider">
                       {isMissing ? 'Assessment' : 'Answer'}
                     </span>
-                    <p className="text-[12px] text-brand-navy mt-1 leading-relaxed">{highlightBold(q.answer)}</p>
+                    <p className="text-[12px] text-brand-navy mt-1 leading-relaxed">{highlightBoldCited(q.answer, q.citations, citeJumper)}</p>
                   </div>
 
                   {/* Evidence */}
@@ -507,7 +530,7 @@ export default function DemoPrepTab({ oppId, oppName }: { oppId: number; oppName
                         <p className={`text-[11px] leading-relaxed ${
                           isMissing ? 'text-red-700' : isPartial ? 'text-amber-800' : 'text-brand-navy'
                         }`}>
-                          {isMissing || isPartial ? highlightBold(q.coaching_tip) : <><strong>Demo tip:</strong> {highlightBold(q.coaching_tip)}</>}
+                          {isMissing || isPartial ? highlightBoldCited(q.coaching_tip, q.citations, citeJumper) : <><strong>Demo tip:</strong> {highlightBoldCited(q.coaching_tip, q.citations, citeJumper)}</>}
                         </p>
                       </div>
                     </div>
@@ -526,7 +549,7 @@ export default function DemoPrepTab({ oppId, oppName }: { oppId: number; oppName
           <h3 className="text-[12px] font-semibold text-brand-navy uppercase tracking-wider">Overall Assessment</h3>
         </summary>
         <div className="rounded-xl border border-brand-navy-30/40 bg-gradient-to-br from-white to-gray-50/50 p-4">
-          <p className="text-[12px] text-brand-navy leading-relaxed mb-4">{highlightBold(dp.overall_assessment)}</p>
+          <p className="text-[12px] text-brand-navy leading-relaxed mb-4">{highlightBoldCited(dp.overall_assessment, dp.overall_assessment_citations, citeJumper)}</p>
 
           {/* Before You Demo checklist */}
           <div className="rounded-lg bg-brand-purple-30/20 border border-brand-purple/10 p-3">
