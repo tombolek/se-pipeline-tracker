@@ -8,6 +8,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## 2026-04-22
 
 ### Added
+- **Weekly Digest surfaces Lost Reason + Next Step context per row** — each Closed Lost entry now carries an inline sub-row with **Lost Reason · Sub-Reason**, **Lost To** (competitor), and the free-text **Comment**, so managers can scan *why* deals lost without opening each drawer. Stage Progressions and Stale Deals rows now show the current **Next Step** and latest **SE Comment** inline, same layout. Sub-row suppresses itself when none of the fields have content. Backend `/insights/weekly-digest` query extended to return these fields on the three sections.
+
+### Added
 - **Salesforce Lost Reason fields now ingested + stored** — the SF Opportunities export added four new columns that explain *why* a deal was lost: **Lost Reason**, **Lost Sub Reason**, **Lost Reason (Comments)**, and **(Lost to) Competitor**. The import mapper now promotes each to a dedicated column on `opportunities` so future win/loss analysis (ClosedLostStats, reporting) can aggregate on structured values instead of parsing `sf_raw_fields` JSON. Migration 047 adds the four text columns; existing rows stay `NULL` until the next SF import backfills them. Ingestion only — the values are not yet surfaced in any screen.
 
 ### Added

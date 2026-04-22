@@ -981,6 +981,7 @@ router.get('/weekly-digest', auth, mgr, async (req: Request, res: Response): Pro
       query(
         `WITH stage_entries AS (
            SELECT o.id, o.name, o.account_name, o.arr, o.arr_currency, o.ae_owner_name, o.team,
+                  o.next_step_sf, o.se_comments,
                   o.se_owner_id,
                   u.id   AS u_id,
                   u.name AS u_name,
@@ -1016,6 +1017,7 @@ router.get('/weekly-digest', auth, mgr, async (req: Request, res: Response): Pro
            FROM stage_entries
          )
          SELECT id, name, account_name, arr, arr_currency, ae_owner_name, team,
+                next_step_sf, se_comments,
                 u_id AS se_owner_id, u_name AS se_owner_name,
                 stage_name AS current_stage,
                 previous_stage,
@@ -1033,6 +1035,7 @@ router.get('/weekly-digest', auth, mgr, async (req: Request, res: Response): Pro
       query(
         `SELECT o.id, o.name, o.account_name, o.arr, o.arr_currency, o.stage,
                 o.ae_owner_name, o.team,
+                o.next_step_sf, o.se_comments,
                 o.last_note_at, o.se_comments_updated_at,
                 EXTRACT(DAY FROM now() - GREATEST(
                   o.last_note_at,
@@ -1092,6 +1095,7 @@ router.get('/weekly-digest', auth, mgr, async (req: Request, res: Response): Pro
       query(
         `SELECT o.id, o.name, o.account_name, o.arr, o.arr_currency,
                 o.stage, o.previous_stage,
+                o.lost_reason, o.lost_sub_reason, o.lost_reason_comments, o.lost_to_competitor,
                 o.closed_at, o.ae_owner_name, o.team,
                 u.id AS se_owner_id, u.name AS se_owner_name
          FROM opportunities o

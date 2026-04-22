@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import api from '../../api/client';
 import type { Opportunity } from '../../types';
 import StageBadge from '../../components/shared/StageBadge';
@@ -30,10 +30,14 @@ interface StageProgression extends DigestOpp {
   current_stage: string;
   previous_stage: string | null;
   stage_changed_at: string;
+  next_step_sf: string | null;
+  se_comments: string | null;
 }
 
 interface StaleOpp extends DigestOpp {
   days_stale: number | null;
+  next_step_sf: string | null;
+  se_comments: string | null;
 }
 
 interface PocOpp extends DigestOpp {
@@ -46,6 +50,10 @@ interface PocOpp extends DigestOpp {
 interface ClosedLostOpp extends DigestOpp {
   closed_at: string | null;
   previous_stage: string | null;
+  lost_reason: string | null;
+  lost_sub_reason: string | null;
+  lost_reason_comments: string | null;
+  lost_to_competitor: string | null;
 }
 
 // at_risk_candidates carry the full set of fields needed by computeHealthScore
@@ -167,6 +175,36 @@ function ArrCell({ arr }: { arr: string | null }) {
 
 function MutedCell({ children }: { children: React.ReactNode }) {
   return <td className="px-4 py-3 text-xs text-brand-navy-70">{children}</td>;
+}
+
+// Compact label + value pair used inside ContextRow. Falls back to "—" when
+// the value is missing. Used for Next Step / SE Comment / lost-reason sub-row.
+function ContextField({ label, value, accent }: { label: string; value: string | null; accent?: 'red' | 'purple' }) {
+  if (!value || !value.trim()) return null;
+  const tone = accent === 'red' ? 'text-status-overdue'
+             : accent === 'purple' ? 'text-brand-purple'
+             : 'text-brand-navy';
+  return (
+    <div className="min-w-0 flex-1">
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-navy-70 mb-0.5">{label}</p>
+      <p className={`text-xs ${tone} line-clamp-2`} title={value}>{value}</p>
+    </div>
+  );
+}
+
+// Full-width secondary row rendered beneath a primary opportunity row. Shows
+// up to a handful of contextual fields side-by-side; collapses to nothing
+// when all fields are empty so we don't leave dangling blank rows.
+function ContextRow({ colSpan, children }: { colSpan: number; children: React.ReactNode }) {
+  const kids = Array.isArray(children) ? children.filter(Boolean) : children ? [children] : [];
+  if (kids.length === 0) return null;
+  return (
+    <tr className="border-b border-brand-navy-30/20 last:border-0 bg-gray-50/40">
+      <td colSpan={colSpan} className="px-4 pt-0 pb-3 pl-10">
+        <div className="flex items-start gap-6">{kids}</div>
+      </td>
+    </tr>
+  );
 }
 
 function InfoNote({ children }: { children: React.ReactNode }) {
@@ -323,21 +361,27 @@ export default function WeeklyDigestPage() {
             </thead>
             <tbody>
               {rows.map(r => (
-                <TR key={r.id}>
-                  <OppCell name={r.name} account={r.account_name} onClick={() => setSelectedOppId(r.id)} />
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-xs text-brand-navy-70">{r.previous_stage ?? '—'}</span>
-                      <svg className="w-3 h-3 text-brand-navy-30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                      </svg>
-                      <StageBadge stage={r.current_stage} />
-                    </div>
-                  </td>
-                  <ArrCell arr={r.arr} />
-                  <MutedCell>{formatDate(r.stage_changed_at)}</MutedCell>
-                  <MutedCell>{r.se_owner_name ?? <span className="text-status-warning">Unassigned</span>}</MutedCell>
-                </TR>
+                <React.Fragment key={r.id}>
+                  <TR>
+                    <OppCell name={r.name} account={r.account_name} onClick={() => setSelectedOppId(r.id)} />
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-xs text-brand-navy-70">{r.previous_stage ?? '—'}</span>
+                        <svg className="w-3 h-3 text-brand-navy-30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                        </svg>
+                        <StageBadge stage={r.current_stage} />
+                      </div>
+                    </td>
+                    <ArrCell arr={r.arr} />
+                    <MutedCell>{formatDate(r.stage_changed_at)}</MutedCell>
+                    <MutedCell>{r.se_owner_name ?? <span className="text-status-warning">Unassigned</span>}</MutedCell>
+                  </TR>
+                  <ContextRow colSpan={5}>
+                    <ContextField label="Next Step" value={r.next_step_sf} />
+                    <ContextField label="SE Comment" value={r.se_comments} />
+                  </ContextRow>
+                </React.Fragment>
               ))}
             </tbody>
           </table>
@@ -359,17 +403,23 @@ export default function WeeklyDigestPage() {
             </thead>
             <tbody>
               {rows.map(r => (
-                <TR key={r.id}>
-                  <OppCell name={r.name} account={r.account_name} onClick={() => setSelectedOppId(r.id)} />
-                  <td className="px-4 py-3"><StageBadge stage={r.stage} /></td>
-                  <ArrCell arr={r.arr} />
-                  <td className="px-4 py-3">
-                    <span className="text-xs text-status-warning font-medium">
-                      {r.days_stale != null ? `${r.days_stale}d ago` : 'Never'}
-                    </span>
-                  </td>
-                  <MutedCell>{r.se_owner_name ?? <span className="text-status-warning">Unassigned</span>}</MutedCell>
-                </TR>
+                <React.Fragment key={r.id}>
+                  <TR>
+                    <OppCell name={r.name} account={r.account_name} onClick={() => setSelectedOppId(r.id)} />
+                    <td className="px-4 py-3"><StageBadge stage={r.stage} /></td>
+                    <ArrCell arr={r.arr} />
+                    <td className="px-4 py-3">
+                      <span className="text-xs text-status-warning font-medium">
+                        {r.days_stale != null ? `${r.days_stale}d ago` : 'Never'}
+                      </span>
+                    </td>
+                    <MutedCell>{r.se_owner_name ?? <span className="text-status-warning">Unassigned</span>}</MutedCell>
+                  </TR>
+                  <ContextRow colSpan={5}>
+                    <ContextField label="Next Step" value={r.next_step_sf} />
+                    <ContextField label="SE Comment" value={r.se_comments} />
+                  </ContextRow>
+                </React.Fragment>
               ))}
             </tbody>
           </table>
@@ -485,15 +535,25 @@ export default function WeeklyDigestPage() {
               <tr><TH>Opportunity</TH><TH>Stage When Closed</TH><TH>ARR</TH><TH>Closed</TH><TH>SE Owner</TH></tr>
             </thead>
             <tbody>
-              {rows.map(r => (
-                <tr key={r.id} className="border-b border-brand-navy-30/20 last:border-0 hover:bg-gray-50 border-l-2 border-l-status-overdue">
-                  <OppCell name={r.name} account={r.account_name} onClick={() => setSelectedOppId(r.id)} />
-                  <td className="px-4 py-3"><StageBadge stage={r.stage} /></td>
-                  <td className="px-4 py-3 text-sm font-medium text-status-overdue">{formatARR(r.arr)}</td>
-                  <MutedCell>{formatDate(r.closed_at)}</MutedCell>
-                  <MutedCell>{r.se_owner_name ?? <span className="text-status-warning">Unassigned</span>}</MutedCell>
-                </tr>
-              ))}
+              {rows.map(r => {
+                const reasonLine = [r.lost_reason, r.lost_sub_reason].filter(Boolean).join(' · ');
+                return (
+                  <React.Fragment key={r.id}>
+                    <tr className="border-b border-brand-navy-30/20 hover:bg-gray-50 border-l-2 border-l-status-overdue">
+                      <OppCell name={r.name} account={r.account_name} onClick={() => setSelectedOppId(r.id)} />
+                      <td className="px-4 py-3"><StageBadge stage={r.previous_stage ?? r.stage} /></td>
+                      <td className="px-4 py-3 text-sm font-medium text-status-overdue">{formatARR(r.arr)}</td>
+                      <MutedCell>{formatDate(r.closed_at)}</MutedCell>
+                      <MutedCell>{r.se_owner_name ?? <span className="text-status-warning">Unassigned</span>}</MutedCell>
+                    </tr>
+                    <ContextRow colSpan={5}>
+                      <ContextField label="Lost Reason" value={reasonLine || null} accent="red" />
+                      <ContextField label="Lost To" value={r.lost_to_competitor} accent="red" />
+                      <ContextField label="Comment" value={r.lost_reason_comments} />
+                    </ContextRow>
+                  </React.Fragment>
+                );
+              })}
             </tbody>
           </table>
         )}
