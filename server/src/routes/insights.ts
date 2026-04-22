@@ -712,7 +712,19 @@ router.get('/tech-blockers/ai-summary/cached', auth, mgr, async (_req: Request, 
     res.json(ok(null));
     return;
   }
-  res.json(ok({ summary: rows[0].content, generated_at: rows[0].generated_at }));
+  // Newer rows cached as JSON { summary, citations }; legacy rows are raw
+  // text. Detect and normalize. #135 Phase 2 Batch 4.
+  const raw = rows[0].content;
+  let summary = raw;
+  let citations: unknown[] = [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object' && typeof parsed.summary === 'string') {
+      summary = parsed.summary;
+      citations = Array.isArray(parsed.citations) ? parsed.citations : [];
+    }
+  } catch { /* legacy plain-text row */ }
+  res.json(ok({ summary, citations, generated_at: rows[0].generated_at }));
 });
 
 // POST /insights/tech-blockers/ai-summary  — Claude-powered summary of all blockers
@@ -721,11 +733,12 @@ router.post('/tech-blockers/ai-summary', auth, mgr, async (req: Request, res: Re
   const job = await startJob({ key: 'tech-blockers', feature: 'tech-blockers', userId });
   try {
   const rows = await query<{
+    id: number; sf_opportunity_id: string;
     name: string; account_name: string; se_owner_name: string | null;
     deploy_mode: string | null; stage: string; technical_blockers: string;
     blocker_status: string;
   }>(
-    `SELECT o.name, o.account_name, o.stage, o.deploy_mode, o.technical_blockers,
+    `SELECT o.id, o.sf_opportunity_id, o.name, o.account_name, o.stage, o.deploy_mode, o.technical_blockers,
             u.name AS se_owner_name,
             CASE
               WHEN o.technical_blockers ~ '^🔴' THEN 'red'
@@ -756,8 +769,18 @@ router.post('/tech-blockers/ai-summary', auth, mgr, async (req: Request, res: Re
   const severityLabel: Record<string, string> = {
     red: '[CRITICAL]', orange: '[HIGH]', yellow: '[MEDIUM]', green: '[LOW/NONE]', none: '[UNRATED]',
   };
-  const context = rows.map(r =>
-    `${severityLabel[r.blocker_status] ?? '[UNRATED]'} ${r.name} (${r.account_name}) — SE: ${r.se_owner_name ?? 'Unassigned'}, Stage: ${r.stage}, Deploy: ${r.deploy_mode ?? 'N/A'}\n  ${r.technical_blockers}`
+  // Cross-opp citation sources — one per deal with a recorded blocker. #135.
+  const oppCitationSources: CitationSource[] = rows.map((r, i) => ({
+    key: `opp-${r.id}`,
+    kind: 'opportunity' as const,
+    label: `[${i + 1}] ${r.name}`,
+    meta: `${r.stage} · ${r.account_name}`,
+    preview: r.technical_blockers,
+    opportunity_id: r.id,
+    opportunity_sfid: r.sf_opportunity_id,
+  }));
+  const context = rows.map((r, i) =>
+    `[${i + 1}] ${severityLabel[r.blocker_status] ?? '[UNRATED]'} ${r.name} (${r.account_name}) — SE: ${r.se_owner_name ?? 'Unassigned'}, Stage: ${r.stage}, Deploy: ${r.deploy_mode ?? 'N/A'}\n  ${r.technical_blockers}`
   ).join('\n\n');
 
   const redCount = rows.filter(r => r.blocker_status === 'red').length;
@@ -775,31 +798,36 @@ Each entry is prefixed with its severity: [CRITICAL], [HIGH], [MEDIUM], [LOW/NON
 
 ${context}
 
+${CITATION_INSTRUCTIONS}
+
 Write a structured analysis for the SE Manager. Use this exact format with markdown:
 
 ## Most Common Blocker Themes
-Identify the 3-5 dominant patterns. For each theme, open with a short bold header on its own line, then a paragraph, then a short bullet list of the specific affected accounts. Weight your ordering by severity — themes that have more critical/high entries should rank higher even if they appear in fewer deals.
+Identify the 3-5 dominant patterns. For each theme, open with a short bold header on its own line, then a paragraph, then a short bullet list of the specific affected accounts. Weight your ordering by severity — themes that have more critical/high entries should rank higher even if they appear in fewer deals. Cite the specific affected deals inline using their [N] markers.
 
 ## Most Affected Deployment Modes & Stages
-Paragraph analysis of which deployment modes (Agentic, SaaS, Self-managed, etc.) and pipeline stages carry the most blocker density and severity.
+Paragraph analysis of which deployment modes (Agentic, SaaS, Self-managed, etc.) and pipeline stages carry the most blocker density and severity. Cite specific deals [N] as examples where relevant.
 
 ## Top Priorities for SE Manager
-A numbered list of the 2-3 highest-leverage actions the SE manager should take, with brief rationale. Focus on systemic issues rather than account-by-account firefighting.`,
+A numbered list of the 2-3 highest-leverage actions the SE manager should take, with brief rationale. Focus on systemic issues rather than account-by-account firefighting. Cite the specific deals [N] driving each priority.`,
     }],
   });
 
   const summary = response.content.find(b => b.type === 'text')?.text ?? '';
+  const { citations } = resolveCitations(summary, oppCitationSources);
 
-  // Persist to cache
+  // Persist cache as JSON { summary, citations } for #135 pills. Legacy plain
+  // text rows stay readable via the cached-read back-compat branch.
+  const cachePayload = JSON.stringify({ summary, citations });
   await query(
     `INSERT INTO ai_summary_cache (key, content, generated_at)
      VALUES ('tech-blockers', $1, now())
      ON CONFLICT (key) DO UPDATE SET content = $1, generated_at = now()`,
-    [summary]
+    [cachePayload]
   );
 
   await completeJob(job.id);
-  res.json(ok({ summary, generated_at: new Date().toISOString(), count: rows.length, red: redCount, orange: orangeCount }));
+  res.json(ok({ summary, citations, generated_at: new Date().toISOString(), count: rows.length, red: redCount, orange: orangeCount }));
   } catch (e) {
     await failJob(job.id, e instanceof Error ? e.message : String(e));
     throw e;

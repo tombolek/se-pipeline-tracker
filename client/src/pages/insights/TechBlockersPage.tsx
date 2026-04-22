@@ -1,6 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import api from '../../api/client';
 import type { ApiResponse } from '../../types';
+import type { ResolvedCitation } from '../../types/citations';
 import { useTeamScope } from '../../hooks/useTeamScope';
 import { useAiJobAttach } from '../../hooks/useAiJob';
 import StageBadge from '../../components/shared/StageBadge';
@@ -10,6 +11,7 @@ import { PageHeader, Empty, Loading } from './shared';
 import Drawer from '../../components/Drawer';
 import OpportunityDetail from '../../components/OpportunityDetail';
 import { useOppUrlSync } from '../../hooks/useOppUrlSync';
+import { TextWithCitations } from '../../components/Citation';
 
 type BlockerStatus = 'red' | 'orange' | 'yellow' | 'green' | 'none';
 
@@ -72,8 +74,55 @@ function isNoBlocker(row: BlockerRow): boolean {
   );
 }
 
+/** Renders a single line with **bold** / *italic* markdown and inline [N] citation pills. */
+function InlineMd({
+  text,
+  citations,
+  onJump,
+}: {
+  text: string;
+  citations?: ResolvedCitation[];
+  onJump?: (c: ResolvedCitation) => void;
+}) {
+  // Split by **bold** first — within each segment we use TextWithCitations so
+  // [N] markers still turn into pills and the server's hallucination-guard
+  // ? pills still render.
+  const parts: { bold: boolean; italic?: boolean; value: string }[] = [];
+  let last = 0;
+  const re = /\*\*(.+?)\*\*/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) parts.push({ bold: false, value: text.slice(last, m.index) });
+    parts.push({ bold: true, value: m[1] });
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) parts.push({ bold: false, value: text.slice(last) });
+
+  return (
+    <>
+      {parts.map((p, i) =>
+        p.bold ? (
+          <strong key={i}>
+            <TextWithCitations text={p.value} citations={citations} onJump={onJump} />
+          </strong>
+        ) : (
+          <TextWithCitations key={i} text={p.value} citations={citations} onJump={onJump} />
+        )
+      )}
+    </>
+  );
+}
+
 /** Converts a subset of markdown to JSX — handles ##/### headers, **bold**, - bullets, blank-line paragraphs */
-function MarkdownContent({ text }: { text: string }) {
+function MarkdownContent({
+  text,
+  citations,
+  onJump,
+}: {
+  text: string;
+  citations?: ResolvedCitation[];
+  onJump?: (c: ResolvedCitation) => void;
+}) {
   const blocks = text.split(/\n{2,}/);
   return (
     <div className="space-y-3 text-sm text-brand-navy leading-relaxed">
@@ -94,7 +143,9 @@ function MarkdownContent({ text }: { text: string }) {
           return (
             <ul key={i} className="list-disc ml-4 space-y-1">
               {lines.map((l, j) => (
-                <li key={j} dangerouslySetInnerHTML={{ __html: inlineMd(l.replace(/^[-*•\d+\.] /, '')) }} />
+                <li key={j}>
+                  <InlineMd text={l.replace(/^[-*•\d+\.] /, '')} citations={citations} onJump={onJump} />
+                </li>
               ))}
             </ul>
           );
@@ -105,7 +156,9 @@ function MarkdownContent({ text }: { text: string }) {
           return (
             <ol key={i} className="list-decimal ml-4 space-y-1">
               {lines.map((l, j) => (
-                <li key={j} dangerouslySetInnerHTML={{ __html: inlineMd(l.replace(/^\d+\. /, '')) }} />
+                <li key={j}>
+                  <InlineMd text={l.replace(/^\d+\. /, '')} citations={citations} onJump={onJump} />
+                </li>
               ))}
             </ol>
           );
@@ -113,22 +166,25 @@ function MarkdownContent({ text }: { text: string }) {
 
         // Mixed block (paragraph + possible inline list)
         return (
-          <p key={i} dangerouslySetInnerHTML={{
-            __html: lines.map(l =>
-              /^[-*•] /.test(l) ? `<span class="block ml-4">• ${inlineMd(l.replace(/^[-*•] /, ''))}</span>` : inlineMd(l)
-            ).join('<br>')
-          }} />
+          <p key={i}>
+            {lines.map((l, j) => (
+              <React.Fragment key={j}>
+                {j > 0 && <br />}
+                {/^[-*•] /.test(l) ? (
+                  <span className="block ml-4">
+                    {'• '}
+                    <InlineMd text={l.replace(/^[-*•] /, '')} citations={citations} onJump={onJump} />
+                  </span>
+                ) : (
+                  <InlineMd text={l} citations={citations} onJump={onJump} />
+                )}
+              </React.Fragment>
+            ))}
+          </p>
         );
       })}
     </div>
   );
-}
-
-function inlineMd(text: string): string {
-  return text
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>');
 }
 
 export default function TechBlockersPage() {
@@ -175,6 +231,7 @@ export default function TechBlockersPage() {
     [...new Set(scopedRows.map(r => r.record_type).filter(Boolean) as string[])].sort(), [scopedRows]);
 
   const [summary, setSummary] = useState<string | null>(null);
+  const [summaryCitations, setSummaryCitations] = useState<ResolvedCitation[]>([]);
   const [summaryGeneratedAt, setSummaryGeneratedAt] = useState<string | null>(null);
   const [generatingSummary, setGeneratingSummary] = useState(false);
 
@@ -183,11 +240,12 @@ export default function TechBlockersPage() {
     api.get<ApiResponse<BlockerRow[]>>('/insights/tech-blockers')
       .then(r => setAllRows(r.data.data))
       .finally(() => setLoadingAll(false));
-    // Load cached summary
-    api.get<ApiResponse<{ summary: string; generated_at: string } | null>>('/insights/tech-blockers/ai-summary/cached')
+    // Load cached summary (+ citations — back-compat: legacy rows have none)
+    api.get<ApiResponse<{ summary: string; citations?: ResolvedCitation[]; generated_at: string } | null>>('/insights/tech-blockers/ai-summary/cached')
       .then(r => {
         if (r.data.data) {
           setSummary(r.data.data.summary);
+          setSummaryCitations(r.data.data.citations ?? []);
           setSummaryGeneratedAt(r.data.data.generated_at);
         }
       })
@@ -207,18 +265,19 @@ export default function TechBlockersPage() {
     key: 'tech-blockers',
     currentGeneratedAt: summaryGeneratedAt,
     fetchCached: async () => {
-      const r = await api.get<ApiResponse<{ summary: string; generated_at: string } | null>>(
+      const r = await api.get<ApiResponse<{ summary: string; citations?: ResolvedCitation[]; generated_at: string } | null>>(
         '/insights/tech-blockers/ai-summary/cached'
       );
       return { generatedAt: r.data.data?.generated_at ?? null };
     },
     onRunning: () => setGeneratingSummary(true),
     onFresh: async () => {
-      const r = await api.get<ApiResponse<{ summary: string; generated_at: string } | null>>(
+      const r = await api.get<ApiResponse<{ summary: string; citations?: ResolvedCitation[]; generated_at: string } | null>>(
         '/insights/tech-blockers/ai-summary/cached'
       );
       if (r.data.data) {
         setSummary(r.data.data.summary);
+        setSummaryCitations(r.data.data.citations ?? []);
         setSummaryGeneratedAt(r.data.data.generated_at);
       }
       setGeneratingSummary(false);
@@ -228,13 +287,23 @@ export default function TechBlockersPage() {
 
   function generateSummary() {
     setGeneratingSummary(true);
-    api.post<ApiResponse<{ summary: string; generated_at: string; count?: number }>>('/insights/tech-blockers/ai-summary', {})
+    api.post<ApiResponse<{ summary: string; citations?: ResolvedCitation[]; generated_at: string; count?: number }>>('/insights/tech-blockers/ai-summary', {})
       .then(r => {
         setSummary(r.data.data.summary);
+        setSummaryCitations(r.data.data.citations ?? []);
         setSummaryGeneratedAt(r.data.data.generated_at);
       })
       .finally(() => setGeneratingSummary(false));
   }
+
+  // #135 — citation jump handler. For cross-opp `opportunity` kind we just open
+  // the drawer in-place via `setSelectedOppId` so the SE stays on Tech Blockers
+  // instead of getting navigated away to Home.
+  const citeJumper = useCallback((c: ResolvedCitation) => {
+    if (c.kind === 'opportunity' && c.opportunity_id != null) {
+      setSelectedOppId(c.opportunity_id);
+    }
+  }, []);
 
   function summaryAgeDays(): number | null {
     if (!summaryGeneratedAt) return null;
@@ -321,7 +390,7 @@ export default function TechBlockersPage() {
             {summary ? (
               <>
                 <div className="mt-4">
-                  <MarkdownContent text={summary} />
+                  <MarkdownContent text={summary} citations={summaryCitations} onJump={citeJumper} />
                 </div>
                 <div className="mt-4 flex justify-end">
                   <button

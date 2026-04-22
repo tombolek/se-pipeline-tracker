@@ -11,6 +11,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - **Process Call Notes · long transcripts no longer fail with "Internal server error"** — pasting a multi-page transcript (30-minute+ calls) triggered body-parser's default 100 KB JSON limit, which rejects the request before the route runs and produced a generic 500. JSON body limit is now 5 MB, and the global error middleware special-cases `PayloadTooLargeError` → 413 with `"Transcript is too large (limit 5 MB). Trim the notes and try again."` so the page shows an actionable message instead of a mystery error. Logged as a gotcha in `docs/gotchas.md`.
 
 ### Added
+- **AI citations (Phase 2 · Batch 4 — Tech Blockers pipeline analysis)** — the manager-facing AI summary on the Tech Blockers page now cites the specific deals driving each blocker theme, deployment-mode pattern, and manager priority. Each opportunity with a recorded blocker becomes a citable source (cross-opp `opportunity` kind — same as Forecasting / 1:1 Prep); click a pill to pop the deal's drawer open in-place so you can read the full blocker text without leaving the analysis. Cache now stores JSON `{ summary, citations }` with back-compat detection for legacy plain-text rows. This completes Phase 2 — all 4 pipeline-wide AI surfaces now emit provenance pills.
+
+### Added
 - **AI citations (Phase 2 · Batch 3 — Forecasting narrative + 1:1 Prep)** — manager-facing cross-opp narratives now cite deals by number, so claims like "At Risk: [3], [5], [7]" link back to the specific opportunities. New `opportunity` citation kind handles cross-opp refs; hover shows deal name + stage + ARR; click navigates to that deal's drawer via `/home?oppId=<sfid>`. Both endpoints cache narratives as JSON `{ content, citations }` with back-compat detection for legacy plain-text rows. Shared `makeCrossOppJumper` helper wraps `makeScrollJumper` to handle navigation.
 
 ### Added
