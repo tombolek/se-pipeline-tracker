@@ -4,6 +4,7 @@ import type { ApiResponse } from '../types';
 import { useAiJobAttach } from '../hooks/useAiJob';
 import { TextWithCitations, makeScrollJumper } from './Citation';
 import type { ResolvedCitation } from '../types/citations';
+import { pdfInline, buildSourcesAppendix, PDF_CITATION_CSS, escHtml } from '../utils/pdfCitations';
 
 /* ── Types ── */
 interface ProofPointHighlight {
@@ -131,15 +132,17 @@ function exportCallPrepPdf(data: CallPrepResponse, oppName: string) {
   const b = data.brief;
   if (!b) return;
 
-  const stripBold = (t: string) => t.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
   const now = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  // Every AI-prose field in the brief shares the same citation list, so one
+  // inline() closure captures it and gets used everywhere #135 markers appear.
+  const inline = (t: string) => pdfInline(t, b.citations);
 
   const sections: string[] = [];
 
   sections.push(`
     <div class="section">
       <h2>Deal Context</h2>
-      <p>${stripBold(b.deal_context)}</p>
+      <p>${inline(b.deal_context)}</p>
     </div>
   `);
 
@@ -147,7 +150,7 @@ function exportCallPrepPdf(data: CallPrepResponse, oppName: string) {
     sections.push(`
       <div class="section">
         <h2>Key Talking Points</h2>
-        <ul>${b.talking_points.map(tp => `<li>${stripBold(tp)}</li>`).join('')}</ul>
+        <ul>${b.talking_points.map(tp => `<li>${inline(tp)}</li>`).join('')}</ul>
       </div>
     `);
   }
@@ -156,7 +159,7 @@ function exportCallPrepPdf(data: CallPrepResponse, oppName: string) {
     sections.push(`
       <div class="section">
         <h2>Risks &amp; Open Items</h2>
-        <ul>${b.risks.map(r => `<li><span class="severity ${r.severity}">${r.severity.toUpperCase()}</span> ${stripBold(r.text)}</li>`).join('')}</ul>
+        <ul>${b.risks.map(r => `<li><span class="severity ${escHtml(r.severity)}">${escHtml(r.severity.toUpperCase())}</span> ${inline(r.text)}</li>`).join('')}</ul>
       </div>
     `);
   }
@@ -165,7 +168,7 @@ function exportCallPrepPdf(data: CallPrepResponse, oppName: string) {
     sections.push(`
       <div class="section">
         <h2>Discovery Questions</h2>
-        <ol>${b.discovery_questions.map(q => `<li>${stripBold(q)}</li>`).join('')}</ol>
+        <ol>${b.discovery_questions.map(q => `<li>${inline(q)}</li>`).join('')}</ol>
       </div>
     `);
   }
@@ -177,13 +180,13 @@ function exportCallPrepPdf(data: CallPrepResponse, oppName: string) {
         ${b.proof_point_highlights.map(h => `
           <div class="card">
             <div class="card-header">
-              <strong>${h.customer}</strong>
-              <span class="role-badge ${h.role}">${h.role}</span>
+              <strong>${escHtml(h.customer)}</strong>
+              <span class="role-badge ${escHtml(h.role)}">${escHtml(h.role)}</span>
             </div>
             <table class="card-grid">
-              <tr><td class="label">Why relevant</td><td>${stripBold(h.why_relevant)}</td></tr>
-              <tr><td class="label">Key stat</td><td>${stripBold(h.key_stat)}</td></tr>
-              <tr><td class="label">When to use</td><td>${stripBold(h.when_to_use)}</td></tr>
+              <tr><td class="label">Why relevant</td><td>${inline(h.why_relevant)}</td></tr>
+              <tr><td class="label">Key stat</td><td>${inline(h.key_stat)}</td></tr>
+              <tr><td class="label">When to use</td><td>${inline(h.when_to_use)}</td></tr>
             </table>
           </div>
         `).join('')}
@@ -197,17 +200,20 @@ function exportCallPrepPdf(data: CallPrepResponse, oppName: string) {
         <h2><span class="badge diff">DIFF</span> Differentiators to Position</h2>
         ${b.differentiator_plays.map(dp => `
           <div class="card">
-            <div class="card-header"><strong>${dp.name}</strong></div>
-            <p>${stripBold(dp.positioning)}</p>
-            ${dp.backed_by ? `<p class="backed-by">Backed by: <strong>${dp.backed_by}</strong></p>` : ''}
+            <div class="card-header"><strong>${escHtml(dp.name)}</strong></div>
+            <p>${inline(dp.positioning)}</p>
+            ${dp.backed_by ? `<p class="backed-by">Backed by: <strong>${escHtml(dp.backed_by)}</strong></p>` : ''}
           </div>
         `).join('')}
       </div>
     `);
   }
 
+  // Footnote-style appendix — every `[N]` above maps to a numbered entry here.
+  const sourcesHtml = buildSourcesAppendix([b.citations]);
+
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
-<title>Pre-Call Brief — ${oppName}</title>
+<title>Pre-Call Brief — ${escHtml(oppName)}</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; font-size: 11pt; color: #1a0c42; line-height: 1.5; padding: 40px; max-width: 800px; margin: 0 auto; }
@@ -235,11 +241,13 @@ function exportCallPrepPdf(data: CallPrepResponse, oppName: string) {
   .badge.csv { background: #059669; }
   .badge.diff { background: #2563eb; }
   strong { font-weight: 600; }
+${PDF_CITATION_CSS}
   @media print { body { padding: 20px; } }
 </style></head><body>
 <h1>Pre-Call Brief</h1>
-<div class="subtitle">${oppName} — Generated ${now}${data.generated_at ? ' (' + timeAgo(data.generated_at) + ')' : ''}</div>
+<div class="subtitle">${escHtml(oppName)} — Generated ${now}${data.generated_at ? ' (' + timeAgo(data.generated_at) + ')' : ''}</div>
 ${sections.join('')}
+${sourcesHtml}
 <script>window.onload = function() { window.print(); }</script>
 </body></html>`;
 

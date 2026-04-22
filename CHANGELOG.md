@@ -7,6 +7,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## 2026-04-22
 
+### Added
+- **AI citations (Phase 3 — Pre-Call Brief & Demo Prep PDFs keep their provenance)** — printing or saving-as-PDF now preserves the `[N]` markers as small purple superscripts and appends a numbered **Sources** appendix at the end of the document. Each entry shows the source kind (Note / SF Field / Tech Discovery / KB Proof Point), the label, a short meta line (author + date, or last-refresh timestamp), and a ≤220-char preview quote. Any `[N]` marker that didn't resolve against a real source renders as a red `[?]` — the same hallucination-guard semantics as the on-screen view. Shared helper `pdfCitations.ts` (inline renderer + appendix builder + CSS block) so both exports render identically. All user-supplied text going into the HTML is now HTML-escaped (`&`, `<`, `>`, `"`, `'`) — previously a stray character in a proof-point could have corrupted the doc. Phase 3 of 3 — Issue #135 closes.
+
 ### Fixed
 - **Process Call Notes · long transcripts no longer fail with "Internal server error"** — pasting a multi-page transcript (30-minute+ calls) triggered body-parser's default 100 KB JSON limit, which rejects the request before the route runs and produced a generic 500. JSON body limit is now 5 MB, and the global error middleware special-cases `PayloadTooLargeError` → 413 with `"Transcript is too large (limit 5 MB). Trim the notes and try again."` so the page shows an actionable message instead of a mystery error. Logged as a gotcha in `docs/gotchas.md`.
 

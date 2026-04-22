@@ -4,6 +4,7 @@ import type { ApiResponse } from '../types';
 import type { ResolvedCitation } from '../types/citations';
 import { TextWithCitations, makeScrollJumper } from './Citation';
 import { useAiJobAttach } from '../hooks/useAiJob';
+import { pdfInline, buildSourcesAppendix, PDF_CITATION_CSS, escHtml } from '../utils/pdfCitations';
 
 /* ── Types ── */
 interface DemoQuestion {
@@ -90,41 +91,53 @@ const CONFIDENCE_CONFIG = {
 
 /* ── PDF Export ── */
 function exportDemoPrepPdf(dp: DemoPrepData, oppName: string, generatedAt: string | null) {
-  const stripBold = (t: string) => t.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
   const now = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
+  // Each question carries its own citation list; answer + coaching_tip share
+  // it. Evidence bullets and suggested commitments are author-written labels
+  // (no AI prose), so they only need HTML-escape + bold. #135 Phase 3.
+  const plain = (t: string) => pdfInline(t, []);
+
   const questionsHtml = dp.questions.map(q => {
+    const inline = (t: string) => pdfInline(t, q.citations);
     const evHtml = q.evidence.length
-      ? `<div class="block"><div class="block-label">${q.confidence === 'partial' ? 'What we know' : 'Evidence'}</div><ul>${q.evidence.map(e => `<li><strong>${e.source}:</strong> ${stripBold(e.text)}</li>`).join('')}</ul></div>`
+      ? `<div class="block"><div class="block-label">${q.confidence === 'partial' ? 'What we know' : 'Evidence'}</div><ul>${q.evidence.map(e => `<li><strong>${escHtml(e.source)}:</strong> ${plain(e.text)}</li>`).join('')}</ul></div>`
       : '';
     const missHtml = q.missing && q.missing.length
-      ? `<div class="block"><div class="block-label">What's missing</div><ul>${q.missing.map(m => `<li><strong>${m.category}:</strong> ${stripBold(m.detail)}</li>`).join('')}</ul></div>`
+      ? `<div class="block"><div class="block-label">What's missing</div><ul>${q.missing.map(m => `<li><strong>${escHtml(m.category)}:</strong> ${plain(m.detail)}</li>`).join('')}</ul></div>`
       : '';
     const commitHtml = q.suggested_commitments && q.suggested_commitments.length
-      ? `<div class="block"><div class="block-label">Suggested commitments</div><ul>${q.suggested_commitments.map(c => `<li>${stripBold(c)}</li>`).join('')}</ul></div>`
+      ? `<div class="block"><div class="block-label">Suggested commitments</div><ul>${q.suggested_commitments.map(c => `<li>${plain(c)}</li>`).join('')}</ul></div>`
       : '';
     return `
       <div class="card">
         <div class="card-header">
           <span class="qnum">Q${q.question_number}</span>
-          <strong class="qtext">${q.question}</strong>
-          <span class="conf conf-${q.confidence}">${q.confidence.toUpperCase()}</span>
+          <strong class="qtext">${escHtml(q.question)}</strong>
+          <span class="conf conf-${escHtml(q.confidence)}">${escHtml(q.confidence.toUpperCase())}</span>
         </div>
-        <div class="block"><div class="block-label">${q.confidence === 'missing' ? 'Assessment' : 'Answer'}</div><p>${stripBold(q.answer)}</p></div>
+        <div class="block"><div class="block-label">${q.confidence === 'missing' ? 'Assessment' : 'Answer'}</div><p>${inline(q.answer)}</p></div>
         ${evHtml}
         ${missHtml}
         ${commitHtml}
-        <div class="tip tip-${q.confidence}"><strong>Demo tip:</strong> ${stripBold(q.coaching_tip)}</div>
+        <div class="tip tip-${escHtml(q.confidence)}"><strong>Demo tip:</strong> ${inline(q.coaching_tip)}</div>
       </div>
     `;
   }).join('');
 
   const beforeHtml = dp.before_you_demo.length
-    ? `<div class="section"><h2>Before You Demo</h2><ul class="checklist">${dp.before_you_demo.map(b => `<li>${b.done ? '☑' : '☐'} ${stripBold(b.text)}</li>`).join('')}</ul></div>`
+    ? `<div class="section"><h2>Before You Demo</h2><ul class="checklist">${dp.before_you_demo.map(b => `<li>${b.done ? '☑' : '☐'} ${plain(b.text)}</li>`).join('')}</ul></div>`
     : '';
 
+  // Collect every citation array across the doc for the Sources appendix.
+  const overallCites = dp.overall_assessment_citations;
+  const sourcesHtml = buildSourcesAppendix([
+    overallCites,
+    ...dp.questions.map(q => q.citations),
+  ]);
+
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
-<title>Demo Prep — ${oppName}</title>
+<title>Demo Prep — ${escHtml(oppName)}</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; font-size: 11pt; color: #1a0c42; line-height: 1.5; padding: 40px; max-width: 800px; margin: 0 auto; }
@@ -158,19 +171,22 @@ function exportDemoPrepPdf(dp: DemoPrepData, oppName: string, generatedAt: strin
   .checklist { list-style: none; margin-left: 0; }
   .checklist li { font-size: 10pt; margin-bottom: 4px; }
   strong { font-weight: 600; }
+${PDF_CITATION_CSS}
   @media print { body { padding: 20px; } .card { page-break-inside: avoid; } }
 </style></head><body>
 <h1>Demo Prep</h1>
-<div class="subtitle">${oppName} — Generated ${now}</div>
-<div><span class="level-banner ${dp.demo_level}">${dp.demo_level} ${dp.demo_level_label}</span></div>
-<div class="reasoning">${stripBold(dp.demo_level_reasoning)}</div>
+<div class="subtitle">${escHtml(oppName)} — Generated ${now}</div>
+<div><span class="level-banner ${escHtml(dp.demo_level)}">${escHtml(dp.demo_level)} ${escHtml(dp.demo_level_label)}</span></div>
+<div class="reasoning">${pdfInline(dp.demo_level_reasoning, [])}</div>
 <div class="readiness"><strong>Demo Readiness:</strong> ${dp.questions_answered} of ${dp.total_questions} questions answered with sufficient evidence.${generatedAt ? ' (Last refreshed ' + new Date(generatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ')' : ''}</div>
 
 <div class="section"><h2>6-Question Demo Check</h2>${questionsHtml}</div>
 
-<div class="section"><h2>Overall Assessment</h2><p>${stripBold(dp.overall_assessment)}</p></div>
+<div class="section"><h2>Overall Assessment</h2><p>${pdfInline(dp.overall_assessment, overallCites)}</p></div>
 
 ${beforeHtml}
+
+${sourcesHtml}
 
 <script>window.onload = function() { window.print(); }</script>
 </body></html>`;
