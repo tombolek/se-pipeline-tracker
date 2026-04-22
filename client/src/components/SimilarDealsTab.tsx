@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../api/client';
 import type { ApiResponse } from '../types';
+import { TextWithCitations } from './Citation';
 
 /* ── Types ── */
 type Outcome = 'won' | 'lost' | 'in_flight' | 'kb_reference';
@@ -138,6 +139,8 @@ interface KbPlaybook {
   anticipate: string[];
   lead_with: string[];
   based_on: string[];
+  /** #135 — [N] markers in win_pattern / positioning / anticipate / lead_with. */
+  citations?: import('../types/citations').ResolvedCitation[];
 }
 
 interface KbPlaybookResponse {
@@ -378,17 +381,21 @@ export default function SimilarDealsTab({ oppId }: { oppId: number; oppName?: st
         <div className="px-4 py-3 space-y-3">
           <div>
             <p className="text-[10px] font-semibold text-brand-purple uppercase tracking-wide mb-1">Win pattern</p>
-            <p className="text-[11px] text-brand-navy leading-relaxed">{p.win_pattern}</p>
+            <p className="text-[11px] text-brand-navy leading-relaxed">
+              <TextWithCitations text={p.win_pattern} citations={p.citations} />
+            </p>
           </div>
           <div>
             <p className="text-[10px] font-semibold text-brand-purple uppercase tracking-wide mb-1">Positioning</p>
-            <p className="text-[11px] text-brand-navy leading-relaxed">{p.positioning}</p>
+            <p className="text-[11px] text-brand-navy leading-relaxed">
+              <TextWithCitations text={p.positioning} citations={p.citations} />
+            </p>
           </div>
           {p.lead_with.length > 0 && (
             <div>
               <p className="text-[10px] font-semibold text-brand-purple uppercase tracking-wide mb-1">Lead with</p>
               <ul className="text-[11px] text-brand-navy leading-relaxed space-y-0.5 list-disc pl-4 marker:text-brand-purple">
-                {p.lead_with.map((item, i) => <li key={i}>{item}</li>)}
+                {p.lead_with.map((item, i) => <li key={i}><TextWithCitations text={item} citations={p.citations} /></li>)}
               </ul>
             </div>
           )}
@@ -396,7 +403,7 @@ export default function SimilarDealsTab({ oppId }: { oppId: number; oppName?: st
             <div>
               <p className="text-[10px] font-semibold text-brand-purple uppercase tracking-wide mb-1">Anticipate</p>
               <ul className="text-[11px] text-brand-navy leading-relaxed space-y-0.5 list-disc pl-4 marker:text-brand-purple">
-                {p.anticipate.map((item, i) => <li key={i}>{item}</li>)}
+                {p.anticipate.map((item, i) => <li key={i}><TextWithCitations text={item} citations={p.citations} /></li>)}
               </ul>
             </div>
           )}

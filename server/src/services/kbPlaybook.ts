@@ -1,5 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { query, queryOne } from '../db/index.js';
+import type { CitationSource, ResolvedCitation } from '../types/citations.js';
+import { CITATION_INSTRUCTIONS, resolveCitations } from './citations.js';
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -9,6 +11,9 @@ export interface KbPlaybook {
   anticipate: string[];
   lead_with: string[];
   based_on: string[];  // customer names the playbook was synthesized from
+  /** #135 — [N] markers in win_pattern / positioning / anticipate[] /
+   *  lead_with[] resolve against this array. */
+  citations?: ResolvedCitation[];
 }
 
 export interface KbPlaybookResponse {
@@ -31,6 +36,7 @@ interface ActiveDeal {
 }
 
 interface KbProofPoint {
+  id: number;
   customer_name: string;
   about: string | null;
   vertical: string;
@@ -76,7 +82,7 @@ async function loadSources(active: ActiveDeal): Promise<KbProofPoint[]> {
 
   // Pull candidates — vertical-matched first, then product-matched fallback.
   const candidates = await query<KbProofPoint>(
-    `SELECT customer_name, about, vertical, products, initiatives, proof_point_text
+    `SELECT id, customer_name, about, vertical, products, initiatives, proof_point_text
      FROM kb_proof_points
      WHERE 1=1
        ${verticalClause}
@@ -88,7 +94,7 @@ async function loadSources(active: ActiveDeal): Promise<KbProofPoint[]> {
   let pool = candidates;
   if (pool.length === 0 && active.products.length > 0) {
     pool = await query<KbProofPoint>(
-      `SELECT customer_name, about, vertical, products, initiatives, proof_point_text
+      `SELECT id, customer_name, about, vertical, products, initiatives, proof_point_text
        FROM kb_proof_points
        WHERE products && $1::text[]
        LIMIT 30`,
@@ -123,11 +129,14 @@ function buildPrompt(active: ActiveDeal, sources: KbProofPoint[]): string {
     active.se_comments ? `SE notes: ${active.se_comments.slice(0, 400)}` : null,
   ].filter(Boolean).join('\n');
 
-  const sourceBlocks = sources.map(s => {
+  // Each source gets a [N] id that Claude uses to cite inline. Same contract
+  // as buildCitationSources() but tailored to KB proof points. #135.
+  const sourceBlocks = sources.map((s, i) => {
+    const n = i + 1;
     const trimmed = s.proof_point_text.length > MAX_PROOF_TEXT_CHARS
       ? s.proof_point_text.slice(0, MAX_PROOF_TEXT_CHARS) + '…'
       : s.proof_point_text;
-    return `### ${s.customer_name}
+    return `### [${n}] ${s.customer_name}
 Vertical: ${s.vertical}
 Products: ${s.products.join(', ') || '(none)'}
 Initiatives: ${s.initiatives.join(', ') || '(none)'}
@@ -141,21 +150,23 @@ ${trimmed}`;
 
 ${activeBlock}
 
-## Relevant past customer wins (from our knowledge base)
+## Relevant past customer wins (from our knowledge base) — CITE THESE BY [N]
 
 ${sourceBlocks}
 
+${CITATION_INSTRUCTIONS}
+
 ## Task
 
-Based ONLY on the proof points above, produce a compact playbook. Do not invent details that aren't in the sources. Keep every field grounded in what the proof points describe.
+Based ONLY on the proof points above, produce a compact playbook. Do not invent details that aren't in the sources. Cite every factual claim with [N] matching a source id above.
 
 Respond with a JSON object, no preamble, no markdown fences:
 
 {
-  "win_pattern": "1-2 sentences on what typically wins us deals in this vertical with these products, drawn from the sources",
-  "positioning": "1-2 sentences on how to position against likely competitors or incumbent tooling, drawn from the sources",
-  "anticipate": ["2-4 short bullet points, each naming a blocker, constraint, or objection the sources describe"],
-  "lead_with": ["2-4 short bullet points, each naming a capability or message that resonated in the sources"],
+  "win_pattern": "1-2 sentences on what typically wins us deals in this vertical with these products, drawn from the sources — each claim cited with [N]",
+  "positioning": "1-2 sentences on how to position against likely competitors or incumbent tooling, drawn from the sources — each claim cited with [N]",
+  "anticipate": ["2-4 short bullets, each naming a blocker/constraint/objection the sources describe, cited with [N]"],
+  "lead_with": ["2-4 short bullets, each naming a capability/message that resonated in the sources, cited with [N]"],
   "based_on": ["customer name 1", "customer name 2", ...]  // echo the exact customer names you drew from
 }`;
 }
@@ -246,6 +257,27 @@ export async function generatePlaybook(oppId: number): Promise<KbPlaybookRespons
   if (!playbook) {
     throw new Error('KB playbook response failed to parse as JSON');
   }
+
+  // Resolve [N] markers across all prose fields against the source proof
+  // points. #135. Click on a pill has no jump target (we don't have a KB
+  // reader UI yet) but the hover preview shows the proof-point excerpt so
+  // the SE can read the grounding without leaving the flow.
+  const kbSources: CitationSource[] = sources.map(s => ({
+    key: `kb-${s.id}`,
+    kind: 'kb_proof_point' as const,
+    label: `KB proof point · ${s.customer_name}`,
+    meta: s.vertical,
+    preview: s.proof_point_text.slice(0, 400),
+    kb_proof_point_id: s.id,
+  }));
+  const allProse = [
+    playbook.win_pattern,
+    playbook.positioning,
+    ...playbook.anticipate,
+    ...playbook.lead_with,
+  ].join(' ');
+  const { citations } = resolveCitations(allProse, kbSources);
+  playbook.citations = citations;
 
   const generatedAt = new Date().toISOString();
   await query(

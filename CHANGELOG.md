@@ -8,6 +8,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## 2026-04-22
 
 ### Added
+- **AI citations (Phase 2 · Batch 2 — Similar Deals KB Playbook)** — the synthesized playbook surfaced when there are <3 real deal matches now cites the specific KB proof points it drew its win-pattern / positioning / lead-with / anticipate bullets from. Hover a pill to see the customer name + proof-point excerpt. **Skipped**: Similar Deals per-candidate AI insights — the match-chip grammar ("Industry ✓", "Same competitor: Collibra") already serves as structured provenance and adding [N] pills to one-sentence insights would be redundant.
+
+### Added
 - **AI citations (Phase 2 · Batch 1 — AI Summary + Demo Prep)** — extending #135 to two more surfaces. The AI Summary (header panel, 3-paragraph deal digest) now emits `[N]` citation pills inline and is cached as JSON `{ text, citations }` so old plain-text cache rows still render (just without pills). Demo Prep's per-question `answer` and `coaching_tip`, plus the `overall_assessment`, all get citations — the existing structured `evidence[{source,text}]` array stays untouched as a complementary "findings" concept. Summary's `/summary/cached` endpoint detects legacy plain-text rows vs. new JSON-shaped rows automatically. Same hover/click/unsupported-claim semantics as Phase 1.
 
 ### Added
