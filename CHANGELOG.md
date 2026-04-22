@@ -8,6 +8,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## 2026-04-22
 
 ### Added
+- **Quick Capture tasks now default to the SE owner and allow reassignment** — opening Quick Capture (Ctrl/Cmd-K), picking an opportunity, and switching to the Task tab now pre-selects the opportunity's SE owner as the assignee. The assignee dropdown lists all users so the task can be reassigned inline. If the chosen assignee is not the SE owner and not already on the opportunity, they are automatically added to the deal's **SE Contributors** so the task shows up in their workspace.
+
+### Added
 - **AI citations (Phase 3 — Pre-Call Brief & Demo Prep PDFs keep their provenance)** — printing or saving-as-PDF now preserves the `[N]` markers as small purple superscripts and appends a numbered **Sources** appendix at the end of the document. Each entry shows the source kind (Note / SF Field / Tech Discovery / KB Proof Point), the label, a short meta line (author + date, or last-refresh timestamp), and a ≤220-char preview quote. Any `[N]` marker that didn't resolve against a real source renders as a red `[?]` — the same hallucination-guard semantics as the on-screen view. Shared helper `pdfCitations.ts` (inline renderer + appendix builder + CSS block) so both exports render identically. All user-supplied text going into the HTML is now HTML-escaped (`&`, `<`, `>`, `"`, `'`) — previously a stray character in a proof-point could have corrupted the doc. Phase 3 of 3 — Issue #135 closes.
 
 ### Fixed

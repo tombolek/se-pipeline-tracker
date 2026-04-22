@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { usePipelineStore } from '../store/pipeline';
-import { listOpportunities } from '../api/opportunities';
+import { listOpportunities, addSeContributor } from '../api/opportunities';
 import { createNote } from '../api/notes';
 import { createTask } from '../api/tasks';
 import { createInboxItem } from '../api/inbox';
-import type { Opportunity } from '../types';
+import { listUsers } from '../api/users';
+import type { Opportunity, User } from '../types';
 
 type CaptureType = 'note' | 'task';
 
@@ -25,6 +26,8 @@ export default function QuickCapture() {
   const [selectedOpp, setSelectedOpp] = useState<Opportunity | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const [highlightIdx, setHighlightIdx] = useState(0);
+  const [assignedTo, setAssignedTo] = useState<number | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -44,10 +47,15 @@ export default function QuickCapture() {
       setSelectedOpp(null);
       setShowDropdown(false);
       setHighlightIdx(0);
+      setAssignedTo(null);
       setSaved(false);
       setTimeout(() => searchRef.current?.focus(), 50);
+      // Lazy-load users once per session for the assignee selector.
+      if (users.length === 0) {
+        listUsers().then(setUsers).catch(() => {});
+      }
     }
-  }, [quickCaptureOpen]);
+  }, [quickCaptureOpen, users.length]);
 
   // Escape key
   useEffect(() => {
@@ -81,6 +89,7 @@ export default function QuickCapture() {
     setOppSearch('');
     setOppResults([]);
     setShowDropdown(false);
+    setAssignedTo(opp.se_owner?.id ?? null);
     // Auto-jump to the note/task text so the user can start typing immediately.
     setTimeout(() => textareaRef.current?.focus(), 50);
   }
@@ -103,6 +112,7 @@ export default function QuickCapture() {
   function clearOpp() {
     setSelectedOpp(null);
     setOppSearch('');
+    setAssignedTo(null);
     setTimeout(() => searchRef.current?.focus(), 50);
   }
 
@@ -115,7 +125,20 @@ export default function QuickCapture() {
         if (type === 'note') {
           await createNote(selectedOpp.id, text.trim());
         } else {
-          await createTask(selectedOpp.id, { title: text.trim(), due_date: dueDate });
+          await createTask(selectedOpp.id, {
+            title: text.trim(),
+            due_date: dueDate,
+            ...(assignedTo != null ? { assigned_to_id: assignedTo } : {}),
+          });
+          // If the assignee isn't the SE owner and isn't already a contributor,
+          // add them so the opp shows up in their workspace views.
+          if (assignedTo != null) {
+            const ownerId = selectedOpp.se_owner?.id ?? null;
+            const contributorIds = (selectedOpp.se_contributors ?? []).map(c => c.id);
+            if (assignedTo !== ownerId && !contributorIds.includes(assignedTo)) {
+              try { await addSeContributor(selectedOpp.id, assignedTo); } catch { /* non-fatal */ }
+            }
+          }
         }
       } else {
         await createInboxItem(text.trim(), type === 'task' ? 'todo' : 'note');
@@ -244,16 +267,41 @@ export default function QuickCapture() {
               className="w-full px-3 py-2.5 rounded-lg border border-brand-navy-30 text-sm text-brand-navy placeholder:text-brand-navy-70 resize-none focus:outline-none focus:ring-[3px] focus:ring-brand-purple/15 focus:border-brand-purple"
             />
 
-            {/* Due date (task only) */}
+            {/* Due date + assignee (task only) */}
             {type === 'task' && (
-              <div>
-                <p className="text-[11px] text-brand-navy-70 font-medium mb-1.5">Due date</p>
-                <input
-                  type="date"
-                  value={dueDate}
-                  onChange={e => setDueDate(e.target.value)}
-                  className="px-3 py-1.5 rounded-lg border border-brand-navy-30 text-sm text-brand-navy focus:outline-none focus:ring-[3px] focus:ring-brand-purple/15 focus:border-brand-purple"
-                />
+              <div className="flex gap-4">
+                <div>
+                  <p className="text-[11px] text-brand-navy-70 font-medium mb-1.5">Due date</p>
+                  <input
+                    type="date"
+                    value={dueDate}
+                    onChange={e => setDueDate(e.target.value)}
+                    className="px-3 py-1.5 rounded-lg border border-brand-navy-30 text-sm text-brand-navy focus:outline-none focus:ring-[3px] focus:ring-brand-purple/15 focus:border-brand-purple"
+                  />
+                </div>
+                {selectedOpp && (
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[11px] text-brand-navy-70 font-medium mb-1.5">
+                      Assignee{' '}
+                      {selectedOpp.se_owner && assignedTo !== selectedOpp.se_owner.id && (
+                        <span className="font-normal">(added as SE contributor)</span>
+                      )}
+                    </p>
+                    <select
+                      value={assignedTo ?? ''}
+                      onChange={e => setAssignedTo(e.target.value ? Number(e.target.value) : null)}
+                      className="w-full px-3 py-1.5 rounded-lg border border-brand-navy-30 text-sm text-brand-navy focus:outline-none focus:ring-[3px] focus:ring-brand-purple/15 focus:border-brand-purple bg-white"
+                    >
+                      <option value="">Unassigned</option>
+                      {users.map(u => (
+                        <option key={u.id} value={u.id}>
+                          {u.name}
+                          {selectedOpp.se_owner?.id === u.id ? ' (owner)' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
             )}
 

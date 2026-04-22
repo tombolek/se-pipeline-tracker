@@ -176,6 +176,7 @@ This tool pulls deal data from Salesforce via a CSV/XLS export and layers a nati
 - Write a note or todo, optionally search and link to an opportunity
 - If linked: goes directly to that deal's tasks or notes
 - If unlinked: saves to Inbox
+- Tasks default-assign to the opportunity's SE owner; the assignee can be changed in the modal. Assigning someone who isn't the SE owner auto-adds them as an SE contributor on that deal.
 
 ### Column Picker
 - Available on Pipeline and SE Deal Mapping views
