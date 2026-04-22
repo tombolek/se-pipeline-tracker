@@ -62,7 +62,7 @@ export function NoteItem({
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
   return (
-    <div className="group py-3 border-b border-brand-navy-30/40 last:border-0">
+    <div className="group py-3 px-2 -mx-2 border-b border-brand-navy-30/40 last:border-0" data-cite-target={`note:${note.id}`}>
       <div className="flex items-center gap-2 mb-1">
         <div className="w-5 h-5 rounded-full bg-brand-purple flex items-center justify-center text-[9px] font-semibold text-white flex-shrink-0">
           {note.author_name?.[0]?.toUpperCase()}

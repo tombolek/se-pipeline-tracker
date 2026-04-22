@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Citations — Preview (#135)</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --purple:#6A2CF5; --purple-70:#9C72F8; --purple-30:#DED0FD;
+    --pink:#F10090; --pink-30:#FCC6E6;
+    --navy:#1A0C42; --navy-70:#665D81; --navy-30:#CCC9D5;
+    --success:#00E5B6; --warning:#FFAB00; --overdue:#FF464C; --info:#00DDFF;
+    --bg:#F5F5F7;
+  }
+  body { font-family:'Poppins', system-ui, sans-serif; background:var(--bg); color:var(--navy); }
+
+  /* scenario bar */
+  .sbar { background:var(--navy); padding:10px 18px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; position:sticky; top:0; z-index:50; }
+  .sbar-label { font-size:11px; color:rgba(255,255,255,.45); font-weight:500; }
+  .sb-btn { padding:5px 11px; border-radius:6px; border:1px solid rgba(255,255,255,.15); background:transparent; color:rgba(255,255,255,.65); font-size:11px; font-weight:500; cursor:pointer; font-family:inherit; transition:all .15s; }
+  .sb-btn:hover { background:rgba(255,255,255,.08); color:white; }
+  .sb-btn.active { background:var(--purple); border-color:var(--purple); color:white; }
+
+  .page { max-width:1260px; margin:0 auto; padding:20px; }
+
+  .caption { font-size:12px; color:var(--navy-70); line-height:1.6; margin:4px 0 14px; }
+  .caption strong { color:var(--navy); }
+
+  /* Two-pane layout: AI output on left, opportunity drawer on right */
+  .two-pane { display:grid; grid-template-columns:1fr 1fr; gap:18px; align-items:flex-start; }
+
+  /* card shell — no overflow:hidden so floating citation tooltips can escape
+     the card bounds. The children don't paint to the rounded corners so
+     removing it doesn't cause visual bleed. */
+  .card { background:white; border:1px solid rgba(204,201,213,.6); border-radius:14px; }
+  .card-header { padding:13px 18px; border-bottom:1px solid rgba(204,201,213,.5); display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .card-title { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; }
+  .card-icon { width:22px; height:22px; border-radius:7px; background:linear-gradient(135deg, var(--purple-30) 0%, var(--pink-30) 100%); display:flex; align-items:center; justify-content:center; }
+  .card-icon svg { color:var(--purple); }
+  .card-body { padding:16px 18px; }
+
+  /* ── AI content styling ── */
+  .ai-para { font-size:13px; line-height:1.7; color:var(--navy); margin-bottom:12px; }
+  .ai-para:last-child { margin-bottom:0; }
+
+  /* citation pill */
+  .cite { display:inline-flex; align-items:center; justify-content:center; min-width:16px; height:16px; padding:0 4px; border-radius:4px; background:var(--purple-30); color:var(--purple); font-size:9px; font-weight:700; font-family:ui-monospace, monospace; margin:0 1px; cursor:pointer; position:relative; transition:all .12s; vertical-align:1px; }
+  .cite:hover { background:var(--purple); color:white; }
+  .cite.active { background:var(--purple); color:white; box-shadow:0 0 0 2px rgba(106,44,245,.2); }
+
+  /* hover tooltip */
+  .cite-tip { position:absolute; bottom:100%; left:50%; transform:translateX(-50%); margin-bottom:6px; background:white; border:1px solid var(--navy-30); border-radius:10px; padding:10px 12px; min-width:260px; max-width:320px; box-shadow:0 8px 24px rgba(26,12,66,.15); font-family:'Poppins', system-ui, sans-serif; font-weight:400; font-size:11px; line-height:1.5; color:var(--navy); text-align:left; z-index:60; pointer-events:none; opacity:0; transition:opacity .12s; }
+  .cite:hover .cite-tip { opacity:1; }
+  .cite.active .cite-tip { opacity:1; pointer-events:auto; }
+  /* All children are spans with display:block — the .cite-tip itself is a
+     span (inside the pill span), which HTML forbids from containing divs. */
+  .cite-tip .kind    { display:block; font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--purple); margin-bottom:2px; }
+  .cite-tip .meta    { display:block; font-size:10px; color:var(--navy-70); margin-bottom:4px; }
+  .cite-tip .preview { display:block; color:var(--navy); font-style:italic; }
+  .cite-tip .jump    { display:inline-block; margin-top:6px; color:var(--purple); text-decoration:none; font-weight:600; font-size:10px; font-style:normal; }
+  .cite-tip .jump:hover { text-decoration:underline; }
+  .cite-tip::after { content:''; position:absolute; top:100%; left:50%; transform:translateX(-50%); border:5px solid transparent; border-top-color:white; }
+
+  /* RAG pills for MEDDPICC */
+  .rag { display:inline-flex; align-items:center; gap:5px; padding:2px 8px; border-radius:20px; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; }
+  .rag-green { background:rgba(0,229,182,.15); color:#009e75; }
+  .rag-amber { background:rgba(255,171,0,.15); color:#b87800; }
+  .rag-red { background:rgba(255,70,76,.12); color:#cc2d32; }
+
+  .medd-el { padding:12px 16px; border-bottom:1px solid rgba(204,201,213,.4); }
+  .medd-el:last-child { border-bottom:none; }
+  .medd-head { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+  .medd-name { font-size:12px; font-weight:600; }
+
+  /* ── Opportunity drawer (right pane) ── */
+  .drawer-header { padding:14px 18px 12px; border-bottom:1px solid rgba(204,201,213,.5); }
+  .drawer-header h2 { font-size:13px; font-weight:600; }
+  .drawer-header .meta { font-size:11px; color:var(--navy-70); margin-top:2px; }
+
+  .section-title { font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--navy-70); margin:12px 18px 6px; }
+
+  .field-row { padding:8px 18px; font-size:12px; line-height:1.55; border-bottom:1px solid rgba(204,201,213,.3); transition:background .2s; }
+  .field-row .label { font-size:10px; font-weight:500; color:var(--navy-70); text-transform:uppercase; letter-spacing:.04em; margin-bottom:2px; }
+  .field-row .value { color:var(--navy); }
+  .field-row.highlight { background:rgba(106,44,245,.08); box-shadow:inset 3px 0 0 var(--purple); }
+
+  .note-row { padding:10px 18px; font-size:12px; line-height:1.55; border-bottom:1px solid rgba(204,201,213,.3); transition:background .2s; }
+  .note-row .author { font-size:11px; font-weight:600; color:var(--navy); display:inline-flex; align-items:center; gap:6px; }
+  .note-row .avatar { width:18px; height:18px; border-radius:50%; background:var(--purple); color:white; font-size:9px; font-weight:600; display:inline-flex; align-items:center; justify-content:center; }
+  .note-row .ts { font-size:10px; color:var(--navy-70); margin-left:4px; }
+  .note-row .body { margin-top:3px; padding-left:24px; }
+  .note-row.highlight { background:rgba(106,44,245,.08); box-shadow:inset 3px 0 0 var(--purple); }
+
+  /* ── Export state — PDF ── */
+  .pdf-wrap { max-width:720px; margin:0 auto; }
+  .pdf { background:white; border:1px solid var(--navy-30); border-radius:8px; overflow:hidden; font-family:'Georgia', 'Times New Roman', serif; font-size:12px; color:#222; }
+  .pdf-page { padding:40px; }
+  .pdf h1 { font-size:20px; font-weight:600; color:#000; margin-bottom:4px; }
+  .pdf .subtitle { font-size:11px; color:#666; margin-bottom:24px; }
+  .pdf h2 { font-size:13px; font-weight:600; margin:16px 0 6px; }
+  .pdf p { line-height:1.65; margin-bottom:10px; }
+  .pdf sup { font-size:9px; color:var(--purple); font-weight:700; vertical-align:super; }
+  .pdf .sources { margin-top:32px; padding-top:14px; border-top:1px solid #ddd; }
+  .pdf .sources h3 { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.08em; color:#666; margin-bottom:6px; font-family:inherit; }
+  .pdf .source-line { font-size:10px; color:#444; margin-bottom:3px; line-height:1.5; }
+  .pdf .source-line sup { margin-right:4px; }
+
+  /* ── Unsupported state ── */
+  .warn-banner { background:rgba(255,171,0,.1); border:1px solid rgba(255,171,0,.4); border-radius:10px; padding:10px 14px; display:flex; gap:10px; font-size:11px; color:var(--navy); line-height:1.55; margin-bottom:14px; }
+  .warn-banner-label { font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:#b87800; }
+  .cite.unsupported { background:rgba(255,70,76,.12); color:var(--overdue); }
+  .cite.unsupported:hover { background:var(--overdue); color:white; }
+  .strike { text-decoration:line-through; color:var(--navy-30); }
+
+  /* scenes */
+  .scene { display:none; }
+  .scene.active { display:block; }
+
+  /* click-me hint */
+  .click-hint { display:inline-block; margin-left:6px; font-size:10px; color:var(--purple); background:var(--purple-30); padding:2px 7px; border-radius:10px; font-weight:600; animation:pulse 2s infinite; }
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.55; } }
+</style>
+</head>
+<body>
+
+<div class="sbar">
+  <span class="sbar-label">Preview state:</span>
+  <button class="sb-btn active" onclick="showScene('inline', this)">1 · Inline pills</button>
+  <button class="sb-btn"        onclick="showScene('hover', this)">2 · Hover tooltip</button>
+  <button class="sb-btn"        onclick="showScene('click', this)">3 · Click → highlight source</button>
+  <button class="sb-btn"        onclick="showScene('unsupported', this)">4 · Unsupported claim</button>
+  <button class="sb-btn"        onclick="showScene('export', this)">5 · Export (PDF)</button>
+</div>
+
+<div class="page">
+
+<div class="caption">
+  <strong>AI claims link back to the underlying data they came from.</strong>
+  Each pill <span class="cite">1</span> is a citation to a specific note, task, SF field, Tech Discovery entry, or KB proof point. Hover = preview. Click = scroll to + highlight the source in the opportunity drawer. Exports preserve the markers with a Sources appendix. Unresolvable citations render as a distinct error state so the SE can't miss them.
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- SCENE 1: default inline pills                                             -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="scene active" id="scene-inline">
+  <div class="two-pane">
+
+    <!-- LEFT: MEDDPICC Gap Coach with citations -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <div class="card-icon">
+            <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+          </div>
+          MEDDPICC Gap Coach
+        </div>
+        <span class="rag rag-amber">3 gaps</span>
+      </div>
+
+      <div class="medd-el">
+        <div class="medd-head">
+          <span class="medd-name">Metrics</span>
+          <span class="rag rag-green">Strong</span>
+        </div>
+        <p class="ai-para">The deal has a quantified target: <strong>95% DQ coverage on 12 CDEs before Q3 board review</strong> <span class="cite">1</span>. Champion has been vocal about reducing the €2M reported in failed DQ spend <span class="cite">2</span>.</p>
+      </div>
+
+      <div class="medd-el">
+        <div class="medd-head">
+          <span class="medd-name">Economic Buyer</span>
+          <span class="rag rag-amber">Gap</span>
+        </div>
+        <p class="ai-para">Named in the MEDDPICC field as Thomas Bayer (CTO) <span class="cite">3</span>, but notes only describe him as a technical evaluator <span class="cite">4</span>. No evidence he controls the €250k budget or has signed off. Worth confirming whether CDO Markus Klein is the actual approver <span class="cite">5</span>.</p>
+      </div>
+
+      <div class="medd-el">
+        <div class="medd-head">
+          <span class="medd-name">Technical Constraints</span>
+          <span class="rag rag-red">Open</span>
+        </div>
+        <p class="ai-para">Hard deploy requirement: Azure-only (data residency after GDPR audit) <span class="cite">6</span>. Two connector gates unconfirmed: ADLS Gen2 + Databricks Unity Catalog <span class="cite">7</span>. Competing against Informatica IDMC <span class="cite">8</span>.</p>
+      </div>
+    </div>
+
+    <!-- RIGHT: opportunity drawer context -->
+    <div class="card">
+      <div class="drawer-header">
+        <h2>BBVA — DQG</h2>
+        <div class="meta">Develop Solution · $375K · Close Sep 2026</div>
+      </div>
+
+      <div class="section-title">Salesforce fields</div>
+      <div class="field-row" id="field-metrics">
+        <div class="label">Metrics</div>
+        <div class="value">95% DQ coverage on 12 critical data elements before Q3 board review in September.</div>
+      </div>
+      <div class="field-row" id="field-eb">
+        <div class="label">Economic Buyer</div>
+        <div class="value">Thomas Bayer (CTO)</div>
+      </div>
+      <div class="field-row" id="field-td">
+        <div class="label">Tech Discovery · Deployment Preference</div>
+        <div class="value">Azure-only — data residency requirement after GDPR audit findings. Won't deploy outside Azure.</div>
+      </div>
+      <div class="field-row" id="field-tc">
+        <div class="label">Tech Discovery · Open Technical Requirements</div>
+        <div class="value">Validate ADLS Gen2 connector throughput; confirm Databricks Unity Catalog lineage ingestion.</div>
+      </div>
+      <div class="field-row" id="field-comp">
+        <div class="label">Engaged Competitors</div>
+        <div class="value">Informatica IDMC</div>
+      </div>
+
+      <div class="section-title">Notes</div>
+      <div class="note-row" id="note-1">
+        <span class="author"><span class="avatar">AR</span>Alex Rivera</span><span class="ts">2026-04-18 · 14:22</span>
+        <div class="body">Discovery with Anna Fischer (Data Architect) + Thomas Bayer (CTO). Target: live before Q3 board review in September, hard deadline. Anna framed success as 95% DQ coverage on 12 CDEs.</div>
+      </div>
+      <div class="note-row" id="note-2">
+        <span class="author"><span class="avatar">AR</span>Alex Rivera</span><span class="ts">2026-04-18 · 15:05</span>
+        <div class="body">Pain: 3 failed internal DQ projects in 2 years. ~€2M wasted. Execs losing trust. Thomas was vocal about this.</div>
+      </div>
+      <div class="note-row" id="note-3">
+        <span class="author"><span class="avatar">JK</span>Jordan Kim</span><span class="ts">2026-04-19 · 09:40</span>
+        <div class="body">Anna mentioned CDO Markus Klein is backing the project and will attend the next steering committee. Need to confirm he's the approver, not Thomas.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- SCENE 2: hover tooltip                                                    -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="scene" id="scene-hover">
+  <div class="two-pane">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <div class="card-icon">
+            <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+          </div>
+          MEDDPICC Gap Coach
+        </div>
+      </div>
+
+      <div class="medd-el">
+        <div class="medd-head">
+          <span class="medd-name">Economic Buyer</span>
+          <span class="rag rag-amber">Gap</span>
+        </div>
+        <p class="ai-para">
+          Named in the MEDDPICC field as Thomas Bayer (CTO)
+          <span class="cite active">3
+            <span class="cite-tip">
+              <span class="kind">Salesforce field · Economic Buyer</span>
+              <span class="meta">Last updated by import · 2026-04-15</span>
+              <span class="preview">"Thomas Bayer (CTO)"</span>
+              <a class="jump" href="#">Jump to field →</a>
+            </span>
+          </span>,
+          but notes only describe him as a technical evaluator
+          <span class="cite">4</span>. No evidence he controls the €250k budget or has signed off. Worth confirming whether CDO Markus Klein is the actual approver <span class="cite">5</span>.
+        </p>
+      </div>
+
+      <div class="caption" style="padding:0 16px 14px;">
+        <em>Hovering <span class="cite" style="cursor:default">3</span> shows the source preview — here, the raw Economic Buyer field value on the opp. The pill tints purple while the tooltip is open, and a "Jump to field" link scrolls the drawer and applies a highlight (scene 3).</em>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="drawer-header">
+        <h2>BBVA — DQG</h2>
+        <div class="meta">Develop Solution · $375K · Close Sep 2026</div>
+      </div>
+      <div class="section-title">Salesforce fields</div>
+      <div class="field-row">
+        <div class="label">Metrics</div>
+        <div class="value">95% DQ coverage on 12 critical data elements…</div>
+      </div>
+      <div class="field-row">
+        <div class="label">Economic Buyer</div>
+        <div class="value">Thomas Bayer (CTO)</div>
+      </div>
+      <div class="field-row">
+        <div class="label">Engaged Competitors</div>
+        <div class="value">Informatica IDMC</div>
+      </div>
+      <div class="section-title">Notes</div>
+      <div class="note-row">
+        <span class="author"><span class="avatar">AR</span>Alex Rivera</span><span class="ts">2026-04-18</span>
+        <div class="body">Discovery with Anna Fischer + Thomas Bayer. Target: live before Q3 board review…</div>
+      </div>
+      <div class="note-row">
+        <span class="author"><span class="avatar">JK</span>Jordan Kim</span><span class="ts">2026-04-19</span>
+        <div class="body">Anna mentioned CDO Markus Klein is backing the project…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- SCENE 3: click → highlight source                                         -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="scene" id="scene-click">
+  <div class="two-pane">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <div class="card-icon">
+            <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+          </div>
+          MEDDPICC Gap Coach
+        </div>
+      </div>
+
+      <div class="medd-el">
+        <div class="medd-head">
+          <span class="medd-name">Economic Buyer</span>
+          <span class="rag rag-amber">Gap</span>
+        </div>
+        <p class="ai-para">
+          Named in the MEDDPICC field as Thomas Bayer (CTO) <span class="cite">3</span>,
+          but notes only describe him as a technical evaluator <span class="cite">4</span>.
+          No evidence he controls the €250k budget or has signed off. Worth confirming whether CDO Markus Klein is the actual approver
+          <span class="cite active">5<span class="click-hint">← you clicked this</span></span>.
+        </p>
+      </div>
+
+      <div class="caption" style="padding:0 16px 14px;">
+        <em>Clicked <span class="cite" style="cursor:default">5</span> which cites Jordan Kim's note from 2026-04-19 → the right pane auto-scrolled and applied a highlight ring + left border.</em>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="drawer-header">
+        <h2>BBVA — DQG</h2>
+        <div class="meta">Develop Solution · $375K</div>
+      </div>
+      <div class="section-title">Salesforce fields</div>
+      <div class="field-row"><div class="label">Economic Buyer</div><div class="value">Thomas Bayer (CTO)</div></div>
+      <div class="section-title">Notes</div>
+      <div class="note-row">
+        <span class="author"><span class="avatar">AR</span>Alex Rivera</span><span class="ts">2026-04-18</span>
+        <div class="body">Discovery with Anna Fischer + Thomas Bayer…</div>
+      </div>
+      <div class="note-row highlight">
+        <span class="author"><span class="avatar">JK</span>Jordan Kim</span><span class="ts">2026-04-19 · 09:40</span>
+        <div class="body">Anna mentioned CDO Markus Klein is backing the project and will attend the next steering committee. Need to confirm he's the approver, not Thomas.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- SCENE 4: unsupported claim                                                -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="scene" id="scene-unsupported">
+  <div class="card" style="max-width:780px; margin:0 auto;">
+    <div class="card-header">
+      <div class="card-title">
+        <div class="card-icon">
+          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+        </div>
+        Call Prep — Anticipated questions
+      </div>
+    </div>
+
+    <div class="card-body">
+      <div class="warn-banner">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#b87800" stroke-width="2" style="flex-shrink:0; margin-top:1px;"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z"/></svg>
+        <div>
+          <div class="warn-banner-label">1 unsupported claim hidden</div>
+          <p>The AI emitted a citation (<span class="cite unsupported" style="cursor:default">?</span>) that didn't resolve to any note, task, field, or KB entry — the claim has been struck through. Server-side validation drops dangling ids so fabricated sources never render as trustworthy pills.</p>
+        </div>
+      </div>
+
+      <p class="ai-para">
+        <strong>Q: How will you handle PII in our customer-360 pipeline?</strong><br>
+        Based on the proof-point with Globex Financial <span class="cite">1</span>, Ataccama can mask at load-time using column-level classifications tied to lineage. Your Azure-only constraint <span class="cite">2</span> means the masking runs inside your tenant.
+      </p>
+
+      <p class="ai-para strike">
+        <strong>Q: What latency should we expect on 2M rows/day profiling?</strong><br>
+        <span class="cite unsupported" style="cursor:default">?</span> The engine can process 5M rows/day on your stack — we tested this with Merkle DACH last quarter.
+      </p>
+
+      <p class="ai-para">
+        <em class="caption" style="font-size:11px; padding:0;">(Second answer struck through — the supporting claim pointed at a non-existent proof point id. Kept in the UI with strikethrough so the SE sees what the model wanted to say, but can't use it as evidence on a customer call.)</em>
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- SCENE 5: PDF export with Sources appendix                                 -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="scene" id="scene-export">
+  <div class="caption" style="max-width:720px; margin:0 auto 12px;">
+    <strong>Call Prep / Demo Prep PDF exports preserve citations as superscript footnotes + a Sources appendix.</strong>
+    Claim integrity survives the trip from browser to printout to Slack. Clipboard SE-comment pastes stay plaintext — Salesforce wouldn't render pills anyway.
+  </div>
+
+  <div class="pdf-wrap">
+    <div class="pdf">
+      <div class="pdf-page">
+        <h1>Pre-Call Brief · BBVA — DQG</h1>
+        <div class="subtitle">Generated 2026-04-22 · Alex Rivera · Ataccama</div>
+
+        <h2>Deal snapshot</h2>
+        <p>BBVA is in Develop Solution on a $375K deal, targeting live before the Q3 board review in September<sup>1</sup>. Three failed internal DQ projects over two years have cost the customer roughly €2M and shaken exec trust in their data<sup>2</sup>.</p>
+
+        <h2>Talking points</h2>
+        <p>Lead with <strong>Azure-native deployment</strong> — the customer has a hard data-residency requirement after a GDPR audit and won't accept anything outside Azure<sup>3</sup>. Differentiate on ADLS Gen2 + Databricks Unity Catalog support, both of which are gating the PoC<sup>4</sup>.</p>
+
+        <h2>Questions to anticipate</h2>
+        <p>Expect pushback on Informatica IDMC parity<sup>5</sup>, especially around data-quality-in-Databricks. Lead with lineage depth and rule reuse across batch + pushdown.</p>
+
+        <div class="sources">
+          <h3>Sources</h3>
+          <div class="source-line"><sup>1</sup> Note · Alex Rivera · 2026-04-18 · "Discovery with Anna Fischer + Thomas Bayer. Target: live before Q3 board review…"</div>
+          <div class="source-line"><sup>2</sup> Note · Alex Rivera · 2026-04-18 · "Pain: 3 failed internal DQ projects in 2 years. ~€2M wasted…"</div>
+          <div class="source-line"><sup>3</sup> Tech Discovery · Deployment Preference · "Azure-only — data residency requirement after GDPR audit findings…"</div>
+          <div class="source-line"><sup>4</sup> Tech Discovery · Open Technical Requirements · "Validate ADLS Gen2 connector; confirm Databricks Unity Catalog lineage ingestion."</div>
+          <div class="source-line"><sup>5</sup> SF field · Engaged Competitors · "Informatica IDMC"</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+  function showScene(name, btn) {
+    document.querySelectorAll('.scene').forEach(s => s.classList.remove('active'));
+    document.getElementById('scene-' + name).classList.add('active');
+    document.querySelectorAll('.sbar .sb-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    window.scrollTo({ top: 0 });
+  }
+</script>
+
+</body>
+</html>

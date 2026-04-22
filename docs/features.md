@@ -33,13 +33,13 @@ One section per page/route. Describes the behaviour, filters, and data rules —
 **Header area** (always visible above tabs):
 - SF data (read-only) — name, account (clickable → Account History panel), stage, ARR, close date, AE owner, team, SE owner, deploy mode, PoC status, competitors.
 - **AI Summary** — collapsible, persisted open/closed state, freshness indicator showing when last generated.
-- **MEDDPICC Gap Coach** — collapsible, persisted open/closed state, AI-powered analysis of MEDDPICC field gaps with coaching recommendations.
+- **MEDDPICC Gap Coach** — collapsible, persisted open/closed state, AI-powered analysis of MEDDPICC field gaps with coaching recommendations. Every evidence / gap / suggested-question statement is annotated with `[N]` citation pills — hover shows the source preview (note quote, SF field value, Tech Discovery prose), click scrolls the drawer to the source and flashes a highlight. Unresolvable citations render as a red `?` pill so fabricated sources can't pass as trustworthy. Issue #135.
 
 **Work tab:** Next Steps (is_next_step = true, shown prominently), Tasks (full list, add/edit/complete), Notes (chronological, no-UPDATE, **soft-delete by author or manager** — delete button appears on hover, confirmation inline, every delete is audited).
 
 **Timeline tab:** Chronological activity feed for the opportunity (OpportunityTimeline component).
 
-**Call Prep tab:** AI-powered pre-call brief generation with PDF export, uses knowledge base files from `kb/` directory. Prompt also ingests the opportunity's **Tech Discovery** row (stack, enterprise systems, existing DMG tools, 9 discovery-notes prose fields) so talking points anchor to the prospect's real environment and discovery questions target genuine gaps rather than anything already captured.
+**Call Prep tab:** AI-powered pre-call brief generation with PDF export, uses knowledge base files from `kb/` directory. Prompt also ingests the opportunity's **Tech Discovery** row (stack, enterprise systems, existing DMG tools, 9 discovery-notes prose fields) so talking points anchor to the prospect's real environment and discovery questions target genuine gaps rather than anything already captured. **Citations** — all prose fields (deal context, talking points, risks, discovery questions) render with `[N]` pills that hover-preview the source (note / SF field / Tech Discovery entry) and click-jump to it in the drawer. Issue #135.
 
 **Demo Prep tab:** AI-powered demo readiness assessment — classifies the deal into a demo level (D1–D4), scores readiness across a fixed question set, surfaces gaps and suggested commitments. PDF export. Tech Discovery is passed to the prompt as first-class evidence: the AI cites it alongside notes / MEDDPICC / SE comments, calibrates the demo level against Tech Discovery coverage, and avoids suggesting discovery questions on topics already captured there.
 

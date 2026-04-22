@@ -261,7 +261,7 @@ export default function TechDiscoveryTab({ oppId, readOnly = false }: { oppId: n
         </div>
         <div className="px-4 py-3 space-y-3">
           {PROSE_SECTIONS.map(s => (
-            <div key={String(s.key)}>
+            <div key={String(s.key)} data-cite-target={`td:${String(s.key)}`}>
               <label className="text-[11px] font-semibold text-brand-navy block mb-1">{s.label}</label>
               <Textarea
                 value={data[s.key] as string | null}

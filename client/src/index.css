@@ -28,3 +28,13 @@ body {
 }
 
 #root { height: 100vh; }
+
+/* Citation jump-target highlight — applied briefly when the user clicks a
+   [N] pill in an AI output. Pulses a purple ring + soft background so the
+   cited source is obvious in the drawer. Issue #135. */
+@keyframes citeFlash {
+  0%   { background-color: rgba(106, 44, 245, 0.18); box-shadow: inset 3px 0 0 #6A2CF5; }
+  60%  { background-color: rgba(106, 44, 245, 0.12); box-shadow: inset 3px 0 0 #6A2CF5; }
+  100% { background-color: transparent;              box-shadow: inset 3px 0 0 transparent; }
+}
+.cite-flash { animation: citeFlash 2.2s ease-out; }

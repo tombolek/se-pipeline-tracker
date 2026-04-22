@@ -25,6 +25,7 @@ import DealInfoTab from './opportunity/DealInfoTab';
 import DemoPrepTab from './DemoPrepTab';
 import SimilarDealsTab from './SimilarDealsTab';
 import TechDiscoveryTab from './TechDiscoveryTab';
+import { TextWithCitations, makeScrollJumper } from './Citation';
 
 // ── MEDDPICC Coach types ──────────────────────────────────────────────────────
 export interface CoachElement {
@@ -34,11 +35,15 @@ export interface CoachElement {
   evidence: string | null;
   gap: string | null;
   suggested_question: string | null;
+  /** Citations the AI attached to this element (aggregated across
+   *  evidence / gap / suggested_question). #135. */
+  citations?: import('../types/citations').ResolvedCitation[];
 }
 export interface CoachResult {
   elements: CoachElement[];
   overall_assessment: string;
   counts: { green: number; amber: number; red: number };
+  overall_assessment_citations?: import('../types/citations').ResolvedCitation[];
 }
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
@@ -175,6 +180,18 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
   const [assigningOwner, setAssigningOwner] = useState(false);
   const [activeTab, setActiveTab] = useState<'work' | 'timeline' | 'call-prep' | 'demo-prep' | 'similar-deals' | 'tech-discovery' | 'deal-info'>(initialTab ?? 'work');
   const [scrollToSection, setScrollToSection] = useState<string | null>(null);
+
+  // Citation jumper — switches tab as needed, then scrolls + flashes the
+  // target element. #135. Note citations stay on the Work tab; field
+  // citations go to Deal Info; tech_discovery goes to the Tech Discovery tab.
+  const citeJumper = useCallback((c: import('../types/citations').ResolvedCitation) => {
+    const doScroll = makeScrollJumper();
+    if (c.kind === 'field') setActiveTab('deal-info');
+    else if (c.kind === 'tech_discovery') setActiveTab('tech-discovery');
+    else if (c.kind === 'note' || c.kind === 'task') setActiveTab('work');
+    // Wait for the tab switch to render before scrolling.
+    setTimeout(() => doScroll(c), 120);
+  }, []);
 
   const [summary, setSummary] = useState<string | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
@@ -674,15 +691,21 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
                                 <span className={`text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded ${badgeColor}`}>{badgeLabel}</span>
                               </div>
                               {el.evidence && (
-                                <p className="text-[11px] text-brand-navy-70 mt-1 leading-relaxed">{el.evidence}</p>
+                                <p className="text-[11px] text-brand-navy-70 mt-1 leading-relaxed">
+                                  <TextWithCitations text={el.evidence} citations={el.citations} onJump={citeJumper} />
+                                </p>
                               )}
                               {el.gap && (
-                                <p className="text-[11px] text-brand-navy-70 mt-1 leading-relaxed">{el.gap}</p>
+                                <p className="text-[11px] text-brand-navy-70 mt-1 leading-relaxed">
+                                  <TextWithCitations text={el.gap} citations={el.citations} onJump={citeJumper} />
+                                </p>
                               )}
                               {el.suggested_question && (
                                 <div className="mt-2 bg-white/60 rounded-lg px-3 py-2 border border-brand-purple/10">
                                   <p className="text-[10px] font-semibold text-brand-purple uppercase tracking-wide mb-0.5">Suggested question</p>
-                                  <p className="text-[11px] text-brand-navy italic leading-relaxed">{el.suggested_question}</p>
+                                  <p className="text-[11px] text-brand-navy italic leading-relaxed">
+                                    <TextWithCitations text={el.suggested_question} citations={el.citations} onJump={citeJumper} />
+                                  </p>
                                 </div>
                               )}
                             </div>
@@ -700,7 +723,13 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
                       </svg>
                       <span className="text-[10px] font-semibold uppercase tracking-widest text-brand-purple">Overall Assessment</span>
                     </div>
-                    <p className="text-[11px] text-brand-navy leading-relaxed">{coachResult.overall_assessment}</p>
+                    <p className="text-[11px] text-brand-navy leading-relaxed">
+                      <TextWithCitations
+                        text={coachResult.overall_assessment}
+                        citations={coachResult.overall_assessment_citations}
+                        onJump={citeJumper}
+                      />
+                    </p>
                     <div className="flex items-center gap-3 mt-2 pt-2 border-t border-brand-purple/10">
                       <button
                         onClick={(e) => { e.stopPropagation(); handleGetCoach(); }}

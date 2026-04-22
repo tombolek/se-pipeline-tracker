@@ -5,6 +5,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ---
 
+## 2026-04-22
+
+### Added
+- **AI citations (Phase 1 — MEDDPICC Gap Coach + Call Prep)** — every claim in the Gap Coach (evidence, gap, suggested question, overall assessment) and the Call Prep brief (deal context, talking points, risks, discovery questions) is now annotated with `[N]` citation pills linking back to the exact note, SF field, or Tech Discovery entry the claim came from. Hover shows a tooltip with the source kind, meta (author/date or last-import timestamp), and a ≤160-char quote. Click scrolls the drawer to the source and flashes a purple highlight; if the source lives on a different tab (e.g. a field citation while you're on the Work tab), the drawer auto-switches first. Server-side validator strips citations whose ids don't map to a real source so hallucinated references can't render as trustworthy pills — markers that slip through render as a red `?` instead of a purple number. Prompts are updated to instruct Claude to cite any factual claim against the provided source list (17 SF fields + 9 Tech Discovery prose fields + up to 20 recent notes + up to 10 open tasks per opp). Shared type `ResolvedCitation` lives in both `server/src/types/citations.ts` and `client/src/types/citations.ts`; the Coach and Call Prep responses attach citation arrays to their existing payloads. (Issue #135, Phase 1 of 3.)
+
+---
+
 ## 2026-04-21
 
 ### Added

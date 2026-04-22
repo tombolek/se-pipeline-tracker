@@ -10,6 +10,7 @@ import { runAiJob, startJob, completeJob, failJob } from '../services/aiJobs.js'
 import { findSimilarDeals } from '../services/similarDeals.js';
 import { getCachedPlaybook, generatePlaybook } from '../services/kbPlaybook.js';
 import { getCachedInsights, generateInsights } from '../services/similarDealsInsights.js';
+import { buildCitationSources, formatSourcesForPrompt, CITATION_INSTRUCTIONS, resolveCitations } from '../services/citations.js';
 import { getTechDiscovery, upsertTechDiscovery, emptyTechDiscovery, formatTechDiscoveryForPrompt, type TechDiscoveryPatch } from '../services/techDiscovery.js';
 
 const router = Router();
@@ -903,6 +904,11 @@ router.post('/:id/meddpicc-coach', auth, write, async (req: Request, res: Respon
         ).join('\n')
       : 'No notes yet.';
 
+    // Build the citable source list (notes, SF fields, tech discovery, tasks)
+    // so Claude can cite specific evidence by `[N]`. Issue #135.
+    const citationSources = await buildCitationSources(id);
+    const sourcesBlock = formatSourcesForPrompt(citationSources);
+
     const prompt = `You are an expert MEDDPICC sales methodology coach analyzing a software deal for an SE (Sales Engineer). Your job is NOT to score completeness — a separate tool does that. Your job is to read all available deal context (notes, tasks, comments, field values) and identify what the SE still needs to discover or validate.
 
 For each of the 9 MEDDPICC elements below, produce a verdict:
@@ -916,6 +922,11 @@ Important rules:
 - A filled MEDDPICC field doesn't automatically mean GREEN — if the content is vague or unsupported by notes, mark it AMBER.
 - Be specific and actionable. Generic advice like "identify the champion" is useless. Reference the actual account name, people, and context from the deal.
 - Suggested questions should be phrased as the SE would actually ask them in a call — natural, not robotic.
+
+CITABLE SOURCES (cite evidence/gap statements with [N] inline):
+${sourcesBlock}
+
+${CITATION_INSTRUCTIONS}
 
 DEAL CONTEXT:
 Opportunity: ${opp.name}
@@ -994,17 +1005,36 @@ Include all 9 MEDDPICC elements in the elements array, in this order: metrics, e
       return;
     }
 
-    // Cache result
+    // Resolve citations — per-element. Each element's prose fields can
+    // reference [N] ids against the source list we fed in. We merge all the
+    // per-field citations into a single `citations` array on the element so
+    // the client gets a compact shape.
+    type CoachEl = { evidence?: string; gap?: string | null; suggested_question?: string | null; citations?: unknown[] };
+    const coachObj = (parsed && typeof parsed === 'object') ? parsed as Record<string, unknown> : {};
+    const elements = Array.isArray(coachObj.elements) ? coachObj.elements : [];
+    for (const el of elements) {
+      const e = el as CoachEl;
+      const combined = [e.evidence ?? '', e.gap ?? '', e.suggested_question ?? ''].join(' ');
+      const { citations } = resolveCitations(combined, citationSources);
+      e.citations = citations;
+    }
+    // Also resolve citations on the overall assessment.
+    if (typeof coachObj.overall_assessment === 'string') {
+      const { citations } = resolveCitations(coachObj.overall_assessment, citationSources);
+      (coachObj as Record<string, unknown>).overall_assessment_citations = citations;
+    }
+
+    // Cache result (with citations attached)
     await query(
       `INSERT INTO ai_summary_cache (key, content, generated_at)
        VALUES ($1, $2, now())
        ON CONFLICT (key) DO UPDATE SET content = $2, generated_at = now()`,
-      [`meddpicc-coach-${id}`, JSON.stringify(parsed)]
+      [`meddpicc-coach-${id}`, JSON.stringify(coachObj)]
     );
 
     await completeJob(job.id);
     console.log(`[meddpicc-coach] Success for opp ${id}, cached.`);
-    res.json(ok({ coach: parsed, generated_at: new Date().toISOString() }));
+    res.json(ok({ coach: coachObj, generated_at: new Date().toISOString() }));
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
     await failJob(job.id, msg);
@@ -2499,7 +2529,17 @@ router.post('/:id/call-prep/generate', auth, write, async (req: Request, res: Re
 ${embeddedPPs}`;
     }).join('\n\n') || 'None matched';
 
+    // Citation sources — Claude will cite claims with [N] against this list.
+    // Issue #135.
+    const citationSources = await buildCitationSources(id);
+    const sourcesBlock = formatSourcesForPrompt(citationSources);
+
     const prompt = `You are an expert Sales Engineering assistant preparing an SE for a customer call. Generate a Pre-Call Brief that TIGHTLY INTEGRATES customer proof points into actionable guidance.
+
+CITABLE SOURCES (cite with [N] inline; used for talking_points, risks, discovery_questions, deal_context):
+${sourcesBlock}
+
+${CITATION_INSTRUCTIONS}
 
 DEAL CONTEXT:
 - Opportunity: ${opp.name}
@@ -2616,6 +2656,18 @@ CRITICAL RULES:
     // Normalize: ensure arrays exist even if Claude omits them
     if (!Array.isArray(parsed.proof_point_highlights)) parsed.proof_point_highlights = [];
     if (!Array.isArray(parsed.differentiator_plays)) parsed.differentiator_plays = [];
+
+    // Resolve citations across all prose fields once and attach at top
+    // level. Client passes the same array to every TextWithCitations render
+    // since `[N]` markers are stable across the whole response. #135.
+    const allProse = [
+      typeof parsed.deal_context === 'string' ? parsed.deal_context : '',
+      ...(Array.isArray(parsed.talking_points) ? parsed.talking_points.filter((x): x is string => typeof x === 'string') : []),
+      ...(Array.isArray(parsed.discovery_questions) ? parsed.discovery_questions.filter((x): x is string => typeof x === 'string') : []),
+      ...(Array.isArray(parsed.risks) ? parsed.risks.map((r: unknown) => (typeof r === 'object' && r && typeof (r as Record<string, unknown>).text === 'string') ? (r as Record<string, string>).text : '') : []),
+    ].join(' ');
+    const { citations } = resolveCitations(allProse, citationSources);
+    (parsed as Record<string, unknown>).citations = citations;
 
     // Cache the brief
     await query(
