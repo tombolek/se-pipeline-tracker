@@ -7,6 +7,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## 2026-04-22
 
+### Fixed
+- **Process Call Notes · long transcripts no longer fail with "Internal server error"** — pasting a multi-page transcript (30-minute+ calls) triggered body-parser's default 100 KB JSON limit, which rejects the request before the route runs and produced a generic 500. JSON body limit is now 5 MB, and the global error middleware special-cases `PayloadTooLargeError` → 413 with `"Transcript is too large (limit 5 MB). Trim the notes and try again."` so the page shows an actionable message instead of a mystery error. Logged as a gotcha in `docs/gotchas.md`.
+
 ### Added
 - **AI citations (Phase 2 · Batch 2 — Similar Deals KB Playbook)** — the synthesized playbook surfaced when there are <3 real deal matches now cites the specific KB proof points it drew its win-pattern / positioning / lead-with / anticipate bullets from. Hover a pill to see the customer name + proof-point excerpt. **Skipped**: Similar Deals per-candidate AI insights — the match-chip grammar ("Industry ✓", "Same competitor: Collibra") already serves as structured provenance and adding [N] pills to one-sentence insights would be redundant.
 

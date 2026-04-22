@@ -2,6 +2,14 @@
 
 Non-obvious rules, traps, and workarounds. Every entry: symptom → why → what to do. Add a new entry the moment you have to guess at something that isn't evident from the code.
 
+## body-parser default is 100 KB — a long transcript trips `PayloadTooLargeError`
+
+**Symptom:** Process Call Notes (and any other endpoint that accepts a large text blob) fails with a generic "Internal server error" on the client, with no `[process-notes] START` log line anywhere. Server log shows `[unhandled] POST /api/v1/opportunities/…/process-notes` followed by `PayloadTooLargeError: request entity too large`. Short transcripts work; long ones (30-minute+ calls) fail.
+
+**Why it happened:** `express.json()` without a `limit` argument defaults to 100 KB. Body-parser rejects the request **before the route handler runs**, so the route's own try/catch never sees it. The rejection lands in the global error middleware at [server/src/index.ts](../server/src/index.ts), which used to return a plain 500 with no hint about payload size.
+
+**What to do now:** the JSON body limit is set to `5mb` at [server/src/index.ts:36](../server/src/index.ts:36) — plenty for any realistic meeting transcript. The global handler also special-cases `entity.too.large` and returns a 413 with a user-actionable "Transcript is too large" message so the Process Call Notes page can surface something useful. If you add a new route that accepts arbitrarily-large text (RFP uploads, file bodies), revisit the limit — don't rely on the default.
+
 ## Never auto-deploy — even when a "deploy sequence" is in front of you
 
 **Symptom:** older versions of `CLAUDE.md` and `docs/deploy.md` contained a "commit → push → deploy" checklist, implying the agent should run `deploy.sh` at the end of every feature. A real-world incident (2026-04-17) had the agent ship a frontend change to CloudFront without being asked, because the checklist was still partially present in the docs.

@@ -31,7 +31,9 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(cors());
-app.use(express.json());
+// 5 MB ceiling covers even a multi-hour transcript dump into Process Call Notes
+// without re-triggering PayloadTooLargeError from body-parser's 100 KB default.
+app.use(express.json({ limit: '5mb' }));
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -77,6 +79,18 @@ app.use((err: unknown, req: Request, res: Response, _next: NextFunction) => {
   const msg = err instanceof Error ? err.stack || err.message : String(err);
   console.error(`[unhandled] ${req.method} ${req.originalUrl}\n${msg}`);
   if (!res.headersSent) {
+    // body-parser PayloadTooLargeError → 413 with an actionable message so the
+    // Process Call Notes page can show "transcript too long" instead of a
+    // generic 500. Anything else is still a 500.
+    const e = err as { type?: string; status?: number } | null;
+    if (e && (e.type === 'entity.too.large' || e.status === 413)) {
+      res.status(413).json({
+        data: null,
+        error: 'Transcript is too large (limit 5 MB). Trim the notes and try again.',
+        meta: {},
+      });
+      return;
+    }
     res.status(500).json({ data: null, error: 'Internal server error', meta: {} });
   }
 });
