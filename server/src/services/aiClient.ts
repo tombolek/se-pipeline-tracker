@@ -21,6 +21,37 @@ Ground rules:
 4. Never invent customer names, champions, competitor names, deal sizes, stages, dates, or direct quotes. If a specific detail isn't in the sources, omit it or explicitly flag it as missing.
 5. Per-feature formatting rules (citations, JSON schema, tone, length) are specified in the user prompt — follow those on top of these ground rules.`;
 
+// ── PII redaction ────────────────────────────────────────────────────────────
+//
+// Scrub obvious PII from prompts before they hit Anthropic. Narrowly scoped:
+// only email addresses and phone numbers. Names (champion, EB, account, AE/SE)
+// are intentionally NOT redacted — they're the core signal every AI feature
+// relies on.
+//
+// False-positive guards:
+//  • Phone regex requires at least one explicit separator (space/dot/dash) so
+//    raw digit strings like SF IDs or `2026-04-22` year strings don't match.
+//    Bare 10-digit runs are left alone (ambiguous, too risky to redact blind).
+//  • Email regex uses a conservative RFC-leaning shape.
+
+const EMAIL_RE = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g;
+// Phone shapes we scrub:
+//   +1 555 123 4567    555-123-4567    (555) 123-4567    555.123.4567
+// Intentionally NOT matched: `5551234567` (bare 10 digits), `2026-04-22` (4-2-2).
+const PHONE_RE = /\b(?:\+?\d{1,3}[\s.-]?)?\(?\d{3}\)?[\s.-]\d{3}[\s.-]\d{4}\b/g;
+
+export interface RedactResult {
+  redacted: string;
+  counts: { email: number; phone: number };
+}
+
+export function redactPii(text: string): RedactResult {
+  const counts = { email: 0, phone: 0 };
+  const afterEmail = text.replace(EMAIL_RE, () => { counts.email++; return '[email]'; });
+  const afterPhone = afterEmail.replace(PHONE_RE, () => { counts.phone++; return '[phone]'; });
+  return { redacted: afterPhone, counts };
+}
+
 let sharedClient: Anthropic | null = null;
 
 function getClient(): Anthropic {
@@ -60,11 +91,15 @@ export async function callAnthropic(opts: AiCallOpts): Promise<AiCallResult> {
     ? `${SYSTEM_PROMPT}\n\n${opts.systemPromptExtra}`
     : SYSTEM_PROMPT;
 
+  // PII redaction on the user prompt. The system prompt is a fixed string
+  // authored in this file, not user data, so no redaction needed there.
+  const { redacted, counts } = redactPii(opts.prompt);
+
   const response = await getClient().messages.create({
     model,
     max_tokens: opts.maxTokens,
     system,
-    messages: [{ role: 'user', content: opts.prompt }],
+    messages: [{ role: 'user', content: redacted }],
   });
 
   const block = response.content.find(b => b.type === 'text');
@@ -73,9 +108,13 @@ export async function callAnthropic(opts: AiCallOpts): Promise<AiCallResult> {
   const outputTokens = response.usage?.output_tokens ?? 0;
   const stopReason = response.stop_reason ?? null;
 
+  const redactionSuffix = (counts.email + counts.phone) > 0
+    ? ` redacted=email:${counts.email},phone:${counts.phone}`
+    : '';
+
   console.log(
     `[ai] feature=${opts.feature} model=${model} max_tokens=${opts.maxTokens} ` +
-    `input=${inputTokens} output=${outputTokens} stop=${stopReason}`,
+    `input=${inputTokens} output=${outputTokens} stop=${stopReason}${redactionSuffix}`,
   );
 
   return { text, stopReason, inputTokens, outputTokens };
