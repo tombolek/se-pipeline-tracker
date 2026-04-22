@@ -4,7 +4,7 @@ import { query, queryOne } from '../db/index.js';
 import { requireAuth, requireManager } from '../middleware/auth.js';
 import { AuthenticatedRequest, ok, err } from '../types/index.js';
 import { startJob, completeJob, failJob } from '../services/aiJobs.js';
-import { CITATION_INSTRUCTIONS, resolveCitations } from '../services/citations.js';
+import { CITATION_INSTRUCTIONS, resolveCitations, detectLowConfidenceSpans } from '../services/citations.js';
 import type { CitationSource } from '../types/citations.js';
 
 const router = Router();
@@ -165,19 +165,26 @@ router.get('/', auth, mgr, async (req: Request, res: Response): Promise<void> =>
     `SELECT content, generated_at FROM ai_summary_cache WHERE key = $1`,
     [narrativeCacheKey(fq, region)]
   );
-  let narrative: { content: string; citations: unknown[]; generated_at: string } | null = null;
+  let narrative: {
+    content: string; citations: unknown[]; low_confidence_spans: unknown[]; generated_at: string;
+  } | null = null;
   if (narrativeRow) {
     const raw = narrativeRow.content as string;
     let content = raw;
     let citations: unknown[] = [];
+    let low_confidence_spans: unknown[] = [];
     try {
       const parsed = JSON.parse(raw);
       if (parsed && typeof parsed === 'object' && typeof parsed.content === 'string') {
         content = parsed.content;
         citations = Array.isArray(parsed.citations) ? parsed.citations : [];
+        low_confidence_spans = Array.isArray(parsed.low_confidence_spans) ? parsed.low_confidence_spans : [];
       }
     } catch { /* legacy */ }
-    narrative = { content, citations, generated_at: (narrativeRow.generated_at as Date).toISOString() };
+    narrative = {
+      content, citations, low_confidence_spans,
+      generated_at: (narrativeRow.generated_at as Date).toISOString(),
+    };
   }
 
   res.json(ok({
@@ -295,18 +302,20 @@ BE CONCISE. Each section should be 2-4 sentences. Use deal names and dollar amou
       maxTokens: 800,
     });
 
-    // Resolve [N] → ResolvedCitation and cache as JSON { content, citations }.
-    // Legacy plain-text cache rows still render (without pills). #135.
+    // Resolve [N] → ResolvedCitation and detect paragraphs with no citations;
+    // cache as JSON { content, citations, low_confidence_spans }. Legacy
+    // plain-text and mid-era JSON rows still render. #135 + #136.
     const { citations } = resolveCitations(content, oppCitationSources);
+    const low_confidence_spans = detectLowConfidenceSpans(content);
     await query(
       `INSERT INTO ai_summary_cache (key, content, generated_at)
        VALUES ($1, $2, now())
        ON CONFLICT (key) DO UPDATE SET content = $2, generated_at = now()`,
-      [cacheKey, JSON.stringify({ content, citations })]
+      [cacheKey, JSON.stringify({ content, citations, low_confidence_spans })]
     );
 
     await completeJob(job.id);
-    res.json(ok({ content, citations, generated_at: new Date().toISOString() }));
+    res.json(ok({ content, citations, low_confidence_spans, generated_at: new Date().toISOString() }));
   } catch (e: unknown) {
     await failJob(job.id, e instanceof Error ? e.message : String(e));
     console.error('[forecasting-brief] narrative generation failed:', e);

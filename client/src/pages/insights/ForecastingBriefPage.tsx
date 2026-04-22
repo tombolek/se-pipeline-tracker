@@ -9,6 +9,7 @@ import { useTeamScope } from '../../hooks/useTeamScope';
 import { Loading } from './shared';
 import Drawer from '../../components/Drawer';
 import OpportunityDetail from '../../components/OpportunityDetail';
+import LowConfidenceBanner from '../../components/ai/LowConfidenceBanner';
 
 // ── Bold text renderer ─────────────────────────────────────────────────────
 function renderBold(text: string): React.ReactNode {
@@ -653,7 +654,14 @@ export default function ForecastingBriefPage() {
                   <div className="h-3 bg-gray-100 rounded animate-pulse w-3/5" />
                 </div>
               ) : narrative ? (
-                <NarrativeContent content={narrative.content} citations={narrative.citations} onJump={citeJumper} />
+                <>
+                  {narrative.low_confidence_spans && narrative.low_confidence_spans.length > 0 && (
+                    <div className="mb-3">
+                      <LowConfidenceBanner spans={narrative.low_confidence_spans} />
+                    </div>
+                  )}
+                  <NarrativeContent content={narrative.content} citations={narrative.citations} onJump={citeJumper} />
+                </>
               ) : (
                 <div className="text-center py-6">
                   <p className="text-[12px] text-brand-navy-70 mb-2">No narrative generated yet for {fiscal_period}.</p>

@@ -10,7 +10,7 @@ import { runAiJob, startJob, completeJob, failJob } from '../services/aiJobs.js'
 import { findSimilarDeals } from '../services/similarDeals.js';
 import { getCachedPlaybook, generatePlaybook } from '../services/kbPlaybook.js';
 import { getCachedInsights, generateInsights } from '../services/similarDealsInsights.js';
-import { buildCitationSources, formatSourcesForPrompt, CITATION_INSTRUCTIONS, resolveCitations } from '../services/citations.js';
+import { buildCitationSources, formatSourcesForPrompt, CITATION_INSTRUCTIONS, resolveCitations, detectLowConfidenceSpans } from '../services/citations.js';
 import { getTechDiscovery, upsertTechDiscovery, emptyTechDiscovery, formatTechDiscoveryForPrompt, type TechDiscoveryPatch } from '../services/techDiscovery.js';
 
 const router = Router();
@@ -709,19 +709,26 @@ router.post('/:id/tasks', auth, write, async (req: Request, res: Response): Prom
   });
 });
 
-// Parse an AI-summary cache row. Newer rows are JSON `{ text, citations }`;
-// legacy rows are raw text with no citations. Detect and normalize. #135.
-function parseCachedSummary(content: string): { text: string; citations: import('../types/citations.js').ResolvedCitation[] } {
+// Parse an AI-summary cache row. Newest rows are JSON
+// `{ text, citations, low_confidence_spans }`; mid-era rows are
+// `{ text, citations }` (#135); legacy rows are raw text with no citations.
+// Detect and normalize all three.
+function parseCachedSummary(content: string): {
+  text: string;
+  citations: import('../types/citations.js').ResolvedCitation[];
+  low_confidence_spans: import('../services/citations.js').LowConfidenceSpan[];
+} {
   try {
     const parsed = JSON.parse(content);
     if (parsed && typeof parsed === 'object' && typeof parsed.text === 'string') {
       return {
         text: parsed.text,
         citations: Array.isArray(parsed.citations) ? parsed.citations : [],
+        low_confidence_spans: Array.isArray(parsed.low_confidence_spans) ? parsed.low_confidence_spans : [],
       };
     }
   } catch { /* fall through to plain-text */ }
-  return { text: content, citations: [] };
+  return { text: content, citations: [], low_confidence_spans: [] };
 }
 
 // GET /opportunities/:id/summary/cached — return cached AI summary
@@ -735,8 +742,8 @@ router.get('/:id/summary/cached', auth, async (req: Request, res: Response): Pro
   );
   if (rows.length === 0) { res.json(ok(null)); return; }
 
-  const { text, citations } = parseCachedSummary(rows[0].content);
-  res.json(ok({ summary: text, citations, generated_at: rows[0].generated_at }));
+  const { text, citations, low_confidence_spans } = parseCachedSummary(rows[0].content);
+  res.json(ok({ summary: text, citations, low_confidence_spans, generated_at: rows[0].generated_at }));
 });
 
 // POST /opportunities/:id/summary  — AI deal summary
@@ -832,20 +839,27 @@ ${noteLines}`;
       });
 
       // Resolve [N] citation markers against the sources list we fed in.
-      // Cache as JSON { text, citations } so the cached-read can restore
-      // both fields; the parseCachedSummary() helper handles legacy rows.
+      // Cache as JSON { text, citations, low_confidence_spans } so the
+      // cached-read can restore all fields; parseCachedSummary() handles
+      // legacy rows (plain text + mid-era { text, citations }). #135 + #136.
       const { citations } = resolveCitations(summaryText, summaryCitationSources);
+      const low_confidence_spans = detectLowConfidenceSpans(summaryText);
       await query(
         `INSERT INTO ai_summary_cache (key, content, generated_at)
          VALUES ($1, $2, now())
          ON CONFLICT (key) DO UPDATE SET content = $2, generated_at = now()`,
-        [`summary-${id}`, JSON.stringify({ text: summaryText, citations })]
+        [`summary-${id}`, JSON.stringify({ text: summaryText, citations, low_confidence_spans })]
       );
-      return { text: summaryText, citations };
+      return { text: summaryText, citations, low_confidence_spans };
     },
   });
 
-  res.json(ok({ summary: summary.text, citations: summary.citations, generated_at: new Date().toISOString() }));
+  res.json(ok({
+    summary: summary.text,
+    citations: summary.citations,
+    low_confidence_spans: summary.low_confidence_spans,
+    generated_at: new Date().toISOString(),
+  }));
 });
 
 // ── MEDDPICC Gap Coach ──────────────────────────────────────────────────────

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { track } from '../hooks/useTracking';
+import LowConfidenceBanner from './ai/LowConfidenceBanner';
 import type { Opportunity, Task, Note, User } from '../types';
 import { computeHealthScore } from '../utils/healthScore';
 import { computeMeddpicc } from '../utils/meddpicc';
@@ -195,6 +196,7 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
 
   const [summary, setSummary] = useState<string | null>(null);
   const [summaryCitations, setSummaryCitations] = useState<import('../types/citations').ResolvedCitation[]>([]);
+  const [summaryLowConf, setSummaryLowConf] = useState<import('../types/citations').LowConfidenceSpan[]>([]);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryGeneratedAt, setSummaryGeneratedAt] = useState<string | null>(null);
   const [summaryCollapsed, setSummaryCollapsed] = useState(false);
@@ -316,9 +318,10 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
     setSummary(null);
     setSummaryCollapsed(false);
     try {
-      const { data } = await api.post<ApiResponse<{ summary: string; citations?: import('../types/citations').ResolvedCitation[]; generated_at: string }>>(`/opportunities/${oppId}/summary`);
+      const { data } = await api.post<ApiResponse<{ summary: string; citations?: import('../types/citations').ResolvedCitation[]; low_confidence_spans?: import('../types/citations').LowConfidenceSpan[]; generated_at: string }>>(`/opportunities/${oppId}/summary`);
       setSummary(data.data.summary);
       setSummaryCitations(data.data.citations ?? []);
+      setSummaryLowConf(data.data.low_confidence_spans ?? []);
       setSummaryGeneratedAt(data.data.generated_at);
     } finally {
       setSummaryLoading(false);
@@ -327,11 +330,12 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
 
   // Load cached summary + coach result on mount
   useEffect(() => {
-    api.get<ApiResponse<{ summary: string; citations?: import('../types/citations').ResolvedCitation[]; generated_at: string } | null>>(`/opportunities/${oppId}/summary/cached`)
+    api.get<ApiResponse<{ summary: string; citations?: import('../types/citations').ResolvedCitation[]; low_confidence_spans?: import('../types/citations').LowConfidenceSpan[]; generated_at: string } | null>>(`/opportunities/${oppId}/summary/cached`)
       .then(r => {
         if (r.data.data) {
           setSummary(r.data.data.summary);
           setSummaryCitations(r.data.data.citations ?? []);
+          setSummaryLowConf(r.data.data.low_confidence_spans ?? []);
           setSummaryGeneratedAt(r.data.data.generated_at);
         }
       })
@@ -358,12 +362,13 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
     },
     onRunning: () => { setSummaryLoading(true); setSummaryCollapsed(false); },
     onFresh: async () => {
-      const r = await api.get<ApiResponse<{ summary: string; citations?: import('../types/citations').ResolvedCitation[]; generated_at: string } | null>>(
+      const r = await api.get<ApiResponse<{ summary: string; citations?: import('../types/citations').ResolvedCitation[]; low_confidence_spans?: import('../types/citations').LowConfidenceSpan[]; generated_at: string } | null>>(
         `/opportunities/${oppId}/summary/cached`
       );
       if (r.data.data) {
         setSummary(r.data.data.summary);
         setSummaryCitations(r.data.data.citations ?? []);
+        setSummaryLowConf(r.data.data.low_confidence_spans ?? []);
         setSummaryGeneratedAt(r.data.data.generated_at);
       }
       setSummaryLoading(false);
@@ -601,6 +606,9 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
               {/* Body — collapsible */}
               {!summaryCollapsed && (
                 <div className="px-4 pb-3 text-sm text-brand-navy leading-relaxed space-y-2">
+                  {summaryLowConf.length > 0 && (
+                    <LowConfidenceBanner spans={summaryLowConf} />
+                  )}
                   {summary.split('\n').filter(line => line.trim()).map((line, i) => {
                     const stripped = line.replace(/^#{1,4}\s+/, '');
                     const isHeader = line !== stripped;

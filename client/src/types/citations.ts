@@ -35,3 +35,15 @@ export interface CitedText {
   text: string;
   citations: ResolvedCitation[];
 }
+
+/**
+ * A paragraph in an AI prose output that carries no `[N]` citation markers
+ * and looks substantial enough to be a factual claim. Shown to the user as
+ * a "may be ungrounded" warning so they can read it with skepticism. #136.
+ */
+export interface LowConfidenceSpan {
+  start: number;
+  end: number;
+  text: string;
+  reason: string;
+}

@@ -64,6 +64,8 @@ export interface ForecastNarrative {
   content: string;
   /** #135 — [N] markers in content reference deals by their order in the prompt. */
   citations?: import('../types/citations').ResolvedCitation[];
+  /** #136 — paragraphs in the narrative that carry no `[N]` markers (may be ungrounded). */
+  low_confidence_spans?: import('../types/citations').LowConfidenceSpan[];
   generated_at: string;
 }
 

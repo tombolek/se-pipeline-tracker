@@ -221,3 +221,81 @@ export function resolveCitations(
 
   return { citations, unsupportedMarkerIds: unsupported };
 }
+
+// ── Phase 3: Low-confidence detection (Issue #136) ─────────────────────────────
+//
+// Paragraphs of prose that carry zero `[N]` citation markers are suspicious —
+// the model wrote a claim-sized block without anchoring it to any source. We
+// flag those so the frontend can show a "may be ungrounded" warning on the
+// specific spans, without hiding the content outright (dampen, don't delete —
+// the user can still read and judge).
+//
+// What we DON'T flag:
+//  • Short paragraphs (intros, transitions) under minChars.
+//  • Paragraphs explicitly marked as recommendations/CTAs (they're the model's
+//    opinion, not a factual claim — citations don't apply).
+//  • Markdown headings (`##`, `#`).
+//  • Empty or whitespace-only paragraphs.
+
+export interface LowConfidenceSpan {
+  /** Character offset into the original text where the span begins. */
+  start: number;
+  /** Character offset where the span ends (exclusive). */
+  end: number;
+  /** The flagged paragraph, lightly trimmed — ≤240 chars for display. */
+  text: string;
+  /** Short machine-readable reason (e.g. 'no-citations'). */
+  reason: string;
+}
+
+export interface DetectLowConfidenceOpts {
+  /** Paragraph must be at least this many chars to be considered a claim. Default 120. */
+  minChars?: number;
+  /** Case-insensitive prefixes that opt a paragraph out of citation requirement. */
+  skipPrefixes?: string[];
+}
+
+const DEFAULT_SKIP_PREFIXES = [
+  'recommended next action:',
+  '**recommended next action:**',
+  'recommendation:',
+  '**recommendation:**',
+  '## opportunities to revisit',
+  '## top priorities for',
+];
+
+/**
+ * Identify paragraphs in AI prose output that carry no `[N]` citation markers
+ * and look substantial enough to be factual claims. The frontend renders these
+ * with a muted warning so the reader knows to treat them with skepticism.
+ */
+export function detectLowConfidenceSpans(
+  text: string,
+  opts: DetectLowConfidenceOpts = {},
+): LowConfidenceSpan[] {
+  const minChars = opts.minChars ?? 120;
+  const skipPrefixes = (opts.skipPrefixes ?? DEFAULT_SKIP_PREFIXES).map(p => p.toLowerCase());
+
+  const spans: LowConfidenceSpan[] = [];
+  // Split on blank lines but track offsets so UI can highlight the exact range.
+  const paragraphRegex = /(?:^|\n\n+)([^\n][\s\S]*?)(?=\n\n|$)/g;
+  for (const match of text.matchAll(paragraphRegex)) {
+    const body = match[1].trim();
+    if (body.length < minChars) continue;
+    if (body.startsWith('#')) continue;
+    const lowerBody = body.toLowerCase();
+    if (skipPrefixes.some(p => lowerBody.startsWith(p))) continue;
+    if (MARKER_REGEX.test(body)) { MARKER_REGEX.lastIndex = 0; continue; }
+    MARKER_REGEX.lastIndex = 0; // reset between calls (regex is /g)
+
+    const bodyIndex = text.indexOf(body, match.index);
+    if (bodyIndex < 0) continue;
+    spans.push({
+      start: bodyIndex,
+      end: bodyIndex + body.length,
+      text: body.length > 240 ? body.slice(0, 237) + '…' : body,
+      reason: 'no-citations',
+    });
+  }
+  return spans;
+}
