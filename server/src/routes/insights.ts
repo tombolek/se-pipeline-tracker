@@ -1090,7 +1090,17 @@ router.get('/weekly-digest', auth, mgr, async (req: Request, res: Response): Pro
          LEFT JOIN users u ON u.id = o.se_owner_id
          WHERE o.is_closed_lost = true
            AND o.closed_at >= now() - ($1 || ' days')::interval
-         ORDER BY o.closed_at DESC`,
+         ORDER BY
+           CASE o.previous_stage
+             WHEN 'Negotiate'             THEN 6
+             WHEN 'Submitted for Booking' THEN 5
+             WHEN 'Proposal Sent'         THEN 4
+             WHEN 'Build Value'           THEN 3
+             WHEN 'Develop Solution'      THEN 2
+             WHEN 'Qualify'               THEN 1
+             ELSE 0
+           END DESC,
+           o.closed_at DESC`,
         [days]
       ),
 
