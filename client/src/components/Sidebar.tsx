@@ -6,6 +6,8 @@ import { listClosedLost } from '../api/opportunities';
 import { listInboxItems } from '../api/inbox';
 import { getInsightsNav, type InsightsNavItem } from '../utils/insightsNav';
 import { getMainNav, type MainNavItem } from '../utils/mainNav';
+import { useTheme } from '../hooks/useTheme';
+import type { ThemePreference } from '../types';
 
 const SETTINGS_NAV = [
   { to: '/settings/users',        label: 'Users',            icon: UsersIcon   },
@@ -193,9 +195,68 @@ export default function Sidebar() {
           </>
         )}
       </nav>
-      {/* Sidebar is now navigation-only. Connection indicator moved to the
-          top AppHeader alongside the feature buttons. */}
+      {/* Footer — theme toggle lives here next to (future) user avatar. #138 */}
+      <div className="flex-shrink-0 border-t border-white/10 px-3 py-2">
+        <ThemeToggle />
+      </div>
     </aside>
+  );
+}
+
+// Three-state theme toggle: light → dark → system → light.
+// Small icon button matching the sidebar's muted-white chrome; no label
+// until hover to keep the footer quiet.
+function ThemeToggle() {
+  const { preference, effective, setTheme } = useTheme();
+  const next: ThemePreference =
+    preference === 'light' ? 'dark'
+    : preference === 'dark'  ? 'system'
+    : 'light';
+  const labelFor: Record<ThemePreference, string> = {
+    light:  'Light theme',
+    dark:   'Dark theme',
+    system: 'System theme',
+  };
+  return (
+    <button
+      type="button"
+      onClick={() => setTheme(next)}
+      title={`${labelFor[preference]} — click for ${labelFor[next].toLowerCase()}`}
+      className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-xs text-white/60 hover:text-white hover:bg-white/[0.07] transition-colors"
+    >
+      <ThemeIcon preference={preference} />
+      <span className="flex-1 text-left">
+        {preference === 'system' ? `System (${effective})` : labelFor[preference]}
+      </span>
+    </button>
+  );
+}
+
+function ThemeIcon({ preference }: { preference: ThemePreference }) {
+  if (preference === 'light') {
+    // Sun
+    return (
+      <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <circle cx="12" cy="12" r="4" />
+        <path strokeLinecap="round" d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+      </svg>
+    );
+  }
+  if (preference === 'dark') {
+    // Moon
+    return (
+      <svg className="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+      </svg>
+    );
+  }
+  // Half-sun / half-moon for 'system'
+  return (
+    <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <circle cx="12" cy="12" r="4" />
+      <path strokeLinecap="round" d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M2 12h2M4.93 19.07l1.41-1.41" />
+      <path d="M12 8a4 4 0 0 0 0 8z" fill="currentColor" />
+    </svg>
   );
 }
 

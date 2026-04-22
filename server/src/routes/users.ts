@@ -5,7 +5,9 @@ import { requireAuth, requireManager } from '../middleware/auth.js';
 import { AuthenticatedRequest, ColumnPrefs, User, ok, err } from '../types/index.js';
 import { logAudit } from '../services/auditLog.js';
 
-const USER_COLS = `id, email, name, role, is_admin, is_active, show_qualify, force_password_change, manager_id, column_prefs, teams, created_at, last_login_at`;
+const USER_COLS = `id, email, name, role, is_admin, is_active, show_qualify, force_password_change, manager_id, column_prefs, teams, theme, created_at, last_login_at`;
+
+const VALID_THEMES = new Set(['light', 'dark', 'system']);
 
 const router = Router();
 const auth = requireAuth as unknown as (req: Request, res: Response, next: () => void) => void;
@@ -78,17 +80,22 @@ router.post('/', auth, mgr, async (req: Request, res: Response): Promise<void> =
 // MUST be before /:id to avoid 'me' being treated as an ID
 router.patch('/me/preferences', auth, async (req: Request, res: Response): Promise<void> => {
   const { userId } = (req as AuthenticatedRequest).user;
-  const { show_qualify, column_prefs } = req.body as {
+  const { show_qualify, column_prefs, theme } = req.body as {
     show_qualify?: boolean;
     column_prefs?: ColumnPrefs;
+    theme?: string;
   };
 
-  if (show_qualify === undefined && column_prefs === undefined) {
-    res.status(400).json(err('At least one of show_qualify or column_prefs must be provided'));
+  if (show_qualify === undefined && column_prefs === undefined && theme === undefined) {
+    res.status(400).json(err('At least one of show_qualify, column_prefs, or theme must be provided'));
     return;
   }
   if (show_qualify !== undefined && typeof show_qualify !== 'boolean') {
     res.status(400).json(err('show_qualify must be a boolean'));
+    return;
+  }
+  if (theme !== undefined && !VALID_THEMES.has(theme)) {
+    res.status(400).json(err(`theme must be one of: ${[...VALID_THEMES].join(', ')}`));
     return;
   }
   if (column_prefs !== undefined) {
@@ -107,12 +114,14 @@ router.patch('/me/preferences', auth, async (req: Request, res: Response): Promi
        column_prefs  = CASE WHEN $2::jsonb IS NOT NULL
                             THEN COALESCE(column_prefs, '{}'::jsonb) || $2::jsonb
                             ELSE column_prefs
-                       END
-     WHERE id = $3
+                       END,
+       theme         = COALESCE($3, theme)
+     WHERE id = $4
      RETURNING ${USER_COLS}`,
     [
       show_qualify ?? null,
       column_prefs !== undefined ? JSON.stringify(column_prefs) : null,
+      theme ?? null,
       userId,
     ]
   );

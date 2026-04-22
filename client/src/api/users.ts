@@ -65,7 +65,7 @@ export async function reassignWorkload(
 }
 
 export async function updateMyPreferences(
-  prefs: { show_qualify?: boolean; column_prefs?: ColumnPrefs }
+  prefs: { show_qualify?: boolean; column_prefs?: ColumnPrefs; theme?: 'light' | 'dark' | 'system' }
 ): Promise<User> {
   const { data } = await api.patch<ApiResponse<User>>('/users/me/preferences', prefs);
   return data.data;

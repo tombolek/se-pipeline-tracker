@@ -25,11 +25,15 @@ import ReconnectToast from './components/ReconnectToast';
 import { requestPersistentStorage } from './offline/db';
 import { runFlush } from './offline/flushHandler';
 import { startHeartbeat } from './offline/heartbeat';
+import { useTheme } from './hooks/useTheme';
 
 function AppShell({ children }: { children: React.ReactNode }) {
   const openQuickCapture = usePipelineStore((s) => s.openQuickCapture);
   const user = useAuthStore((s) => s.user);
   usePageTracking();
+  // Reconcile the .dark class with the user's theme preference on every
+  // auth change + system prefers-color-scheme flip. (#138 Chunk A)
+  useTheme();
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {

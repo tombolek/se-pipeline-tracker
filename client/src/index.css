@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* Enable Tailwind v4 `dark:` variant driven by a `.dark` class on <html>.
+   Applying to both the class holder and its descendants means every
+   `dark:...` utility inside the app tree resolves when the root toggles. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-brand-purple:    #6A2CF5;
   --color-brand-purple-70: #9C72F8;
@@ -14,6 +19,44 @@
   --color-status-warning:  #C98A00;
   --color-status-info:     #2585C7;
   --color-status-success:  #1A9E80;
+
+  /* ── Dark-mode palette (#138) ────────────────────────────────────────
+     The `ink`, `fg`, `accent`, and `status-d` namespaces are opt-in — the
+     light palette above stays the source of truth for anything that
+     hasn't been migrated to dark-aware classes yet.  */
+
+  /* Surfaces — stay strictly neutral; no purple tint. */
+  --color-ink-0:           #0B0D10;   /* page shell */
+  --color-ink-1:           #13161A;   /* cards, table, main surface */
+  --color-ink-2:           #1A1E23;   /* raised (active nav bg, dropdowns) */
+  --color-ink-3:           #242930;   /* hover/elevated/neutral chip bg */
+  --color-ink-border:      #2A2F37;
+  --color-ink-border-soft: #20252C;
+
+  /* Foreground text tiers. */
+  --color-fg-1: #E6E8EB;   /* primary */
+  --color-fg-2: #A8ADB5;   /* secondary */
+  --color-fg-3: #6B7280;   /* muted / captions */
+  --color-fg-4: #4B5563;   /* disabled / dividers on text */
+
+  /* Accents — only for active/focus/link states + branded moments. */
+  --color-accent-purple:      #9C72F8;
+  --color-accent-purple-soft: rgba(156,114,248,0.12);
+  --color-accent-pink:        #F655B5;
+  --color-accent-pink-soft:   rgba(246,85,181,0.12);
+
+  /* Status shades calibrated for dark surfaces — the light-mode values
+     are too saturated and clash; paired `-soft` rgba tints replace solid
+     badge fills. */
+  --color-status-d-overdue:      #FF6B6F;
+  --color-status-d-overdue-soft: rgba(255,107,111,0.12);
+  --color-status-d-warning:      #FFBB33;
+  --color-status-d-warning-soft: rgba(255,187,51,0.12);
+  --color-status-d-info:         #33E5FF;
+  --color-status-d-info-soft:    rgba(51,229,255,0.12);
+  --color-status-d-success:      #33EDC4;
+  --color-status-d-success-soft: rgba(51,237,196,0.12);
+
   --font-sans: 'Poppins', system-ui, sans-serif;
 }
 
@@ -25,6 +68,15 @@ body {
   background-color: #F5F5F7;
   color: #1A0C42;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Dark-mode page background + default text color — applied at the root
+   so any page section that hasn't been converted yet still reads on a
+   dark shell instead of fighting with a white background. Individual
+   components override as they migrate. */
+html.dark body {
+  background-color: var(--color-ink-0);
+  color: var(--color-fg-1);
 }
 
 #root { height: 100vh; }

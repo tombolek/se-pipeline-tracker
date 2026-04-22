@@ -119,6 +119,8 @@ export interface ColumnPrefs {
   se_mapping?: string[];
 }
 
+export type ThemePreference = 'light' | 'dark' | 'system';
+
 export interface User {
   id: number;
   email: string;
@@ -131,6 +133,7 @@ export interface User {
   manager_id: number | null;
   teams: string[];
   column_prefs: ColumnPrefs | null;
+  theme: ThemePreference;
   created_at: string;
   last_login_at: string | null;
 }
