@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { getForecastingBrief, generateNarrative, bulkGenerateSummaries } from '../../api/forecastingBrief';
 import { useAiJobAttach } from '../../hooks/useAiJob';
 import type { ForecastingBriefData, ForecastOpp } from '../../api/forecastingBrief';
+import { useNavigate } from 'react-router-dom';
+import { TextWithCitations, makeCrossOppJumper } from '../../components/Citation';
 import { formatARR, formatDate } from '../../utils/formatters';
 import { useTeamScope } from '../../hooks/useTeamScope';
 import { Loading } from './shared';
@@ -277,6 +279,10 @@ export default function ForecastingBriefPage() {
   useEffect(() => {
     if (userTeams.length > 0) setRegion(detectDefaultRegion(userTeams));
   }, [userTeams]);
+
+  // Citation click → navigate to the deal's drawer via /home?oppId=<sfid>. #135.
+  const routerNavigate = useNavigate();
+  const citeJumper = useMemo(() => makeCrossOppJumper(routerNavigate), [routerNavigate]);
 
   // Data state
   const [data, setData] = useState<ForecastingBriefData | null>(null);
@@ -647,7 +653,7 @@ export default function ForecastingBriefPage() {
                   <div className="h-3 bg-gray-100 rounded animate-pulse w-3/5" />
                 </div>
               ) : narrative ? (
-                <NarrativeContent content={narrative.content} />
+                <NarrativeContent content={narrative.content} citations={narrative.citations} onJump={citeJumper} />
               ) : (
                 <div className="text-center py-6">
                   <p className="text-[12px] text-brand-navy-70 mb-2">No narrative generated yet for {fiscal_period}.</p>
@@ -1316,19 +1322,27 @@ function KeyDealCard({ opp, onOpenDetail }: { opp: ForecastOpp; onOpenDetail: ()
 
 // ── Narrative renderer ──────────────────────────────────────────────────────
 
-function NarrativeContent({ content }: { content: string }) {
+function NarrativeContent({ content, citations, onJump }: {
+  content: string;
+  citations?: import('../../types/citations').ResolvedCitation[];
+  onJump?: (c: import('../../types/citations').ResolvedCitation) => void;
+}) {
   // Parse markdown-like sections: **On Track**, **At Risk**, **Needs Attention**
   const sections = content.split(/\*\*(On Track|At Risk|Needs Attention)\*\*/i);
 
   if (sections.length <= 1) {
-    // No section headers found, render as plain text
-    return <p className="text-[12px] text-brand-navy leading-relaxed whitespace-pre-wrap">{content}</p>;
+    return <p className="text-[12px] text-brand-navy leading-relaxed whitespace-pre-wrap">
+      <TextWithCitations text={content} citations={citations} onJump={onJump} />
+    </p>;
   }
 
   const rendered: React.JSX.Element[] = [];
-  // sections[0] is text before first header (usually empty)
   if (sections[0].trim()) {
-    rendered.push(<p key="intro" className="text-[12px] text-brand-navy leading-relaxed mb-2">{sections[0].trim()}</p>);
+    rendered.push(
+      <p key="intro" className="text-[12px] text-brand-navy leading-relaxed mb-2">
+        <TextWithCitations text={sections[0].trim()} citations={citations} onJump={onJump} />
+      </p>
+    );
   }
 
   for (let i = 1; i < sections.length; i += 2) {
@@ -1343,7 +1357,7 @@ function NarrativeContent({ content }: { content: string }) {
     rendered.push(
       <div key={title} className="mb-3">
         <h4 className={`text-[10px] font-semibold uppercase tracking-wider mb-1 ${colorClass}`}>{title}</h4>
-        <p className="text-[12px] text-brand-navy leading-relaxed">{highlightBold(body)}</p>
+        <p className="text-[12px] text-brand-navy leading-relaxed">{highlightBold(body, citations, onJump)}</p>
       </div>
     );
   }
@@ -1351,10 +1365,16 @@ function NarrativeContent({ content }: { content: string }) {
   return <div className="space-y-1">{rendered}</div>;
 }
 
-/** Convert **text** to <strong> */
-function highlightBold(text: string): (string | React.JSX.Element)[] {
+/** Convert **text** to <strong> and render [N] citation pills inline. */
+function highlightBold(
+  text: string,
+  citations?: import('../../types/citations').ResolvedCitation[],
+  onJump?: (c: import('../../types/citations').ResolvedCitation) => void,
+): (React.JSX.Element)[] {
   const parts = text.split(/\*\*([^*]+)\*\*/g);
   return parts.map((part, i) =>
-    i % 2 === 1 ? <strong key={i}>{part}</strong> : part
+    i % 2 === 1
+      ? <strong key={i}><TextWithCitations text={part} citations={citations} onJump={onJump} /></strong>
+      : <TextWithCitations key={i} text={part} citations={citations} onJump={onJump} />
   );
 }

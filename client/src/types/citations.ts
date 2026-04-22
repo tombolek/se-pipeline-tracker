@@ -11,7 +11,8 @@ export type CitationKind =
   | 'field'
   | 'tech_discovery'
   | 'kb_proof_point'
-  | 'history';
+  | 'history'
+  | 'opportunity';
 
 export interface ResolvedCitation {
   id: number;
@@ -26,6 +27,8 @@ export interface ResolvedCitation {
   tech_discovery_path?: string;
   kb_proof_point_id?: number;
   history_field?: string;
+  opportunity_id?: number;
+  opportunity_sfid?: string;
 }
 
 export interface CitedText {

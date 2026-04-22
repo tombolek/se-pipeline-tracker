@@ -4,6 +4,8 @@ import { query, queryOne } from '../db/index.js';
 import { requireAuth, requireManager } from '../middleware/auth.js';
 import { AuthenticatedRequest, ok, err } from '../types/index.js';
 import { startJob, completeJob, failJob } from '../services/aiJobs.js';
+import { CITATION_INSTRUCTIONS, resolveCitations } from '../services/citations.js';
+import type { CitationSource } from '../types/citations.js';
 
 const router = Router();
 const auth = requireAuth as unknown as (req: Request, res: Response, next: () => void) => void;
@@ -157,14 +159,26 @@ router.get('/', auth, mgr, async (req: Request, res: Response): Promise<void> =>
       : 0,
   };
 
-  // Fetch cached narrative for the requested region (separate per NA / INTL)
+  // Fetch cached narrative — newer rows are JSON { content, citations },
+  // legacy plain-text rows still render without pills. #135 Phase 2 Batch 3.
   const narrativeRow = await queryOne(
     `SELECT content, generated_at FROM ai_summary_cache WHERE key = $1`,
     [narrativeCacheKey(fq, region)]
   );
-  const narrative = narrativeRow
-    ? { content: narrativeRow.content as string, generated_at: (narrativeRow.generated_at as Date).toISOString() }
-    : null;
+  let narrative: { content: string; citations: unknown[]; generated_at: string } | null = null;
+  if (narrativeRow) {
+    const raw = narrativeRow.content as string;
+    let content = raw;
+    let citations: unknown[] = [];
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object' && typeof parsed.content === 'string') {
+        content = parsed.content;
+        citations = Array.isArray(parsed.citations) ? parsed.citations : [];
+      }
+    } catch { /* legacy */ }
+    narrative = { content, citations, generated_at: (narrativeRow.generated_at as Date).toISOString() };
+  }
 
   res.json(ok({
     fiscal_period: fq,
@@ -194,7 +208,7 @@ router.post('/narrative/generate', auth, mgr, async (req: Request, res: Response
   }
   const rows = await query(
     `SELECT
-       o.name, o.account_name, o.arr, o.arr_currency, o.stage, o.forecast_status,
+       o.id, o.sf_opportunity_id, o.name, o.account_name, o.arr, o.arr_currency, o.stage, o.forecast_status,
        o.se_comments, o.se_comments_updated_at, o.technical_blockers, o.key_deal,
        o.poc_status, o.next_step_sf, o.engaged_competitors,
        o.metrics, o.economic_buyer, o.decision_criteria, o.decision_process,
@@ -216,15 +230,29 @@ router.post('/narrative/generate', auth, mgr, async (req: Request, res: Response
     return;
   }
 
+  // Cross-opp citation sources — one per deal in the forecast. #135 Phase 2.
+  const oppCitationSources: CitationSource[] = rows.map((r: Record<string, unknown>, i) => {
+    const arr = parseFloat(r.arr as string) || 0;
+    return {
+      key: `opp-${r.id}`,
+      kind: 'opportunity' as const,
+      label: `[${i + 1}] ${r.name}`,
+      meta: `${r.stage} · $${Math.round(arr / 1000)}K ${r.arr_currency} · ${r.forecast_status || 'Unset'}`,
+      preview: String(r.technical_blockers ?? r.next_step_sf ?? r.se_comments ?? '(no recent activity)'),
+      opportunity_id: r.id as number,
+      opportunity_sfid: r.sf_opportunity_id as string,
+    };
+  });
+
   // Build deal summaries for prompt
-  const dealLines = rows.map((r: Record<string, unknown>) => {
+  const dealLines = rows.map((r: Record<string, unknown>, i) => {
     const arr = parseFloat(r.arr as string) || 0;
     const fc = r.forecast_status || 'Unset';
     const se = r.se_owner_name || 'Unassigned';
     const stale = r.se_comments_days_ago !== null ? `${r.se_comments_days_ago}d ago` : 'never';
     const meddpicc = computeMeddpiccScore(r);
     const blockers = r.technical_blockers || 'None';
-    return `- ${r.name} | ${r.account_name} | $${Math.round(arr / 1000)}K ${r.arr_currency} | ${r.stage} | ${fc} | SE: ${se} | SE comments: ${stale} | MEDDPICC: ${meddpicc}/9 | PoC: ${r.poc_status || 'N/A'} | Blockers: ${blockers} | Competitors: ${r.engaged_competitors || 'None'} | Next Step: ${r.next_step_sf || 'None'}`;
+    return `[${i + 1}] ${r.name} | ${r.account_name} | $${Math.round(arr / 1000)}K ${r.arr_currency} | ${r.stage} | ${fc} | SE: ${se} | SE comments: ${stale} | MEDDPICC: ${meddpicc}/9 | PoC: ${r.poc_status || 'N/A'} | Blockers: ${blockers} | Competitors: ${r.engaged_competitors || 'None'} | Next Step: ${r.next_step_sf || 'None'}`;
   }).join('\n');
 
   const totalArr = rows.reduce((s: number, r: Record<string, unknown>) => s + (parseFloat(r.arr as string) || 0), 0);
@@ -243,8 +271,10 @@ Fiscal Quarter: ${fq}
 Region scope: ${regionLabel}
 Pipeline: $${Math.round(totalArr / 1000)}K total | $${Math.round(commitArr / 1000)}K Commit | $${Math.round(mlArr / 1000)}K Most Likely | ${rows.length} deals
 
-Deals:
+Deals (cite by [N] when you reference one):
 ${dealLines}
+
+${CITATION_INSTRUCTIONS}
 
 Write a concise SE-perspective forecast narrative with exactly these 3 sections:
 
@@ -269,16 +299,18 @@ BE CONCISE. Each section should be 2-4 sentences. Use deal names and dollar amou
     const textBlock = response.content.find(b => b.type === 'text');
     const content = textBlock && textBlock.type === 'text' ? textBlock.text : '';
 
-    // Cache the narrative under the region-scoped key
+    // Resolve [N] → ResolvedCitation and cache as JSON { content, citations }.
+    // Legacy plain-text cache rows still render (without pills). #135.
+    const { citations } = resolveCitations(content, oppCitationSources);
     await query(
       `INSERT INTO ai_summary_cache (key, content, generated_at)
        VALUES ($1, $2, now())
        ON CONFLICT (key) DO UPDATE SET content = $2, generated_at = now()`,
-      [cacheKey, content]
+      [cacheKey, JSON.stringify({ content, citations })]
     );
 
     await completeJob(job.id);
-    res.json(ok({ content, generated_at: new Date().toISOString() }));
+    res.json(ok({ content, citations, generated_at: new Date().toISOString() }));
   } catch (e: unknown) {
     await failJob(job.id, e instanceof Error ? e.message : String(e));
     console.error('[forecasting-brief] narrative generation failed:', e);

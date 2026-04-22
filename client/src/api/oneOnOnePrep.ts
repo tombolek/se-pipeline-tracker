@@ -41,6 +41,8 @@ export interface OneOnOneStageMovement {
 
 export interface OneOnOneNarrative {
   content: string;
+  /** #135 — [N] markers in content reference deals by the order shown to the AI. */
+  citations?: import('../types/citations').ResolvedCitation[];
   generated_at: string;
 }
 

@@ -4,6 +4,8 @@ import { query, queryOne } from '../db/index.js';
 import { requireAuth, requireManager } from '../middleware/auth.js';
 import { AuthenticatedRequest, ok, err } from '../types/index.js';
 import { startJob, completeJob, failJob } from '../services/aiJobs.js';
+import { CITATION_INSTRUCTIONS, resolveCitations } from '../services/citations.js';
+import type { CitationSource } from '../types/citations.js';
 
 const router = Router();
 const auth = requireAuth as unknown as (req: Request, res: Response, next: () => void) => void;
@@ -1223,7 +1225,7 @@ router.get('/team-tasks', auth, mgr, async (_req: Request, res: Response): Promi
 // computeHealthScore). We only need the raw fields; the client computes the
 // score so it stays in sync with the canonical algorithm.
 const ONE_ON_ONE_OPP_FIELDS = `
-  o.id, o.name, o.account_name, o.stage, o.arr, o.arr_currency, o.close_date,
+  o.id, o.sf_opportunity_id, o.name, o.account_name, o.stage, o.arr, o.arr_currency, o.close_date,
   o.record_type, o.key_deal, o.team, o.ae_owner_name, o.next_step_sf,
   o.se_comments, o.se_comments_updated_at, o.last_note_at, o.stage_changed_at,
   o.previous_stage, o.technical_blockers, o.engaged_competitors, o.poc_status,
@@ -1338,14 +1340,26 @@ router.get('/one-on-one/:se_id', auth, mgr, async (req: Request, res: Response):
     [seId]
   );
 
-  // Cached narrative
+  // Cached narrative — newer rows are JSON { content, citations }, legacy rows
+  // are raw text. Detect and normalize. #135 Phase 2 Batch 3.
   const narrativeRow = await queryOne(
     `SELECT content, generated_at FROM ai_summary_cache WHERE key = $1`,
     [`one-on-one-narrative-${seId}`]
   );
-  const narrative = narrativeRow
-    ? { content: narrativeRow.content as string, generated_at: (narrativeRow.generated_at as Date).toISOString() }
-    : null;
+  let narrative: { content: string; citations: unknown[]; generated_at: string } | null = null;
+  if (narrativeRow) {
+    const raw = narrativeRow.content as string;
+    let content = raw;
+    let citations: unknown[] = [];
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object' && typeof parsed.content === 'string') {
+        content = parsed.content;
+        citations = Array.isArray(parsed.citations) ? parsed.citations : [];
+      }
+    } catch { /* legacy plain-text row */ }
+    narrative = { content, citations, generated_at: (narrativeRow.generated_at as Date).toISOString() };
+  }
 
   res.json(ok({
     se: seUser,
@@ -1387,7 +1401,24 @@ router.post('/one-on-one/:se_id/narrative', auth, mgr, async (req: Request, res:
 
   const MEDDPICC_KEYS = ['metrics','economic_buyer','decision_criteria','decision_process','paper_process','implicate_pain','champion','authority','need'] as const;
 
-  const dealLines = opps.map((r: Record<string, unknown>) => {
+  // Cross-opp citation sources — each deal is one citable source. Claude
+  // emits [N] where N is the 1-based position in `dealLines`. Click-jump in
+  // the client navigates to the deal's drawer. #135 Phase 2 Batch 3.
+  const oppCitationSources: CitationSource[] = opps.map((r: Record<string, unknown>, i) => {
+    const n = i + 1;
+    const arr = parseFloat(r.arr as string) || 0;
+    return {
+      key: `opp-${r.id}`,
+      kind: 'opportunity' as const,
+      label: `[${n}] ${r.name}`,
+      meta: `${r.stage} · $${Math.round(arr / 1000)}K`,
+      preview: String(r.technical_blockers ?? r.se_comments ?? r.next_step_sf ?? '(no recent activity)'),
+      opportunity_id: r.id as number,
+      opportunity_sfid: r.sf_opportunity_id as string,
+    };
+  });
+
+  const dealLines = opps.map((r: Record<string, unknown>, i) => {
     const arr = parseFloat(r.arr as string) || 0;
     const meddpiccFilled = MEDDPICC_KEYS.filter(k => r[k]).length;
     const seStale = r.se_comments_updated_at
@@ -1396,7 +1427,7 @@ router.post('/one-on-one/:se_id/narrative', auth, mgr, async (req: Request, res:
     const stageDays = r.stage_changed_at
       ? Math.floor((Date.now() - new Date(r.stage_changed_at as string).getTime()) / 86_400_000)
       : null;
-    return `- ${r.name} | ${r.account_name ?? ''} | $${Math.round(arr/1000)}K | ${r.stage} (${stageDays ?? '?'}d) | MEDDPICC ${meddpiccFilled}/9 | SE comments: ${seStale === null ? 'never' : seStale + 'd ago'} | Overdue tasks: ${r.overdue_task_count ?? 0} | Next step: ${r.next_step_sf || '—'} | Blockers: ${r.technical_blockers || 'None'} | PoC: ${r.poc_status || 'N/A'}`;
+    return `[${i + 1}] ${r.name} | ${r.account_name ?? ''} | $${Math.round(arr/1000)}K | ${r.stage} (${stageDays ?? '?'}d) | MEDDPICC ${meddpiccFilled}/9 | SE comments: ${seStale === null ? 'never' : seStale + 'd ago'} | Overdue tasks: ${r.overdue_task_count ?? 0} | Next step: ${r.next_step_sf || '—'} | Blockers: ${r.technical_blockers || 'None'} | PoC: ${r.poc_status || 'N/A'}`;
   }).join('\n');
 
   const totalArr = opps.reduce((s: number, r: Record<string, unknown>) => s + (parseFloat(r.arr as string) || 0), 0);
@@ -1413,8 +1444,10 @@ router.post('/one-on-one/:se_id/narrative', auth, mgr, async (req: Request, res:
 SE: ${seUser.name}
 Open pipeline: $${Math.round(totalArr/1000)}K across ${opps.length} deals | ${overdueCount} overdue tasks | ${staleCount} deals with stale/missing SE comments
 
-Deals:
+Deals (cite by [N] when you reference one):
 ${dealLines}
+
+${CITATION_INSTRUCTIONS}
 
 Write a brief with exactly these 4 sections, each 2–4 sentences:
 
@@ -1440,15 +1473,19 @@ Keep it under 350 words total. Use deal names and ARR figures. Be direct and act
     const textBlock = response.content.find(b => b.type === 'text');
     const content = textBlock && textBlock.type === 'text' ? textBlock.text : '';
 
+    // Resolve [N] → ResolvedCitation. Cache JSON { content, citations } so
+    // the read endpoint can restore both. Legacy plain-text rows continue to
+    // render (without pills). #135 Phase 2 Batch 3.
+    const { citations } = resolveCitations(content, oppCitationSources);
     await query(
       `INSERT INTO ai_summary_cache (key, content, generated_at)
        VALUES ($1, $2, now())
        ON CONFLICT (key) DO UPDATE SET content = $2, generated_at = now()`,
-      [jobKey, content]
+      [jobKey, JSON.stringify({ content, citations })]
     );
 
     await completeJob(job.id);
-    res.json(ok({ content, generated_at: new Date().toISOString() }));
+    res.json(ok({ content, citations, generated_at: new Date().toISOString() }));
   } catch (e: unknown) {
     await failJob(job.id, e instanceof Error ? e.message : String(e));
     console.error('[one-on-one] narrative generation failed:', e);

@@ -62,6 +62,8 @@ export interface ForecastOpp {
 
 export interface ForecastNarrative {
   content: string;
+  /** #135 — [N] markers in content reference deals by their order in the prompt. */
+  citations?: import('../types/citations').ResolvedCitation[];
   generated_at: string;
 }
 

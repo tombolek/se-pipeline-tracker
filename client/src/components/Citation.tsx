@@ -185,5 +185,23 @@ function selectorForCitation(c: ResolvedCitation): string | null {
     case 'tech_discovery': return c.tech_discovery_path ? `[data-cite-target="td:${c.tech_discovery_path}"]` : null;
     case 'kb_proof_point': return c.kb_proof_point_id != null ? `[data-cite-target="kb:${c.kb_proof_point_id}"]` : null;
     case 'history':        return null;
+    case 'opportunity':    return null;  // handled by opportunity jumpers that navigate instead of scroll
   }
+}
+
+/**
+ * Variant of makeScrollJumper that handles `opportunity` kind by navigating
+ * to the deal's drawer (via `?oppId=<sfid>`). Other kinds fall through to the
+ * scroll behaviour. Use this for cross-opp surfaces like 1:1 Prep and
+ * Forecasting where a citation can point to a whole deal. #135.
+ */
+export function makeCrossOppJumper(navigate: (path: string) => void): (c: ResolvedCitation) => void {
+  const scrollJump = makeScrollJumper();
+  return (c) => {
+    if (c.kind === 'opportunity' && c.opportunity_sfid) {
+      navigate(`/home?oppId=${c.opportunity_sfid}`);
+      return;
+    }
+    scrollJump(c);
+  };
 }

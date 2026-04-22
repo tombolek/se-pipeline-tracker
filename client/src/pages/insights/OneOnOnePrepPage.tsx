@@ -22,6 +22,9 @@ import { computeHygieneFlags } from '../../utils/hygieneFlags';
 import { useOppUrlSync } from '../../hooks/useOppUrlSync';
 import Drawer from '../../components/Drawer';
 import OpportunityDetail from '../../components/OpportunityDetail';
+import { useNavigate } from 'react-router-dom';
+import { TextWithCitations, makeCrossOppJumper } from '../../components/Citation';
+import type { ResolvedCitation } from '../../types/citations';
 
 // Pipeline stage order, latest → earliest. Used to sort opps and tasks so the
 // most progressed deals surface at the top of every section.
@@ -97,18 +100,18 @@ function StatCard({ label, value, tone, icon }: {
 }
 
 // Render inline **bold** markers within a line.
-function renderInline(text: string): React.ReactNode {
+function renderInline(text: string, citations?: ResolvedCitation[], onJump?: (c: ResolvedCitation) => void): React.ReactNode {
   const parts = text.split(/\*\*(.+?)\*\*/g);
   return parts.map((part, i) =>
     i % 2 === 1
-      ? <strong key={i} className="font-semibold text-brand-navy">{part}</strong>
-      : <span key={i}>{part}</span>
+      ? <strong key={i} className="font-semibold text-brand-navy"><TextWithCitations text={part} citations={citations} onJump={onJump} /></strong>
+      : <TextWithCitations key={i} text={part} citations={citations} onJump={onJump} />
   );
 }
 
 // Render the AI coaching brief's lightweight markdown: ## headings, **bold**,
 // blank-line paragraphs, and leading "1." / "-" list markers.
-function renderBrief(content: string): React.ReactNode {
+function renderBrief(content: string, citations?: ResolvedCitation[], onJump?: (c: ResolvedCitation) => void): React.ReactNode {
   const blocks = content.trim().split(/\n{2,}/);
   return blocks.map((block, bi) => {
     const lines = block.split('\n');
@@ -119,8 +122,8 @@ function renderBrief(content: string): React.ReactNode {
       const rest = lines.slice(1).join('\n');
       return (
         <div key={bi} className={bi > 0 ? 'mt-4' : ''}>
-          <h3 className="text-base font-semibold text-brand-navy mb-1">{renderInline(heading)}</h3>
-          {rest && <p className="text-sm text-brand-navy leading-relaxed">{renderInline(rest)}</p>}
+          <h3 className="text-base font-semibold text-brand-navy mb-1">{renderInline(heading, citations, onJump)}</h3>
+          {rest && <p className="text-sm text-brand-navy leading-relaxed">{renderInline(rest, citations, onJump)}</p>}
         </div>
       );
     }
@@ -137,19 +140,19 @@ function renderBrief(content: string): React.ReactNode {
             if (numbered) {
               return (
                 <p key={i} className="text-sm text-brand-navy leading-relaxed ml-4 -indent-4 mb-0.5">
-                  <span className="text-brand-navy-70">{numbered[1]}.</span> {renderInline(numbered[2])}
+                  <span className="text-brand-navy-70">{numbered[1]}.</span> {renderInline(numbered[2], citations, onJump)}
                 </p>
               );
             }
             if (ln.startsWith('- ')) {
               return (
                 <p key={i} className="text-sm text-brand-navy leading-relaxed ml-4 -indent-4 mb-0.5">
-                  <span className="text-brand-navy-70">•</span> {renderInline(ln.slice(2))}
+                  <span className="text-brand-navy-70">•</span> {renderInline(ln.slice(2), citations, onJump)}
                 </p>
               );
             }
             return (
-              <p key={i} className="text-sm text-brand-navy leading-relaxed">{renderInline(ln)}</p>
+              <p key={i} className="text-sm text-brand-navy leading-relaxed">{renderInline(ln, citations, onJump)}</p>
             );
           })}
         </div>
@@ -161,7 +164,7 @@ function renderBrief(content: string): React.ReactNode {
       <p key={bi} className={`text-sm text-brand-navy leading-relaxed ${bi > 0 ? 'mt-2' : ''}`}>
         {lines.map((ln, i) => (
           <span key={i}>
-            {renderInline(ln)}
+            {renderInline(ln, citations, onJump)}
             {i < lines.length - 1 && <br />}
           </span>
         ))}
@@ -188,6 +191,9 @@ export default function OneOnOnePrepPage() {
 
   const handleOpenOpp = useCallback((id: number) => setSelectedOppId(id), []);
   const handleCloseDrawer = useCallback(() => setSelectedOppId(null), []);
+  // Citation click → navigate to the deal's drawer via /home?oppId=<sfid>. #135.
+  const navigateToRoute = useNavigate();
+  const citeJumper = useMemo(() => makeCrossOppJumper(navigateToRoute), [navigateToRoute]);
 
   // Load SEs list once
   useEffect(() => {
@@ -412,7 +418,7 @@ export default function OneOnOnePrepPage() {
             {!narrativeCollapsed && (
               <div className="px-4 pb-3 text-sm text-brand-navy leading-relaxed">
                 {data.narrative ? (
-                  <div>{renderBrief(data.narrative.content)}</div>
+                  <div>{renderBrief(data.narrative.content, data.narrative.citations, citeJumper)}</div>
                 ) : (
                   <p className="text-sm text-brand-navy-70 mb-1">
                     Generate a Claude-powered brief covering wins, coaching focus, risks to flag, and a suggested agenda for your 1:1 with {selectedSe?.name ?? 'this SE'}.

@@ -12,7 +12,9 @@ export type CitationKind =
   | 'field'            // Opportunity SF/app column, e.g., "economic_buyer", "technical_blockers"
   | 'tech_discovery'   // Tech Discovery path: "technical_constraints" or "tech_stack.data_warehouse"
   | 'kb_proof_point'
-  | 'history';         // Field-history entry
+  | 'history'          // Field-history entry
+  | 'opportunity';     // A whole deal — used by cross-opp narratives (1:1 Prep, Forecasting).
+                       // Click-jump navigates to the deal's drawer.
 
 /**
  * A resolved citation returned by the server — ref info + preview strings the
@@ -38,6 +40,8 @@ export interface ResolvedCitation {
   tech_discovery_path?: string;
   kb_proof_point_id?: number;
   history_field?: string;
+  opportunity_id?: number;
+  opportunity_sfid?: string;  // for client-side click-jump to /home?oppId=<sfid>
 }
 
 /** Envelope for AI outputs that include citations. */
@@ -68,4 +72,6 @@ export interface CitationSource {
   tech_discovery_path?: string;
   kb_proof_point_id?: number;
   history_field?: string;
+  opportunity_id?: number;
+  opportunity_sfid?: string;
 }
