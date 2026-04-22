@@ -62,7 +62,11 @@ export default function DataFreshnessIndicator() {
   const [, setTick] = useState(0);
   const mountedRef = useRef(true);
 
-  // Fetch latest import on mount + whenever the tab regains focus.
+  // Fetch latest import on mount, on tab focus, on the `sf-import-completed`
+  // event (dispatched by ImportPage after a successful upload so the header
+  // reflects the new timestamp without waiting for a refresh), and every
+  // 2 minutes as a safety net for imports triggered elsewhere (another tab,
+  // scheduled job, different SE).
   useEffect(() => {
     mountedRef.current = true;
     async function load() {
@@ -80,9 +84,13 @@ export default function DataFreshnessIndicator() {
       if (document.visibilityState === 'visible') load();
     }
     document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('sf-import-completed', load);
+    const poll = setInterval(load, 120_000);
     return () => {
       mountedRef.current = false;
       document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('sf-import-completed', load);
+      clearInterval(poll);
     };
   }, []);
 

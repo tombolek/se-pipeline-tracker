@@ -102,6 +102,9 @@ export default function ImportPage() {
       setResult(r.data.data);
       setStep('result');
       await loadLatest();
+      // Tell the header's DataFreshnessIndicator to refetch immediately instead
+      // of waiting for the next poll / tab-focus event.
+      window.dispatchEvent(new CustomEvent('sf-import-completed'));
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
       setImportError(msg ?? 'Import failed. Please try again.');
