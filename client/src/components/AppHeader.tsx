@@ -18,6 +18,8 @@ import { useAuthStore } from '../store/auth';
 import { usePipelineStore } from '../store/pipeline';
 import { getChangelog } from '../api/changelog';
 import ChangelogModal from './ChangelogModal';
+import { useTheme } from '../hooks/useTheme';
+import type { ThemePreference } from '../types';
 import RecentActionsModal from './RecentActionsModal';
 import ConnectionIndicator from './ConnectionIndicator';
 import DataFreshnessIndicator from './DataFreshnessIndicator';
@@ -81,7 +83,7 @@ export default function AppHeader() {
 
   return (
     <>
-      <header className="bg-brand-navy text-white h-[42px] px-4 flex items-center gap-4 flex-shrink-0 border-b border-white/5">
+      <header className="bg-brand-navy dark:bg-ink-1 text-white h-[42px] px-4 flex items-center gap-4 flex-shrink-0 border-b border-white/5 dark:border-ink-border-soft">
         {/* Left — app icon + name */}
         <div className="flex items-center gap-2 flex-shrink-0">
           <div className="w-6 h-6 rounded-md bg-brand-pink flex items-center justify-center">
@@ -182,12 +184,12 @@ export default function AppHeader() {
             </button>
 
             {userMenuOpen && (
-              <div className="absolute right-0 top-full mt-1 z-50 w-64 bg-white text-brand-navy rounded-xl border border-brand-navy-30 shadow-xl overflow-hidden">
-                <div className="px-4 py-3 border-b border-brand-navy-30/40">
+              <div className="absolute right-0 top-full mt-1 z-50 w-64 bg-white dark:bg-ink-2 text-brand-navy dark:text-fg-1 rounded-xl border border-brand-navy-30 dark:border-ink-border shadow-xl overflow-hidden">
+                <div className="px-4 py-3 border-b border-brand-navy-30/40 dark:border-ink-border-soft">
                   <p className="text-sm font-semibold truncate">{user?.name}</p>
-                  <p className="text-[11px] text-brand-navy-70 truncate">
+                  <p className="text-[11px] text-brand-navy-70 dark:text-fg-2 truncate">
                     {user?.email}
-                    <span className="text-brand-navy-30 mx-1">·</span>
+                    <span className="text-brand-navy-30 dark:text-fg-4 mx-1">·</span>
                     <span className="capitalize">{user?.role}</span>
                   </p>
                 </div>
@@ -196,17 +198,21 @@ export default function AppHeader() {
                     <li>
                       <button
                         onClick={() => { setUserMenuOpen(false); navigate('/settings/users'); }}
-                        className="w-full text-left px-4 py-2 text-xs text-brand-navy hover:bg-brand-purple-30/40 transition-colors"
+                        className="w-full text-left px-4 py-2 text-xs text-brand-navy dark:text-fg-1 hover:bg-brand-purple-30/40 dark:hover:bg-accent-purple-soft transition-colors"
                       >
                         Settings
                       </button>
                     </li>
                   )}
-                  <li><hr className="my-1 border-brand-navy-30/30" /></li>
+                  <li><hr className="my-1 border-brand-navy-30/30 dark:border-ink-border-soft" /></li>
+                  <li>
+                    <ThemeMenuSection />
+                  </li>
+                  <li><hr className="my-1 border-brand-navy-30/30 dark:border-ink-border-soft" /></li>
                   <li>
                     <button
                       onClick={() => { setUserMenuOpen(false); void logout(); }}
-                      className="w-full text-left px-4 py-2 text-xs text-status-overdue hover:bg-status-overdue/5 transition-colors"
+                      className="w-full text-left px-4 py-2 text-xs text-status-overdue dark:text-status-d-overdue hover:bg-status-overdue/5 dark:hover:bg-status-d-overdue-soft transition-colors"
                     >
                       Sign out
                     </button>
@@ -221,5 +227,69 @@ export default function AppHeader() {
       <ChangelogModal open={changelogOpen} onClose={() => setChangelogOpen(false)} />
       <RecentActionsModal open={recentOpen} onClose={() => setRecentOpen(false)} />
     </>
+  );
+}
+
+// ── Theme picker (inside user dropdown) ─────────────────────────────────────
+// Three segmented buttons for Light / Dark / System — the selected one
+// carries a purple background tint, the others are inactive. Dropdown
+// stays open on click so the user can see the switch before dismissing.
+function ThemeMenuSection() {
+  const { preference, setTheme } = useTheme();
+  const options: { value: ThemePreference; label: string; icon: ReactNode }[] = [
+    { value: 'light',  label: 'Light',  icon: <SunIcon /> },
+    { value: 'dark',   label: 'Dark',   icon: <MoonIcon /> },
+    { value: 'system', label: 'System', icon: <SystemIcon /> },
+  ];
+  return (
+    <div className="px-4 py-2">
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-navy-70 dark:text-fg-3 mb-1.5">Theme</p>
+      <div className="grid grid-cols-3 gap-1">
+        {options.map(opt => {
+          const active = preference === opt.value;
+          return (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => void setTheme(opt.value)}
+              className={`flex flex-col items-center gap-1 py-1.5 rounded-md text-[10px] font-medium transition-colors ${
+                active
+                  ? 'bg-brand-purple-30 text-brand-purple dark:bg-accent-purple-soft dark:text-accent-purple'
+                  : 'text-brand-navy-70 hover:bg-brand-purple-30/40 hover:text-brand-navy dark:text-fg-2 dark:hover:bg-ink-3 dark:hover:text-fg-1'
+              }`}
+            >
+              {opt.icon}
+              {opt.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function SunIcon() {
+  return (
+    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <circle cx="12" cy="12" r="4" />
+      <path strokeLinecap="round" d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+    </svg>
+  );
+}
+
+function MoonIcon() {
+  return (
+    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+    </svg>
+  );
+}
+
+function SystemIcon() {
+  return (
+    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <rect x="3" y="4" width="18" height="12" rx="2" />
+      <path strokeLinecap="round" d="M8 20h8M12 16v4" />
+    </svg>
   );
 }
