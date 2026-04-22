@@ -1087,7 +1087,8 @@ router.get('/weekly-digest', auth, mgr, async (req: Request, res: Response): Pro
         [days]
       ),
 
-      // Closed Lost within the window (disappeared from import)
+      // Closed Lost within the window — SF reports Stage='Closed Lost' directly;
+      // closed_at is set from Stage Date: Closed - Lost at import time.
       query(
         `SELECT o.id, o.name, o.account_name, o.arr, o.arr_currency,
                 o.stage, o.previous_stage,

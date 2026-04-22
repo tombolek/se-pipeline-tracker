@@ -476,7 +476,7 @@ export default function WeeklyDigestPage() {
           <Badge count={closedLost.length} variant="red" />
           <span className="text-xs text-brand-navy-70 font-light">Deals that dropped from the pipeline</span>
           <InfoNote>
-            Based on opps that disappeared from the SF import (open → gone). Closed Lost history not loaded directly.
+            Deals with Stage = "Closed Lost" in SF; closed date comes from SF's Stage Date: Closed - Lost.
           </InfoNote>
         </>}
         renderItems={rows => (

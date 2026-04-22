@@ -19,7 +19,7 @@ One section per page/route. Describes the behaviour, filters, and data rules —
 
 ## Closed Lost Tab (`/closed-lost`)
 
-- Lists all opportunities that have disappeared from the SF import (= Closed Lost).
+- Lists all opportunities SF reports as `Stage = 'Closed Lost'` (closed date from Stage Date: Closed - Lost).
 - **Sorted by `closed_at` DESC** — most recently closed at the top.
 - **Unread badge:** a red dot indicator (iOS-style) on the nav item when `closed_lost_seen = false` for any record. Badge shows the count of unread closures.
 - Marking as read: clicking into the tab auto-marks all currently visible records as read; or mark individually.

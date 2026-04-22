@@ -117,12 +117,12 @@ This tool pulls deal data from Salesforce via a CSV/XLS export and layers a nati
 - Click any event to open the opportunity detail drawer
 
 ### Closed Lost (`/closed-lost`)
-- Deals that disappeared from the SF import (= Closed Lost)
+- Deals SF reports as `Stage = 'Closed Lost'` — closed date comes from SF's Stage Date: Closed - Lost
 - Sorted by closed date, newest first
 - **Unread badge** on sidebar nav item — count of deals not yet seen
 - Auto-marks as read when navigating to the tab
 - Still shows tasks and notes on closed deals (read-only)
-- **Closed Won detection**: if a deal disappears from SF while in the *Submitted for Booking* stage, it is classified as **Closed Won** (new `is_closed_won` / `closed_won_seen` columns) instead of Closed Lost — Won deals do not appear in Closed Lost or Loss Analysis
+- **Closed Won** lives on its own tab; driven by SF `Stage = 'Closed Won'` + Stage Date: Closed - Won (Won deals do not appear in Closed Lost or Loss Analysis)
 
 ### Opportunity Detail (slide-in drawer)
 - Opens from any deal row in Pipeline, Closed Lost, or Insights views
