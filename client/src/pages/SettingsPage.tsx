@@ -12,12 +12,22 @@ import RoleAccessPage from './settings/RoleAccessPage';
 import TemplatesPage from './settings/TemplatesPage';
 import DeveloperPage from './settings/DeveloperPage';
 import KnowledgeBasePage from './settings/KnowledgeBasePage';
+import AgentsPage from './settings/AgentsPage';
+import AgentDetailPage from './settings/AgentDetailPage';
+import AiJobsPage from './settings/AiJobsPage';
+import AiUsagePage from './settings/AiUsagePage';
 
 export default function SettingsPage() {
   const { pathname } = useLocation();
 
   let content;
-  if (pathname.includes('import-history'))  content = <ImportHistoryPage />;
+  // Order matters — specific (.../agents/:id, .../ai-jobs/:id) before list paths.
+  if      (/^\/settings\/agents\/\d+/.test(pathname)) content = <AgentDetailPage />;
+  else if (pathname.includes('/settings/agents'))     content = <AgentsPage />;
+  else if (/^\/settings\/ai-jobs\/\d+/.test(pathname)) content = <AiJobsPage />;
+  else if (pathname.includes('/settings/ai-jobs'))    content = <AiJobsPage />;
+  else if (pathname.includes('/settings/ai-usage'))   content = <AiUsagePage />;
+  else if (pathname.includes('import-history'))  content = <ImportHistoryPage />;
   else if (pathname.includes('import'))     content = <ImportPage />;
   else if (pathname.includes('menu-settings') || pathname.includes('insights-menu')) content = <InsightsMenuPage />;
   else if (pathname.includes('how-to'))     content = <HowToPage />;

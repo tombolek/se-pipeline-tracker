@@ -12,6 +12,7 @@ This directory is the agent-facing knowledge base for the project. It is **not**
 | [sf-import.md](sf-import.md) | Salesforce export format, column mapping, import pipeline behaviour |
 | [api.md](api.md) | API routes, auth, response envelope |
 | [features.md](features.md) | Feature catalogue per page/route, behaviours, filters |
+| [ai-agents.md](ai-agents.md) | Agents registry, prompt-version history, job I/O logging, kill switch |
 | [ui-brand.md](ui-brand.md) | Ataccama palette, typography, Tailwind tokens, layout conventions |
 | [deploy.md](deploy.md) | WSL-based deploy flow, CDK, script internals |
 | [gotchas.md](gotchas.md) | Non-obvious rules, traps, workarounds, version pins |

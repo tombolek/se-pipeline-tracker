@@ -122,4 +122,19 @@ A personal scratch pad and quick-capture surface. Two entry points:
 
 - Forward an email or Slack message to a dedicated address/webhook → lands in Inbox as a jot.
 - Body becomes the note text, subject/channel becomes a label.
+
+## AI Agents admin (`/settings/agents`, `/settings/ai-jobs`, `/settings/ai-usage`)
+
+Every AI feature in the app is a first-class agent with an editable config and a full job audit trail. See [ai-agents.md](ai-agents.md) for the full architecture; the user-visible surface is:
+
+- **AI Agents** (`/settings/agents`) — list of agents (one per feature string from `callAnthropic`). Row shows model, max_tokens, enabled/disabled, log-I/O state, and the last 24h of calls + tokens. Click through for fine-tuning.
+- **Agent detail** (`/settings/agents/:id`) — three tabs:
+  1. Recent jobs for this agent (kill running, click through to detail)
+  2. Version history — every settings change creates a row with who/when/note/diff
+  3. 30-day usage rollup
+  The editor at the top lets admins set model/max_tokens, toggle enabled + log_io, and author a `system_prompt_extra` that is appended to the shared ground-rules prompt for every call this agent makes. Saving creates a new version — never an in-place overwrite.
+- **AI Jobs** (`/settings/ai-jobs`) — global running-jobs view (polls every 3s) plus filterable history across all agents. Each job row links to `/settings/ai-jobs/:id` which shows model, tokens, duration, user, PII redaction counts, and — only when the owning agent had `log_io = true` at call time — the full prompt and response text.
+- **AI Usage** (`/settings/ai-usage`) — rollups by agent, by user, and by day over a configurable window (24h / 7d / 30d). Meant for spotting cost spikes, failing agents, or heavy users.
+
+All three pages are admin-only (server-enforced via `requireAdmin`) and appear under Administration in the sidebar.
 - Architecture slot: Inbox items have a `source` field (manual | email | slack) and `source_ref` for the original message ID.

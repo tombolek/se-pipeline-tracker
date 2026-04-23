@@ -57,6 +57,9 @@ const PAGE_REGISTRY: PageDef[] = [
   { key: 'settings/quotas', label: 'Quotas', section: 'Administration' },
   { key: 'settings/templates', label: 'Templates', section: 'Administration' },
   { key: 'settings/knowledge-base', label: 'Knowledge Base', section: 'Administration' },
+  { key: 'settings/agents', label: 'AI Agents', section: 'Administration' },
+  { key: 'settings/ai-jobs', label: 'AI Jobs', section: 'Administration' },
+  { key: 'settings/ai-usage', label: 'AI Usage', section: 'Administration' },
   { key: 'settings/role-access', label: 'Role Access', section: 'Administration' },
 ];
 

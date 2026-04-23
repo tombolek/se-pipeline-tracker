@@ -24,8 +24,10 @@ import changelogRoutes from './routes/changelog.js';
 import templatesRoutes from './routes/templates.js';
 import recentActionsRoutes from './routes/recentActions.js';
 import mentionsRoutes from './routes/mentions.js';
+import agentsRoutes from './routes/agents.js';
 import { query } from './db/index.js';
 import { startBackupScheduler } from './services/backupScheduler.js';
+import { sweepStaleRunningJobs } from './services/aiJobs.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -62,6 +64,7 @@ app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/settings', settingsRoutes);
 app.use('/api/v1/forecasting-brief', forecastingBriefRoutes);
 app.use('/api/v1/ai-jobs', aiJobsRoutes);
+app.use('/api/v1/agents', agentsRoutes);
 app.use('/api/v1/changelog', changelogRoutes);
 app.use('/api/v1/templates', templatesRoutes);
 app.use('/api/v1/recent-actions', recentActionsRoutes);
@@ -111,6 +114,12 @@ query(`DELETE FROM audit_log WHERE timestamp < now() - interval '180 days'`).cat
 // Soft-deleted tasks + inbox items past the 30-day restore window (Issue #114)
 query(`DELETE FROM tasks        WHERE is_deleted = true AND deleted_at < now() - interval '30 days'`).catch(() => {});
 query(`DELETE FROM inbox_items  WHERE is_deleted = true AND deleted_at < now() - interval '30 days'`).catch(() => {});
+
+// AI jobs orphaned by a previous process crash — move them out of 'running' so
+// the admin view doesn't show ghosts and the dedup lookup stops waiting on them.
+sweepStaleRunningJobs().then(n => {
+  if (n > 0) console.log(`[ai] swept ${n} stale running job(s) on startup`);
+}).catch(err => console.error(`[ai] stale-job sweep failed: ${err?.message ?? err}`));
 
 // Nightly backup — 02:00 UTC (9 PM EST / 10 PM EDT)
 startBackupScheduler();

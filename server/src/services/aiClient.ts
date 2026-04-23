@@ -1,4 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { getAgentByFeature } from './agents.js';
+import { getCurrentJobContext, getAbortSignalForJob } from './aiJobContext.js';
+import { recordAiCall } from './aiJobs.js';
 
 const DEFAULT_MODEL = 'claude-sonnet-4-6';
 
@@ -61,16 +64,23 @@ function getClient(): Anthropic {
   return sharedClient;
 }
 
+export class AgentDisabledError extends Error {
+  constructor(feature: string) {
+    super(`AI feature '${feature}' is disabled by admin`);
+    this.name = 'AgentDisabledError';
+  }
+}
+
 export interface AiCallOpts {
-  /** Short feature identifier for logging (e.g. 'summary', 'meddpicc-coach'). */
+  /** Short feature identifier for logging + agent lookup (e.g. 'summary', 'meddpicc-coach'). */
   feature: string;
   /** The user prompt. Include all feature-specific rules, sources, and instructions here. */
   prompt: string;
-  /** Maximum response tokens. */
+  /** Maximum response tokens. Falls back to the agent's default_max_tokens when that's defined. */
   maxTokens: number;
-  /** Optional model override. Defaults to claude-sonnet-4-6. */
+  /** Optional model override. Falls back to the agent's default_model, then DEFAULT_MODEL. */
   model?: string;
-  /** Optional system-prompt text appended after the shared ground rules. */
+  /** Optional system-prompt text appended after the shared ground rules (stacked on top of the agent's system_prompt_extra). */
   systemPromptExtra?: string;
 }
 
@@ -83,24 +93,51 @@ export interface AiCallResult {
 
 /**
  * Shared wrapper around `anthropic.messages.create`. Applies the "don't speculate"
- * system prompt, extracts the text block, and emits a structured log line.
+ * system prompt, extracts the text block, emits a structured log line, and —
+ * when called from inside runAiJob() — persists telemetry into the job row
+ * (including prompt/response text when the owning agent has log_io = true).
+ *
+ * Refuses to call if the agent has been disabled by admin. Honours the
+ * in-memory AbortController registered by runAiJob(), so an admin "kill"
+ * action aborts the in-flight HTTP request to Anthropic.
  */
 export async function callAnthropic(opts: AiCallOpts): Promise<AiCallResult> {
-  const model = opts.model ?? DEFAULT_MODEL;
-  const system = opts.systemPromptExtra
-    ? `${SYSTEM_PROMPT}\n\n${opts.systemPromptExtra}`
-    : SYSTEM_PROMPT;
+  const agent = await getAgentByFeature(opts.feature);
 
-  // PII redaction on the user prompt. The system prompt is a fixed string
-  // authored in this file, not user data, so no redaction needed there.
+  if (agent && !agent.is_enabled) {
+    throw new AgentDisabledError(opts.feature);
+  }
+
+  const model = opts.model ?? agent?.default_model ?? DEFAULT_MODEL;
+  const maxTokens = opts.maxTokens ?? agent?.default_max_tokens ?? 800;
+
+  // System prompt: ground rules + agent-level admin-authored extra + optional
+  // per-call extra. All three are authored inside this codebase, not user data,
+  // so no redaction needed there.
+  const extras = [agent?.system_prompt_extra?.trim(), opts.systemPromptExtra?.trim()]
+    .filter((s): s is string => !!s && s.length > 0);
+  const system = extras.length > 0 ? `${SYSTEM_PROMPT}\n\n${extras.join('\n\n')}` : SYSTEM_PROMPT;
+
+  // PII redaction on the user prompt.
   const { redacted, counts } = redactPii(opts.prompt);
 
-  const response = await getClient().messages.create({
-    model,
-    max_tokens: opts.maxTokens,
-    system,
-    messages: [{ role: 'user', content: redacted }],
-  });
+  // Pull the job context (if any). When callAnthropic is invoked inside
+  // runAiJob(), `ctx` is non-null and we can both persist telemetry and honour
+  // the kill signal attached to this job. When called outside (unlikely, but
+  // supported — e.g. a future admin "test this agent" button could call this
+  // directly), we skip both.
+  const ctx = getCurrentJobContext();
+  const signal = ctx ? getAbortSignalForJob(ctx.jobId) : undefined;
+
+  const response = await getClient().messages.create(
+    {
+      model,
+      max_tokens: maxTokens,
+      system,
+      messages: [{ role: 'user', content: redacted }],
+    },
+    signal ? { signal } : undefined,
+  );
 
   const block = response.content.find(b => b.type === 'text');
   const text = block && block.type === 'text' ? block.text : '';
@@ -113,9 +150,26 @@ export async function callAnthropic(opts: AiCallOpts): Promise<AiCallResult> {
     : '';
 
   console.log(
-    `[ai] feature=${opts.feature} model=${model} max_tokens=${opts.maxTokens} ` +
+    `[ai] feature=${opts.feature} model=${model} max_tokens=${maxTokens} ` +
     `input=${inputTokens} output=${outputTokens} stop=${stopReason}${redactionSuffix}`,
   );
 
+  if (ctx) {
+    // Per-agent switch: only store prompt/response when log_io is on.
+    const shouldLogIO = !!agent?.log_io;
+    await recordAiCall(ctx.jobId, {
+      model,
+      input_tokens: inputTokens,
+      output_tokens: outputTokens,
+      stop_reason: stopReason,
+      pii_counts: counts,
+      prompt_text: shouldLogIO ? redacted : null,
+      response_text: shouldLogIO ? text : null,
+    }).catch(err => {
+      console.error(`[ai] failed to persist job telemetry for job=${ctx.jobId}: ${err?.message ?? err}`);
+    });
+  }
+
   return { text, stopReason, inputTokens, outputTokens };
 }
+
