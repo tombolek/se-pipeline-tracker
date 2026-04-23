@@ -1018,16 +1018,19 @@ router.get('/weekly-digest', auth, mgr, async (req: Request, res: Response): Pro
         [days]
       ),
 
-      // Stale deals: no in-app notes, no task activity, AND no SE comments update within the window.
-      // Any one of these signals being fresh makes the deal not stale.
+      // Stale deals: no in-app notes, no task activity, AND no SE comments OR
+      // AE Next Step update within the window. Any one of these signals being
+      // fresh makes the deal not stale. `next_step_updated_at` is populated
+      // from the SF Next Step field on each import (see migration 051).
       query(
         `SELECT o.id, o.name, o.account_name, o.arr, o.arr_currency, o.stage,
                 o.ae_owner_name, o.team,
                 o.next_step_sf, o.se_comments,
-                o.last_note_at, o.se_comments_updated_at,
+                o.last_note_at, o.se_comments_updated_at, o.next_step_updated_at,
                 EXTRACT(DAY FROM now() - GREATEST(
                   o.last_note_at,
                   o.se_comments_updated_at,
+                  o.next_step_updated_at,
                   (SELECT MAX(t.updated_at) FROM tasks t
                    WHERE t.opportunity_id = o.id AND t.is_deleted = false)
                 ))::integer AS days_stale,
@@ -1038,6 +1041,7 @@ router.get('/weekly-digest', auth, mgr, async (req: Request, res: Response): Pro
            AND o.stage NOT IN ('Qualify', 'Closed Won')
            AND (o.last_note_at IS NULL OR o.last_note_at < now() - ($1 || ' days')::interval)
            AND (o.se_comments_updated_at IS NULL OR o.se_comments_updated_at < now() - ($1 || ' days')::interval)
+           AND (o.next_step_updated_at  IS NULL OR o.next_step_updated_at  < now() - ($1 || ' days')::interval)
            AND NOT EXISTS (
              SELECT 1 FROM tasks t
              WHERE t.opportunity_id = o.id

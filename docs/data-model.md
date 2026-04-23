@@ -12,6 +12,7 @@ The core hierarchy: **Opportunity** (from Salesforce) → **Tasks / Next Steps**
 - **Timestamp-triggered freshness fields** are the engine behind several manager views — they must be set by the code path indicated, not by generic `updated_at` logic:
   - `stage_changed_at` / `previous_stage` — set on import when `stage` value changes. Powers Stage Movement view.
   - `se_comments_updated_at` / `manager_comments_updated_at` — set on import when the respective SF text field value changes. Powers SE Comments freshness dot + Missing Notes view.
+  - `next_step_updated_at` — set on import when `next_step_sf` (the AE's Next Step) value changes. Uses the same `parseSeCommentDate` heuristic as `se_comments_updated_at`: AEs stamp Next Step with the same date prefixes ("20260219: …", "BM_26SEPT: …"), so the explicit date wins over `now()` when parseable. Powers the Stale Deals filters on Weekly Digest + Home digest so a fresh AE Next Step keeps a deal off the stale list.
   - `last_note_at` — set only when a user adds a note. Powers the Missing Notes threshold.
   - `first_seen_at` — set on insert; records when the opp first appeared in any import.
   - `closed_at` — set from SF's `Stage Date: Closed - Won/Lost`, never from import time.

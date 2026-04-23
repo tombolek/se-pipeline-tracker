@@ -296,9 +296,11 @@ export default function CallPrepTab({ oppId, oppName }: { oppId: number; oppName
     onTimeout: () => setGenerating(false),
   });
 
-  // Auto-generate if brief is missing or stale
+  // Auto-regenerate only when the existing brief has gone stale. If the opp
+  // has no brief at all we surface a manual "Generate content" button instead
+  // — the SE triggers the Claude call deliberately.
   useEffect(() => {
-    if (data && (data.is_stale || !data.brief) && !generating && data.match_context.products.length > 0) {
+    if (data && data.brief && data.is_stale && !generating && data.match_context.products.length > 0) {
       generate();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -519,7 +521,29 @@ export default function CallPrepTab({ oppId, oppName }: { oppId: number; oppName
             Generate brief anyway &rarr;
           </button>
         </div>
-      ) : null}
+      ) : (
+        /* Empty state — no brief yet. SE generates on demand; we no longer
+           auto-fire on tab open to avoid surprise Claude calls. */
+        <div className="text-center py-8">
+          <div className="w-12 h-12 rounded-full bg-brand-purple-30/30 dark:bg-accent-purple-soft flex items-center justify-center mx-auto mb-3">
+            <svg className="w-6 h-6 text-brand-purple" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="currentColor"/>
+            </svg>
+          </div>
+          <p className="text-sm font-medium text-brand-navy dark:text-fg-1 mb-1">No pre-call brief yet</p>
+          <p className="text-[12px] text-brand-navy-70 dark:text-fg-2 mb-4 max-w-sm mx-auto">Generate an AI-powered brief using the deal's MEDDPICC, tasks, notes, and knowledge base.</p>
+          <button
+            onClick={generate}
+            disabled={generating}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-medium bg-brand-purple text-white hover:bg-brand-purple-70 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="currentColor"/>
+            </svg>
+            Generate content
+          </button>
+        </div>
+      )}
 
       {/* ── CUSTOMER STORIES TO MENTION (AI-selected) ── */}
       {data.brief?.proof_point_highlights && data.brief.proof_point_highlights.length > 0 && (

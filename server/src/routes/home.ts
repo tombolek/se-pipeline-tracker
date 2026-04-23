@@ -154,11 +154,14 @@ router.get('/digest', auth, async (req: Request, res: Response): Promise<void> =
       [uid]
     ),
 
-    // 5. Stale deals: my active opps with no notes, no SE comments update, no task activity in 21+ days
+    // 5. Stale deals: my active opps with no notes, no SE comments, no AE Next
+    // Step, and no task activity in 21+ days. `next_step_updated_at` is populated
+    // from the SF Next Step field on each import (migration 051) so a fresh AE
+    // Next Step keeps a deal off this list.
     query(
       `SELECT o.id, o.name, o.account_name, o.stage, o.arr, o.arr_currency,
-              o.last_note_at, o.se_comments_updated_at,
-              GREATEST(o.last_note_at, o.se_comments_updated_at,
+              o.last_note_at, o.se_comments_updated_at, o.next_step_updated_at,
+              GREATEST(o.last_note_at, o.se_comments_updated_at, o.next_step_updated_at,
                 (SELECT MAX(t.updated_at) FROM tasks t
                  WHERE t.opportunity_id = o.id AND t.is_deleted = false)
               ) AS last_activity_at
@@ -168,13 +171,14 @@ router.get('/digest', auth, async (req: Request, res: Response): Promise<void> =
          AND o.stage NOT IN ('Qualify', 'Closed Won')
          AND (o.last_note_at IS NULL OR o.last_note_at < now() - interval '21 days')
          AND (o.se_comments_updated_at IS NULL OR o.se_comments_updated_at < now() - interval '21 days')
+         AND (o.next_step_updated_at  IS NULL OR o.next_step_updated_at  < now() - interval '21 days')
          AND NOT EXISTS (
            SELECT 1 FROM tasks t
            WHERE t.opportunity_id = o.id
              AND t.is_deleted = false
              AND t.updated_at >= now() - interval '21 days'
          )
-       ORDER BY GREATEST(o.last_note_at, o.se_comments_updated_at) ASC NULLS FIRST
+       ORDER BY GREATEST(o.last_note_at, o.se_comments_updated_at, o.next_step_updated_at) ASC NULLS FIRST
        LIMIT 10`,
       [uid]
     ),

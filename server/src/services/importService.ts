@@ -476,9 +476,20 @@ export async function reconcileImport(
           }
         }
 
-        // Track next_step_sf history
+        // Track next_step_sf freshness + history. AEs stamp Next Step with a date
+        // prefix the same way SEs stamp se_comments ("20260312: …", "BM_26SEPT: …"),
+        // so the same parseSeCommentDate heuristic applies. Used by the Weekly
+        // Digest "Stale Deals" filter so a fresh AE Next Step keeps a deal off
+        // the stale list. Falls back to now() when no date prefix is parseable.
         const newNextStep = row.dbFields['next_step_sf'] as string | null;
         if (newNextStep !== existing.next_step_sf) {
+          const parsedNextStep = parseSeCommentDate(newNextStep);
+          if (parsedNextStep) {
+            params.push(parsedNextStep.date.toISOString());
+            setClauses.push(`next_step_updated_at = $${params.length}`);
+          } else {
+            setClauses.push(`next_step_updated_at = now()`);
+          }
           fieldHistoryEntries.push({ opportunity_id: existing.id, field_name: 'next_step_sf', old_value: existing.next_step_sf, new_value: newNextStep });
         }
 
@@ -571,6 +582,19 @@ export async function reconcileImport(
         if (insertMgrComments) {
           fields.push('manager_comments_updated_at');
           placeholders.push('now()');
+        }
+        // Same date-stamp parsing as se_comments above — AEs use the same
+        // "YYYYMMDD: …" / "Init_MMMDD …" prefixes in Next Step.
+        const insertNextStep = row.dbFields['next_step_sf'] as string | null;
+        if (insertNextStep) {
+          const parsedNextStep = parseSeCommentDate(insertNextStep);
+          fields.push('next_step_updated_at');
+          if (parsedNextStep) {
+            values.push(parsedNextStep.date.toISOString());
+            placeholders.push(`$${values.length}`);
+          } else {
+            placeholders.push('now()');
+          }
         }
 
         const inserted = await queryOne<{ id: number }>(

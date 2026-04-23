@@ -236,9 +236,11 @@ export default function DemoPrepTab({ oppId, oppName }: { oppId: number; oppName
     onTimeout: () => setGenerating(false),
   });
 
-  // Auto-generate if missing or stale
+  // Auto-regenerate only when an existing demo prep has gone stale. If the
+  // opp has no demo prep at all we surface a manual "Generate content" button
+  // instead — the SE triggers the Claude call deliberately.
   useEffect(() => {
-    if (data && (data.is_stale || !data.demo_prep) && !generating) {
+    if (data && data.demo_prep && data.is_stale && !generating) {
       generate();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -303,7 +305,31 @@ export default function DemoPrepTab({ oppId, oppName }: { oppId: number; oppName
     );
   }
 
-  if (!data?.demo_prep) return null;
+  // Empty state — no demo prep yet. SE triggers generation on demand instead
+  // of a surprise Claude call on tab open.
+  if (!data?.demo_prep) {
+    return (
+      <div className="py-10 text-center">
+        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-brand-pink/20 to-brand-purple/20 flex items-center justify-center mx-auto mb-3">
+          <svg className="w-6 h-6 text-brand-purple" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5"/>
+          </svg>
+        </div>
+        <p className="text-sm font-medium text-brand-navy dark:text-fg-1 mb-1">No demo prep yet</p>
+        <p className="text-[12px] text-brand-navy-70 dark:text-fg-2 mb-4 max-w-sm mx-auto">Run the 6-Question Demo Check against this deal's MEDDPICC, tasks, notes, and Tech Discovery to gauge demo readiness.</p>
+        <button
+          onClick={generate}
+          disabled={generating}
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-medium bg-brand-purple text-white hover:bg-brand-purple-70 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="currentColor"/>
+          </svg>
+          Generate content
+        </button>
+      </div>
+    );
+  }
 
   const dp = data.demo_prep;
   const readinessPercent = dp.questions_answered / dp.total_questions;
