@@ -127,7 +127,7 @@ function PieChart({
   if (total === 0) {
     return (
       <div className="flex items-center justify-center" style={{ width: size, height: size }}>
-        <span className="text-xs text-brand-navy-30">No data</span>
+        <span className="text-xs text-brand-navy-30 dark:text-fg-4">No data</span>
       </div>
     );
   }
@@ -193,8 +193,8 @@ function ChartCard({
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-brand-navy-30/40 p-5 flex flex-col gap-4">
-      <h3 className="text-sm font-semibold text-brand-navy">{title}</h3>
+    <div className="bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft p-5 flex flex-col gap-4">
+      <h3 className="text-sm font-semibold text-brand-navy dark:text-fg-1">{title}</h3>
       <div className="flex gap-5 items-start">
         {/* Pie */}
         <div className="flex-shrink-0">
@@ -222,7 +222,7 @@ function ChartCard({
                 >
                   {isOther ? (
                     <svg
-                      className={`w-3 h-3 text-brand-navy-70 transition-transform flex-shrink-0 ${showOther ? 'rotate-90' : ''}`}
+                      className={`w-3 h-3 text-brand-navy-70 dark:text-fg-2 transition-transform flex-shrink-0 ${showOther ? 'rotate-90' : ''}`}
                       fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
                     >
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/>
@@ -233,16 +233,16 @@ function ChartCard({
                       style={{ backgroundColor: color }}
                     />
                   )}
-                  <span className={`text-xs truncate flex-1 ${isOther ? 'text-brand-navy-70 italic' : 'text-brand-navy'}`}>
+                  <span className={`text-xs truncate flex-1 ${isOther ? 'text-brand-navy-70 dark:text-fg-2 italic' : 'text-brand-navy'}`}>
                     {isOther ? `Other (${hidden.length})` : sl.label}
                   </span>
-                  <span className="text-xs font-medium text-brand-navy-70 flex-shrink-0">
+                  <span className="text-xs font-medium text-brand-navy-70 dark:text-fg-2 flex-shrink-0">
                     {metric === 'count' ? sl.count : formatARR(sl.arr.toString())}
                   </span>
-                  <span className="text-[10px] text-brand-navy-30 flex-shrink-0 w-8 text-right">{pct}%</span>
+                  <span className="text-[10px] text-brand-navy-30 dark:text-fg-4 flex-shrink-0 w-8 text-right">{pct}%</span>
                 </button>
                 {isOther && showOther && (
-                  <div className="pl-5 mt-1.5 space-y-1 border-l border-brand-navy-30/40 ml-1">
+                  <div className="pl-5 mt-1.5 space-y-1 border-l border-brand-navy-30/40 dark:border-ink-border-soft ml-1">
                     {hidden.map(h => {
                       const v = metric === 'count' ? h.count : h.arr;
                       const p = total > 0 ? ((v / total) * 100) : 0;
@@ -255,11 +255,11 @@ function ChartCard({
                           className={`w-full flex items-center gap-2 text-left transition-opacity ${childActive ? 'opacity-100' : 'opacity-30'}`}
                         >
                           <span className="w-1.5 h-1.5 rounded-full bg-brand-navy-30 flex-shrink-0"/>
-                          <span className="text-[11px] text-brand-navy-70 truncate flex-1">{h.label}</span>
-                          <span className="text-[11px] font-medium text-brand-navy-70 flex-shrink-0">
+                          <span className="text-[11px] text-brand-navy-70 dark:text-fg-2 truncate flex-1">{h.label}</span>
+                          <span className="text-[11px] font-medium text-brand-navy-70 dark:text-fg-2 flex-shrink-0">
                             {metric === 'count' ? h.count : formatARR(h.arr.toString())}
                           </span>
-                          <span className="text-[10px] text-brand-navy-30 flex-shrink-0 w-8 text-right">{pStr}</span>
+                          <span className="text-[10px] text-brand-navy-30 dark:text-fg-4 flex-shrink-0 w-8 text-right">{pStr}</span>
                         </button>
                       );
                     })}
@@ -409,8 +409,8 @@ export default function ClosedLostStatsPage() {
       <div className="flex-shrink-0 px-8 pt-6 pb-4">
         <div className="flex items-center gap-4 flex-wrap">
           <div>
-            <h1 className="text-xl font-semibold text-brand-navy">Loss Analysis</h1>
-            <p className="text-sm text-brand-navy-70 mt-0.5">Patterns in why deals are lost — by stage, competitor, segment, industry.</p>
+            <h1 className="text-xl font-semibold text-brand-navy dark:text-fg-1">Loss Analysis</h1>
+            <p className="text-sm text-brand-navy-70 dark:text-fg-2 mt-0.5">Patterns in why deals are lost — by stage, competitor, segment, industry.</p>
           </div>
 
           <div className="ml-auto flex items-center gap-3">
@@ -422,8 +422,8 @@ export default function ClosedLostStatsPage() {
                   onClick={() => setMetric(m)}
                   className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
                     metric === m
-                      ? 'bg-white text-brand-navy shadow-sm'
-                      : 'text-brand-navy-70 hover:text-brand-navy'
+                      ? 'bg-white dark:bg-ink-1 text-brand-navy dark:text-fg-1 shadow-sm'
+                      : 'text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy'
                   }`}
                 >
                   {m === 'count' ? '# Deals' : 'ARR'}
@@ -439,8 +439,8 @@ export default function ClosedLostStatsPage() {
                   onClick={() => setDays(opt.days)}
                   className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
                     days === opt.days
-                      ? 'bg-white text-brand-navy shadow-sm'
-                      : 'text-brand-navy-70 hover:text-brand-navy'
+                      ? 'bg-white dark:bg-ink-1 text-brand-navy dark:text-fg-1 shadow-sm'
+                      : 'text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy'
                   }`}
                 >
                   {opt.label}
@@ -457,41 +457,41 @@ export default function ClosedLostStatsPage() {
           <>
             {/* Summary strip */}
             <div className="flex gap-4 flex-wrap mb-6">
-              <div className="flex-1 min-w-[140px] bg-white rounded-2xl border border-brand-navy-30/40 p-4">
-                <p className="text-xs text-brand-navy-70 mb-1">Deals Lost</p>
-                <p className="text-2xl font-bold text-brand-navy">{filteredDeals.length}</p>
+              <div className="flex-1 min-w-[140px] bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft p-4">
+                <p className="text-xs text-brand-navy-70 dark:text-fg-2 mb-1">Deals Lost</p>
+                <p className="text-2xl font-bold text-brand-navy dark:text-fg-1">{filteredDeals.length}</p>
                 {filteredDeals.length !== deals.length && (
-                  <p className="text-[10px] text-brand-navy-30 mt-0.5">of {deals.length} total</p>
+                  <p className="text-[10px] text-brand-navy-30 dark:text-fg-4 mt-0.5">of {deals.length} total</p>
                 )}
               </div>
-              <div className="flex-1 min-w-[140px] bg-white rounded-2xl border border-brand-navy-30/40 p-4">
-                <p className="text-xs text-brand-navy-70 mb-1">ARR Lost</p>
-                <p className="text-2xl font-bold text-status-overdue">
+              <div className="flex-1 min-w-[140px] bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft p-4">
+                <p className="text-xs text-brand-navy-70 dark:text-fg-2 mb-1">ARR Lost</p>
+                <p className="text-2xl font-bold text-status-overdue dark:text-status-d-overdue">
                   {formatARR(filteredDeals.reduce((s, d) => s + (parseFloat(d.arr) || 0), 0).toString())}
                 </p>
                 {filteredDeals.length !== deals.length && (
-                  <p className="text-[10px] text-brand-navy-30 mt-0.5">of {formatARR(totalArr.toString())} total</p>
+                  <p className="text-[10px] text-brand-navy-30 dark:text-fg-4 mt-0.5">of {formatARR(totalArr.toString())} total</p>
                 )}
               </div>
-              <div className="flex-1 min-w-[140px] bg-white rounded-2xl border border-brand-navy-30/40 p-4">
-                <p className="text-xs text-brand-navy-70 mb-1">Avg Deal Size</p>
-                <p className="text-2xl font-bold text-brand-navy">
+              <div className="flex-1 min-w-[140px] bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft p-4">
+                <p className="text-xs text-brand-navy-70 dark:text-fg-2 mb-1">Avg Deal Size</p>
+                <p className="text-2xl font-bold text-brand-navy dark:text-fg-1">
                   {filteredDeals.length > 0
                     ? formatARR((filteredDeals.reduce((s, d) => s + (parseFloat(d.arr) || 0), 0) / filteredDeals.length).toString())
                     : '—'}
                 </p>
               </div>
-              <div className="flex-1 min-w-[140px] bg-white rounded-2xl border border-brand-navy-30/40 p-4">
-                <p className="text-xs text-brand-navy-70 mb-1">Avg Days in Pipeline</p>
-                <p className="text-2xl font-bold text-brand-navy">
+              <div className="flex-1 min-w-[140px] bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft p-4">
+                <p className="text-xs text-brand-navy-70 dark:text-fg-2 mb-1">Avg Days in Pipeline</p>
+                <p className="text-2xl font-bold text-brand-navy dark:text-fg-1">
                   {avgVelocity != null ? `${avgVelocity}d` : '—'}
                 </p>
-                <p className="text-[10px] text-brand-navy-30 mt-0.5">first seen → closed lost</p>
+                <p className="text-[10px] text-brand-navy-30 dark:text-fg-4 mt-0.5">first seen → closed lost</p>
               </div>
               {Object.values(activeSlices).some(v => v !== null && v !== undefined) && (
                 <button
                   onClick={() => setActiveSlices({})}
-                  className="flex-shrink-0 self-center px-3 py-1.5 rounded-lg text-xs font-medium border border-brand-navy-30 text-brand-navy-70 hover:border-brand-navy transition-colors"
+                  className="flex-shrink-0 self-center px-3 py-1.5 rounded-lg text-xs font-medium border border-brand-navy-30 text-brand-navy-70 dark:text-fg-2 hover:border-brand-navy transition-colors"
                 >
                   Clear filters
                 </button>
@@ -500,7 +500,7 @@ export default function ClosedLostStatsPage() {
 
             {/* Pie chart grid */}
             {deals.length === 0 ? (
-              <div className="flex items-center justify-center py-20 text-sm text-brand-navy-70">
+              <div className="flex items-center justify-center py-20 text-sm text-brand-navy-70 dark:text-fg-2">
                 No closed lost deals found{days > 0 ? ` in the last ${days} days` : ''}.
               </div>
             ) : (
@@ -523,45 +523,45 @@ export default function ClosedLostStatsPage() {
 
             {/* Deal table */}
             {filteredDeals.length > 0 && (
-              <div className="mt-6 bg-white rounded-2xl border border-brand-navy-30/40 overflow-hidden">
-                <div className="px-4 py-3 border-b border-brand-navy-30/40 flex items-center gap-2">
-                  <span className="text-sm font-semibold text-brand-navy">
+              <div className="mt-6 bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft overflow-hidden">
+                <div className="px-4 py-3 border-b border-brand-navy-30/40 dark:border-ink-border-soft flex items-center gap-2">
+                  <span className="text-sm font-semibold text-brand-navy dark:text-fg-1">
                     {filteredDeals.length < deals.length ? 'Filtered Deals' : 'All Closed Lost Deals'}
                   </span>
-                  <span className="text-[10px] bg-brand-navy-30/60 text-brand-navy-70 rounded-full px-1.5 py-px font-medium">
+                  <span className="text-[10px] bg-brand-navy-30/60 text-brand-navy-70 dark:text-fg-2 rounded-full px-1.5 py-px font-medium">
                     {filteredDeals.length}
                   </span>
                   {isManager && (
-                    <span className="ml-auto text-[10px] text-brand-navy-30">Manager: SE Owner is editable</span>
+                    <span className="ml-auto text-[10px] text-brand-navy-30 dark:text-fg-4">Manager: SE Owner is editable</span>
                   )}
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full">
-                    <thead className="border-b border-brand-navy-30/40 bg-gray-50/50">
+                    <thead className="border-b border-brand-navy-30/40 dark:border-ink-border-soft bg-gray-50 dark:bg-ink-2/50">
                       <tr>
-                        <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">Opportunity</th>
-                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">Stage</th>
-                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">ARR</th>
-                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">Record Type</th>
-                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">Team</th>
-                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">AE</th>
-                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">SE Owner</th>
-                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">Closed</th>
+                        <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">Opportunity</th>
+                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">Stage</th>
+                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">ARR</th>
+                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">Record Type</th>
+                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">Team</th>
+                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">AE</th>
+                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">SE Owner</th>
+                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">Closed</th>
                       </tr>
                     </thead>
                     <tbody>
                       {filteredDeals.map(deal => (
-                        <tr key={deal.id} className="border-b border-brand-navy-30/20 last:border-0 hover:bg-brand-purple-30/10">
+                        <tr key={deal.id} className="border-b border-brand-navy-30/20 dark:border-ink-border-soft last:border-0 hover:bg-brand-purple-30/10">
                           <td className="px-4 py-3">
-                            <p className="text-sm font-medium text-brand-navy truncate max-w-[200px]">{deal.name}</p>
-                            <p className="text-xs text-brand-navy-70 truncate max-w-[200px]">{deal.account_name}</p>
+                            <p className="text-sm font-medium text-brand-navy dark:text-fg-1 truncate max-w-[200px]">{deal.name}</p>
+                            <p className="text-xs text-brand-navy-70 dark:text-fg-2 truncate max-w-[200px]">{deal.account_name}</p>
                           </td>
-                          <td className="px-3 py-3 text-xs text-brand-navy-70 whitespace-nowrap">{deal.stage ?? '—'}</td>
-                          <td className="px-3 py-3 text-sm font-medium text-brand-navy whitespace-nowrap">{formatARR(deal.arr)}</td>
-                          <td className="px-3 py-3 text-xs text-brand-navy-70 whitespace-nowrap">{deal.record_type ?? '—'}</td>
-                          <td className="px-3 py-3 text-xs text-brand-navy-70 whitespace-nowrap">{deal.team ?? '—'}</td>
-                          <td className="px-3 py-3 text-xs text-brand-navy-70 whitespace-nowrap">{deal.ae_owner_name ?? '—'}</td>
-                          <td className="px-3 py-3 text-xs text-brand-navy-70 whitespace-nowrap">
+                          <td className="px-3 py-3 text-xs text-brand-navy-70 dark:text-fg-2 whitespace-nowrap">{deal.stage ?? '—'}</td>
+                          <td className="px-3 py-3 text-sm font-medium text-brand-navy dark:text-fg-1 whitespace-nowrap">{formatARR(deal.arr)}</td>
+                          <td className="px-3 py-3 text-xs text-brand-navy-70 dark:text-fg-2 whitespace-nowrap">{deal.record_type ?? '—'}</td>
+                          <td className="px-3 py-3 text-xs text-brand-navy-70 dark:text-fg-2 whitespace-nowrap">{deal.team ?? '—'}</td>
+                          <td className="px-3 py-3 text-xs text-brand-navy-70 dark:text-fg-2 whitespace-nowrap">{deal.ae_owner_name ?? '—'}</td>
+                          <td className="px-3 py-3 text-xs text-brand-navy-70 dark:text-fg-2 whitespace-nowrap">
                             {isManager ? (
                               <select
                                 value={deal.se_owner_id ?? ''}
@@ -571,7 +571,7 @@ export default function ClosedLostStatsPage() {
                                   updateSeOwner(deal.id, val);
                                 }}
                                 onClick={(e) => e.stopPropagation()}
-                                className="text-xs border border-brand-navy-30 rounded px-1.5 py-0.5 bg-white hover:border-brand-purple focus:outline-none focus:ring-1 focus:ring-brand-purple disabled:opacity-50 max-w-[140px]"
+                                className="text-xs border border-brand-navy-30 rounded px-1.5 py-0.5 bg-white dark:bg-ink-1 hover:border-brand-purple focus:outline-none focus:ring-1 focus:ring-brand-purple disabled:opacity-50 max-w-[140px]"
                               >
                                 <option value="">— unassigned —</option>
                                 {seUsers.map(u => (
@@ -582,7 +582,7 @@ export default function ClosedLostStatsPage() {
                               deal.se_owner_name ?? '—'
                             )}
                           </td>
-                          <td className="px-3 py-3 text-xs text-brand-navy-70 whitespace-nowrap">{formatDate(deal.closed_at)}</td>
+                          <td className="px-3 py-3 text-xs text-brand-navy-70 dark:text-fg-2 whitespace-nowrap">{formatDate(deal.closed_at)}</td>
                         </tr>
                       ))}
                     </tbody>

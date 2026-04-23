@@ -52,23 +52,23 @@ function daysSince(iso: string | null): number | null {
 
 function CommentsFreshness({ iso }: { iso: string | null }) {
   const d = daysSince(iso);
-  if (d === null) return <span className="text-status-overdue text-xs font-medium">Never</span>;
-  if (d > 21)    return <span className="text-status-overdue text-xs font-medium">{d}d ago</span>;
-  if (d > 7)     return <span className="text-status-warning text-xs font-medium">{d}d ago</span>;
-  return <span className="text-status-success text-xs font-medium">{d}d ago</span>;
+  if (d === null) return <span className="text-status-overdue dark:text-status-d-overdue text-xs font-medium">Never</span>;
+  if (d > 21)    return <span className="text-status-overdue dark:text-status-d-overdue text-xs font-medium">{d}d ago</span>;
+  if (d > 7)     return <span className="text-status-warning dark:text-status-d-warning text-xs font-medium">{d}d ago</span>;
+  return <span className="text-status-success dark:text-status-d-success text-xs font-medium">{d}d ago</span>;
 }
 
 function Section({ title, subtitle, count, children }: {
   title: string; subtitle?: string; count?: number; children: React.ReactNode;
 }) {
   return (
-    <section className="bg-white rounded-xl border border-brand-navy-30 shadow-sm p-5 mb-4">
+    <section className="bg-white dark:bg-ink-1 rounded-xl border border-brand-navy-30 shadow-sm p-5 mb-4">
       <div className="flex items-baseline gap-2 mb-3">
-        <h2 className="text-base font-semibold text-brand-navy">{title}</h2>
+        <h2 className="text-base font-semibold text-brand-navy dark:text-fg-1">{title}</h2>
         {typeof count === 'number' && (
-          <span className="text-xs text-brand-navy-70">({count})</span>
+          <span className="text-xs text-brand-navy-70 dark:text-fg-2">({count})</span>
         )}
-        {subtitle && <span className="text-xs text-brand-navy-70 ml-2">{subtitle}</span>}
+        {subtitle && <span className="text-xs text-brand-navy-70 dark:text-fg-2 ml-2">{subtitle}</span>}
       </div>
       {children}
     </section>
@@ -79,21 +79,21 @@ function StatCard({ label, value, tone, icon }: {
   label: string; value: string; tone?: 'warn' | 'danger' | 'success'; icon?: React.ReactNode;
 }) {
   const color =
-    tone === 'danger' ? 'text-status-overdue' :
-    tone === 'warn' ? 'text-status-warning' :
-    tone === 'success' ? 'text-status-success' :
+    tone === 'danger' ? 'text-status-overdue dark:text-status-d-overdue' :
+    tone === 'warn' ? 'text-status-warning dark:text-status-d-warning' :
+    tone === 'success' ? 'text-status-success dark:text-status-d-success' :
     'text-brand-navy';
   const iconBg =
-    tone === 'danger' ? 'bg-status-overdue/10' :
-    tone === 'warn' ? 'bg-status-warning/10' :
-    tone === 'success' ? 'bg-status-success/10' :
-    'bg-brand-purple/10';
+    tone === 'danger' ? 'bg-status-overdue/10 dark:bg-status-d-overdue-soft' :
+    tone === 'warn' ? 'bg-status-warning/10 dark:bg-status-d-warning-soft' :
+    tone === 'success' ? 'bg-status-success/10 dark:bg-status-d-success-soft' :
+    'bg-brand-purple/10 dark:bg-accent-purple-soft';
   return (
-    <div className="bg-white rounded-2xl border border-brand-navy-30/40 p-4 flex items-center gap-3">
+    <div className="bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft p-4 flex items-center gap-3">
       {icon && <div className={`w-10 h-10 rounded-xl ${iconBg} flex items-center justify-center flex-shrink-0`}>{icon}</div>}
       <div>
-        <p className={`text-2xl font-semibold ${value === '0' || value === '$0' ? 'text-brand-navy-30' : color}`}>{value}</p>
-        <p className="text-[10px] text-brand-navy-70 uppercase tracking-wide">{label}</p>
+        <p className={`text-2xl font-semibold ${value === '0' || value === '$0' ? 'text-brand-navy-30 dark:text-fg-4' : color}`}>{value}</p>
+        <p className="text-[10px] text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">{label}</p>
       </div>
     </div>
   );
@@ -104,7 +104,7 @@ function renderInline(text: string, citations?: ResolvedCitation[], onJump?: (c:
   const parts = text.split(/\*\*(.+?)\*\*/g);
   return parts.map((part, i) =>
     i % 2 === 1
-      ? <strong key={i} className="font-semibold text-brand-navy"><TextWithCitations text={part} citations={citations} onJump={onJump} /></strong>
+      ? <strong key={i} className="font-semibold text-brand-navy dark:text-fg-1"><TextWithCitations text={part} citations={citations} onJump={onJump} /></strong>
       : <TextWithCitations key={i} text={part} citations={citations} onJump={onJump} />
   );
 }
@@ -122,8 +122,8 @@ function renderBrief(content: string, citations?: ResolvedCitation[], onJump?: (
       const rest = lines.slice(1).join('\n');
       return (
         <div key={bi} className={bi > 0 ? 'mt-4' : ''}>
-          <h3 className="text-base font-semibold text-brand-navy mb-1">{renderInline(heading, citations, onJump)}</h3>
-          {rest && <p className="text-sm text-brand-navy leading-relaxed">{renderInline(rest, citations, onJump)}</p>}
+          <h3 className="text-base font-semibold text-brand-navy dark:text-fg-1 mb-1">{renderInline(heading, citations, onJump)}</h3>
+          {rest && <p className="text-sm text-brand-navy dark:text-fg-1 leading-relaxed">{renderInline(rest, citations, onJump)}</p>}
         </div>
       );
     }
@@ -134,25 +134,25 @@ function renderBrief(content: string, citations?: ResolvedCitation[], onJump?: (
       const body = lines.slice(1);
       return (
         <div key={bi} className={bi > 0 ? 'mt-3' : ''}>
-          <p className="text-xs font-semibold uppercase tracking-wide text-brand-purple mb-1">{labelMatch[1]}</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-brand-purple dark:text-accent-purple mb-1">{labelMatch[1]}</p>
           {body.map((ln, i) => {
             const numbered = ln.match(/^(\d+)\.\s+(.*)$/);
             if (numbered) {
               return (
-                <p key={i} className="text-sm text-brand-navy leading-relaxed ml-4 -indent-4 mb-0.5">
-                  <span className="text-brand-navy-70">{numbered[1]}.</span> {renderInline(numbered[2], citations, onJump)}
+                <p key={i} className="text-sm text-brand-navy dark:text-fg-1 leading-relaxed ml-4 -indent-4 mb-0.5">
+                  <span className="text-brand-navy-70 dark:text-fg-2">{numbered[1]}.</span> {renderInline(numbered[2], citations, onJump)}
                 </p>
               );
             }
             if (ln.startsWith('- ')) {
               return (
-                <p key={i} className="text-sm text-brand-navy leading-relaxed ml-4 -indent-4 mb-0.5">
-                  <span className="text-brand-navy-70">•</span> {renderInline(ln.slice(2), citations, onJump)}
+                <p key={i} className="text-sm text-brand-navy dark:text-fg-1 leading-relaxed ml-4 -indent-4 mb-0.5">
+                  <span className="text-brand-navy-70 dark:text-fg-2">•</span> {renderInline(ln.slice(2), citations, onJump)}
                 </p>
               );
             }
             return (
-              <p key={i} className="text-sm text-brand-navy leading-relaxed">{renderInline(ln, citations, onJump)}</p>
+              <p key={i} className="text-sm text-brand-navy dark:text-fg-1 leading-relaxed">{renderInline(ln, citations, onJump)}</p>
             );
           })}
         </div>
@@ -161,7 +161,7 @@ function renderBrief(content: string, citations?: ResolvedCitation[], onJump?: (
 
     // Plain paragraph.
     return (
-      <p key={bi} className={`text-sm text-brand-navy leading-relaxed ${bi > 0 ? 'mt-2' : ''}`}>
+      <p key={bi} className={`text-sm text-brand-navy dark:text-fg-1 leading-relaxed ${bi > 0 ? 'mt-2' : ''}`}>
         {lines.map((ln, i) => (
           <span key={i}>
             {renderInline(ln, citations, onJump)}
@@ -331,17 +331,17 @@ export default function OneOnOnePrepPage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4 mb-5 flex-wrap">
         <div>
-          <h1 className="text-xl font-semibold text-brand-navy">1:1 Prep</h1>
-          <p className="text-sm text-brand-navy-70 mt-0.5">
+          <h1 className="text-xl font-semibold text-brand-navy dark:text-fg-1">1:1 Prep</h1>
+          <p className="text-sm text-brand-navy-70 dark:text-fg-2 mt-0.5">
             One-page brief for your next 1:1. Pick an SE to see their pipeline, task load, risks and a coaching narrative.
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <label className="text-xs text-brand-navy-70">SE</label>
+          <label className="text-xs text-brand-navy-70 dark:text-fg-2">SE</label>
           <select
             value={seId ?? ''}
             onChange={e => handleSelectSe(parseInt(e.target.value))}
-            className="px-3 py-1.5 rounded-lg border border-brand-navy-30 text-sm text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-purple bg-white"
+            className="px-3 py-1.5 rounded-lg border border-brand-navy-30 text-sm text-brand-navy dark:text-fg-1 focus:outline-none focus:ring-2 focus:ring-brand-purple bg-white dark:bg-ink-1"
           >
             <option value="" disabled>Select an SE…</option>
             {ses.map(s => (
@@ -352,7 +352,7 @@ export default function OneOnOnePrepPage() {
       </div>
 
       {!seId && (
-        <div className="bg-white rounded-xl border border-brand-navy-30 p-8 text-center text-brand-navy-70">
+        <div className="bg-white dark:bg-ink-1 rounded-xl border border-brand-navy-30 p-8 text-center text-brand-navy-70 dark:text-fg-2">
           Pick an SE above to load their 1:1 prep brief.
         </div>
       )}
@@ -364,26 +364,26 @@ export default function OneOnOnePrepPage() {
           {/* Summary stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
             <StatCard label="Open Opps" value={String(summary.oppCount)}
-              icon={<svg className="w-5 h-5 text-brand-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>} />
+              icon={<svg className="w-5 h-5 text-brand-purple dark:text-accent-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>} />
             <StatCard label="Total ARR" value={formatARR(summary.totalArr)}
-              icon={<svg className="w-5 h-5 text-brand-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>} />
+              icon={<svg className="w-5 h-5 text-brand-purple dark:text-accent-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>} />
             <StatCard label="Overdue Tasks" value={String(summary.overdueCount)} tone={summary.overdueCount > 0 ? 'danger' : undefined}
-              icon={<svg className={`w-5 h-5 ${summary.overdueCount > 0 ? 'text-status-overdue' : 'text-brand-purple'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>} />
+              icon={<svg className={`w-5 h-5 ${summary.overdueCount > 0 ? 'text-status-overdue dark:text-status-d-overdue' : 'text-brand-purple'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>} />
             <StatCard label="Hygiene Issues" value={String(summary.hygieneCount)} tone={summary.hygieneCount > 0 ? 'warn' : undefined}
-              icon={<svg className={`w-5 h-5 ${summary.hygieneCount > 0 ? 'text-status-warning' : 'text-brand-purple'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>} />
+              icon={<svg className={`w-5 h-5 ${summary.hygieneCount > 0 ? 'text-status-warning dark:text-status-d-warning' : 'text-brand-purple'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>} />
           </div>
           {/* Health + comments row */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-5">
             <StatCard label="Red" value={String(summary.red)} tone={summary.red > 0 ? 'danger' : undefined}
-              icon={<svg className={`w-5 h-5 ${summary.red > 0 ? 'text-status-overdue' : 'text-brand-navy-30'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9.303 3.376c.866 1.5-.217 3.374-1.948 3.374H4.645c-1.73 0-2.813-1.874-1.948-3.374L10.051 3.378c.866-1.5 3.032-1.5 3.898 0l8.354 12.748z"/></svg>} />
+              icon={<svg className={`w-5 h-5 ${summary.red > 0 ? 'text-status-overdue dark:text-status-d-overdue' : 'text-brand-navy-30 dark:text-fg-4'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9.303 3.376c.866 1.5-.217 3.374-1.948 3.374H4.645c-1.73 0-2.813-1.874-1.948-3.374L10.051 3.378c.866-1.5 3.032-1.5 3.898 0l8.354 12.748z"/></svg>} />
             <StatCard label="Amber" value={String(summary.amber)} tone={summary.amber > 0 ? 'warn' : undefined}
-              icon={<svg className={`w-5 h-5 ${summary.amber > 0 ? 'text-status-warning' : 'text-brand-navy-30'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9.303 3.376c.866 1.5-.217 3.374-1.948 3.374H4.645c-1.73 0-2.813-1.874-1.948-3.374L10.051 3.378c.866-1.5 3.032-1.5 3.898 0l8.354 12.748z"/></svg>} />
+              icon={<svg className={`w-5 h-5 ${summary.amber > 0 ? 'text-status-warning dark:text-status-d-warning' : 'text-brand-navy-30 dark:text-fg-4'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9.303 3.376c.866 1.5-.217 3.374-1.948 3.374H4.645c-1.73 0-2.813-1.874-1.948-3.374L10.051 3.378c.866-1.5 3.032-1.5 3.898 0l8.354 12.748z"/></svg>} />
             <StatCard label="Green" value={String(summary.green)} tone="success"
-              icon={<svg className="w-5 h-5 text-status-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>} />
+              icon={<svg className="w-5 h-5 text-status-success dark:text-status-d-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>} />
             <StatCard label="Stale Comments" value={String(summary.staleCount)} tone={summary.staleCount > 0 ? 'warn' : undefined}
-              icon={<svg className={`w-5 h-5 ${summary.staleCount > 0 ? 'text-status-warning' : 'text-brand-navy-30'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>} />
+              icon={<svg className={`w-5 h-5 ${summary.staleCount > 0 ? 'text-status-warning dark:text-status-d-warning' : 'text-brand-navy-30 dark:text-fg-4'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>} />
             <StatCard label="No Next Step" value={String(summary.noNextStep)} tone={summary.noNextStep > 0 ? 'warn' : undefined}
-              icon={<svg className={`w-5 h-5 ${summary.noNextStep > 0 ? 'text-status-warning' : 'text-brand-navy-30'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>} />
+              icon={<svg className={`w-5 h-5 ${summary.noNextStep > 0 ? 'text-status-warning dark:text-status-d-warning' : 'text-brand-navy-30 dark:text-fg-4'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>} />
           </div>
 
           {/* AI Coaching Brief — collapsible, collapsed by default, with freshness indicator */}
@@ -393,34 +393,34 @@ export default function OneOnOnePrepPage() {
               onClick={() => setNarrativeCollapsed(c => !c)}
               className="w-full flex items-center gap-1.5 px-4 py-2.5 text-left"
             >
-              <svg className="w-3.5 h-3.5 text-brand-purple flex-shrink-0" viewBox="0 0 24 24" fill="none">
+              <svg className="w-3.5 h-3.5 text-brand-purple dark:text-accent-purple flex-shrink-0" viewBox="0 0 24 24" fill="none">
                 <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="#6A2CF5"/>
               </svg>
-              <span className="text-[10px] font-semibold uppercase tracking-widest text-brand-purple">AI Coaching Brief</span>
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-brand-purple dark:text-accent-purple">AI Coaching Brief</span>
               {data.narrative ? (() => {
                 const days = Math.floor((Date.now() - new Date(data.narrative.generated_at).getTime()) / 86400000);
-                const color = days <= 3 ? 'text-status-success' : days <= 14 ? 'text-status-warning' : 'text-status-overdue';
+                const color = days <= 3 ? 'text-status-success dark:text-status-d-success' : days <= 14 ? 'text-status-warning dark:text-status-d-warning' : 'text-status-overdue dark:text-status-d-overdue';
                 return (
                   <span className={`text-[10px] font-medium ${color} ml-1`}>
                     {days === 0 ? 'today' : `${days}d ago`}
                   </span>
                 );
               })() : (
-                <span className="text-[10px] font-medium text-brand-navy-70 ml-1">Not generated yet</span>
+                <span className="text-[10px] font-medium text-brand-navy-70 dark:text-fg-2 ml-1">Not generated yet</span>
               )}
               <div className="ml-auto flex items-center gap-1">
-                <svg className={`w-3 h-3 text-brand-navy-70 transition-transform ${narrativeCollapsed ? '' : 'rotate-180'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg className={`w-3 h-3 text-brand-navy-70 dark:text-fg-2 transition-transform ${narrativeCollapsed ? '' : 'rotate-180'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                 </svg>
               </div>
             </button>
             {/* Body — collapsible */}
             {!narrativeCollapsed && (
-              <div className="px-4 pb-3 text-sm text-brand-navy leading-relaxed">
+              <div className="px-4 pb-3 text-sm text-brand-navy dark:text-fg-1 leading-relaxed">
                 {data.narrative ? (
                   <div>{renderBrief(data.narrative.content, data.narrative.citations, citeJumper)}</div>
                 ) : (
-                  <p className="text-sm text-brand-navy-70 mb-1">
+                  <p className="text-sm text-brand-navy-70 dark:text-fg-2 mb-1">
                     Generate a Claude-powered brief covering wins, coaching focus, risks to flag, and a suggested agenda for your 1:1 with {selectedSe?.name ?? 'this SE'}.
                   </p>
                 )}
@@ -428,20 +428,20 @@ export default function OneOnOnePrepPage() {
                   <button
                     onClick={(e) => { e.stopPropagation(); handleGenerateNarrative(); }}
                     disabled={narrativeLoading}
-                    className="text-[10px] font-medium text-brand-purple hover:text-brand-purple-70 transition-colors disabled:opacity-50"
+                    className="text-[10px] font-medium text-brand-purple dark:text-accent-purple hover:text-brand-purple-70 dark:text-accent-purple transition-colors disabled:opacity-50"
                   >
                     {narrativeLoading ? 'Regenerating…' : data.narrative ? 'Regenerate' : 'Generate coaching brief'}
                   </button>
                   {data.narrative && (
                     <button
                       onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(data.narrative!.content); }}
-                      className="text-[10px] font-medium text-brand-navy-70 hover:text-brand-navy transition-colors"
+                      className="text-[10px] font-medium text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:text-fg-1 transition-colors"
                     >
                       Copy
                     </button>
                   )}
                   {narrativeError && (
-                    <span className="text-[10px] text-status-overdue">{narrativeError}</span>
+                    <span className="text-[10px] text-status-overdue dark:text-status-d-overdue">{narrativeError}</span>
                   )}
                 </div>
               </div>
@@ -494,7 +494,7 @@ export default function OneOnOnePrepPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="text-xs text-brand-navy-70 uppercase tracking-wide border-b border-brand-navy-30/50">
+                    <tr className="text-xs text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide border-b border-brand-navy-30/50">
                       <th className="text-left py-2 pr-3 font-medium">Deal</th>
                       <th className="text-left py-2 pr-3 font-medium">Stage</th>
                       <th className="text-right py-2 pr-3 font-medium">ARR</th>
@@ -505,17 +505,17 @@ export default function OneOnOnePrepPage() {
                     {hygieneOpps.map(({ opp, flags }) => (
                       <tr
                         key={opp.id}
-                        className="hover:bg-brand-purple-30/20 cursor-pointer transition-colors"
+                        className="hover:bg-brand-purple-30/20 dark:hover:bg-accent-purple-soft cursor-pointer transition-colors"
                         onClick={() => handleOpenOpp(opp.id)}
                       >
                         <td className="py-2.5 pr-3">
-                          <p className="font-medium text-brand-navy">{opp.name}</p>
-                          {opp.account_name && <p className="text-xs text-brand-navy-70">{opp.account_name}</p>}
+                          <p className="font-medium text-brand-navy dark:text-fg-1">{opp.name}</p>
+                          {opp.account_name && <p className="text-xs text-brand-navy-70 dark:text-fg-2">{opp.account_name}</p>}
                         </td>
-                        <td className="py-2.5 pr-3 text-brand-navy-70 whitespace-nowrap">
+                        <td className="py-2.5 pr-3 text-brand-navy-70 dark:text-fg-2 whitespace-nowrap">
                           <StageBadge stage={opp.stage} />
                         </td>
-                        <td className="py-2.5 pr-3 text-right text-brand-navy-70 whitespace-nowrap">
+                        <td className="py-2.5 pr-3 text-right text-brand-navy-70 dark:text-fg-2 whitespace-nowrap">
                           {opp.arr != null ? formatARR(typeof opp.arr === 'string' ? parseFloat(opp.arr) : opp.arr) : '—'}
                         </td>
                         <td className="py-2.5">
@@ -523,10 +523,10 @@ export default function OneOnOnePrepPage() {
                             {flags.map((f, i) => (
                               <span key={i} className={`inline-flex text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded ${
                                 f.includes('overdue') || f.includes('should be')
-                                  ? 'text-status-overdue bg-status-overdue/10'
+                                  ? 'text-status-overdue dark:text-status-d-overdue bg-status-overdue/10 dark:bg-status-d-overdue-soft'
                                   : f.includes('Missing')
-                                  ? 'text-brand-purple bg-brand-purple-30/50'
-                                  : 'text-status-warning bg-status-warning/10'
+                                  ? 'text-brand-purple dark:text-accent-purple bg-brand-purple-30/50 dark:bg-accent-purple-soft'
+                                  : 'text-status-warning dark:text-status-d-warning bg-status-warning/10 dark:bg-status-d-warning-soft'
                               }`}>{f}</span>
                             ))}
                           </div>
@@ -572,7 +572,7 @@ export default function OneOnOnePrepPage() {
 function TaskList({ tasks, tone, onOpenOpp }: {
   tasks: OneOnOneTask[]; tone: 'danger' | 'warn'; onOpenOpp: (id: number) => void;
 }) {
-  const dueClass = tone === 'danger' ? 'text-status-overdue' : 'text-status-warning';
+  const dueClass = tone === 'danger' ? 'text-status-overdue dark:text-status-d-overdue' : 'text-status-warning dark:text-status-d-warning';
   return (
     <ul className="divide-y divide-brand-navy-30/50">
       {tasks.map(t => (
@@ -581,11 +581,11 @@ function TaskList({ tasks, tone, onOpenOpp }: {
             {t.due_date ? formatDate(t.due_date) : 'No due date'}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-brand-navy font-medium">{t.title}</div>
+            <div className="text-brand-navy dark:text-fg-1 font-medium">{t.title}</div>
             <button
               type="button"
               onClick={() => onOpenOpp(t.opportunity_id)}
-              className="text-xs text-brand-navy-70 hover:text-brand-purple text-left"
+              className="text-xs text-brand-navy-70 dark:text-fg-2 hover:text-brand-purple dark:text-accent-purple text-left"
             >
               {t.opportunity_name}
               {t.account_name && <> · {t.account_name}</>}
@@ -605,7 +605,7 @@ function OppTable({ opps, showComments, onOpenOpp }: {
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="text-left text-xs uppercase tracking-wide text-brand-navy-70 border-b border-brand-navy-30">
+          <tr className="text-left text-xs uppercase tracking-wide text-brand-navy-70 dark:text-fg-2 border-b border-brand-navy-30">
             <th className="py-2 pr-3 font-medium">Health</th>
             <th className="py-2 pr-3 font-medium">Deal</th>
             <th className="py-2 pr-3 font-medium">Account</th>
@@ -618,7 +618,7 @@ function OppTable({ opps, showComments, onOpenOpp }: {
         </thead>
         <tbody>
           {opps.map(o => (
-            <tr key={o.id} className="border-b border-brand-navy-30/50 last:border-0 hover:bg-brand-purple-30/20">
+            <tr key={o.id} className="border-b border-brand-navy-30/50 last:border-0 hover:bg-brand-purple-30/20 dark:hover:bg-accent-purple-soft">
               <td className="py-2 pr-3">
                 <HealthScoreBadge opp={o} />
               </td>
@@ -626,20 +626,20 @@ function OppTable({ opps, showComments, onOpenOpp }: {
                 <button
                   type="button"
                   onClick={() => onOpenOpp(o.id)}
-                  className="text-brand-navy hover:text-brand-purple font-medium text-left"
+                  className="text-brand-navy dark:text-fg-1 hover:text-brand-purple dark:text-accent-purple font-medium text-left"
                 >
                   {o.name}
                 </button>
               </td>
-              <td className="py-2 pr-3 text-brand-navy-70">{o.account_name ?? '—'}</td>
+              <td className="py-2 pr-3 text-brand-navy-70 dark:text-fg-2">{o.account_name ?? '—'}</td>
               <td className="py-2 pr-3"><StageBadge stage={o.stage} /></td>
-              <td className="py-2 pr-3 text-right text-brand-navy">{formatARR(o.arr)}</td>
-              <td className="py-2 pr-3 text-brand-navy-70">{formatDate(o.close_date)}</td>
+              <td className="py-2 pr-3 text-right text-brand-navy dark:text-fg-1">{formatARR(o.arr)}</td>
+              <td className="py-2 pr-3 text-brand-navy-70 dark:text-fg-2">{formatDate(o.close_date)}</td>
               {showComments && (
                 <td className="py-2 pr-3"><CommentsFreshness iso={o.se_comments_updated_at} /></td>
               )}
-              <td className="py-2 pr-3 text-brand-navy-70 max-w-xs truncate" title={o.next_step_sf ?? ''}>
-                {o.next_step_sf || <span className="text-status-overdue">— none —</span>}
+              <td className="py-2 pr-3 text-brand-navy-70 dark:text-fg-2 max-w-xs truncate" title={o.next_step_sf ?? ''}>
+                {o.next_step_sf || <span className="text-status-overdue dark:text-status-d-overdue">— none —</span>}
               </td>
             </tr>
           ))}
@@ -656,11 +656,11 @@ function StageMovementList({ moves, onOpenOpp }: {
     <ul className="divide-y divide-brand-navy-30/50">
       {moves.map((m, i) => (
         <li key={`${m.id}-${m.current_stage}-${i}`} className="py-2 flex items-center gap-3 text-sm">
-          <div className="text-xs text-brand-navy-70 w-20 flex-shrink-0">{formatDate(m.stage_changed_at)}</div>
+          <div className="text-xs text-brand-navy-70 dark:text-fg-2 w-20 flex-shrink-0">{formatDate(m.stage_changed_at)}</div>
           <button
             type="button"
             onClick={() => onOpenOpp(m.id)}
-            className="flex-1 text-brand-navy hover:text-brand-purple font-medium truncate text-left"
+            className="flex-1 text-brand-navy dark:text-fg-1 hover:text-brand-purple dark:text-accent-purple font-medium truncate text-left"
           >
             {m.name}
           </button>
@@ -668,12 +668,12 @@ function StageMovementList({ moves, onOpenOpp }: {
             {m.previous_stage && (
               <>
                 <StageBadge stage={m.previous_stage} />
-                <span className="text-brand-navy-70">→</span>
+                <span className="text-brand-navy-70 dark:text-fg-2">→</span>
               </>
             )}
             <StageBadge stage={m.current_stage} />
           </div>
-          <div className="text-xs text-brand-navy w-20 text-right">{formatARR(m.arr)}</div>
+          <div className="text-xs text-brand-navy dark:text-fg-1 w-20 text-right">{formatARR(m.arr)}</div>
         </li>
       ))}
     </ul>

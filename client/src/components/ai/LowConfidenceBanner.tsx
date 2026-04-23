@@ -15,7 +15,7 @@ export default function LowConfidenceBanner({ spans }: { spans: LowConfidenceSpa
   if (spans.length === 0) return null;
 
   return (
-    <div className="rounded-lg border border-amber-400/50 bg-amber-50/50">
+    <div className="rounded-lg border border-amber-400/50 bg-amber-50 dark:bg-status-d-warning-soft/50">
       <button
         type="button"
         onClick={e => { e.stopPropagation(); setExpanded(v => !v); }}

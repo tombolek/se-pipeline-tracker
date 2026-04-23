@@ -51,10 +51,10 @@ export default function OverdueTasksPage() {
         />
         {seFilterName && (
           <div className="flex items-center gap-2 mt-1">
-            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-brand-purple/10 border border-brand-purple text-brand-purple">
+            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-brand-purple/10 dark:bg-accent-purple-soft border border-brand-purple text-brand-purple dark:text-accent-purple">
               SE: {seFilterName}
             </span>
-            <Link to="/insights/overdue-tasks" className="text-xs text-brand-navy-70 hover:text-brand-navy">Show all</Link>
+            <Link to="/insights/overdue-tasks" className="text-xs text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:text-fg-1">Show all</Link>
           </div>
         )}
       </div>
@@ -63,31 +63,31 @@ export default function OverdueTasksPage() {
           {visibleGroups.map(g => (
             <div key={g.se_id}>
               <div className="flex items-center gap-2 mb-3">
-                <div className="w-6 h-6 rounded-full bg-brand-purple flex items-center justify-center text-[10px] font-semibold text-white">
+                <div className="w-6 h-6 rounded-full bg-brand-purple dark:bg-accent-purple flex items-center justify-center text-[10px] font-semibold text-white">
                   {g.se_name[0]?.toUpperCase()}
                 </div>
-                <h3 className="text-sm font-semibold text-brand-navy">{g.se_name}</h3>
-                <span className="text-[10px] bg-status-overdue/10 text-status-overdue rounded-full px-2 py-px font-semibold">
+                <h3 className="text-sm font-semibold text-brand-navy dark:text-fg-1">{g.se_name}</h3>
+                <span className="text-[10px] bg-status-overdue/10 dark:bg-status-d-overdue-soft text-status-overdue dark:text-status-d-overdue rounded-full px-2 py-px font-semibold">
                   {g.tasks.length} overdue
                 </span>
               </div>
-              <div className="bg-white rounded-2xl border border-brand-navy-30/40 overflow-hidden">
+              <div className="bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft overflow-hidden">
                 {g.tasks.map((t, i) => (
-                  <div key={t.id} className={`flex items-start gap-3 px-4 py-3 ${i < g.tasks.length - 1 ? 'border-b border-brand-navy-30/20' : ''}`}>
-                    <svg className="w-4 h-4 text-status-overdue flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <div key={t.id} className={`flex items-start gap-3 px-4 py-3 ${i < g.tasks.length - 1 ? 'border-b border-brand-navy-30/20 dark:border-ink-border-soft' : ''}`}>
+                    <svg className="w-4 h-4 text-status-overdue dark:text-status-d-overdue flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-sm font-medium text-brand-navy">{t.title}</p>
+                        <p className="text-sm font-medium text-brand-navy dark:text-fg-1">{t.title}</p>
                         {t.is_next_step && (
-                          <span className="text-[9px] font-semibold bg-brand-purple/10 text-brand-purple px-1.5 py-px rounded-full uppercase">Next step</span>
+                          <span className="text-[9px] font-semibold bg-brand-purple/10 dark:bg-accent-purple-soft text-brand-purple dark:text-accent-purple px-1.5 py-px rounded-full uppercase">Next step</span>
                         )}
                       </div>
                       <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                        <p className="text-xs text-brand-navy-70">{t.opportunity_name}</p>
-                        <span className="text-brand-navy-30">·</span>
-                        <p className="text-xs text-status-overdue font-medium">Due {formatDate(t.due_date)}</p>
+                        <p className="text-xs text-brand-navy-70 dark:text-fg-2">{t.opportunity_name}</p>
+                        <span className="text-brand-navy-30 dark:text-fg-4">·</span>
+                        <p className="text-xs text-status-overdue dark:text-status-d-overdue font-medium">Due {formatDate(t.due_date)}</p>
                       </div>
                     </div>
                     <StageBadge stage={t.opportunity_stage} />

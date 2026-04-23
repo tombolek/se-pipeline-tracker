@@ -10,9 +10,9 @@ import { formatDate } from '../../utils/formatters';
 // ── Shared atoms ──────────────────────────────────────────────────────────────
 
 function RoleBadge({ role }: { role: 'manager' | 'se' | 'viewer' }) {
-  if (role === 'manager') return <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-brand-purple/10 text-brand-purple">Manager</span>;
-  if (role === 'viewer') return <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-brand-navy-30/50 text-brand-navy-70">Viewer</span>;
-  return <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-brand-navy-30/50 text-brand-navy-70">SE</span>;
+  if (role === 'manager') return <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-brand-purple/10 dark:bg-accent-purple-soft text-brand-purple dark:text-accent-purple">Manager</span>;
+  if (role === 'viewer') return <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-brand-navy-30/50 text-brand-navy-70 dark:text-fg-2">Viewer</span>;
+  return <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-brand-navy-30/50 text-brand-navy-70 dark:text-fg-2">SE</span>;
 }
 
 function UserAvatar({ user, size = 8 }: { user: User; size?: number }) {
@@ -61,25 +61,25 @@ function AddUserModal({ onClose, onCreated, managers }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
-      <div className="bg-white rounded-lg shadow-lg border border-brand-navy-30/40 w-full max-w-md mx-4 p-6" onClick={e => e.stopPropagation()}>
-        <h2 className="text-base font-semibold text-brand-navy mb-5">Add User</h2>
+      <div className="bg-white dark:bg-ink-1 rounded-lg shadow-lg border border-brand-navy-30/40 dark:border-ink-border-soft w-full max-w-md mx-4 p-6" onClick={e => e.stopPropagation()}>
+        <h2 className="text-base font-semibold text-brand-navy dark:text-fg-1 mb-5">Add User</h2>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="block text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide mb-1">Full Name</label>
+            <label className="block text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide mb-1">Full Name</label>
             <input type="text" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
               placeholder="Alex Rivera" autoFocus
-              className="w-full px-3 py-2 rounded-lg border border-brand-navy-30 text-sm text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-purple" />
+              className="w-full px-3 py-2 rounded-lg border border-brand-navy-30 text-sm text-brand-navy dark:text-fg-1 focus:outline-none focus:ring-2 focus:ring-brand-purple" />
           </div>
           <div>
-            <label className="block text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide mb-1">Email</label>
+            <label className="block text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide mb-1">Email</label>
             <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
               placeholder="alex@ataccama.com"
-              className="w-full px-3 py-2 rounded-lg border border-brand-navy-30 text-sm text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-purple" />
+              className="w-full px-3 py-2 rounded-lg border border-brand-navy-30 text-sm text-brand-navy dark:text-fg-1 focus:outline-none focus:ring-2 focus:ring-brand-purple" />
           </div>
           <div>
-            <label className="block text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide mb-1">Role</label>
+            <label className="block text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide mb-1">Role</label>
             <select value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value as 'manager' | 'se' | 'viewer' }))}
-              className="w-full px-3 py-2 rounded-lg border border-brand-navy-30 text-sm text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-purple bg-white">
+              className="w-full px-3 py-2 rounded-lg border border-brand-navy-30 text-sm text-brand-navy dark:text-fg-1 focus:outline-none focus:ring-2 focus:ring-brand-purple bg-white dark:bg-ink-1">
               <option value="se">SE</option>
               <option value="manager">Manager</option>
               <option value="viewer">Viewer</option>
@@ -87,11 +87,11 @@ function AddUserModal({ onClose, onCreated, managers }: {
           </div>
           {form.role === 'se' && (
             <div>
-              <label className="block text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide mb-1">Manager</label>
+              <label className="block text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide mb-1">Manager</label>
               <select
                 value={form.manager_id}
                 onChange={e => setForm(f => ({ ...f, manager_id: e.target.value === '' ? '' : parseInt(e.target.value) }))}
-                className="w-full px-3 py-2 rounded-lg border border-brand-navy-30 text-sm text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-purple bg-white">
+                className="w-full px-3 py-2 rounded-lg border border-brand-navy-30 text-sm text-brand-navy dark:text-fg-1 focus:outline-none focus:ring-2 focus:ring-brand-purple bg-white dark:bg-ink-1">
                 <option value="">— No manager —</option>
                 {managers.map(m => (
                   <option key={m.id} value={m.id}>{m.name}</option>
@@ -100,19 +100,19 @@ function AddUserModal({ onClose, onCreated, managers }: {
             </div>
           )}
           <div>
-            <label className="block text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide mb-1">Temporary Password</label>
+            <label className="block text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide mb-1">Temporary Password</label>
             <input type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
               placeholder="Min. 6 characters"
-              className="w-full px-3 py-2 rounded-lg border border-brand-navy-30 text-sm text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-purple" />
+              className="w-full px-3 py-2 rounded-lg border border-brand-navy-30 text-sm text-brand-navy dark:text-fg-1 focus:outline-none focus:ring-2 focus:ring-brand-purple" />
           </div>
-          {error && <p className="text-xs text-status-overdue">{error}</p>}
+          {error && <p className="text-xs text-status-overdue dark:text-status-d-overdue">{error}</p>}
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" onClick={onClose}
-              className="px-4 py-2 rounded-lg border border-brand-navy-30 text-sm text-brand-navy-70 hover:text-brand-navy transition-colors">
+              className="px-4 py-2 rounded-lg border border-brand-navy-30 text-sm text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:text-fg-1 transition-colors">
               Cancel
             </button>
             <button type="submit" disabled={saving}
-              className="px-4 py-2 rounded-lg bg-brand-purple text-white text-sm font-semibold hover:bg-brand-purple-70 disabled:opacity-50 transition-colors">
+              className="px-4 py-2 rounded-lg bg-brand-purple dark:bg-accent-purple text-white text-sm font-semibold hover:bg-brand-purple-70 dark:hover:opacity-90 disabled:opacity-50 transition-colors">
               {saving ? 'Creating…' : 'Create User'}
             </button>
           </div>
@@ -144,11 +144,11 @@ function ResetPasswordModal({ user, onClose }: { user: User; onClose: () => void
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
-      <div className="bg-white rounded-lg shadow-lg border border-brand-navy-30/40 w-full max-w-sm mx-4 p-6" onClick={e => e.stopPropagation()}>
-        <h2 className="text-base font-semibold text-brand-navy mb-1">Reset password</h2>
-        <p className="text-xs text-brand-navy-70 mb-5">Set a new temporary password for <span className="font-medium text-brand-navy">{user.name}</span>.</p>
+      <div className="bg-white dark:bg-ink-1 rounded-lg shadow-lg border border-brand-navy-30/40 dark:border-ink-border-soft w-full max-w-sm mx-4 p-6" onClick={e => e.stopPropagation()}>
+        <h2 className="text-base font-semibold text-brand-navy dark:text-fg-1 mb-1">Reset password</h2>
+        <p className="text-xs text-brand-navy-70 dark:text-fg-2 mb-5">Set a new temporary password for <span className="font-medium text-brand-navy dark:text-fg-1">{user.name}</span>.</p>
         {done ? (
-          <p className="text-sm text-status-success font-medium flex items-center gap-1.5">
+          <p className="text-sm text-status-success dark:text-status-d-success font-medium flex items-center gap-1.5">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
             Password updated
           </p>
@@ -156,13 +156,13 @@ function ResetPasswordModal({ user, onClose }: { user: User; onClose: () => void
           <form onSubmit={handleSubmit} className="space-y-3">
             <input type="password" autoFocus value={password} onChange={e => setPassword(e.target.value)}
               placeholder="New password (min. 6 characters)"
-              className="w-full px-3 py-2 rounded-lg border border-brand-navy-30 text-sm text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-purple" />
-            {error && <p className="text-xs text-status-overdue">{error}</p>}
+              className="w-full px-3 py-2 rounded-lg border border-brand-navy-30 text-sm text-brand-navy dark:text-fg-1 focus:outline-none focus:ring-2 focus:ring-brand-purple" />
+            {error && <p className="text-xs text-status-overdue dark:text-status-d-overdue">{error}</p>}
             <div className="flex justify-end gap-2">
               <button type="button" onClick={onClose}
-                className="px-4 py-2 rounded-lg border border-brand-navy-30 text-sm text-brand-navy-70 hover:text-brand-navy transition-colors">Cancel</button>
+                className="px-4 py-2 rounded-lg border border-brand-navy-30 text-sm text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:text-fg-1 transition-colors">Cancel</button>
               <button type="submit" disabled={saving}
-                className="px-4 py-2 rounded-lg bg-brand-purple text-white text-sm font-semibold hover:bg-brand-purple-70 disabled:opacity-50 transition-colors">
+                className="px-4 py-2 rounded-lg bg-brand-purple dark:bg-accent-purple text-white text-sm font-semibold hover:bg-brand-purple-70 dark:hover:opacity-90 disabled:opacity-50 transition-colors">
                 {saving ? 'Saving…' : 'Set password'}
               </button>
             </div>
@@ -192,23 +192,23 @@ function ConfirmRoleModal({ user, onClose, onConfirm }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="bg-white rounded-lg shadow-lg border border-brand-navy-30/40 w-full max-w-sm mx-4 p-6">
-        <h2 className="text-base font-semibold text-brand-navy mb-1">
+      <div className="bg-white dark:bg-ink-1 rounded-lg shadow-lg border border-brand-navy-30/40 dark:border-ink-border-soft w-full max-w-sm mx-4 p-6">
+        <h2 className="text-base font-semibold text-brand-navy dark:text-fg-1 mb-1">
           Change role to {toRole}?
         </h2>
-        <p className="text-sm text-brand-navy-70 mb-6">
+        <p className="text-sm text-brand-navy-70 dark:text-fg-2 mb-6">
           {isPromotion
-            ? <><span className="font-medium text-brand-navy">{user.name}</span> will gain manager access — they'll be able to manage users, trigger imports, and see all manager views.</>
-            : <><span className="font-medium text-brand-navy">{user.name}</span> will lose manager access and be downgraded to SE.</>
+            ? <><span className="font-medium text-brand-navy dark:text-fg-1">{user.name}</span> will gain manager access — they'll be able to manage users, trigger imports, and see all manager views.</>
+            : <><span className="font-medium text-brand-navy dark:text-fg-1">{user.name}</span> will lose manager access and be downgraded to SE.</>
           }
         </p>
         <div className="flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 rounded-lg border border-brand-navy-30 text-sm text-brand-navy-70 hover:text-brand-navy transition-colors">
+          <button onClick={onClose} className="px-4 py-2 rounded-lg border border-brand-navy-30 text-sm text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:text-fg-1 transition-colors">
             Cancel
           </button>
           <button onClick={handleConfirm} disabled={saving}
             className={`px-4 py-2 rounded-lg text-white text-sm font-semibold disabled:opacity-50 transition-colors ${
-              isPromotion ? 'bg-brand-purple hover:bg-brand-purple-70' : 'bg-status-overdue/80 hover:bg-status-overdue'
+              isPromotion ? 'bg-brand-purple hover:bg-brand-purple-70 dark:hover:opacity-90' : 'bg-status-overdue/80 hover:bg-status-overdue'
             }`}>
             {saving ? 'Saving…' : `Make ${toRole}`}
           </button>
@@ -245,28 +245,28 @@ function ReassignWorkloadModal({ user, activeUsers, onClose, onDone }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
-      <div className="bg-white rounded-lg shadow-lg border border-brand-navy-30/40 w-full max-w-sm mx-4 p-6" onClick={e => e.stopPropagation()}>
-        <h2 className="text-base font-semibold text-brand-navy mb-1">Reassign workload</h2>
-        <p className="text-xs text-brand-navy-70 mb-5">
-          All tasks assigned to and open opportunities owned by <span className="font-medium text-brand-navy">{user.name}</span> will be transferred to:
+      <div className="bg-white dark:bg-ink-1 rounded-lg shadow-lg border border-brand-navy-30/40 dark:border-ink-border-soft w-full max-w-sm mx-4 p-6" onClick={e => e.stopPropagation()}>
+        <h2 className="text-base font-semibold text-brand-navy dark:text-fg-1 mb-1">Reassign workload</h2>
+        <p className="text-xs text-brand-navy-70 dark:text-fg-2 mb-5">
+          All tasks assigned to and open opportunities owned by <span className="font-medium text-brand-navy dark:text-fg-1">{user.name}</span> will be transferred to:
         </p>
         {result ? (
-          <p className="text-sm text-status-success font-medium flex items-center gap-1.5">
+          <p className="text-sm text-status-success dark:text-status-d-success font-medium flex items-center gap-1.5">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
             {result.tasks_reassigned} task{result.tasks_reassigned !== 1 ? 's' : ''} and {result.opps_reassigned} deal{result.opps_reassigned !== 1 ? 's' : ''} transferred
           </p>
         ) : (
           <div className="space-y-4">
             <select value={toUserId} onChange={e => setToUserId(Number(e.target.value))}
-              className="w-full px-3 py-2 rounded-lg border border-brand-navy-30 text-sm text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-purple bg-white">
+              className="w-full px-3 py-2 rounded-lg border border-brand-navy-30 text-sm text-brand-navy dark:text-fg-1 focus:outline-none focus:ring-2 focus:ring-brand-purple bg-white dark:bg-ink-1">
               {candidates.map(u => <option key={u.id} value={u.id}>{u.name} ({u.role})</option>)}
             </select>
-            {error && <p className="text-xs text-status-overdue">{error}</p>}
+            {error && <p className="text-xs text-status-overdue dark:text-status-d-overdue">{error}</p>}
             <div className="flex justify-end gap-2">
               <button onClick={onClose}
-                className="px-4 py-2 rounded-lg border border-brand-navy-30 text-sm text-brand-navy-70 hover:text-brand-navy transition-colors">Cancel</button>
+                className="px-4 py-2 rounded-lg border border-brand-navy-30 text-sm text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:text-fg-1 transition-colors">Cancel</button>
               <button onClick={handleConfirm} disabled={saving || !toUserId}
-                className="px-4 py-2 rounded-lg bg-brand-purple text-white text-sm font-semibold hover:bg-brand-purple-70 disabled:opacity-50 transition-colors">
+                className="px-4 py-2 rounded-lg bg-brand-purple dark:bg-accent-purple text-white text-sm font-semibold hover:bg-brand-purple-70 dark:hover:opacity-90 disabled:opacity-50 transition-colors">
                 {saving ? 'Transferring…' : 'Transfer'}
               </button>
             </div>
@@ -305,20 +305,20 @@ function DeactivateModal({ user, activeUsers, onClose, onDone }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
-      <div className="bg-white rounded-lg shadow-lg border border-brand-navy-30/40 w-full max-w-md mx-4 p-6" onClick={e => e.stopPropagation()}>
+      <div className="bg-white dark:bg-ink-1 rounded-lg shadow-lg border border-brand-navy-30/40 dark:border-ink-border-soft w-full max-w-md mx-4 p-6" onClick={e => e.stopPropagation()}>
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-9 h-9 rounded-full bg-status-warning/10 flex items-center justify-center flex-shrink-0">
-            <svg className="w-5 h-5 text-status-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <div className="w-9 h-9 rounded-full bg-status-warning/10 dark:bg-status-d-warning-soft flex items-center justify-center flex-shrink-0">
+            <svg className="w-5 h-5 text-status-warning dark:text-status-d-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
             </svg>
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-brand-navy">Deactivate {user.name}?</h2>
-            <p className="text-xs text-brand-navy-70 mt-0.5">They will no longer be able to log in.</p>
+            <h2 className="text-sm font-semibold text-brand-navy dark:text-fg-1">Deactivate {user.name}?</h2>
+            <p className="text-xs text-brand-navy-70 dark:text-fg-2 mt-0.5">They will no longer be able to log in.</p>
           </div>
         </div>
 
-        <p className="text-sm text-brand-navy-70 mb-4">
+        <p className="text-sm text-brand-navy-70 dark:text-fg-2 mb-4">
           Would you like to reassign their open deals and tasks to another team member first?
         </p>
 
@@ -326,10 +326,10 @@ function DeactivateModal({ user, activeUsers, onClose, onDone }: {
           <label className="flex items-start gap-2.5 cursor-pointer">
             <input type="radio" checked={withReassign} onChange={() => setWithReassign(true)} className="mt-0.5 accent-brand-purple" />
             <div>
-              <span className="text-sm font-medium text-brand-navy">Yes, reassign workload to:</span>
+              <span className="text-sm font-medium text-brand-navy dark:text-fg-1">Yes, reassign workload to:</span>
               {withReassign && (
                 <select value={toUserId} onChange={e => setToUserId(Number(e.target.value))}
-                  className="mt-1.5 w-full px-3 py-1.5 rounded-lg border border-brand-navy-30 text-sm text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-purple bg-white">
+                  className="mt-1.5 w-full px-3 py-1.5 rounded-lg border border-brand-navy-30 text-sm text-brand-navy dark:text-fg-1 focus:outline-none focus:ring-2 focus:ring-brand-purple bg-white dark:bg-ink-1">
                   {candidates.map(u => <option key={u.id} value={u.id}>{u.name} ({u.role})</option>)}
                 </select>
               )}
@@ -337,15 +337,15 @@ function DeactivateModal({ user, activeUsers, onClose, onDone }: {
           </label>
           <label className="flex items-center gap-2.5 cursor-pointer">
             <input type="radio" checked={!withReassign} onChange={() => setWithReassign(false)} className="accent-brand-purple" />
-            <span className="text-sm text-brand-navy-70">No, just deactivate</span>
+            <span className="text-sm text-brand-navy-70 dark:text-fg-2">No, just deactivate</span>
           </label>
         </div>
 
-        {error && <p className="text-xs text-status-overdue mb-3">{error}</p>}
+        {error && <p className="text-xs text-status-overdue dark:text-status-d-overdue mb-3">{error}</p>}
 
         <div className="flex justify-end gap-2">
           <button onClick={onClose} disabled={saving}
-            className="px-4 py-2 rounded-lg border border-brand-navy-30 text-sm text-brand-navy-70 hover:text-brand-navy transition-colors disabled:opacity-50">
+            className="px-4 py-2 rounded-lg border border-brand-navy-30 text-sm text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:text-fg-1 transition-colors disabled:opacity-50">
             Cancel
           </button>
           <button onClick={handleConfirm} disabled={saving || (withReassign && !toUserId)}
@@ -379,45 +379,45 @@ function ReassignManagerModal({ se, managers, onClose, onDone }: {
 
   return (
     <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-sm p-6">
-        <h2 className="text-base font-semibold text-brand-navy mb-0.5">Re-assign manager</h2>
-        <p className="text-xs text-brand-navy-70 mb-5">Choose a new reporting manager for <span className="font-medium text-brand-navy">{se.name}</span>.</p>
+      <div className="bg-white dark:bg-ink-1 rounded-lg shadow-lg w-full max-w-sm p-6">
+        <h2 className="text-base font-semibold text-brand-navy dark:text-fg-1 mb-0.5">Re-assign manager</h2>
+        <p className="text-xs text-brand-navy-70 dark:text-fg-2 mb-5">Choose a new reporting manager for <span className="font-medium text-brand-navy dark:text-fg-1">{se.name}</span>.</p>
 
         <div className="space-y-2 mb-6">
           <button
             onClick={() => setSelectedId('')}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border text-sm transition-colors ${
-              selectedId === '' ? 'border-brand-purple bg-brand-purple/5 text-brand-navy' : 'border-brand-navy-30/60 text-brand-navy-70 hover:border-brand-navy-30'
+              selectedId === '' ? 'border-brand-purple bg-brand-purple/5 text-brand-navy' : 'border-brand-navy-30/60 dark:border-ink-border text-brand-navy-70 dark:text-fg-2 hover:border-brand-navy-30'
             }`}
           >
-            <span className="w-7 h-7 rounded-full bg-brand-navy-30/30 flex items-center justify-center text-brand-navy-70 text-xs font-medium flex-shrink-0">—</span>
+            <span className="w-7 h-7 rounded-full bg-brand-navy-30/30 flex items-center justify-center text-brand-navy-70 dark:text-fg-2 text-xs font-medium flex-shrink-0">—</span>
             <span className="font-medium">No manager</span>
-            {selectedId === '' && <span className="ml-auto text-brand-purple">✓</span>}
+            {selectedId === '' && <span className="ml-auto text-brand-purple dark:text-accent-purple">✓</span>}
           </button>
           {managers.map(m => (
             <button
               key={m.id}
               onClick={() => setSelectedId(m.id)}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border text-sm transition-colors ${
-                selectedId === m.id ? 'border-brand-purple bg-brand-purple/5 text-brand-navy' : 'border-brand-navy-30/60 text-brand-navy-70 hover:border-brand-navy-30'
+                selectedId === m.id ? 'border-brand-purple bg-brand-purple/5 text-brand-navy' : 'border-brand-navy-30/60 dark:border-ink-border text-brand-navy-70 dark:text-fg-2 hover:border-brand-navy-30'
               }`}
             >
               <UserAvatar user={m} size={7} />
               <div className="min-w-0 text-left">
-                <p className="font-medium text-brand-navy truncate">{m.name}</p>
-                <p className="text-[11px] text-brand-navy-70 truncate">{m.email}</p>
+                <p className="font-medium text-brand-navy dark:text-fg-1 truncate">{m.name}</p>
+                <p className="text-[11px] text-brand-navy-70 dark:text-fg-2 truncate">{m.email}</p>
               </div>
-              {selectedId === m.id && <span className="ml-auto text-brand-purple flex-shrink-0">✓</span>}
+              {selectedId === m.id && <span className="ml-auto text-brand-purple dark:text-accent-purple flex-shrink-0">✓</span>}
             </button>
           ))}
         </div>
 
         <div className="flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-brand-navy-70 hover:bg-gray-100 transition-colors">Cancel</button>
+          <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-brand-navy-70 dark:text-fg-2 hover:bg-gray-100 dark:hover:bg-ink-3 transition-colors">Cancel</button>
           <button
             onClick={handleSave}
             disabled={saving || selectedId === (se.manager_id ?? '')}
-            className="px-4 py-2 rounded-lg bg-brand-purple text-white text-sm font-semibold hover:bg-brand-purple-70 disabled:opacity-50 transition-colors"
+            className="px-4 py-2 rounded-lg bg-brand-purple dark:bg-accent-purple text-white text-sm font-semibold hover:bg-brand-purple-70 dark:hover:opacity-90 disabled:opacity-50 transition-colors"
           >
             {saving ? 'Saving…' : 'Confirm'}
           </button>
@@ -457,17 +457,17 @@ function OrgChartTab({ users, setUsers, availableTeams, currentUserId }: {
   function SeCard({ se }: { se: User }) {
     const currentMgr = managers.find(m => m.id === se.manager_id);
     return (
-      <div className={`flex items-center gap-3 py-2.5 px-3 rounded-xl hover:bg-brand-purple-30/20 transition-colors ${!se.is_active ? 'opacity-50' : ''}`}>
+      <div className={`flex items-center gap-3 py-2.5 px-3 rounded-xl hover:bg-brand-purple-30/20 dark:hover:bg-accent-purple-soft transition-colors ${!se.is_active ? 'opacity-50' : ''}`}>
         <UserAvatar user={se} size={7} />
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-brand-navy truncate">{se.name}</p>
-          <p className="text-[11px] text-brand-navy-70 truncate">{se.email}</p>
+          <p className="text-sm font-medium text-brand-navy dark:text-fg-1 truncate">{se.name}</p>
+          <p className="text-[11px] text-brand-navy-70 dark:text-fg-2 truncate">{se.email}</p>
         </div>
-        {!se.is_active && <span className="text-[10px] text-brand-navy-30 font-medium mr-1">Inactive</span>}
+        {!se.is_active && <span className="text-[10px] text-brand-navy-30 dark:text-fg-4 font-medium mr-1">Inactive</span>}
         <button
           onClick={() => setReassignTarget(se)}
           disabled={updatingId === se.id}
-          className="text-xs px-2.5 py-1 rounded-lg border border-brand-navy-30 text-brand-navy-70 hover:border-brand-purple hover:text-brand-purple transition-colors disabled:opacity-40 whitespace-nowrap"
+          className="text-xs px-2.5 py-1 rounded-lg border border-brand-navy-30 text-brand-navy-70 dark:text-fg-2 hover:border-brand-purple hover:text-brand-purple dark:text-accent-purple transition-colors disabled:opacity-40 whitespace-nowrap"
           title={currentMgr ? `Currently reporting to ${currentMgr.name}` : 'No manager assigned'}
         >
           Re-assign
@@ -490,24 +490,24 @@ function OrgChartTab({ users, setUsers, availableTeams, currentUserId }: {
         />
       )}
       {managers.length === 0 && (
-        <div className="text-sm text-brand-navy-70 py-8 text-center">No managers found.</div>
+        <div className="text-sm text-brand-navy-70 dark:text-fg-2 py-8 text-center">No managers found.</div>
       )}
       {managers.map(mgr => {
         const reports = seUsers.filter(u => u.manager_id === mgr.id);
         const isSelf = mgr.id === currentUserId;
         return (
-          <div key={mgr.id} className={`bg-white rounded-2xl border-2 border-brand-navy-30 shadow-sm overflow-hidden ${!mgr.is_active ? 'opacity-60' : ''}`}>
+          <div key={mgr.id} className={`bg-white dark:bg-ink-1 rounded-2xl border-2 border-brand-navy-30 shadow-sm overflow-hidden ${!mgr.is_active ? 'opacity-60' : ''}`}>
             {/* Manager header */}
-            <div className="flex items-start gap-3 px-5 py-4 border-b border-brand-navy-30/30 bg-brand-purple-30/10">
+            <div className="flex items-start gap-3 px-5 py-4 border-b border-brand-navy-30/30 dark:border-ink-border-soft bg-brand-purple-30/10">
               <UserAvatar user={mgr} size={9} />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm font-semibold text-brand-navy">{mgr.name}</span>
+                  <span className="text-sm font-semibold text-brand-navy dark:text-fg-1">{mgr.name}</span>
                   <RoleBadge role="manager" />
-                  {isSelf && <span className="text-[10px] text-brand-navy-70">(you)</span>}
-                  {!mgr.is_active && <span className="text-[10px] font-medium text-brand-navy-30">Inactive</span>}
+                  {isSelf && <span className="text-[10px] text-brand-navy-70 dark:text-fg-2">(you)</span>}
+                  {!mgr.is_active && <span className="text-[10px] font-medium text-brand-navy-30 dark:text-fg-4">Inactive</span>}
                 </div>
-                <p className="text-xs text-brand-navy-70 mt-0.5">{mgr.email}</p>
+                <p className="text-xs text-brand-navy-70 dark:text-fg-2 mt-0.5">{mgr.email}</p>
                 {/* Territory chips */}
                 <div className="flex flex-wrap gap-1.5 mt-2.5">
                   {availableTeams.map(t => {
@@ -517,23 +517,23 @@ function OrgChartTab({ users, setUsers, availableTeams, currentUserId }: {
                         onClick={() => handleToggleTerritory(mgr, t)}
                         disabled={updatingId === mgr.id}
                         className={`text-[10px] font-semibold px-2 py-0.5 rounded-full transition-colors disabled:opacity-50 ${
-                          active ? 'bg-brand-purple text-white' : 'bg-brand-navy-30/30 text-brand-navy-70 hover:bg-brand-purple/10 hover:text-brand-purple'
+                          active ? 'bg-brand-purple dark:bg-accent-purple text-white' : 'bg-brand-navy-30/30 text-brand-navy-70 dark:text-fg-2 hover:bg-brand-purple/10 dark:bg-accent-purple-soft hover:text-brand-purple'
                         }`}>
                         {t}
                       </button>
                     );
                   })}
-                  {availableTeams.length === 0 && <span className="text-[11px] text-brand-navy-30">No territories configured</span>}
+                  {availableTeams.length === 0 && <span className="text-[11px] text-brand-navy-30 dark:text-fg-4">No territories configured</span>}
                 </div>
               </div>
-              <div className="text-xs text-brand-navy-30 font-medium mt-0.5">
+              <div className="text-xs text-brand-navy-30 dark:text-fg-4 font-medium mt-0.5">
                 {reports.length} SE{reports.length !== 1 ? 's' : ''}
               </div>
             </div>
             {/* Direct reports */}
             <div className="px-4 py-1 divide-y divide-brand-navy-30/10">
               {reports.length === 0 ? (
-                <p className="text-xs text-brand-navy-30 py-3 pl-1">No direct reports</p>
+                <p className="text-xs text-brand-navy-30 dark:text-fg-4 py-3 pl-1">No direct reports</p>
               ) : (
                 reports.map(se => <SeCard key={se.id} se={se} />)
               )}
@@ -544,9 +544,9 @@ function OrgChartTab({ users, setUsers, availableTeams, currentUserId }: {
 
       {/* Unassigned SEs */}
       {unassigned.length > 0 && (
-        <div className="bg-white rounded-2xl border-2 border-brand-navy-30 shadow-sm overflow-hidden">
-          <div className="px-5 py-3 border-b border-brand-navy-30/30 bg-gray-50">
-            <span className="text-xs font-semibold text-brand-navy-70 uppercase tracking-wide">Not assigned to a manager</span>
+        <div className="bg-white dark:bg-ink-1 rounded-2xl border-2 border-brand-navy-30 shadow-sm overflow-hidden">
+          <div className="px-5 py-3 border-b border-brand-navy-30/30 dark:border-ink-border-soft bg-gray-50 dark:bg-ink-2">
+            <span className="text-xs font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">Not assigned to a manager</span>
           </div>
           <div className="px-4 py-1 divide-y divide-brand-navy-30/10">
             {unassigned.map(se => <SeCard key={se.id} se={se} />)}
@@ -567,8 +567,8 @@ function AdminBadge({ user, onToggle, disabled }: { user: User; onToggle: () => 
       title={user.is_admin ? `${user.name} is an admin — click to revoke` : `Grant admin access to ${user.name}`}
       className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
         user.is_admin
-          ? 'bg-brand-purple/10 text-brand-purple hover:bg-brand-purple/20'
-          : 'bg-transparent text-brand-navy-30 hover:text-brand-purple hover:bg-brand-purple/5'
+          ? 'bg-brand-purple/10 dark:bg-accent-purple-soft text-brand-purple dark:text-accent-purple hover:bg-brand-purple/20'
+          : 'bg-transparent text-brand-navy-30 dark:text-fg-4 hover:text-brand-purple dark:text-accent-purple hover:bg-brand-purple/5'
       }`}
     >
       <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -595,23 +595,23 @@ function ConfirmAdminModal({ user, onClose, onConfirm }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="bg-white rounded-lg shadow-lg border border-brand-navy-30/40 w-full max-w-sm mx-4 p-6">
-        <h2 className="text-base font-semibold text-brand-navy mb-1">
+      <div className="bg-white dark:bg-ink-1 rounded-lg shadow-lg border border-brand-navy-30/40 dark:border-ink-border-soft w-full max-w-sm mx-4 p-6">
+        <h2 className="text-base font-semibold text-brand-navy dark:text-fg-1 mb-1">
           {granting ? 'Grant admin access?' : 'Revoke admin access?'}
         </h2>
-        <p className="text-sm text-brand-navy-70 mb-6">
+        <p className="text-sm text-brand-navy-70 dark:text-fg-2 mb-6">
           {granting
-            ? <><span className="font-medium text-brand-navy">{user.name}</span> will be able to access Administration pages, manage users, configure role access, and change system settings.</>
-            : <><span className="font-medium text-brand-navy">{user.name}</span> will lose access to all Administration pages and settings.</>
+            ? <><span className="font-medium text-brand-navy dark:text-fg-1">{user.name}</span> will be able to access Administration pages, manage users, configure role access, and change system settings.</>
+            : <><span className="font-medium text-brand-navy dark:text-fg-1">{user.name}</span> will lose access to all Administration pages and settings.</>
           }
         </p>
         <div className="flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 rounded-lg border border-brand-navy-30 text-sm text-brand-navy-70 hover:text-brand-navy transition-colors">
+          <button onClick={onClose} className="px-4 py-2 rounded-lg border border-brand-navy-30 text-sm text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:text-fg-1 transition-colors">
             Cancel
           </button>
           <button onClick={handleConfirm} disabled={saving}
             className={`px-4 py-2 rounded-lg text-white text-sm font-semibold disabled:opacity-50 transition-colors ${
-              granting ? 'bg-brand-purple hover:bg-brand-purple-70' : 'bg-status-overdue/80 hover:bg-status-overdue'
+              granting ? 'bg-brand-purple hover:bg-brand-purple-70 dark:hover:opacity-90' : 'bg-status-overdue/80 hover:bg-status-overdue'
             }`}>
             {saving ? 'Saving…' : granting ? 'Grant Admin' : 'Revoke Admin'}
           </button>
@@ -725,23 +725,23 @@ function AccessManagementTab({ users, setUsers, currentUserId }: {
           placeholder="Search users…"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="flex-1 max-w-xs px-3 py-2 rounded-lg border border-brand-navy-30 text-sm text-brand-navy placeholder:text-brand-navy-70 focus:outline-none focus:ring-2 focus:ring-brand-purple"
+          className="flex-1 max-w-xs px-3 py-2 rounded-lg border border-brand-navy-30 text-sm text-brand-navy dark:text-fg-1 placeholder:text-brand-navy-70 dark:text-fg-2 focus:outline-none focus:ring-2 focus:ring-brand-purple"
         />
         <button
           onClick={() => setShowAdd(true)}
-          className="ml-auto px-4 py-2 bg-brand-purple text-white text-sm font-semibold rounded-xl hover:bg-brand-purple-70 transition-colors"
+          className="ml-auto px-4 py-2 bg-brand-purple dark:bg-accent-purple text-white text-sm font-semibold rounded-xl hover:bg-brand-purple-70 dark:hover:opacity-90 transition-colors"
         >
           + Add User
         </button>
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-2xl border border-brand-navy-30/40 overflow-hidden">
+      <div className="bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft overflow-hidden">
         <table className="w-full">
-          <thead className="border-b border-brand-navy-30/40">
+          <thead className="border-b border-brand-navy-30/40 dark:border-ink-border-soft">
             <tr>
               {['User', 'Role', 'Status', 'Last Login', 'Actions'].map(h => (
-                <th key={h} className="px-4 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">{h}</th>
+                <th key={h} className="px-4 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">{h}</th>
               ))}
             </tr>
           </thead>
@@ -750,16 +750,16 @@ function AccessManagementTab({ users, setUsers, currentUserId }: {
               const isSelf = u.id === currentUserId;
               const isUpdating = updatingId === u.id;
               return (
-                <tr key={u.id} className={`border-b border-brand-navy-30/20 last:border-0 ${!u.is_active ? 'opacity-60' : ''}`}>
+                <tr key={u.id} className={`border-b border-brand-navy-30/20 dark:border-ink-border-soft last:border-0 ${!u.is_active ? 'opacity-60' : ''}`}>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2.5">
                       <UserAvatar user={u} size={7} />
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-brand-navy">
+                        <p className="text-sm font-medium text-brand-navy dark:text-fg-1">
                           {u.name}
-                          {isSelf && <span className="ml-1.5 text-[10px] text-brand-navy-70 font-normal">(you)</span>}
+                          {isSelf && <span className="ml-1.5 text-[10px] text-brand-navy-70 dark:text-fg-2 font-normal">(you)</span>}
                         </p>
-                        <p className="text-xs text-brand-navy-70 truncate">{u.email}</p>
+                        <p className="text-xs text-brand-navy-70 dark:text-fg-2 truncate">{u.email}</p>
                       </div>
                     </div>
                   </td>
@@ -775,38 +775,38 @@ function AccessManagementTab({ users, setUsers, currentUserId }: {
                   </td>
                   <td className="px-4 py-3">
                     {u.is_active
-                      ? <span className="flex items-center gap-1.5 text-xs text-status-success font-medium"><span className="w-1.5 h-1.5 rounded-full bg-status-success inline-block" />Active</span>
-                      : <span className="flex items-center gap-1.5 text-xs text-brand-navy-70"><span className="w-1.5 h-1.5 rounded-full bg-brand-navy-30 inline-block" />Inactive</span>
+                      ? <span className="flex items-center gap-1.5 text-xs text-status-success dark:text-status-d-success font-medium"><span className="w-1.5 h-1.5 rounded-full bg-status-success inline-block" />Active</span>
+                      : <span className="flex items-center gap-1.5 text-xs text-brand-navy-70 dark:text-fg-2"><span className="w-1.5 h-1.5 rounded-full bg-brand-navy-30 inline-block" />Inactive</span>
                     }
                   </td>
-                  <td className="px-4 py-3 text-xs text-brand-navy-70">
-                    {u.last_login_at ? formatDate(u.last_login_at) : <span className="text-brand-navy-30">Never</span>}
+                  <td className="px-4 py-3 text-xs text-brand-navy-70 dark:text-fg-2">
+                    {u.last_login_at ? formatDate(u.last_login_at) : <span className="text-brand-navy-30 dark:text-fg-4">Never</span>}
                   </td>
                   <td className="px-4 py-3">
                     <div className="grid grid-cols-2 gap-1 w-[196px]">
                       <button onClick={() => setRoleConfirmTarget(u)} disabled={isUpdating}
-                        className="text-xs px-2 py-1.5 rounded-lg border border-brand-navy-30 text-brand-navy-70 hover:border-brand-purple hover:text-brand-purple transition-colors disabled:opacity-40 text-center whitespace-nowrap">
+                        className="text-xs px-2 py-1.5 rounded-lg border border-brand-navy-30 text-brand-navy-70 dark:text-fg-2 hover:border-brand-purple hover:text-brand-purple dark:text-accent-purple transition-colors disabled:opacity-40 text-center whitespace-nowrap">
                         {u.role === 'manager' ? 'Make SE' : 'Make Manager'}
                       </button>
                       {u.is_active ? (
                         <button onClick={() => !isSelf && setDeactivateTarget(u)}
                           disabled={isSelf || isUpdating}
                           title={isSelf ? "Can't deactivate your own account" : undefined}
-                          className="text-xs px-2 py-1.5 rounded-lg border border-brand-navy-30 text-brand-navy-70 hover:border-status-warning hover:text-status-warning transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-center whitespace-nowrap">
+                          className="text-xs px-2 py-1.5 rounded-lg border border-brand-navy-30 text-brand-navy-70 dark:text-fg-2 hover:border-status-warning hover:text-status-warning dark:text-status-d-warning transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-center whitespace-nowrap">
                           Deactivate
                         </button>
                       ) : (
                         <button onClick={() => handleReactivate(u)} disabled={isUpdating}
-                          className="text-xs px-2 py-1.5 rounded-lg border border-brand-navy-30 text-brand-navy-70 hover:border-status-success hover:text-status-success transition-colors disabled:opacity-40 text-center whitespace-nowrap">
+                          className="text-xs px-2 py-1.5 rounded-lg border border-brand-navy-30 text-brand-navy-70 dark:text-fg-2 hover:border-status-success hover:text-status-success dark:text-status-d-success transition-colors disabled:opacity-40 text-center whitespace-nowrap">
                           Reactivate
                         </button>
                       )}
                       <button onClick={() => setResetTarget(u)} disabled={isUpdating}
-                        className="text-xs px-2 py-1.5 rounded-lg border border-brand-navy-30 text-brand-navy-70 hover:border-brand-purple hover:text-brand-purple transition-colors disabled:opacity-40 text-center whitespace-nowrap">
+                        className="text-xs px-2 py-1.5 rounded-lg border border-brand-navy-30 text-brand-navy-70 dark:text-fg-2 hover:border-brand-purple hover:text-brand-purple dark:text-accent-purple transition-colors disabled:opacity-40 text-center whitespace-nowrap">
                         Reset pwd
                       </button>
                       <button onClick={() => setReassignTarget(u)} disabled={isUpdating}
-                        className="text-xs px-2 py-1.5 rounded-lg border border-brand-navy-30 text-brand-navy-70 hover:border-brand-navy hover:text-brand-navy transition-colors disabled:opacity-40 text-center whitespace-nowrap">
+                        className="text-xs px-2 py-1.5 rounded-lg border border-brand-navy-30 text-brand-navy-70 dark:text-fg-2 hover:border-brand-navy hover:text-brand-navy dark:text-fg-1 transition-colors disabled:opacity-40 text-center whitespace-nowrap">
                         Reassign
                       </button>
                     </div>
@@ -817,7 +817,7 @@ function AccessManagementTab({ users, setUsers, currentUserId }: {
           </tbody>
         </table>
         {filtered.length === 0 && (
-          <p className="text-sm text-brand-navy-70 py-10 text-center">No users found.</p>
+          <p className="text-sm text-brand-navy-70 dark:text-fg-2 py-10 text-center">No users found.</p>
         )}
       </div>
     </div>
@@ -838,20 +838,20 @@ function AccessAuditTab({ users }: { users: User[] }) {
   });
 
   return (
-    <div className="bg-white rounded-2xl border border-brand-navy-30/40 overflow-hidden">
+    <div className="bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft overflow-hidden">
       <table className="w-full">
-        <thead className="border-b border-brand-navy-30/40">
+        <thead className="border-b border-brand-navy-30/40 dark:border-ink-border-soft">
           <tr>
             {(['User', 'Role', 'Status'] as const).map(h => (
-              <th key={h} className="px-4 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">{h}</th>
+              <th key={h} className="px-4 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">{h}</th>
             ))}
             <th className="px-4 py-2.5 text-left">
               <button
                 onClick={() => setSortDir(d => d === 'desc' ? 'asc' : 'desc')}
-                className="flex items-center gap-1 text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide hover:text-brand-purple transition-colors group"
+                className="flex items-center gap-1 text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide hover:text-brand-purple dark:text-accent-purple transition-colors group"
               >
                 Last Login
-                <span className="text-brand-navy-30 group-hover:text-brand-purple transition-colors">
+                <span className="text-brand-navy-30 dark:text-fg-4 group-hover:text-brand-purple dark:text-accent-purple transition-colors">
                   {sortDir === 'desc' ? '↓' : '↑'}
                 </span>
               </button>
@@ -860,27 +860,27 @@ function AccessAuditTab({ users }: { users: User[] }) {
         </thead>
         <tbody>
           {sorted.map(u => (
-            <tr key={u.id} className={`border-b border-brand-navy-30/20 last:border-0 ${!u.is_active ? 'opacity-60' : ''}`}>
+            <tr key={u.id} className={`border-b border-brand-navy-30/20 dark:border-ink-border-soft last:border-0 ${!u.is_active ? 'opacity-60' : ''}`}>
               <td className="px-4 py-3">
                 <div className="flex items-center gap-2.5">
                   <UserAvatar user={u} size={7} />
                   <div>
-                    <p className="text-sm font-medium text-brand-navy">{u.name}</p>
-                    <p className="text-xs text-brand-navy-70">{u.email}</p>
+                    <p className="text-sm font-medium text-brand-navy dark:text-fg-1">{u.name}</p>
+                    <p className="text-xs text-brand-navy-70 dark:text-fg-2">{u.email}</p>
                   </div>
                 </div>
               </td>
               <td className="px-4 py-3"><RoleBadge role={u.role} /></td>
               <td className="px-4 py-3">
                 {u.is_active
-                  ? <span className="flex items-center gap-1.5 text-xs text-status-success font-medium"><span className="w-1.5 h-1.5 rounded-full bg-status-success inline-block" />Active</span>
-                  : <span className="flex items-center gap-1.5 text-xs text-brand-navy-70"><span className="w-1.5 h-1.5 rounded-full bg-brand-navy-30 inline-block" />Inactive</span>
+                  ? <span className="flex items-center gap-1.5 text-xs text-status-success dark:text-status-d-success font-medium"><span className="w-1.5 h-1.5 rounded-full bg-status-success inline-block" />Active</span>
+                  : <span className="flex items-center gap-1.5 text-xs text-brand-navy-70 dark:text-fg-2"><span className="w-1.5 h-1.5 rounded-full bg-brand-navy-30 inline-block" />Inactive</span>
                 }
               </td>
-              <td className="px-4 py-3 text-xs text-brand-navy-70">
+              <td className="px-4 py-3 text-xs text-brand-navy-70 dark:text-fg-2">
                 {u.last_login_at
                   ? <span>{formatDate(u.last_login_at)}</span>
-                  : <span className="text-brand-navy-30">Never logged in</span>
+                  : <span className="text-brand-navy-30 dark:text-fg-4">Never logged in</span>
                 }
               </td>
             </tr>
@@ -923,12 +923,12 @@ export default function UsersPage() {
     <div>
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-xl font-semibold text-brand-navy">Users</h1>
-        <p className="text-sm text-brand-navy-70 mt-0.5">Manage team members, roles, and access</p>
+        <h1 className="text-xl font-semibold text-brand-navy dark:text-fg-1">Users</h1>
+        <p className="text-sm text-brand-navy-70 dark:text-fg-2 mt-0.5">Manage team members, roles, and access</p>
       </div>
 
       {/* Tab nav */}
-      <div className="flex gap-1 border-b border-brand-navy-30/40 mb-6">
+      <div className="flex gap-1 border-b border-brand-navy-30/40 dark:border-ink-border-soft mb-6">
         {TABS.map(t => {
           const isActive = tab === t.id;
           return (
@@ -937,8 +937,8 @@ export default function UsersPage() {
               onClick={() => setTab(t.id)}
               className={`relative px-5 py-2 text-xs font-semibold transition-colors rounded-t-lg border border-b-0 ${
                 isActive
-                  ? 'bg-white text-brand-purple border-brand-navy-30/40 z-10'
-                  : 'bg-transparent text-brand-navy-70 border-transparent hover:text-brand-navy hover:bg-white/50'
+                  ? 'bg-white dark:bg-ink-1 text-brand-purple dark:text-accent-purple border-brand-navy-30/40 dark:border-ink-border-soft z-10'
+                  : 'bg-transparent text-brand-navy-70 dark:text-fg-2 border-transparent hover:text-brand-navy dark:text-fg-1 hover:bg-white/50'
               }`}
               style={isActive ? { marginBottom: '-1px' } : undefined}
             >
@@ -949,8 +949,8 @@ export default function UsersPage() {
       </div>
 
       {/* Content */}
-      {loading && <div className="text-sm text-brand-navy-70 py-10 text-center">Loading…</div>}
-      {error && <div className="text-sm text-status-overdue py-4">{error}</div>}
+      {loading && <div className="text-sm text-brand-navy-70 dark:text-fg-2 py-10 text-center">Loading…</div>}
+      {error && <div className="text-sm text-status-overdue dark:text-status-d-overdue py-4">{error}</div>}
       {!loading && !error && (
         <>
           {tab === 'org-chart' && (

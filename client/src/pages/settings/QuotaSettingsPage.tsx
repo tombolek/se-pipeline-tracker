@@ -15,10 +15,10 @@ import { formatARR } from '../../utils/formatters';
 
 function RuleChip({ group }: { group: QuotaGroup | { rule_type: QuotaRuleType; rule_value: string[] } }) {
   if (group.rule_type === 'global') {
-    return <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-brand-navy-30/60 text-brand-navy">All Closed Won</span>;
+    return <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-brand-navy-30/60 text-brand-navy dark:text-fg-1">All Closed Won</span>;
   }
   if (group.rule_type === 'teams') {
-    return <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-brand-purple-30 text-brand-navy">Teams: {group.rule_value.join(', ') || '—'}</span>;
+    return <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-brand-purple-30 text-brand-navy dark:text-fg-1">Teams: {group.rule_value.join(', ') || '—'}</span>;
   }
   return <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-brand-pink-30 text-[#33012A]">AE: {group.rule_value.join(', ') || '—'}</span>;
 }
@@ -88,20 +88,20 @@ function GroupModal({ initial, onClose, onSaved, teams, aeOwners }: ModalProps) 
   return (
     <div className="fixed inset-0 z-50 bg-brand-navy/60 flex items-center justify-center p-4" onClick={onClose}>
       <form
-        className="bg-white rounded-2xl border border-brand-navy-30/40 p-6 max-w-[560px] w-full shadow-xl"
+        className="bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft p-6 max-w-[560px] w-full shadow-xl"
         onClick={e => e.stopPropagation()}
         onSubmit={handleSave}
       >
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-semibold text-brand-navy">{initial ? `Edit group — ${initial.name}` : 'New quota group'}</h3>
-          <button type="button" onClick={onClose} className="text-brand-navy-70 hover:text-brand-navy text-xl leading-none">×</button>
+          <h3 className="text-base font-semibold text-brand-navy dark:text-fg-1">{initial ? `Edit group — ${initial.name}` : 'New quota group'}</h3>
+          <button type="button" onClick={onClose} className="text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:text-fg-1 text-xl leading-none">×</button>
         </div>
 
-        {error && <p className="text-xs text-status-overdue bg-status-overdue/10 border border-status-overdue/30 rounded-lg px-3 py-2 mb-3">{error}</p>}
+        {error && <p className="text-xs text-status-overdue dark:text-status-d-overdue bg-status-overdue/10 dark:bg-status-d-overdue-soft border border-status-overdue/30 rounded-lg px-3 py-2 mb-3">{error}</p>}
 
         <div className="space-y-4">
           <div>
-            <label className="block text-[11px] font-semibold uppercase tracking-wide text-brand-navy-70 mb-1">Name</label>
+            <label className="block text-[11px] font-semibold uppercase tracking-wide text-brand-navy-70 dark:text-fg-2 mb-1">Name</label>
             <input
               className="w-full border border-brand-navy-30 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-purple"
               value={name}
@@ -112,7 +112,7 @@ function GroupModal({ initial, onClose, onSaved, teams, aeOwners }: ModalProps) 
           </div>
 
           <div>
-            <label className="block text-[11px] font-semibold uppercase tracking-wide text-brand-navy-70 mb-1.5">Rule</label>
+            <label className="block text-[11px] font-semibold uppercase tracking-wide text-brand-navy-70 dark:text-fg-2 mb-1.5">Rule</label>
             <div className="flex items-center gap-2 mb-3">
               {(['global', 'teams', 'ae_owners'] as QuotaRuleType[]).map(rt => (
                 <button
@@ -121,8 +121,8 @@ function GroupModal({ initial, onClose, onSaved, teams, aeOwners }: ModalProps) 
                   onClick={() => { setRuleType(rt); setRuleValue([]); setChipInput(''); }}
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                     ruleType === rt
-                      ? 'bg-brand-purple text-white border-brand-purple'
-                      : 'border-brand-navy-30 text-brand-navy-70 hover:border-brand-navy hover:text-brand-navy'
+                      ? 'bg-brand-purple dark:bg-accent-purple text-white border-brand-purple'
+                      : 'border-brand-navy-30 text-brand-navy-70 dark:text-fg-2 hover:border-brand-navy hover:text-brand-navy'
                   }`}
                 >
                   {rt === 'global' ? 'All Closed Won' : rt === 'teams' ? 'By team' : 'By AE owner'}
@@ -161,12 +161,12 @@ function GroupModal({ initial, onClose, onSaved, teams, aeOwners }: ModalProps) 
                         key={s}
                         type="button"
                         onClick={() => addChip(s)}
-                        className="px-2 py-0.5 rounded-full text-[11px] font-medium border border-brand-navy-30/60 text-brand-navy-70 hover:border-brand-navy hover:text-brand-navy"
+                        className="px-2 py-0.5 rounded-full text-[11px] font-medium border border-brand-navy-30/60 dark:border-ink-border text-brand-navy-70 dark:text-fg-2 hover:border-brand-navy hover:text-brand-navy dark:text-fg-1"
                       >+ {s}</button>
                     ))}
                   </div>
                 )}
-                <p className="text-[11px] text-brand-navy-70 mt-1.5">
+                <p className="text-[11px] text-brand-navy-70 dark:text-fg-2 mt-1.5">
                   {ruleType === 'teams' ? 'Suggestions from existing opportunity teams.' : 'Suggestions from existing AE owners.'}
                 </p>
               </div>
@@ -174,7 +174,7 @@ function GroupModal({ initial, onClose, onSaved, teams, aeOwners }: ModalProps) 
           </div>
 
           <div>
-            <label className="block text-[11px] font-semibold uppercase tracking-wide text-brand-navy-70 mb-1">Target (USD, annual)</label>
+            <label className="block text-[11px] font-semibold uppercase tracking-wide text-brand-navy-70 dark:text-fg-2 mb-1">Target (USD, annual)</label>
             <input
               className="w-full border border-brand-navy-30 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-purple"
               value={target}
@@ -183,17 +183,17 @@ function GroupModal({ initial, onClose, onSaved, teams, aeOwners }: ModalProps) 
               inputMode="numeric"
             />
             {target && parseFloat(target) > 0 && (
-              <p className="text-[11px] text-brand-navy-70 mt-1">Displayed as {formatARR(parseFloat(target))}</p>
+              <p className="text-[11px] text-brand-navy-70 dark:text-fg-2 mt-1">Displayed as {formatARR(parseFloat(target))}</p>
             )}
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-2 mt-6 pt-4 border-t border-brand-navy-30/40">
-          <button type="button" onClick={onClose} className="text-xs font-medium text-brand-navy-70 hover:text-brand-navy px-3 py-2">Cancel</button>
+        <div className="flex items-center justify-end gap-2 mt-6 pt-4 border-t border-brand-navy-30/40 dark:border-ink-border-soft">
+          <button type="button" onClick={onClose} className="text-xs font-medium text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:text-fg-1 px-3 py-2">Cancel</button>
           <button
             type="submit"
             disabled={saving}
-            className="bg-brand-purple hover:bg-brand-purple-70 text-white text-xs font-semibold px-4 py-2 rounded-lg disabled:opacity-50"
+            className="bg-brand-purple hover:bg-brand-purple-70 dark:hover:opacity-90 text-white text-xs font-semibold px-4 py-2 rounded-lg disabled:opacity-50"
           >{saving ? 'Saving…' : 'Save group'}</button>
         </div>
       </form>
@@ -267,50 +267,50 @@ export default function QuotaSettingsPage() {
     <div>
       <div className="flex items-start gap-4 mb-6">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-brand-navy-70">Settings · Quotas</p>
-          <h1 className="text-[22px] font-semibold text-brand-navy leading-tight mt-0.5">Quota groups</h1>
-          <p className="text-xs text-brand-navy-70 mt-1">
-            Define the groups and targets used by the <a className="text-brand-purple underline" href="/insights/percent-to-target">% to Target report</a>.
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-brand-navy-70 dark:text-fg-2">Settings · Quotas</p>
+          <h1 className="text-[22px] font-semibold text-brand-navy dark:text-fg-1 leading-tight mt-0.5">Quota groups</h1>
+          <p className="text-xs text-brand-navy-70 dark:text-fg-2 mt-1">
+            Define the groups and targets used by the <a className="text-brand-purple dark:text-accent-purple underline" href="/insights/percent-to-target">% to Target report</a>.
             A single deal can count toward multiple groups.
           </p>
         </div>
         <button
           onClick={() => setEditing('new')}
-          className="ml-auto bg-brand-purple hover:bg-brand-purple-70 text-white text-xs font-semibold px-4 py-2 rounded-lg"
+          className="ml-auto bg-brand-purple hover:bg-brand-purple-70 dark:hover:opacity-90 text-white text-xs font-semibold px-4 py-2 rounded-lg"
         >+ Add group</button>
       </div>
 
-      {error && <p className="text-xs text-status-overdue mb-3">{error}</p>}
+      {error && <p className="text-xs text-status-overdue dark:text-status-d-overdue mb-3">{error}</p>}
 
-      <div className="bg-white rounded-2xl border border-brand-navy-30/40 overflow-hidden">
+      <div className="bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft overflow-hidden">
         <table className="w-full">
-          <thead className="bg-gray-50/50 border-b border-brand-navy-30/40">
+          <thead className="bg-gray-50 dark:bg-ink-2/50 border-b border-brand-navy-30/40 dark:border-ink-border-soft">
             <tr>
-              <th className="px-5 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">Name</th>
-              <th className="px-5 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">Rule</th>
-              <th className="px-5 py-2.5 text-right text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">Target (USD)</th>
-              <th className="px-5 py-2.5 text-center text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">Order</th>
+              <th className="px-5 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">Name</th>
+              <th className="px-5 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">Rule</th>
+              <th className="px-5 py-2.5 text-right text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">Target (USD)</th>
+              <th className="px-5 py-2.5 text-center text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">Order</th>
               <th className="px-5 py-2.5"></th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={5} className="px-5 py-8 text-center text-sm text-brand-navy-70">Loading…</td></tr>
+              <tr><td colSpan={5} className="px-5 py-8 text-center text-sm text-brand-navy-70 dark:text-fg-2">Loading…</td></tr>
             ) : groups.length === 0 ? (
-              <tr><td colSpan={5} className="px-5 py-8 text-center text-sm text-brand-navy-70">No quota groups yet. Click <b>+ Add group</b> to start.</td></tr>
+              <tr><td colSpan={5} className="px-5 py-8 text-center text-sm text-brand-navy-70 dark:text-fg-2">No quota groups yet. Click <b>+ Add group</b> to start.</td></tr>
             ) : groups.map((g, i) => (
-              <tr key={g.id} className="border-b border-brand-navy-30/20 last:border-0">
-                <td className="px-5 py-3 text-sm font-semibold text-brand-navy">{g.name}</td>
+              <tr key={g.id} className="border-b border-brand-navy-30/20 dark:border-ink-border-soft last:border-0">
+                <td className="px-5 py-3 text-sm font-semibold text-brand-navy dark:text-fg-1">{g.name}</td>
                 <td className="px-5 py-3"><RuleChip group={g} /></td>
-                <td className="px-5 py-3 text-right text-sm text-brand-navy font-medium">${parseFloat(g.target_amount).toLocaleString('en-US')}</td>
-                <td className="px-5 py-3 text-center text-xs text-brand-navy-70">
+                <td className="px-5 py-3 text-right text-sm text-brand-navy dark:text-fg-1 font-medium">${parseFloat(g.target_amount).toLocaleString('en-US')}</td>
+                <td className="px-5 py-3 text-center text-xs text-brand-navy-70 dark:text-fg-2">
                   {g.sort_order} ·
-                  <button onClick={() => reorder(g, -1)} disabled={i === 0} className="ml-1 disabled:opacity-30 hover:text-brand-navy">↑</button>
-                  <button onClick={() => reorder(g, 1)} disabled={i === groups.length - 1} className="ml-1 disabled:opacity-30 hover:text-brand-navy">↓</button>
+                  <button onClick={() => reorder(g, -1)} disabled={i === 0} className="ml-1 disabled:opacity-30 hover:text-brand-navy dark:text-fg-1">↑</button>
+                  <button onClick={() => reorder(g, 1)} disabled={i === groups.length - 1} className="ml-1 disabled:opacity-30 hover:text-brand-navy dark:text-fg-1">↓</button>
                 </td>
                 <td className="px-5 py-3 text-right text-xs">
-                  <button onClick={() => setEditing(g)} className="text-brand-purple font-medium hover:underline mr-3">Edit</button>
-                  <button onClick={() => handleDelete(g)} className="text-brand-navy-70 hover:text-status-overdue">Delete</button>
+                  <button onClick={() => setEditing(g)} className="text-brand-purple dark:text-accent-purple font-medium hover:underline mr-3">Edit</button>
+                  <button onClick={() => handleDelete(g)} className="text-brand-navy-70 dark:text-fg-2 hover:text-status-overdue dark:text-status-d-overdue">Delete</button>
                 </td>
               </tr>
             ))}

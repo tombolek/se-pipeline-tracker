@@ -27,10 +27,10 @@ const STAGES = [
 ];
 
 const STAGE_COLORS: Record<string, string> = {
-  'Qualify':               'bg-gray-100 text-gray-600',
+  'Qualify':               'bg-gray-100 dark:bg-ink-3 text-gray-600',
   'Develop Solution':      'bg-blue-100 text-blue-700',
   'Build Value':           'bg-indigo-100 text-indigo-700',
-  'Proposal Sent':         'bg-brand-purple/10 text-brand-purple',
+  'Proposal Sent':         'bg-brand-purple/10 dark:bg-accent-purple-soft text-brand-purple',
   'Negotiate':             'bg-amber-100 text-amber-700',
   'Submitted for Booking': 'bg-green-100 text-green-700',
 };
@@ -94,8 +94,8 @@ function SeAssignSelect({
         disabled={saving}
         className={`text-xs rounded-lg border px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-purple transition-colors disabled:opacity-50 ${
           opp.se_owner
-            ? 'border-brand-navy-30 text-brand-navy bg-white'
-            : 'border-status-warning text-status-warning bg-status-warning/10 font-medium'
+            ? 'border-brand-navy-30 text-brand-navy dark:text-fg-1 bg-white'
+            : 'border-status-warning text-status-warning dark:text-status-d-warning bg-status-warning/10 dark:bg-status-d-warning-soft font-medium'
         }`}
       >
         {canUnassign && <option value="">Unassigned</option>}
@@ -106,27 +106,27 @@ function SeAssignSelect({
 
       {/* Out-of-territory inline confirmation bubble */}
       {pendingSeId !== null && (
-        <div className="absolute left-0 top-full mt-1.5 z-50 w-64 bg-white border border-status-warning/40 rounded-xl shadow-lg p-3">
+        <div className="absolute left-0 top-full mt-1.5 z-50 w-64 bg-white dark:bg-ink-1 border border-status-warning/40 rounded-xl shadow-lg p-3">
           <div className="flex items-start gap-2 mb-2.5">
-            <svg className="w-3.5 h-3.5 text-status-warning mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="w-3.5 h-3.5 text-status-warning dark:text-status-d-warning mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
             </svg>
-            <p className="text-[11.5px] text-brand-navy leading-relaxed">
+            <p className="text-[11.5px] text-brand-navy dark:text-fg-1 leading-relaxed">
               <span className="font-medium">"{opp.team}"</span> is outside your territory
-              {territories && <span className="text-brand-navy-70"> ({territories})</span>}.
+              {territories && <span className="text-brand-navy-70 dark:text-fg-2"> ({territories})</span>}.
               Assign to yourself anyway?
             </p>
           </div>
           <div className="flex gap-1.5">
             <button
               onClick={() => doAssign(pendingSeId)}
-              className="flex-1 text-[11px] font-medium bg-status-warning/10 text-status-warning border border-status-warning/30 rounded-lg px-2 py-1 hover:bg-status-warning/20 transition-colors"
+              className="flex-1 text-[11px] font-medium bg-status-warning/10 dark:bg-status-d-warning-soft text-status-warning dark:text-status-d-warning border border-status-warning/30 rounded-lg px-2 py-1 hover:bg-status-warning/20 transition-colors"
             >
               Assign anyway
             </button>
             <button
               onClick={() => setPendingSeId(null)}
-              className="flex-1 text-[11px] font-medium bg-white text-brand-navy-70 border border-brand-navy-30 rounded-lg px-2 py-1 hover:bg-gray-50 transition-colors"
+              className="flex-1 text-[11px] font-medium bg-white dark:bg-ink-1 text-brand-navy-70 dark:text-fg-2 border border-brand-navy-30 rounded-lg px-2 py-1 hover:bg-gray-50 dark:hover:bg-ink-2 transition-colors"
             >
               Cancel
             </button>
@@ -156,27 +156,27 @@ function KanbanCard({
     .toUpperCase()
     .slice(0, 2);
 
-  const stageColor = STAGE_COLORS[opp.stage] ?? 'bg-gray-100 text-gray-600';
+  const stageColor = STAGE_COLORS[opp.stage] ?? 'bg-gray-100 dark:bg-ink-3 text-gray-600';
 
   return (
     <div
       draggable={draggable}
       onDragStart={onDragStart}
       onClick={onClick}
-      className={`bg-white rounded-xl border border-brand-navy-30/40 p-3 shadow-sm transition-shadow hover:shadow-md select-none ${
+      className={`bg-white dark:bg-ink-1 rounded-xl border border-brand-navy-30/40 dark:border-ink-border-soft p-3 shadow-sm transition-shadow hover:shadow-md select-none ${
         draggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'
       }`}
     >
-      <p className="text-sm font-medium text-brand-navy leading-snug mb-2 line-clamp-2">{opp.name}</p>
+      <p className="text-sm font-medium text-brand-navy dark:text-fg-1 leading-snug mb-2 line-clamp-2">{opp.name}</p>
       <div className="flex items-center gap-1.5 flex-wrap">
         <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide ${stageColor}`}>
           {opp.stage}
         </span>
         {opp.close_date && (
-          <span className="text-[10px] text-brand-navy-70">{formatDate(opp.close_date)}</span>
+          <span className="text-[10px] text-brand-navy-70 dark:text-fg-2">{formatDate(opp.close_date)}</span>
         )}
         {aeInitials && (
-          <span className="ml-auto w-5 h-5 rounded-full bg-brand-navy-30/50 flex items-center justify-center text-[9px] font-bold text-brand-navy-70 flex-shrink-0">
+          <span className="ml-auto w-5 h-5 rounded-full bg-brand-navy-30/50 flex items-center justify-center text-[9px] font-bold text-brand-navy-70 dark:text-fg-2 flex-shrink-0">
             {aeInitials}
           </span>
         )}
@@ -219,13 +219,13 @@ function KanbanColumn({
     >
       {/* Column header */}
       <div className={`flex items-center justify-between px-3 py-2 rounded-xl mb-2 ${
-        isUnassigned ? 'bg-status-warning/10' : 'bg-brand-purple-30/30'
+        isUnassigned ? 'bg-status-warning/10 dark:bg-status-d-warning-soft' : 'bg-brand-purple-30/30 dark:bg-accent-purple-soft'
       }`}>
-        <span className={`text-xs font-semibold truncate ${isUnassigned ? 'text-status-warning' : 'text-brand-navy'}`}>
+        <span className={`text-xs font-semibold truncate ${isUnassigned ? 'text-status-warning dark:text-status-d-warning' : 'text-brand-navy'}`}>
           {label}
         </span>
         <span className={`text-[10px] font-bold rounded-full px-1.5 py-px ml-2 flex-shrink-0 ${
-          isUnassigned ? 'bg-status-warning/20 text-status-warning' : 'bg-brand-purple/10 text-brand-purple'
+          isUnassigned ? 'bg-status-warning/20 text-status-warning dark:text-status-d-warning' : 'bg-brand-purple/10 dark:bg-accent-purple-soft text-brand-purple'
         }`}>
           {count}
         </span>
@@ -233,7 +233,7 @@ function KanbanColumn({
 
       {/* Drop zone */}
       <div className={`flex-1 flex flex-col gap-2 min-h-[80px] rounded-xl p-2 transition-colors ${
-        over && canDrop ? 'bg-brand-purple-30/40 ring-2 ring-brand-purple ring-dashed' : 'bg-transparent'
+        over && canDrop ? 'bg-brand-purple-30/40 dark:bg-accent-purple-soft ring-2 ring-brand-purple ring-dashed' : 'bg-transparent'
       }`}>
         {opps.map(opp => (
           <KanbanCard
@@ -245,8 +245,8 @@ function KanbanColumn({
           />
         ))}
         {opps.length === 0 && (
-          <div className={`flex-1 flex items-center justify-center text-xs text-brand-navy-30 rounded-lg border-2 border-dashed min-h-[60px] ${
-            over && canDrop ? 'border-brand-purple' : 'border-brand-navy-30/30'
+          <div className={`flex-1 flex items-center justify-center text-xs text-brand-navy-30 dark:text-fg-4 rounded-lg border-2 border-dashed min-h-[60px] ${
+            over && canDrop ? 'border-brand-purple' : 'border-brand-navy-30/30 dark:border-ink-border-soft'
           }`}>
             Drop here
           </div>
@@ -436,11 +436,11 @@ export default function SeDealMappingPage() {
       <div className="flex-shrink-0 px-8 pt-6 pb-4">
         <div className="flex items-center gap-4">
           <div>
-            <h1 className="text-xl font-semibold text-brand-navy">SE Deal Mapping</h1>
-            <p className="text-sm text-brand-navy-70 mt-0.5">Assign SEs to opportunities and manage coverage</p>
+            <h1 className="text-xl font-semibold text-brand-navy dark:text-fg-1">SE Deal Mapping</h1>
+            <p className="text-sm text-brand-navy-70 dark:text-fg-2 mt-0.5">Assign SEs to opportunities and manage coverage</p>
           </div>
           {unassignedCount > 0 && (
-            <span className="ml-2 px-2.5 py-1 rounded-full text-xs font-semibold bg-status-warning/15 text-status-warning border border-status-warning/30">
+            <span className="ml-2 px-2.5 py-1 rounded-full text-xs font-semibold bg-status-warning/15 text-status-warning dark:text-status-d-warning border border-status-warning/30">
               {unassignedCount} unassigned
             </span>
           )}
@@ -450,7 +450,7 @@ export default function SeDealMappingPage() {
             <button
               onClick={() => setView('table')}
               title="Table view"
-              className={`p-1.5 rounded-md transition-colors ${view === 'table' ? 'bg-white shadow-sm text-brand-purple' : 'text-brand-navy-70 hover:text-brand-navy'}`}
+              className={`p-1.5 rounded-md transition-colors ${view === 'table' ? 'bg-white dark:bg-ink-1 shadow-sm text-brand-purple' : 'text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy'}`}
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 14h18M10 3v18M3 6a3 3 0 013-3h12a3 3 0 013 3v12a3 3 0 01-3 3H6a3 3 0 01-3-3V6z" />
@@ -459,7 +459,7 @@ export default function SeDealMappingPage() {
             <button
               onClick={() => setView('kanban')}
               title="Kanban view"
-              className={`p-1.5 rounded-md transition-colors ${view === 'kanban' ? 'bg-white shadow-sm text-brand-purple' : 'text-brand-navy-70 hover:text-brand-navy'}`}
+              className={`p-1.5 rounded-md transition-colors ${view === 'kanban' ? 'bg-white dark:bg-ink-1 shadow-sm text-brand-purple' : 'text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy'}`}
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
@@ -472,14 +472,14 @@ export default function SeDealMappingPage() {
         {!loading && (
           <div className="flex items-center gap-2 mt-4 flex-wrap">
             <div className="relative">
-              <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-brand-navy-30 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-brand-navy-30 dark:text-fg-4 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
               <input
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search opportunities…"
-                className="pl-8 pr-3 py-1.5 rounded-lg border border-brand-navy-30 text-sm text-brand-navy placeholder:text-brand-navy-30 focus:outline-none focus:ring-2 focus:ring-brand-purple w-52"
+                className="pl-8 pr-3 py-1.5 rounded-lg border border-brand-navy-30 text-sm text-brand-navy dark:text-fg-1 placeholder:text-brand-navy-30 dark:text-fg-4 focus:outline-none focus:ring-2 focus:ring-brand-purple w-52"
               />
             </div>
             <MultiSelectFilter options={STAGES} selected={filterStages} onChange={setFilterStages} placeholder="All stages" />
@@ -489,8 +489,8 @@ export default function SeDealMappingPage() {
               onClick={() => setFilterSe('all')}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                 filterSe === 'all'
-                  ? 'bg-brand-purple text-white border-brand-purple'
-                  : 'border-brand-navy-30 text-brand-navy-70 hover:border-brand-navy'
+                  ? 'bg-brand-purple dark:bg-accent-purple text-white border-brand-purple'
+                  : 'border-brand-navy-30 text-brand-navy-70 dark:text-fg-2 hover:border-brand-navy'
               }`}
             >
               All deals <span className="ml-1 opacity-70">{scopedOpps.length}</span>
@@ -500,7 +500,7 @@ export default function SeDealMappingPage() {
               className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                 filterSe === 'unassigned'
                   ? 'bg-status-warning text-white border-status-warning'
-                  : 'border-status-warning/50 text-status-warning hover:border-status-warning'
+                  : 'border-status-warning/50 text-status-warning dark:text-status-d-warning hover:border-status-warning'
               }`}
             >
               Unassigned <span className="ml-1 opacity-70">{unassignedCount}</span>
@@ -513,8 +513,8 @@ export default function SeDealMappingPage() {
                   onClick={() => setFilterSe(se.id)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                     filterSe === se.id
-                      ? 'bg-brand-purple text-white border-brand-purple'
-                      : 'border-brand-navy-30 text-brand-navy-70 hover:border-brand-navy'
+                      ? 'bg-brand-purple dark:bg-accent-purple text-white border-brand-purple'
+                      : 'border-brand-navy-30 text-brand-navy-70 dark:text-fg-2 hover:border-brand-navy'
                   }`}
                 >
                   {se.name} <span className="ml-1 opacity-60">{count}</span>
@@ -539,19 +539,19 @@ export default function SeDealMappingPage() {
       {view === 'table' && (
         <div className="flex-1 overflow-y-auto overflow-x-auto px-8 pb-6">
           {loading ? (
-            <div className="text-sm text-brand-navy-70 py-10 text-center">Loading…</div>
+            <div className="text-sm text-brand-navy-70 dark:text-fg-2 py-10 text-center">Loading…</div>
           ) : filtered.length === 0 ? (
-            <div className="text-sm text-brand-navy-70 py-10 text-center">No deals match this filter.</div>
+            <div className="text-sm text-brand-navy-70 dark:text-fg-2 py-10 text-center">No deals match this filter.</div>
           ) : (
-            <div className="bg-white rounded-2xl border border-brand-navy-30/40 overflow-hidden">
+            <div className="bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft overflow-hidden">
               <table className="w-full">
-                <thead className="border-b border-brand-navy-30/40">
+                <thead className="border-b border-brand-navy-30/40 dark:border-ink-border-soft">
                   <tr>
-                    <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide whitespace-nowrap">
+                    <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide whitespace-nowrap">
                       SE Owner
                     </th>
                     {visibleColumns.map(col => (
-                      <th key={col} className="px-4 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide whitespace-nowrap">
+                      <th key={col} className="px-4 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide whitespace-nowrap">
                         {COLUMN_BY_KEY[col]?.label ?? col}
                       </th>
                     ))}
@@ -564,9 +564,9 @@ export default function SeDealMappingPage() {
                       <tr
                         key={opp.id}
                         onClick={() => setSelectedId(opp.id)}
-                        className={`border-b border-brand-navy-30/20 last:border-0 cursor-pointer transition-colors ${
+                        className={`border-b border-brand-navy-30/20 dark:border-ink-border-soft last:border-0 cursor-pointer transition-colors ${
                           isUnassigned
-                            ? 'bg-status-warning/5 hover:bg-status-warning/10 border-l-2 border-l-status-warning'
+                            ? 'bg-status-warning/5 hover:bg-status-warning/10 dark:bg-status-d-warning-soft border-l-2 border-l-status-warning'
                             : 'hover:bg-brand-purple-30/10'
                         }`}
                       >
@@ -595,7 +595,7 @@ export default function SeDealMappingPage() {
           onDragEnd={() => setDraggingOppId(null)}
         >
           {loading ? (
-            <div className="text-sm text-brand-navy-70 py-10 text-center">Loading…</div>
+            <div className="text-sm text-brand-navy-70 dark:text-fg-2 py-10 text-center">Loading…</div>
           ) : (
             <div className="flex gap-3 h-full items-start pt-1">
               {kanbanColumns.map(({ seId, label }) => {

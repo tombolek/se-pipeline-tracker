@@ -23,14 +23,14 @@ export default function TeamScopeSelector() {
 
   return (
     <div className="flex items-center gap-1.5">
-      <span className="text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wide">Scope:</span>
+      <span className="text-[10px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">Scope:</span>
       <div className="flex rounded-lg border border-brand-navy-30 overflow-hidden text-xs">
         <button
           onClick={() => setTeamScopeManagerId(user!.id)}
           className={`px-3 py-1.5 font-medium transition-colors ${
             isFiltered
-              ? 'bg-brand-purple text-white'
-              : 'bg-white text-brand-navy-70 hover:bg-gray-50'
+              ? 'bg-brand-purple dark:bg-accent-purple text-white'
+              : 'bg-white dark:bg-ink-1 text-brand-navy-70 dark:text-fg-2 hover:bg-gray-50 dark:hover:bg-ink-2'
           }`}
         >
           {teamLabel()}
@@ -39,8 +39,8 @@ export default function TeamScopeSelector() {
           onClick={() => setTeamScopeManagerId(null)}
           className={`px-3 py-1.5 font-medium border-l border-brand-navy-30 transition-colors ${
             !isFiltered
-              ? 'bg-brand-purple text-white'
-              : 'bg-white text-brand-navy-70 hover:bg-gray-50'
+              ? 'bg-brand-purple dark:bg-accent-purple text-white'
+              : 'bg-white dark:bg-ink-1 text-brand-navy-70 dark:text-fg-2 hover:bg-gray-50 dark:hover:bg-ink-2'
           }`}
         >
           Full View

@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dark Mode — Insights + Settings + Quick Capture (Chunk D target)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script>
+tailwind.config = {
+  darkMode: 'class',
+  theme: {
+    extend: {
+      fontFamily: { sans: ['Poppins', 'system-ui', 'sans-serif'] },
+      colors: {
+        brand: {
+          purple: '#6A2CF5', 'purple-70': '#9C72F8', 'purple-30': '#DED0FD',
+          pink: '#F10090', 'pink-70': '#F655B5', 'pink-30': '#FCC6E6',
+          navy: '#1A0C42', 'navy-70': '#665D81', 'navy-30': '#CCC9D5',
+        },
+        ink: { 0:'#0B0D10', 1:'#13161A', 2:'#1A1E23', 3:'#242930',
+               border:'#2A2F37', 'border-soft':'#20252C' },
+        fg: { 1:'#E6E8EB', 2:'#A8ADB5', 3:'#6B7280', 4:'#4B5563' },
+        accent: { purple:'#9C72F8','purple-soft':'rgba(156,114,248,0.12)',
+                  pink:'#F655B5','pink-soft':'rgba(246,85,181,0.12)' },
+        statusd: {
+          overdue:'#FF6B6F','overdue-soft':'rgba(255,107,111,0.12)',
+          warning:'#FFBB33','warning-soft':'rgba(255,187,51,0.12)',
+          info:'#33E5FF','info-soft':'rgba(51,229,255,0.12)',
+          success:'#33EDC4','success-soft':'rgba(51,237,196,0.12)',
+        },
+        status: { overdue:'#D94040', warning:'#C98A00', info:'#2585C7', success:'#1A9E80' },
+      },
+    },
+  },
+}
+</script>
+<style>
+  body { background: #0B0D10; }
+  .row-hover:hover { background: rgba(255,255,255,0.025); }
+  .theme-btn { position: fixed; top: 12px; right: 12px; z-index: 99; display:flex; gap:4px; background:#1A1E23; border:1px solid #2A2F37; border-radius:8px; padding:4px; }
+  .theme-btn button { font-size: 11px; padding: 4px 8px; border-radius:4px; color:#A8ADB5; }
+  .theme-btn button.active { background:rgba(156,114,248,0.12); color:#9C72F8; }
+  .section-divider { border-top: 1px dashed #2A2F37; margin: 40px 0; }
+  html:not(.dark) .section-divider { border-top-color: #CCC9D5; }
+  html:not(.dark) body { background: #F5F5F7; }
+  .section-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.15em; color: #6B7280; margin-bottom: 12px; }
+  html:not(.dark) .section-label { color: #665D81; }
+</style>
+</head>
+<body class="font-sans text-fg-1">
+
+<div class="theme-btn">
+  <button id="toLight">Light</button>
+  <button id="toDark" class="active">Dark</button>
+</div>
+<script>
+  const root = document.documentElement;
+  document.getElementById('toLight').onclick = () => { root.classList.remove('dark'); document.querySelectorAll('.theme-btn button').forEach(b => b.classList.remove('active')); document.getElementById('toLight').classList.add('active'); };
+  document.getElementById('toDark').onclick  = () => { root.classList.add('dark'); document.querySelectorAll('.theme-btn button').forEach(b => b.classList.remove('active')); document.getElementById('toDark').classList.add('active'); };
+</script>
+
+<div class="max-w-[1400px] mx-auto px-6 py-10">
+
+  <!-- ═══ 1. INSIGHTS page (ClosedLostStats) — charts + tables ═══════════════ -->
+  <div class="section-label">1 · Insights page · Closed Lost Stats (chart-heavy)</div>
+
+  <div class="bg-[#F5F5F7] dark:bg-ink-0 rounded-2xl p-6 border border-brand-navy-30/40 dark:border-ink-border-soft">
+
+    <!-- Page header -->
+    <div class="flex items-start justify-between mb-6">
+      <div>
+        <h1 class="text-xl font-semibold text-brand-navy dark:text-fg-1">Closed Lost Stats</h1>
+        <p class="text-sm text-brand-navy-70 dark:text-fg-2 mt-0.5">Why we lost deals over the last 12 months · 47 lost · $4.2M total ARR</p>
+      </div>
+      <div class="flex items-center gap-1 bg-white dark:bg-ink-2 border border-brand-navy-30/60 dark:border-ink-border rounded-lg p-0.5">
+        <button class="px-2.5 py-1 rounded-md text-xs font-medium bg-brand-purple-30 text-brand-purple dark:bg-accent-purple-soft dark:text-accent-purple">12M</button>
+        <button class="px-2.5 py-1 rounded-md text-xs font-medium text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:hover:text-fg-1">6M</button>
+        <button class="px-2.5 py-1 rounded-md text-xs font-medium text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:hover:text-fg-1">3M</button>
+      </div>
+    </div>
+
+    <!-- Two-column: Pie chart + bar chart -->
+    <div class="grid grid-cols-2 gap-5 mb-6">
+
+      <!-- Pie chart card -->
+      <div class="bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft overflow-hidden">
+        <div class="px-5 py-3.5 border-b border-brand-navy-30/20 dark:border-ink-border-soft flex items-center gap-2">
+          <h2 class="text-xs font-semibold uppercase tracking-widest text-brand-navy-70 dark:text-fg-2">Loss Reason · By Count</h2>
+        </div>
+        <div class="p-5 flex items-center gap-6">
+          <!-- SVG pie chart — slice colors stay brand-agnostic; grid bg becomes neutral -->
+          <svg width="160" height="160" viewBox="0 0 160 160" class="flex-shrink-0">
+            <!-- Track background (ring when no selection) — swap to ink-border-soft in dark -->
+            <circle cx="80" cy="80" r="64" fill="none" stroke="currentColor" stroke-width="1" class="text-brand-navy-30/30 dark:text-ink-border-soft" />
+            <!-- Slices: 35%, 28%, 15%, 12%, 10% -->
+            <circle cx="80" cy="80" r="48" fill="none" stroke="#9C72F8" stroke-width="32" stroke-dasharray="106 301" stroke-dashoffset="0" transform="rotate(-90 80 80)" />
+            <circle cx="80" cy="80" r="48" fill="none" stroke="#F655B5" stroke-width="32" stroke-dasharray="84 301" stroke-dashoffset="-106" transform="rotate(-90 80 80)" />
+            <circle cx="80" cy="80" r="48" fill="none" stroke="#33E5FF" stroke-width="32" stroke-dasharray="45 301" stroke-dashoffset="-190" transform="rotate(-90 80 80)" />
+            <circle cx="80" cy="80" r="48" fill="none" stroke="#FFBB33" stroke-width="32" stroke-dasharray="36 301" stroke-dashoffset="-235" transform="rotate(-90 80 80)" />
+            <circle cx="80" cy="80" r="48" fill="none" stroke="#FF6B6F" stroke-width="32" stroke-dasharray="30 301" stroke-dashoffset="-271" transform="rotate(-90 80 80)" />
+            <!-- Center label -->
+            <text x="80" y="76" text-anchor="middle" class="fill-brand-navy dark:fill-fg-1" font-size="22" font-weight="600">47</text>
+            <text x="80" y="94" text-anchor="middle" class="fill-brand-navy-70 dark:fill-fg-3" font-size="10">deals</text>
+          </svg>
+
+          <!-- Legend -->
+          <div class="flex-1 space-y-2">
+            <div class="flex items-center gap-2 text-xs">
+              <span class="w-2.5 h-2.5 rounded-sm flex-shrink-0" style="background:#9C72F8"></span>
+              <span class="text-brand-navy dark:text-fg-1 flex-1">Price / Budget</span>
+              <span class="text-brand-navy-70 dark:text-fg-3 tabular-nums">16</span>
+              <span class="text-brand-navy-30 dark:text-fg-4 tabular-nums w-8 text-right">35%</span>
+            </div>
+            <div class="flex items-center gap-2 text-xs">
+              <span class="w-2.5 h-2.5 rounded-sm flex-shrink-0" style="background:#F655B5"></span>
+              <span class="text-brand-navy dark:text-fg-1 flex-1">Competitor Won</span>
+              <span class="text-brand-navy-70 dark:text-fg-3 tabular-nums">13</span>
+              <span class="text-brand-navy-30 dark:text-fg-4 tabular-nums w-8 text-right">28%</span>
+            </div>
+            <div class="flex items-center gap-2 text-xs">
+              <span class="w-2.5 h-2.5 rounded-sm flex-shrink-0" style="background:#33E5FF"></span>
+              <span class="text-brand-navy dark:text-fg-1 flex-1">No Decision</span>
+              <span class="text-brand-navy-70 dark:text-fg-3 tabular-nums">7</span>
+              <span class="text-brand-navy-30 dark:text-fg-4 tabular-nums w-8 text-right">15%</span>
+            </div>
+            <div class="flex items-center gap-2 text-xs">
+              <span class="w-2.5 h-2.5 rounded-sm flex-shrink-0" style="background:#FFBB33"></span>
+              <span class="text-brand-navy dark:text-fg-1 flex-1">Timing</span>
+              <span class="text-brand-navy-70 dark:text-fg-3 tabular-nums">6</span>
+              <span class="text-brand-navy-30 dark:text-fg-4 tabular-nums w-8 text-right">12%</span>
+            </div>
+            <div class="flex items-center gap-2 text-xs">
+              <span class="w-2.5 h-2.5 rounded-sm flex-shrink-0" style="background:#FF6B6F"></span>
+              <span class="text-brand-navy dark:text-fg-1 flex-1">Technical Gap</span>
+              <span class="text-brand-navy-70 dark:text-fg-3 tabular-nums">5</span>
+              <span class="text-brand-navy-30 dark:text-fg-4 tabular-nums w-8 text-right">10%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bar chart card (by competitor) -->
+      <div class="bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft overflow-hidden">
+        <div class="px-5 py-3.5 border-b border-brand-navy-30/20 dark:border-ink-border-soft flex items-center gap-2">
+          <h2 class="text-xs font-semibold uppercase tracking-widest text-brand-navy-70 dark:text-fg-2">Top Competitors · ARR Lost</h2>
+        </div>
+        <div class="p-5 space-y-3">
+          <!-- Grid lines reference: explicit horizontal divider per bar -->
+          <div class="space-y-2.5">
+            <div>
+              <div class="flex items-center justify-between text-xs mb-1">
+                <span class="font-medium text-brand-navy dark:text-fg-1">Informatica</span>
+                <span class="text-brand-navy-70 dark:text-fg-3 tabular-nums">$1.4M</span>
+              </div>
+              <div class="h-2 rounded-full bg-brand-navy-30/30 dark:bg-ink-border-soft overflow-hidden">
+                <div class="h-full rounded-full" style="width:78%;background:#9C72F8"></div>
+              </div>
+            </div>
+            <div>
+              <div class="flex items-center justify-between text-xs mb-1">
+                <span class="font-medium text-brand-navy dark:text-fg-1">Collibra</span>
+                <span class="text-brand-navy-70 dark:text-fg-3 tabular-nums">$890K</span>
+              </div>
+              <div class="h-2 rounded-full bg-brand-navy-30/30 dark:bg-ink-border-soft overflow-hidden">
+                <div class="h-full rounded-full" style="width:50%;background:#F655B5"></div>
+              </div>
+            </div>
+            <div>
+              <div class="flex items-center justify-between text-xs mb-1">
+                <span class="font-medium text-brand-navy dark:text-fg-1">Alation</span>
+                <span class="text-brand-navy-70 dark:text-fg-3 tabular-nums">$620K</span>
+              </div>
+              <div class="h-2 rounded-full bg-brand-navy-30/30 dark:bg-ink-border-soft overflow-hidden">
+                <div class="h-full rounded-full" style="width:35%;background:#33E5FF"></div>
+              </div>
+            </div>
+            <div>
+              <div class="flex items-center justify-between text-xs mb-1">
+                <span class="font-medium text-brand-navy dark:text-fg-1">In-house</span>
+                <span class="text-brand-navy-70 dark:text-fg-3 tabular-nums">$420K</span>
+              </div>
+              <div class="h-2 rounded-full bg-brand-navy-30/30 dark:bg-ink-border-soft overflow-hidden">
+                <div class="h-full rounded-full" style="width:24%;background:#FFBB33"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Deal list -->
+    <div class="bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft overflow-hidden">
+      <div class="px-5 py-3.5 border-b border-brand-navy-30/20 dark:border-ink-border-soft flex items-center gap-2">
+        <h2 class="text-xs font-semibold uppercase tracking-widest text-brand-navy-70 dark:text-fg-2">All Closed Lost Deals</h2>
+        <span class="text-[10px] font-semibold bg-brand-navy-30 text-brand-navy-70 dark:bg-ink-3 dark:text-fg-2 px-1.5 py-0.5 rounded-full">47</span>
+      </div>
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50 dark:bg-ink-2 border-b border-brand-navy-30/40 dark:border-ink-border-soft">
+          <tr>
+            <th class="px-4 py-2.5 text-left text-[10px] font-semibold text-brand-navy-70 dark:text-fg-3 uppercase tracking-wide">Opportunity</th>
+            <th class="px-4 py-2.5 text-left text-[10px] font-semibold text-brand-navy-70 dark:text-fg-3 uppercase tracking-wide">Loss Reason</th>
+            <th class="px-4 py-2.5 text-left text-[10px] font-semibold text-brand-navy-70 dark:text-fg-3 uppercase tracking-wide">Competitor</th>
+            <th class="px-4 py-2.5 text-right text-[10px] font-semibold text-brand-navy-70 dark:text-fg-3 uppercase tracking-wide">ARR</th>
+            <th class="px-4 py-2.5 text-left text-[10px] font-semibold text-brand-navy-70 dark:text-fg-3 uppercase tracking-wide">Closed</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-brand-navy-30/15 dark:divide-ink-border-soft">
+          <tr class="row-hover cursor-pointer">
+            <td class="px-4 py-3">
+              <p class="text-xs font-medium text-brand-navy dark:text-fg-1">[DE] Brenntag - DQG via Deloitte</p>
+              <p class="text-[10px] text-brand-navy-70 dark:text-fg-3">Brenntag</p>
+            </td>
+            <td class="px-4 py-3">
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-brand-purple-30/40 text-brand-purple dark:bg-accent-purple-soft dark:text-accent-purple">Competitor Won</span>
+            </td>
+            <td class="px-4 py-3 text-xs text-brand-navy dark:text-fg-1">Informatica</td>
+            <td class="px-4 py-3 text-right text-xs font-medium text-status-overdue dark:text-statusd-overdue tabular-nums">$111K</td>
+            <td class="px-4 py-3 text-xs text-brand-navy-70 dark:text-fg-3 tabular-nums">Apr 14, 26</td>
+          </tr>
+          <tr class="row-hover cursor-pointer">
+            <td class="px-4 py-3">
+              <p class="text-xs font-medium text-brand-navy dark:text-fg-1">[FR] Sanofi DQG</p>
+              <p class="text-[10px] text-brand-navy-70 dark:text-fg-3">Sanofi</p>
+            </td>
+            <td class="px-4 py-3">
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-statusd-warning-soft text-status-warning dark:text-statusd-warning">Price / Budget</span>
+            </td>
+            <td class="px-4 py-3 text-xs text-brand-navy-30 dark:text-fg-4">—</td>
+            <td class="px-4 py-3 text-right text-xs font-medium text-status-overdue dark:text-statusd-overdue tabular-nums">$295K</td>
+            <td class="px-4 py-3 text-xs text-brand-navy-70 dark:text-fg-3 tabular-nums">Mar 30, 26</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <!-- ═══ 2. SETTINGS page · Users management ═══════════════════════════════ -->
+  <div class="section-label">2 · Settings page · Users</div>
+
+  <div class="bg-[#F5F5F7] dark:bg-ink-0 rounded-2xl p-6 border border-brand-navy-30/40 dark:border-ink-border-soft">
+
+    <!-- Header -->
+    <div class="flex items-start justify-between mb-6">
+      <div>
+        <h1 class="text-xl font-semibold text-brand-navy dark:text-fg-1">Users</h1>
+        <p class="text-sm text-brand-navy-70 dark:text-fg-2 mt-0.5">Manage SEs, managers, and viewers · 12 active</p>
+      </div>
+      <button class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-brand-purple dark:bg-accent-purple text-white hover:bg-brand-purple-70 dark:hover:opacity-90">
+        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+        Add user
+      </button>
+    </div>
+
+    <!-- Filter bar -->
+    <div class="flex items-center gap-3 mb-4">
+      <div class="relative flex-1 max-w-md">
+        <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-brand-navy-30 dark:text-fg-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        <input type="text" placeholder="Search by name or email..." class="w-full pl-8 pr-3 py-1.5 text-xs border border-brand-navy-30/60 dark:border-ink-border bg-white dark:bg-ink-2 text-brand-navy dark:text-fg-1 placeholder:text-brand-navy-30 dark:placeholder:text-fg-4 rounded-lg focus:outline-none focus:border-brand-purple dark:focus:border-accent-purple focus:ring-1 focus:ring-brand-purple/30">
+      </div>
+      <span class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-gray-100 dark:bg-ink-3 text-brand-navy-70 dark:text-fg-2 cursor-pointer">
+        Role: All
+        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+      </span>
+    </div>
+
+    <!-- Users table -->
+    <div class="bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50 dark:bg-ink-2 border-b border-brand-navy-30/40 dark:border-ink-border-soft">
+          <tr>
+            <th class="px-4 py-2.5 text-left text-[10px] font-semibold text-brand-navy-70 dark:text-fg-3 uppercase tracking-wide">Name</th>
+            <th class="px-4 py-2.5 text-left text-[10px] font-semibold text-brand-navy-70 dark:text-fg-3 uppercase tracking-wide">Email</th>
+            <th class="px-4 py-2.5 text-left text-[10px] font-semibold text-brand-navy-70 dark:text-fg-3 uppercase tracking-wide">Role</th>
+            <th class="px-4 py-2.5 text-left text-[10px] font-semibold text-brand-navy-70 dark:text-fg-3 uppercase tracking-wide">Teams</th>
+            <th class="px-4 py-2.5 text-left text-[10px] font-semibold text-brand-navy-70 dark:text-fg-3 uppercase tracking-wide">Last login</th>
+            <th class="px-4 py-2.5 text-right text-[10px] font-semibold text-brand-navy-70 dark:text-fg-3 uppercase tracking-wide">Status</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-brand-navy-30/15 dark:divide-ink-border-soft">
+          <tr class="row-hover cursor-pointer">
+            <td class="px-4 py-3">
+              <div class="flex items-center gap-2">
+                <div class="w-7 h-7 rounded-full bg-brand-purple dark:bg-accent-purple flex items-center justify-center text-[10px] font-bold text-white">TB</div>
+                <span class="text-xs font-medium text-brand-navy dark:text-fg-1">Tomas Bolek</span>
+              </div>
+            </td>
+            <td class="px-4 py-3 text-xs text-brand-navy-70 dark:text-fg-2">tomas@ataccama.com</td>
+            <td class="px-4 py-3">
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-accent-pink-soft text-brand-pink dark:text-accent-pink">Manager</span>
+            </td>
+            <td class="px-4 py-3 text-xs text-brand-navy dark:text-fg-1">EMEA</td>
+            <td class="px-4 py-3 text-xs text-brand-navy-70 dark:text-fg-3 tabular-nums">Today, 9:12 AM</td>
+            <td class="px-4 py-3 text-right">
+              <span class="inline-flex items-center gap-1 text-[10px] font-medium text-status-success dark:text-statusd-success">
+                <span class="w-1.5 h-1.5 rounded-full bg-status-success dark:bg-statusd-success"></span>
+                Active
+              </span>
+            </td>
+          </tr>
+          <tr class="row-hover cursor-pointer">
+            <td class="px-4 py-3">
+              <div class="flex items-center gap-2">
+                <div class="w-7 h-7 rounded-full bg-brand-navy-30 dark:bg-ink-3 flex items-center justify-center text-[10px] font-bold text-brand-navy dark:text-fg-2">NS</div>
+                <span class="text-xs font-medium text-brand-navy dark:text-fg-1">Nick Stammers</span>
+              </div>
+            </td>
+            <td class="px-4 py-3 text-xs text-brand-navy-70 dark:text-fg-2">nick@ataccama.com</td>
+            <td class="px-4 py-3">
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-brand-purple-30/50 text-brand-purple dark:bg-accent-purple-soft dark:text-accent-purple">SE</span>
+            </td>
+            <td class="px-4 py-3 text-xs text-brand-navy dark:text-fg-1">EMEA, APAC</td>
+            <td class="px-4 py-3 text-xs text-brand-navy-70 dark:text-fg-3 tabular-nums">2h ago</td>
+            <td class="px-4 py-3 text-right">
+              <span class="inline-flex items-center gap-1 text-[10px] font-medium text-status-success dark:text-statusd-success">
+                <span class="w-1.5 h-1.5 rounded-full bg-status-success dark:bg-statusd-success"></span>
+                Active
+              </span>
+            </td>
+          </tr>
+          <tr class="row-hover cursor-pointer">
+            <td class="px-4 py-3">
+              <div class="flex items-center gap-2">
+                <div class="w-7 h-7 rounded-full bg-brand-navy-30 dark:bg-ink-3 flex items-center justify-center text-[10px] font-bold text-brand-navy dark:text-fg-2">JJ</div>
+                <span class="text-xs font-medium text-brand-navy dark:text-fg-1">Jaro Jasanský</span>
+              </div>
+            </td>
+            <td class="px-4 py-3 text-xs text-brand-navy-70 dark:text-fg-2">jaro@ataccama.com</td>
+            <td class="px-4 py-3">
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-brand-purple-30/50 text-brand-purple dark:bg-accent-purple-soft dark:text-accent-purple">SE</span>
+            </td>
+            <td class="px-4 py-3 text-xs text-brand-navy dark:text-fg-1">Americas</td>
+            <td class="px-4 py-3 text-xs text-brand-navy-70 dark:text-fg-3 tabular-nums">Yesterday</td>
+            <td class="px-4 py-3 text-right">
+              <span class="inline-flex items-center gap-1 text-[10px] font-medium text-brand-navy-70 dark:text-fg-3">
+                <span class="w-1.5 h-1.5 rounded-full bg-brand-navy-30 dark:bg-fg-4"></span>
+                Inactive
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <!-- ═══ 3. QUICK CAPTURE modal (⌘K) ═════════════════════════════════════════ -->
+  <div class="section-label">3 · Quick Capture modal (⌘K overlay)</div>
+
+  <div class="relative bg-[#F5F5F7] dark:bg-ink-0 rounded-2xl p-6 border border-brand-navy-30/40 dark:border-ink-border-soft min-h-[420px]">
+    <!-- Dimmed background hint -->
+    <p class="text-xs text-brand-navy-70 dark:text-fg-3">A page behind the modal…</p>
+
+    <!-- Backdrop -->
+    <div class="absolute inset-0 bg-brand-navy/20 dark:bg-black/50 backdrop-blur-[1px] rounded-2xl flex items-start justify-center pt-16">
+      <!-- Modal panel -->
+      <div class="w-[560px] bg-white dark:bg-ink-2 border border-brand-navy-30 dark:border-ink-border rounded-xl shadow-2xl overflow-hidden">
+        <!-- Tab row -->
+        <div class="flex items-center gap-0.5 border-b border-brand-navy-30/40 dark:border-ink-border-soft px-2 pt-2">
+          <button class="px-3 py-1.5 text-xs font-medium rounded-md text-brand-navy dark:text-fg-1 bg-brand-purple-30 dark:bg-accent-purple-soft">
+            Note
+          </button>
+          <button class="px-3 py-1.5 text-xs font-medium rounded-md text-brand-navy-70 dark:text-fg-3 hover:text-brand-navy dark:hover:text-fg-1">
+            Task
+          </button>
+          <button class="px-3 py-1.5 text-xs font-medium rounded-md text-brand-navy-70 dark:text-fg-3 hover:text-brand-navy dark:hover:text-fg-1">
+            Inbox jot
+          </button>
+        </div>
+
+        <!-- Opp picker -->
+        <div class="px-4 pt-3">
+          <label class="text-[10px] font-semibold uppercase tracking-widest text-brand-navy-70 dark:text-fg-3 mb-1 block">Opportunity</label>
+          <div class="relative">
+            <input type="text" value="[ES] Banco Bilbao Vizcaya Argentaria (BBVA) - DQG" class="w-full px-3 py-2 text-sm border border-brand-navy-30 dark:border-ink-border bg-white dark:bg-ink-1 text-brand-navy dark:text-fg-1 rounded-lg focus:outline-none focus:border-brand-purple dark:focus:border-accent-purple focus:ring-1 focus:ring-brand-purple/30">
+            <button class="absolute right-2 top-1/2 -translate-y-1/2 text-brand-navy-30 dark:text-fg-4 hover:text-brand-navy dark:hover:text-fg-1">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Body textarea -->
+        <div class="px-4 pt-3">
+          <label class="text-[10px] font-semibold uppercase tracking-widest text-brand-navy-70 dark:text-fg-3 mb-1 block">Note</label>
+          <textarea rows="5" placeholder="SE comments, next steps, context…" class="w-full px-3 py-2 text-sm border border-brand-navy-30 dark:border-ink-border bg-white dark:bg-ink-1 text-brand-navy dark:text-fg-1 placeholder:text-brand-navy-30 dark:placeholder:text-fg-4 rounded-lg focus:outline-none focus:border-brand-purple dark:focus:border-accent-purple focus:ring-1 focus:ring-brand-purple/30 resize-none">Onsite today with Marta (EB). Aligned on the PoC wrap-up plan.</textarea>
+        </div>
+
+        <!-- Footer -->
+        <div class="flex items-center gap-2 px-4 py-3 bg-gray-50 dark:bg-ink-1 border-t border-brand-navy-30/40 dark:border-ink-border-soft">
+          <span class="text-[10px] text-brand-navy-70 dark:text-fg-3">
+            <kbd class="px-1 py-0.5 text-[9px] font-mono rounded bg-brand-navy-30/40 dark:bg-ink-3 text-brand-navy-70 dark:text-fg-2">⌘⏎</kbd>
+            to save
+          </span>
+          <div class="flex-1"></div>
+          <button class="px-3 py-1.5 text-xs font-medium text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:hover:text-fg-1">Cancel</button>
+          <button class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-brand-purple dark:bg-accent-purple text-white hover:bg-brand-purple-70 dark:hover:opacity-90">Save note</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <!-- ═══ 4. Empty states + loading + misc ═══════════════════════════════════ -->
+  <div class="section-label">4 · Empty states &amp; loading</div>
+
+  <div class="grid grid-cols-3 gap-4">
+    <div class="bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft p-10 text-center">
+      <div class="w-10 h-10 mx-auto rounded-full bg-status-success/10 dark:bg-statusd-success-soft flex items-center justify-center mb-2">
+        <svg class="w-5 h-5 text-status-success dark:text-statusd-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+      </div>
+      <p class="text-xs text-brand-navy-70 dark:text-fg-2">All clear — nothing needs your attention</p>
+    </div>
+    <div class="bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft p-10 text-center">
+      <p class="text-sm text-brand-navy-70 dark:text-fg-2">Loading…</p>
+      <div class="flex justify-center gap-1 mt-2">
+        <span class="w-1.5 h-1.5 rounded-full bg-brand-navy-30 dark:bg-ink-border animate-pulse"></span>
+        <span class="w-1.5 h-1.5 rounded-full bg-brand-navy-30 dark:bg-ink-border animate-pulse" style="animation-delay:.1s"></span>
+        <span class="w-1.5 h-1.5 rounded-full bg-brand-navy-30 dark:bg-ink-border animate-pulse" style="animation-delay:.2s"></span>
+      </div>
+    </div>
+    <div class="bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft p-10 text-center">
+      <div class="w-10 h-10 mx-auto rounded-full bg-statusd-warning-soft flex items-center justify-center mb-2">
+        <svg class="w-5 h-5 text-status-warning dark:text-statusd-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0 3.75h.008M12 20.25a8.25 8.25 0 110-16.5 8.25 8.25 0 010 16.5z"/></svg>
+      </div>
+      <p class="text-xs text-brand-navy dark:text-fg-1 font-medium">Couldn't load this section</p>
+      <button class="mt-2 text-[11px] font-medium text-brand-purple dark:text-accent-purple hover:text-brand-pink dark:hover:text-accent-pink">Try again</button>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

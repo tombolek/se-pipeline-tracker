@@ -44,9 +44,9 @@ function fmtDate(iso: string | null): string {
 
 function kindLabel(kind: KbFile['kind']): { label: string; class: string } {
   switch (kind) {
-    case 'proof_point':    return { label: 'Proof points',   class: 'bg-brand-purple-30/60 text-brand-purple' };
-    case 'differentiator': return { label: 'Differentiators', class: 'bg-brand-pink-30/60 text-brand-pink' };
-    case 'index':          return { label: 'Index',          class: 'bg-gray-100 text-gray-600' };
+    case 'proof_point':    return { label: 'Proof points',   class: 'bg-brand-purple-30/60 dark:bg-accent-purple-soft text-brand-purple' };
+    case 'differentiator': return { label: 'Differentiators', class: 'bg-brand-pink-30/60 text-brand-pink dark:text-accent-pink' };
+    case 'index':          return { label: 'Index',          class: 'bg-gray-100 dark:bg-ink-3 text-gray-600' };
   }
 }
 
@@ -151,8 +151,8 @@ export default function KnowledgeBasePage() {
       {toast && (
         <div className={`fixed top-4 right-4 z-50 px-4 py-2.5 rounded-xl shadow-lg border text-[12px] font-medium ${
           toast.kind === 'ok'
-            ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-            : 'bg-red-50 border-red-200 text-red-800'
+            ? 'bg-emerald-50 dark:bg-status-d-success-soft border-emerald-200 text-emerald-800'
+            : 'bg-red-50 dark:bg-status-d-overdue-soft border-red-200 text-red-800'
         }`}>
           {toast.text}
         </div>
@@ -161,15 +161,15 @@ export default function KnowledgeBasePage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-3 mb-4">
         <div>
-          <h1 className="text-lg font-semibold text-brand-navy">Knowledge Base</h1>
-          <p className="text-[12px] text-brand-navy-70 mt-1 max-w-2xl leading-relaxed">
-            Source markdown for the Call Prep and Similar Deals features. Each file covers one vertical and follows a strict template (<code className="text-[11px] bg-gray-100 px-1 rounded">### Customer</code> → About, Products/Initiatives table, Proof Point). Download, edit locally, upload back — proof-point files auto-import on upload. Differentiators and the index require a full re-import to activate.
+          <h1 className="text-lg font-semibold text-brand-navy dark:text-fg-1">Knowledge Base</h1>
+          <p className="text-[12px] text-brand-navy-70 dark:text-fg-2 mt-1 max-w-2xl leading-relaxed">
+            Source markdown for the Call Prep and Similar Deals features. Each file covers one vertical and follows a strict template (<code className="text-[11px] bg-gray-100 dark:bg-ink-3 px-1 rounded">### Customer</code> → About, Products/Initiatives table, Proof Point). Download, edit locally, upload back — proof-point files auto-import on upload. Differentiators and the index require a full re-import to activate.
           </p>
         </div>
         <button
           onClick={fullReimport}
           disabled={fullImporting}
-          className="flex-shrink-0 text-[11px] font-semibold text-brand-purple hover:text-brand-purple-70 px-3 py-2 rounded-lg border border-brand-purple/30 hover:bg-brand-purple-30/30 disabled:opacity-40 disabled:cursor-not-allowed"
+          className="flex-shrink-0 text-[11px] font-semibold text-brand-purple dark:text-accent-purple hover:text-brand-purple-70 dark:text-accent-purple px-3 py-2 rounded-lg border border-brand-purple/30 dark:border-accent-purple/30 hover:bg-brand-purple-30/30 dark:hover:bg-accent-purple-soft disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {fullImporting ? 'Re-importing…' : 'Full re-import'}
         </button>
@@ -178,14 +178,14 @@ export default function KnowledgeBasePage() {
       {/* Table */}
       {loading ? (
         <div className="space-y-2">
-          {[0, 1, 2, 3].map(i => <div key={i} className="h-12 bg-gray-50 rounded-xl animate-pulse" />)}
+          {[0, 1, 2, 3].map(i => <div key={i} className="h-12 bg-gray-50 dark:bg-ink-2 rounded-xl animate-pulse" />)}
         </div>
       ) : error ? (
-        <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-[12px] text-red-700">{error}</div>
+        <div className="bg-red-50 dark:bg-status-d-overdue-soft border border-red-200 rounded-xl px-4 py-3 text-[12px] text-red-700">{error}</div>
       ) : (
-        <div className="bg-white border border-brand-navy-30/40 rounded-xl overflow-hidden">
+        <div className="bg-white dark:bg-ink-1 border border-brand-navy-30/40 dark:border-ink-border-soft rounded-xl overflow-hidden">
           <table className="w-full text-[12px]">
-            <thead className="bg-[#F5F5F7] text-brand-navy-70">
+            <thead className="bg-[#F5F5F7] dark:bg-ink-0 text-brand-navy-70 dark:text-fg-2">
               <tr className="text-left">
                 <th className="px-4 py-2.5 font-semibold">File</th>
                 <th className="px-4 py-2.5 font-semibold">Kind</th>
@@ -201,23 +201,23 @@ export default function KnowledgeBasePage() {
                 const isBusy = uploading === f.file_name;
                 return (
                   <tr key={f.file_name} className="hover:bg-brand-purple-30/10 transition-colors">
-                    <td className="px-4 py-2.5 font-mono text-[11px] text-brand-navy">{f.file_name}</td>
+                    <td className="px-4 py-2.5 font-mono text-[11px] text-brand-navy dark:text-fg-1">{f.file_name}</td>
                     <td className="px-4 py-2.5">
                       <span className={`text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded ${kind.class}`}>
                         {kind.label}
                       </span>
                     </td>
-                    <td className="px-4 py-2.5 text-right tabular-nums text-brand-navy-70">
+                    <td className="px-4 py-2.5 text-right tabular-nums text-brand-navy-70 dark:text-fg-2">
                       {f.kind === 'proof_point' ? f.customer_count : '—'}
                     </td>
-                    <td className="px-4 py-2.5 text-brand-navy-70">{fmtDate(f.last_imported_at)}</td>
-                    <td className="px-4 py-2.5 text-brand-navy-70">
+                    <td className="px-4 py-2.5 text-brand-navy-70 dark:text-fg-2">{fmtDate(f.last_imported_at)}</td>
+                    <td className="px-4 py-2.5 text-brand-navy-70 dark:text-fg-2">
                       {fmtBytes(f.size_bytes)} · <span className="text-[10px]">modified {fmtDate(f.modified_at)}</span>
                     </td>
                     <td className="px-4 py-2.5 text-right whitespace-nowrap">
                       <button
                         onClick={() => download(f.file_name)}
-                        className="text-[11px] font-semibold text-brand-purple hover:text-brand-purple-70 mr-3"
+                        className="text-[11px] font-semibold text-brand-purple dark:text-accent-purple hover:text-brand-purple-70 dark:text-accent-purple mr-3"
                       >
                         Download
                       </button>
@@ -235,7 +235,7 @@ export default function KnowledgeBasePage() {
                       <button
                         onClick={() => inputRefs.current[f.file_name]?.click()}
                         disabled={isBusy}
-                        className="text-[11px] font-semibold text-brand-purple hover:text-brand-purple-70 disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="text-[11px] font-semibold text-brand-purple dark:text-accent-purple hover:text-brand-purple-70 dark:text-accent-purple disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         {isBusy ? 'Uploading…' : 'Upload'}
                       </button>
@@ -249,7 +249,7 @@ export default function KnowledgeBasePage() {
       )}
 
       {/* Footnote */}
-      <p className="text-[11px] text-brand-navy-70 mt-4 max-w-2xl leading-relaxed">
+      <p className="text-[11px] text-brand-navy-70 dark:text-fg-2 mt-4 max-w-2xl leading-relaxed">
         <strong>Upload flow:</strong> Upload → server writes to disk (atomic) → parses the markdown → on success, replaces just that file's records in the DB and logs the import. If the parser rejects, the DB is untouched and you'll see a line-level error. Customers removed from the file disappear from the DB.
       </p>
     </div>

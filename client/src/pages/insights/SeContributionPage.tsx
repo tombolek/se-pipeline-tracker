@@ -54,15 +54,15 @@ function resolved(b: Buckets): number {
 }
 
 function Pct({ value, denom, dampen }: { value: number | null; denom: number; dampen?: boolean }) {
-  if (value === null) return <span className="text-brand-navy-70">—</span>;
+  if (value === null) return <span className="text-brand-navy-70 dark:text-fg-2">—</span>;
   if (dampen && denom < RESOLVED_MIN) {
     return (
-      <span className="text-brand-navy-70" title={`Only ${denom} resolved — too few for a reliable rate`}>
+      <span className="text-brand-navy-70 dark:text-fg-2" title={`Only ${denom} resolved — too few for a reliable rate`}>
         {value}%<sup className="ml-0.5 text-[9px]">·</sup>
       </span>
     );
   }
-  return <span className="font-semibold text-brand-navy">{value}%</span>;
+  return <span className="font-semibold text-brand-navy dark:text-fg-1">{value}%</span>;
 }
 
 function ConversionCell({ b, pct }: { b: Buckets; pct: number | null }) {
@@ -70,10 +70,10 @@ function ConversionCell({ b, pct }: { b: Buckets; pct: number | null }) {
   return (
     <div className="text-center">
       <Pct value={pct} denom={den} dampen />
-      <div className="text-[10px] text-brand-navy-70 mt-0.5 whitespace-nowrap">
+      <div className="text-[10px] text-brand-navy-70 dark:text-fg-2 mt-0.5 whitespace-nowrap">
         {b.progressed}/{den}
         {b.stuck_assumed_lost > 0 && (
-          <span className="ml-1 text-brand-navy-70" title={`${b.stuck_assumed_lost} stuck ≥180d (counted as lost)`}>
+          <span className="ml-1 text-brand-navy-70 dark:text-fg-2" title={`${b.stuck_assumed_lost} stuck ≥180d (counted as lost)`}>
             ·{b.stuck_assumed_lost}s
           </span>
         )}
@@ -125,15 +125,15 @@ export default function SeContributionPage() {
       />
 
       <div className="flex items-center gap-2 mb-4">
-        <span className="text-xs text-brand-navy-70">Period:</span>
+        <span className="text-xs text-brand-navy-70 dark:text-fg-2">Period:</span>
         {PERIOD_OPTIONS.map(o => (
           <button
             key={o.days}
             onClick={() => setDays(o.days)}
             className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${
               days === o.days
-                ? 'bg-brand-purple text-white'
-                : 'bg-white text-brand-navy-70 hover:text-brand-navy border border-brand-navy-30'
+                ? 'bg-brand-purple dark:bg-accent-purple text-white'
+                : 'bg-white dark:bg-ink-1 text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:text-fg-1 border border-brand-navy-30'
             }`}
           >
             {o.label}
@@ -143,9 +143,9 @@ export default function SeContributionPage() {
 
       {loading || !data ? <Loading /> : (
         <>
-          <div className="bg-white rounded-2xl border border-brand-navy-30/40 overflow-hidden">
+          <div className="bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft overflow-hidden">
             <table className="w-full text-sm">
-              <thead className="bg-[#F5F5F7] text-brand-navy-70 text-[11px] uppercase tracking-wide">
+              <thead className="bg-[#F5F5F7] dark:bg-ink-0 text-brand-navy-70 dark:text-fg-2 text-[11px] uppercase tracking-wide">
                 <tr>
                   <th className="text-left px-4 py-2 font-medium">SE</th>
                   <th className="px-3 py-2 font-medium" colSpan={2}>Conversion</th>
@@ -154,7 +154,7 @@ export default function SeContributionPage() {
                   <th className="px-3 py-2 font-medium">PoC win</th>
                   <th className="px-3 py-2 font-medium">Hygiene 14d</th>
                 </tr>
-                <tr className="border-t border-brand-navy-30/30">
+                <tr className="border-t border-brand-navy-30/30 dark:border-ink-border-soft">
                   <th />
                   <th className="px-3 pb-2 font-normal text-center">BV→DS</th>
                   <th className="px-3 pb-2 font-normal text-center">DS→PS</th>
@@ -163,21 +163,21 @@ export default function SeContributionPage() {
               </thead>
               <tbody>
                 {teamRow && (
-                  <tr className="border-t border-brand-navy-30/30 bg-brand-purple-30/20 font-semibold">
-                    <td className="px-4 py-3 text-brand-navy">{teamRow.se_name}</td>
+                  <tr className="border-t border-brand-navy-30/30 dark:border-ink-border-soft bg-brand-purple-30/20 font-semibold">
+                    <td className="px-4 py-3 text-brand-navy dark:text-fg-1">{teamRow.se_name}</td>
                     <td className="px-3 py-3"><ConversionCell b={teamRow.bv} pct={teamRow.bv_to_ds_pct} /></td>
                     <td className="px-3 py-3"><ConversionCell b={teamRow.ds} pct={teamRow.ds_to_ps_pct} /></td>
                     <td className="px-3 py-3 text-right">{formatARR(teamRow.closed_arr)}</td>
                     <td className="px-3 py-3 text-right">{formatARR(teamRow.contributed_arr)}</td>
                     <td className="px-3 py-3 text-center">
                       <Pct value={teamRow.poc_conversion_pct} denom={teamRow.poc_ended} dampen />
-                      <div className="text-[10px] font-normal text-brand-navy-70 mt-0.5">
+                      <div className="text-[10px] font-normal text-brand-navy-70 dark:text-fg-2 mt-0.5">
                         {teamRow.poc_won}/{teamRow.poc_ended}
                       </div>
                     </td>
                     <td className="px-3 py-3 text-center">
                       <Pct value={teamRow.hygiene_pct} denom={teamRow.open_owned} />
-                      <div className="text-[10px] font-normal text-brand-navy-70 mt-0.5">
+                      <div className="text-[10px] font-normal text-brand-navy-70 dark:text-fg-2 mt-0.5">
                         {teamRow.fresh_owned}/{teamRow.open_owned}
                       </div>
                     </td>
@@ -191,10 +191,10 @@ export default function SeContributionPage() {
                   if (empty && !isOrphan) return null; // hide SEs with no activity
                   return (
                     <tr key={r.se_id ?? 'no-owner'}
-                        className={`border-t border-brand-navy-30/30 ${isOrphan ? 'bg-[#FAFAFC] italic' : ''}`}>
-                      <td className="px-4 py-3 text-brand-navy">
+                        className={`border-t border-brand-navy-30/30 dark:border-ink-border-soft ${isOrphan ? 'bg-[#FAFAFC] italic' : ''}`}>
+                      <td className="px-4 py-3 text-brand-navy dark:text-fg-1">
                         {r.se_name}
-                        {isInactive && <span className="ml-2 text-[10px] font-normal text-brand-navy-70">(inactive)</span>}
+                        {isInactive && <span className="ml-2 text-[10px] font-normal text-brand-navy-70 dark:text-fg-2">(inactive)</span>}
                       </td>
                       <td className="px-3 py-3"><ConversionCell b={r.bv} pct={r.bv_to_ds_pct} /></td>
                       <td className="px-3 py-3"><ConversionCell b={r.ds} pct={r.ds_to_ps_pct} /></td>
@@ -202,13 +202,13 @@ export default function SeContributionPage() {
                       <td className="px-3 py-3 text-right">{formatARR(r.contributed_arr)}</td>
                       <td className="px-3 py-3 text-center">
                         <Pct value={r.poc_conversion_pct} denom={r.poc_ended} dampen />
-                        <div className="text-[10px] text-brand-navy-70 mt-0.5">
+                        <div className="text-[10px] text-brand-navy-70 dark:text-fg-2 mt-0.5">
                           {r.poc_won}/{r.poc_ended}
                         </div>
                       </td>
                       <td className="px-3 py-3 text-center">
                         <Pct value={r.hygiene_pct} denom={r.open_owned} />
-                        <div className="text-[10px] text-brand-navy-70 mt-0.5">
+                        <div className="text-[10px] text-brand-navy-70 dark:text-fg-2 mt-0.5">
                           {r.fresh_owned}/{r.open_owned}
                         </div>
                       </td>
@@ -219,14 +219,14 @@ export default function SeContributionPage() {
             </table>
           </div>
 
-          <div className="mt-4 text-[11px] text-brand-navy-70 space-y-1">
+          <div className="mt-4 text-[11px] text-brand-navy-70 dark:text-fg-2 space-y-1">
             <p>
               <strong>Conversion rate</strong> = progressed ÷ (progressed + explicit-lost + stuck ≥{data.config.stuck_cutoff_days}d).
               Deals that have been in a stage for {data.config.stuck_cutoff_days}+ days without progressing are
               counted as <em>assumed lost</em>. In-flight and stage-skipping deals are excluded from the denominator.
             </p>
             <p>
-              <strong>Rates marked with a small dot</strong> (e.g. <span className="text-brand-navy">50%·</span>) have fewer than {RESOLVED_MIN} resolved deals —
+              <strong>Rates marked with a small dot</strong> (e.g. <span className="text-brand-navy dark:text-fg-1">50%·</span>) have fewer than {RESOLVED_MIN} resolved deals —
               treat as directional only.
             </p>
             <p>

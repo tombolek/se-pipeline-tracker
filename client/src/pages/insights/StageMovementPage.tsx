@@ -47,8 +47,8 @@ export default function StageMovementPage() {
               onClick={() => setDays(d)}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                 days === d
-                  ? 'bg-brand-purple text-white border-brand-purple'
-                  : 'border-brand-navy-30 text-brand-navy-70 hover:border-brand-navy hover:text-brand-navy'
+                  ? 'bg-brand-purple dark:bg-accent-purple text-white border-brand-purple'
+                  : 'border-brand-navy-30 text-brand-navy-70 dark:text-fg-2 hover:border-brand-navy hover:text-brand-navy'
               }`}
             >
               {d}d
@@ -58,34 +58,34 @@ export default function StageMovementPage() {
       </div>
 
       {loading ? <Loading /> : scopedRows.length === 0 ? <Empty /> : (
-        <div className="bg-white rounded-2xl border border-brand-navy-30/40 overflow-hidden">
+        <div className="bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft overflow-hidden">
           <table className="w-full">
-            <thead className="border-b border-brand-navy-30/40">
+            <thead className="border-b border-brand-navy-30/40 dark:border-ink-border-soft">
               <tr>
                 {['Opportunity', 'Stage Change', 'ARR', 'Changed', 'SE Owner'].map(h => (
-                  <th key={h} className="px-4 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">{h}</th>
+                  <th key={h} className="px-4 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {scopedRows.map(r => (
-                <tr key={r.id} className="border-b border-brand-navy-30/20 last:border-0 hover:bg-gray-50">
+                <tr key={r.id} className="border-b border-brand-navy-30/20 dark:border-ink-border-soft last:border-0 hover:bg-gray-50 dark:hover:bg-ink-2">
                   <td className="px-4 py-3">
-                    <p className="text-sm font-medium text-brand-navy">{r.name}</p>
-                    <p className="text-xs text-brand-navy-70">{r.account_name}</p>
+                    <p className="text-sm font-medium text-brand-navy dark:text-fg-1">{r.name}</p>
+                    <p className="text-xs text-brand-navy-70 dark:text-fg-2">{r.account_name}</p>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-xs text-brand-navy-70">{r.previous_stage}</span>
-                      <svg className="w-3 h-3 text-brand-navy-30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <span className="text-xs text-brand-navy-70 dark:text-fg-2">{r.previous_stage}</span>
+                      <svg className="w-3 h-3 text-brand-navy-30 dark:text-fg-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                       </svg>
                       <StageBadge stage={r.current_stage} />
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-sm font-medium text-brand-navy">{formatARR(r.arr)}</td>
-                  <td className="px-4 py-3 text-xs text-brand-navy-70">{formatDate(r.stage_changed_at)}</td>
-                  <td className="px-4 py-3 text-xs text-brand-navy-70">{r.se_owner_name ?? <span className="text-status-warning">Unassigned</span>}</td>
+                  <td className="px-4 py-3 text-sm font-medium text-brand-navy dark:text-fg-1">{formatARR(r.arr)}</td>
+                  <td className="px-4 py-3 text-xs text-brand-navy-70 dark:text-fg-2">{formatDate(r.stage_changed_at)}</td>
+                  <td className="px-4 py-3 text-xs text-brand-navy-70 dark:text-fg-2">{r.se_owner_name ?? <span className="text-status-warning dark:text-status-d-warning">Unassigned</span>}</td>
                 </tr>
               ))}
             </tbody>

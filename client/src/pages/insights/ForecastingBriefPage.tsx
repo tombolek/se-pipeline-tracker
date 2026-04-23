@@ -16,7 +16,7 @@ function renderBold(text: string): React.ReactNode {
   const parts = text.split(/\*\*(.+?)\*\*/g);
   return parts.map((part, i) =>
     i % 2 === 1
-      ? <strong key={i} className="text-brand-navy font-semibold">{part}</strong>
+      ? <strong key={i} className="text-brand-navy dark:text-fg-1 font-semibold">{part}</strong>
       : part
   );
 }
@@ -57,7 +57,7 @@ function HoverTooltip({ children, content, width = 260 }: {
       {children}
       {show && pos && (
         <div
-          className="fixed z-[9999] bg-white rounded-lg shadow-xl border border-brand-navy-30/30 p-3 text-[11px] text-brand-navy leading-relaxed"
+          className="fixed z-[9999] bg-white dark:bg-ink-1 rounded-lg shadow-xl border border-brand-navy-30/30 dark:border-ink-border-soft p-3 text-[11px] text-brand-navy dark:text-fg-1 leading-relaxed"
           style={{ top: pos.top, left: pos.left, width }}
         >
           {content}
@@ -114,28 +114,28 @@ const FC_STYLES: Record<string, string> = {
   commit:      'bg-blue-100 text-blue-800',
   'most likely': 'bg-amber-100 text-amber-800',
   upside:      'bg-purple-100 text-purple-800',
-  pipeline:    'bg-gray-100 text-gray-700',
-  omitted:     'bg-gray-100 text-gray-500',
+  pipeline:    'bg-gray-100 dark:bg-ink-3 text-gray-700',
+  omitted:     'bg-gray-100 dark:bg-ink-3 text-gray-500',
 };
 
 function ForecastBadge({ category }: { category: string | null }) {
-  if (!category) return <span className="text-[9px] text-brand-navy-30 italic">—</span>;
-  const style = FC_STYLES[category.toLowerCase()] || 'bg-gray-100 text-gray-600';
+  if (!category) return <span className="text-[9px] text-brand-navy-30 dark:text-fg-4 italic">—</span>;
+  const style = FC_STYLES[category.toLowerCase()] || 'bg-gray-100 dark:bg-ink-3 text-gray-600';
   return <span className={`text-[9px] px-1.5 py-0.5 rounded font-semibold ${style}`}>{category}</span>;
 }
 
 // ── Stage badge (lightweight inline version) ────────────────────────────────
 const STAGE_COLORS: Record<string, string> = {
-  'Qualify': 'bg-gray-50 text-gray-600 border-gray-200',
-  'Build Value': 'bg-emerald-50 text-emerald-700 border-emerald-200/60',
+  'Qualify': 'bg-gray-50 dark:bg-ink-2 text-gray-600 border-gray-200',
+  'Build Value': 'bg-emerald-50 dark:bg-status-d-success-soft text-emerald-700 border-emerald-200/60',
   'Develop Solution': 'bg-indigo-50 text-indigo-700 border-indigo-200/60',
   'Proposal Sent': 'bg-purple-50 text-purple-700 border-purple-200/60',
-  'Negotiate': 'bg-blue-50 text-blue-700 border-blue-200/60',
-  'Submitted for Booking': 'bg-amber-50 text-amber-700 border-amber-200/60',
+  'Negotiate': 'bg-blue-50 dark:bg-status-d-info-soft text-blue-700 border-blue-200/60',
+  'Submitted for Booking': 'bg-amber-50 dark:bg-status-d-warning-soft text-amber-700 border-amber-200/60',
 };
 
 function StagePill({ stage }: { stage: string }) {
-  const style = STAGE_COLORS[stage] || 'bg-gray-50 text-gray-600 border-gray-200';
+  const style = STAGE_COLORS[stage] || 'bg-gray-50 dark:bg-ink-2 text-gray-600 border-gray-200';
   return <span className={`text-[9px] px-2 py-0.5 rounded-full border font-semibold ${style}`}>{stage}</span>;
 }
 
@@ -143,19 +143,19 @@ function StagePill({ stage }: { stage: string }) {
 function HealthBadge({ opp }: { opp: ForecastOpp }) {
   const score = computeSimpleHealth(opp);
   const factors = computeHealthFactors(opp);
-  const color = score >= 70 ? 'text-emerald-600' : score >= 40 ? 'text-amber-600' : 'text-status-overdue';
+  const color = score >= 70 ? 'text-emerald-600' : score >= 40 ? 'text-amber-600' : 'text-status-overdue dark:text-status-d-overdue';
   return (
     <HoverTooltip width={220} content={
       <div>
         <div className="flex items-center justify-between mb-2">
-          <span className="text-[10px] font-bold text-brand-navy">Health Score</span>
+          <span className="text-[10px] font-bold text-brand-navy dark:text-fg-1">Health Score</span>
           <span className={`text-[12px] font-bold ${color}`}>{score}/100</span>
         </div>
         <div className="space-y-1">
           {factors.map(f => (
             <div key={f.label} className="flex items-center justify-between text-[10px]">
-              <span className="text-brand-navy-70">{f.label}</span>
-              <span className={f.penalty > 0 ? 'text-status-overdue font-medium' : 'text-emerald-600 font-medium'}>
+              <span className="text-brand-navy-70 dark:text-fg-2">{f.label}</span>
+              <span className={f.penalty > 0 ? 'text-status-overdue dark:text-status-d-overdue font-medium' : 'text-emerald-600 font-medium'}>
                 {f.penalty > 0 ? `−${f.penalty}` : '✓'}
               </span>
             </div>
@@ -515,7 +515,7 @@ export default function ForecastingBriefPage() {
   // ── Render ──────────────────────────────────────────────────────────────
   if (loading) return <Loading />;
   if (error || !data) return (
-    <div className="flex items-center justify-center py-16 text-sm text-status-overdue">{error || 'No data'}</div>
+    <div className="flex items-center justify-center py-16 text-sm text-status-overdue dark:text-status-d-overdue">{error || 'No data'}</div>
   );
 
   const { narrative, fiscal_period } = data;
@@ -528,28 +528,28 @@ export default function ForecastingBriefPage() {
       <div className="flex items-center justify-between mb-5">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-xl font-bold text-brand-navy">Forecasting Brief</h1>
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-brand-purple/10 text-brand-purple border border-brand-purple/20">
+            <h1 className="text-xl font-bold text-brand-navy dark:text-fg-1">Forecasting Brief</h1>
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-brand-purple/10 dark:bg-accent-purple-soft text-brand-purple dark:text-accent-purple border border-brand-purple/20">
               {fiscal_period}
             </span>
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 dark:bg-status-d-success-soft text-emerald-700 border border-emerald-200">
               {region} — {regionTeams}
             </span>
           </div>
-          <p className="text-[12px] text-brand-navy-70 mt-0.5">SE perspective for your forecast call. Auto-refreshed Fridays.</p>
+          <p className="text-[12px] text-brand-navy-70 dark:text-fg-2 mt-0.5">SE perspective for your forecast call. Auto-refreshed Fridays.</p>
         </div>
         <div className="flex items-center gap-3">
           {/* Region toggle */}
-          <div className="flex rounded-lg border border-brand-navy-30/40 overflow-hidden">
+          <div className="flex rounded-lg border border-brand-navy-30/40 dark:border-ink-border-soft overflow-hidden">
             <button
               onClick={() => setRegion('NA')}
-              className={`px-3 py-1.5 text-[10px] font-semibold transition-colors ${region === 'NA' ? 'bg-brand-purple text-white' : 'bg-white text-brand-navy-70 hover:bg-gray-50'}`}
+              className={`px-3 py-1.5 text-[10px] font-semibold transition-colors ${region === 'NA' ? 'bg-brand-purple dark:bg-accent-purple text-white' : 'bg-white dark:bg-ink-1 text-brand-navy-70 dark:text-fg-2 hover:bg-gray-50 dark:hover:bg-ink-2'}`}
             >
               NA
             </button>
             <button
               onClick={() => setRegion('INTL')}
-              className={`px-3 py-1.5 text-[10px] font-semibold transition-colors border-l border-brand-navy-30/40 ${region === 'INTL' ? 'bg-brand-purple text-white' : 'bg-white text-brand-navy-70 hover:bg-gray-50'}`}
+              className={`px-3 py-1.5 text-[10px] font-semibold transition-colors border-l border-brand-navy-30/40 dark:border-ink-border-soft ${region === 'INTL' ? 'bg-brand-purple dark:bg-accent-purple text-white' : 'bg-white dark:bg-ink-1 text-brand-navy-70 dark:text-fg-2 hover:bg-gray-50 dark:hover:bg-ink-2'}`}
             >
               INTL
             </button>
@@ -557,23 +557,23 @@ export default function ForecastingBriefPage() {
 
           {/* FQ toggle */}
           <label className="flex items-center gap-1.5 cursor-pointer">
-            <span className="text-[10px] text-brand-navy-70">Next FQ</span>
+            <span className="text-[10px] text-brand-navy-70 dark:text-fg-2">Next FQ</span>
             <div
               onClick={() => setShowNextFQ(!showNextFQ)}
               className={`relative w-8 h-[18px] rounded-full transition-colors cursor-pointer ${showNextFQ ? 'bg-brand-purple' : 'bg-brand-navy-30/60'}`}
             >
-              <div className={`absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white shadow transition-transform ${showNextFQ ? 'translate-x-[16px]' : 'translate-x-[2px]'}`} />
+              <div className={`absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white dark:bg-ink-1 shadow transition-transform ${showNextFQ ? 'translate-x-[16px]' : 'translate-x-[2px]'}`} />
             </div>
           </label>
 
           {narrative && (
-            <span className="text-[10px] text-brand-navy-30">
+            <span className="text-[10px] text-brand-navy-30 dark:text-fg-4">
               Refreshed {new Date(narrative.generated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
             </span>
           )}
           <button
             onClick={load}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-purple text-white text-[11px] font-medium hover:bg-brand-purple-70 transition-colors shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-purple dark:bg-accent-purple text-white text-[11px] font-medium hover:bg-brand-purple-70 dark:hover:opacity-90 transition-colors shadow-sm"
           >
             <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
             Refresh
@@ -583,9 +583,9 @@ export default function ForecastingBriefPage() {
 
       {/* Stale Comments Alert Banner (Thursday) */}
       {showStaleAlert && (
-        <div className="mb-5 rounded-xl bg-amber-50 border border-amber-200/60 px-4 py-3 flex items-center gap-3">
+        <div className="mb-5 rounded-xl bg-amber-50 dark:bg-status-d-warning-soft border border-amber-200/60 px-4 py-3 flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-status-warning/15 flex items-center justify-center flex-shrink-0">
-            <svg className="w-4 h-4 text-status-warning" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"/></svg>
+            <svg className="w-4 h-4 text-status-warning dark:text-status-d-warning" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"/></svg>
           </div>
           <div className="flex-1">
             <p className="text-[12px] font-semibold text-amber-900">{kpi.stale_comments_count} deal{kpi.stale_comments_count !== 1 ? 's have' : ' has'} stale SE comments (&gt;7 days old)</p>
@@ -604,36 +604,36 @@ export default function ForecastingBriefPage() {
       <div className="flex gap-0.5 mb-5">
         <button
           onClick={() => setActiveTab('fq')}
-          className={`px-5 py-2.5 text-xs font-semibold rounded-t-xl border border-b-0 transition-colors ${activeTab === 'fq' ? 'bg-white text-brand-purple border-brand-navy-30/40 z-10' : 'bg-transparent text-brand-navy-70 border-transparent hover:text-brand-navy hover:bg-white/50'}`}
+          className={`px-5 py-2.5 text-xs font-semibold rounded-t-xl border border-b-0 transition-colors ${activeTab === 'fq' ? 'bg-white dark:bg-ink-1 text-brand-purple dark:text-accent-purple border-brand-navy-30/40 dark:border-ink-border-soft z-10' : 'bg-transparent text-brand-navy-70 dark:text-fg-2 border-transparent hover:text-brand-navy dark:text-fg-1 hover:bg-white/50'}`}
           style={activeTab === 'fq' ? { marginBottom: '-1px' } : undefined}
         >
           Current FQ
         </button>
         <button
           onClick={() => setActiveTab('deals')}
-          className={`px-5 py-2.5 text-xs font-semibold rounded-t-xl border border-b-0 transition-colors ${activeTab === 'deals' ? 'bg-white text-brand-purple border-brand-navy-30/40 z-10' : 'bg-transparent text-brand-navy-70 border-transparent hover:text-brand-navy hover:bg-white/50'}`}
+          className={`px-5 py-2.5 text-xs font-semibold rounded-t-xl border border-b-0 transition-colors ${activeTab === 'deals' ? 'bg-white dark:bg-ink-1 text-brand-purple dark:text-accent-purple border-brand-navy-30/40 dark:border-ink-border-soft z-10' : 'bg-transparent text-brand-navy-70 dark:text-fg-2 border-transparent hover:text-brand-navy dark:text-fg-1 hover:bg-white/50'}`}
           style={activeTab === 'deals' ? { marginBottom: '-1px' } : undefined}
         >
           Key Deals
         </button>
       </div>
-      <div className="border-t border-brand-navy-30/40 -mt-[5px]" />
+      <div className="border-t border-brand-navy-30/40 dark:border-ink-border-soft -mt-[5px]" />
 
       {/* ═══ TAB 1: CURRENT FQ ═══ */}
       {activeTab === 'fq' && (
         <div className="pt-5">
           {/* AI Forecast Narrative (collapsible, above pipeline) */}
-          <details open className="mb-5 bg-white rounded-xl border border-brand-navy-30/40 shadow-sm overflow-hidden group">
-            <summary className="px-4 py-3 border-b border-brand-navy-30/20 bg-gradient-to-r from-brand-pink/[0.03] to-brand-purple/[0.03] flex items-center justify-between cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden">
+          <details open className="mb-5 bg-white dark:bg-ink-1 rounded-xl border border-brand-navy-30/40 dark:border-ink-border-soft shadow-sm overflow-hidden group">
+            <summary className="px-4 py-3 border-b border-brand-navy-30/20 dark:border-ink-border-soft bg-gradient-to-r from-brand-pink/[0.03] to-brand-purple/[0.03] flex items-center justify-between cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden">
               <div className="flex items-center gap-2">
-                <svg className="w-3 h-3 text-brand-navy-30 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path d="M9 5l7 7-7 7"/></svg>
+                <svg className="w-3 h-3 text-brand-navy-30 dark:text-fg-4 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path d="M9 5l7 7-7 7"/></svg>
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
                   <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="url(#sg-fb)"/>
                   <defs><linearGradient id="sg-fb" x1="2" y1="2" x2="22" y2="22"><stop stopColor="#F10090"/><stop offset="1" stopColor="#6A2CF5"/></linearGradient></defs>
                 </svg>
-                <h3 className="text-[12px] font-semibold text-brand-navy">AI Forecast Narrative — SE Perspective <span className="text-brand-navy-70 font-medium">· {region}</span></h3>
+                <h3 className="text-[12px] font-semibold text-brand-navy dark:text-fg-1">AI Forecast Narrative — SE Perspective <span className="text-brand-navy-70 dark:text-fg-2 font-medium">· {region}</span></h3>
                 {narrative && (
-                  <span className="text-[9px] text-brand-navy-30 ml-2">
+                  <span className="text-[9px] text-brand-navy-30 dark:text-fg-4 ml-2">
                     Generated {new Date(narrative.generated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                   </span>
                 )}
@@ -641,7 +641,7 @@ export default function ForecastingBriefPage() {
               <button
                 onClick={(e) => { e.preventDefault(); handleGenerateNarrative(); }}
                 disabled={narrativeLoading}
-                className="text-[10px] text-brand-purple font-medium hover:text-brand-purple-70 disabled:opacity-50"
+                className="text-[10px] text-brand-purple dark:text-accent-purple font-medium hover:text-brand-purple-70 dark:text-accent-purple disabled:opacity-50"
               >
                 {narrativeLoading ? 'Generating…' : narrative ? 'Regenerate' : 'Generate'}
               </button>
@@ -649,9 +649,9 @@ export default function ForecastingBriefPage() {
             <div className="p-4">
               {narrativeLoading && !narrative ? (
                 <div className="space-y-2">
-                  <div className="h-3 bg-gray-100 rounded animate-pulse w-full" />
-                  <div className="h-3 bg-gray-100 rounded animate-pulse w-4/5" />
-                  <div className="h-3 bg-gray-100 rounded animate-pulse w-3/5" />
+                  <div className="h-3 bg-gray-100 dark:bg-ink-3 rounded animate-pulse w-full" />
+                  <div className="h-3 bg-gray-100 dark:bg-ink-3 rounded animate-pulse w-4/5" />
+                  <div className="h-3 bg-gray-100 dark:bg-ink-3 rounded animate-pulse w-3/5" />
                 </div>
               ) : narrative ? (
                 <>
@@ -664,10 +664,10 @@ export default function ForecastingBriefPage() {
                 </>
               ) : (
                 <div className="text-center py-6">
-                  <p className="text-[12px] text-brand-navy-70 mb-2">No narrative generated yet for {fiscal_period}.</p>
+                  <p className="text-[12px] text-brand-navy-70 dark:text-fg-2 mb-2">No narrative generated yet for {fiscal_period}.</p>
                   <button
                     onClick={handleGenerateNarrative}
-                    className="px-4 py-2 rounded-lg bg-brand-purple text-white text-[11px] font-medium hover:bg-brand-purple-70 transition-colors"
+                    className="px-4 py-2 rounded-lg bg-brand-purple dark:bg-accent-purple text-white text-[11px] font-medium hover:bg-brand-purple-70 dark:hover:opacity-90 transition-colors"
                   >
                     Generate Narrative
                   </button>
@@ -679,14 +679,14 @@ export default function ForecastingBriefPage() {
           {/* KPI Cards */}
           <div className="grid grid-cols-3 gap-4 mb-4">
             {/* Pipeline Total */}
-            <div className="bg-white rounded-xl border border-brand-navy-30/40 p-4 shadow-sm">
+            <div className="bg-white dark:bg-ink-1 rounded-xl border border-brand-navy-30/40 dark:border-ink-border-soft p-4 shadow-sm">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wider">Sales Pipeline</span>
-                <span className="text-[9px] text-brand-navy-30">{kpi.deal_count} deals</span>
+                <span className="text-[10px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wider">Sales Pipeline</span>
+                <span className="text-[9px] text-brand-navy-30 dark:text-fg-4">{kpi.deal_count} deals</span>
               </div>
-              <div className="text-2xl font-bold text-brand-navy">{formatARR(kpi.total_arr)}</div>
+              <div className="text-2xl font-bold text-brand-navy dark:text-fg-1">{formatARR(kpi.total_arr)}</div>
               <div className="flex items-center gap-2 mt-2">
-                <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden flex">
+                <div className="flex-1 h-2 bg-gray-100 dark:bg-ink-3 rounded-full overflow-hidden flex">
                   {kpi.total_arr > 0 && (
                     <>
                       <div className="h-full bg-blue-400 rounded-l-full" style={{ width: `${(kpi.commit_arr / kpi.total_arr) * 100}%` }} />
@@ -696,7 +696,7 @@ export default function ForecastingBriefPage() {
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-3 mt-1.5 text-[9px] text-brand-navy-70">
+              <div className="flex items-center gap-3 mt-1.5 text-[9px] text-brand-navy-70 dark:text-fg-2">
                 <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-400" />Commit {formatARR(kpi.commit_arr)}</span>
                 <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-400" />ML {formatARR(kpi.most_likely_arr)}</span>
                 <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-purple-300" />Upside {formatARR(kpi.upside_arr)}</span>
@@ -704,12 +704,12 @@ export default function ForecastingBriefPage() {
             </div>
 
             {/* Commit + Most Likely */}
-            <div className="bg-white rounded-xl border border-brand-navy-30/40 p-4 shadow-sm">
+            <div className="bg-white dark:bg-ink-1 rounded-xl border border-brand-navy-30/40 dark:border-ink-border-soft p-4 shadow-sm">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wider">Commit + Most Likely</span>
-                <span className="text-[9px] text-brand-navy-30">{kpi.commit_count + kpi.most_likely_count} deals</span>
+                <span className="text-[10px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wider">Commit + Most Likely</span>
+                <span className="text-[9px] text-brand-navy-30 dark:text-fg-4">{kpi.commit_count + kpi.most_likely_count} deals</span>
               </div>
-              <div className="text-2xl font-bold text-brand-navy">{formatARR(kpi.commit_arr + kpi.most_likely_arr)}</div>
+              <div className="text-2xl font-bold text-brand-navy dark:text-fg-1">{formatARR(kpi.commit_arr + kpi.most_likely_arr)}</div>
               <div className="mt-2 flex items-center gap-3 text-[10px]">
                 {kpi.deal_count - kpi.stale_comments_count - kpi.unassigned_se_count > 0 && (
                   <span className="text-emerald-600 font-medium flex items-center gap-0.5">
@@ -719,48 +719,48 @@ export default function ForecastingBriefPage() {
                 )}
                 {kpi.stale_comments_count > 0 && (
                   <>
-                    {kpi.deal_count - kpi.stale_comments_count - kpi.unassigned_se_count > 0 && <span className="text-brand-navy-30">|</span>}
-                    <span className="text-status-overdue font-medium">{kpi.stale_comments_count} stale</span>
+                    {kpi.deal_count - kpi.stale_comments_count - kpi.unassigned_se_count > 0 && <span className="text-brand-navy-30 dark:text-fg-4">|</span>}
+                    <span className="text-status-overdue dark:text-status-d-overdue font-medium">{kpi.stale_comments_count} stale</span>
                   </>
                 )}
               </div>
             </div>
 
             {/* SE Engagement Health */}
-            <div className="bg-white rounded-xl border border-brand-navy-30/40 p-4 shadow-sm">
+            <div className="bg-white dark:bg-ink-1 rounded-xl border border-brand-navy-30/40 dark:border-ink-border-soft p-4 shadow-sm">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wider">SE Engagement Health</span>
+                <span className="text-[10px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wider">SE Engagement Health</span>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <div className="text-lg font-bold text-status-overdue">{kpi.stale_comments_count}</div>
-                  <div className="text-[10px] text-brand-navy-70">Stale SE Comments</div>
+                  <div className="text-lg font-bold text-status-overdue dark:text-status-d-overdue">{kpi.stale_comments_count}</div>
+                  <div className="text-[10px] text-brand-navy-70 dark:text-fg-2">Stale SE Comments</div>
                 </div>
                 <div>
-                  <div className="text-lg font-bold text-status-warning">{kpi.unassigned_se_count}</div>
-                  <div className="text-[10px] text-brand-navy-70">No SE Assigned</div>
+                  <div className="text-lg font-bold text-status-warning dark:text-status-d-warning">{kpi.unassigned_se_count}</div>
+                  <div className="text-[10px] text-brand-navy-70 dark:text-fg-2">No SE Assigned</div>
                 </div>
                 <div>
-                  <div className="text-lg font-bold text-brand-purple">{kpi.active_pocs}</div>
-                  <div className="text-[10px] text-brand-navy-70">Active PoCs</div>
+                  <div className="text-lg font-bold text-brand-purple dark:text-accent-purple">{kpi.active_pocs}</div>
+                  <div className="text-[10px] text-brand-navy-70 dark:text-fg-2">Active PoCs</div>
                 </div>
                 <div>
-                  <div className="text-lg font-bold text-brand-navy">{kpi.avg_meddpicc_commit_ml}</div>
-                  <div className="text-[10px] text-brand-navy-70">Avg MEDDPICC (C+ML)</div>
+                  <div className="text-lg font-bold text-brand-navy dark:text-fg-1">{kpi.avg_meddpicc_commit_ml}</div>
+                  <div className="text-[10px] text-brand-navy-70 dark:text-fg-2">Avg MEDDPICC (C+ML)</div>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Forecast Table */}
-          <div className="bg-white rounded-xl border border-brand-navy-30/40 shadow-sm overflow-hidden mb-5">
-            <div className="px-4 py-3 border-b border-brand-navy-30/20 flex items-center justify-between bg-gray-50/50">
-              <h3 className="text-[12px] font-semibold text-brand-navy uppercase tracking-wider">Pipeline — {fiscal_period}</h3>
+          <div className="bg-white dark:bg-ink-1 rounded-xl border border-brand-navy-30/40 dark:border-ink-border-soft shadow-sm overflow-hidden mb-5">
+            <div className="px-4 py-3 border-b border-brand-navy-30/20 dark:border-ink-border-soft flex items-center justify-between bg-gray-50 dark:bg-ink-2/50">
+              <h3 className="text-[12px] font-semibold text-brand-navy dark:text-fg-1 uppercase tracking-wider">Pipeline — {fiscal_period}</h3>
               <div className="flex items-center gap-2">
                 <select
                   value={filterFc}
                   onChange={e => setFilterFc(e.target.value)}
-                  className="text-[10px] border border-brand-navy-30/40 rounded px-2 py-1 text-brand-navy-70 bg-white"
+                  className="text-[10px] border border-brand-navy-30/40 dark:border-ink-border-soft rounded px-2 py-1 text-brand-navy-70 dark:text-fg-2 bg-white dark:bg-ink-1"
                 >
                   <option value="">All Forecast Categories</option>
                   <option value="Commit">Commit</option>
@@ -771,7 +771,7 @@ export default function ForecastingBriefPage() {
                 <select
                   value={filterSe}
                   onChange={e => setFilterSe(e.target.value)}
-                  className="text-[10px] border border-brand-navy-30/40 rounded px-2 py-1 text-brand-navy-70 bg-white"
+                  className="text-[10px] border border-brand-navy-30/40 dark:border-ink-border-soft rounded px-2 py-1 text-brand-navy-70 dark:text-fg-2 bg-white dark:bg-ink-1"
                 >
                   <option value="">All SEs</option>
                   {seList.map(se => <option key={se} value={se}>{se}</option>)}
@@ -779,7 +779,7 @@ export default function ForecastingBriefPage() {
                 <button
                   onClick={() => setBulkConfirmOpen(true)}
                   disabled={bulkRunning || oppsNeedingSummary.length === 0}
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-brand-purple/30 bg-brand-purple/5 text-brand-purple text-[10px] font-medium hover:bg-brand-purple/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-brand-purple/30 dark:border-accent-purple/30 bg-brand-purple/5 text-brand-purple dark:text-accent-purple text-[10px] font-medium hover:bg-brand-purple/10 dark:bg-accent-purple-soft disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="currentColor"/></svg>
                   {bulkRunning ? `Generating ${bulkProgress?.done ?? 0}/${bulkProgress?.total ?? 0}…` : `Refresh Summaries${oppsNeedingSummary.length > 0 ? ` (${oppsNeedingSummary.length})` : ''}`}
@@ -789,7 +789,7 @@ export default function ForecastingBriefPage() {
 
             <table className="w-full text-[11px]">
               <thead>
-                <tr className="bg-gray-50/80 border-b border-brand-navy-30/20 text-[9px] font-semibold text-brand-navy-70 uppercase tracking-wider">
+                <tr className="bg-gray-50 dark:bg-ink-2/80 border-b border-brand-navy-30/20 dark:border-ink-border-soft text-[9px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wider">
                   <th className="text-left px-3 py-2">Opportunity</th>
                   <th className="text-right px-3 py-2 w-20">ARR</th>
                   <th className="text-center px-2 py-2 w-24">Stage</th>
@@ -798,22 +798,22 @@ export default function ForecastingBriefPage() {
                   <th className="text-center px-2 py-2 w-16">Health</th>
                   <th className="text-left px-3 py-2 w-40">Tech Next Step</th>
                   <th className="text-center px-2 py-2 w-12">
-                    <svg className="w-3 h-3 mx-auto text-brand-navy-70" viewBox="0 0 20 20" fill="currentColor" aria-label="Blockers"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92z"/></svg>
+                    <svg className="w-3 h-3 mx-auto text-brand-navy-70 dark:text-fg-2" viewBox="0 0 20 20" fill="currentColor" aria-label="Blockers"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92z"/></svg>
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-brand-navy-30/15">
+              <tbody className="divide-y divide-brand-navy-30/15 dark:divide-ink-border-soft">
                 {groupedOpps.map(group => (
                   <React.Fragment key={group.label}>
                     {/* Forecast category group header */}
-                    <tr className="border-t-2 border-brand-navy-30/40">
+                    <tr className="border-t-2 border-brand-navy-30/40 dark:border-ink-border-soft">
                       <td colSpan={8} className="px-3 py-2.5 bg-gradient-to-r from-gray-100/90 to-gray-50/60">
                         <div className="flex items-center gap-2.5">
                           <ForecastBadge category={group.label === 'Uncategorized' ? null : group.label} />
-                          <span className="text-[11px] font-bold text-brand-navy">
+                          <span className="text-[11px] font-bold text-brand-navy dark:text-fg-1">
                             {group.opps.length} deal{group.opps.length !== 1 ? 's' : ''}
                           </span>
-                          <span className="text-[11px] font-semibold text-brand-navy-70">
+                          <span className="text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2">
                             {formatARR(group.opps.reduce((s, o) => s + (parseFloat(o.arr || '0') || 0), 0))}
                           </span>
                         </div>
@@ -823,7 +823,7 @@ export default function ForecastingBriefPage() {
                       const freshness = freshnessDot(opp.se_comments_days_ago);
                       const isExpanded = expandedRow === opp.id;
                       const hasBlocker = !!opp.technical_blockers;
-                      const rowBg = !opp.se_owner_id ? 'bg-amber-50/20' : hasBlocker ? 'bg-red-50/20' : '';
+                      const rowBg = !opp.se_owner_id ? 'bg-amber-50 dark:bg-status-d-warning-soft/20' : hasBlocker ? 'bg-red-50 dark:bg-status-d-overdue-soft/20' : '';
 
                       return (
                         <OppRow
@@ -844,10 +844,10 @@ export default function ForecastingBriefPage() {
             </table>
 
             {/* Table footer */}
-            <div className="px-4 py-2.5 border-t border-brand-navy-30/20 bg-gray-50/50 flex items-center justify-between text-[10px] text-brand-navy-70">
+            <div className="px-4 py-2.5 border-t border-brand-navy-30/20 dark:border-ink-border-soft bg-gray-50 dark:bg-ink-2/50 flex items-center justify-between text-[10px] text-brand-navy-70 dark:text-fg-2">
               <span>Showing {filteredOpps.length} deals ({region})</span>
               <div className="flex items-center gap-4">
-                <span className="font-semibold text-brand-navy">Total: {formatARR(filteredOpps.reduce((s, o) => s + (parseFloat(o.arr || '0') || 0), 0))}</span>
+                <span className="font-semibold text-brand-navy dark:text-fg-1">Total: {formatARR(filteredOpps.reduce((s, o) => s + (parseFloat(o.arr || '0') || 0), 0))}</span>
               </div>
             </div>
           </div>
@@ -858,9 +858,9 @@ export default function ForecastingBriefPage() {
       {/* ═══ TAB 2: KEY DEALS ═══ */}
       {activeTab === 'deals' && (
         <div className="pt-5">
-          <p className="text-[11px] text-brand-navy-70 mb-4">Quick-access summaries for your key deals. Click to expand full detail.</p>
+          <p className="text-[11px] text-brand-navy-70 dark:text-fg-2 mb-4">Quick-access summaries for your key deals. Click to expand full detail.</p>
           {keyDeals.length === 0 ? (
-            <div className="text-center py-12 text-sm text-brand-navy-70">No key deals in {fiscal_period}.</div>
+            <div className="text-center py-12 text-sm text-brand-navy-70 dark:text-fg-2">No key deals in {fiscal_period}.</div>
           ) : (
             <div className="space-y-4">
               {keyDeals.map(opp => (
@@ -890,44 +890,44 @@ export default function ForecastingBriefPage() {
       {bulkConfirmOpen && (
         <div className="fixed inset-0 z-[9998] flex items-center justify-center">
           <div className="absolute inset-0 bg-brand-navy/40 backdrop-blur-sm" onClick={() => setBulkConfirmOpen(false)} />
-          <div className="relative bg-white rounded-2xl shadow-2xl border border-brand-navy-30/40 w-[420px] p-6">
+          <div className="relative bg-white dark:bg-ink-1 rounded-2xl shadow-2xl border border-brand-navy-30/40 dark:border-ink-border-soft w-[420px] p-6">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-brand-purple/10 flex items-center justify-center">
-                <svg className="w-5 h-5 text-brand-purple" viewBox="0 0 24 24" fill="none"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="currentColor"/></svg>
+              <div className="w-10 h-10 rounded-full bg-brand-purple/10 dark:bg-accent-purple-soft flex items-center justify-center">
+                <svg className="w-5 h-5 text-brand-purple dark:text-accent-purple" viewBox="0 0 24 24" fill="none"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="currentColor"/></svg>
               </div>
               <div>
-                <h3 className="text-[14px] font-semibold text-brand-navy">Refresh AI Summaries</h3>
-                <p className="text-[11px] text-brand-navy-70">Generate summaries for deals missing or with stale (&gt;5 days) summaries</p>
+                <h3 className="text-[14px] font-semibold text-brand-navy dark:text-fg-1">Refresh AI Summaries</h3>
+                <p className="text-[11px] text-brand-navy-70 dark:text-fg-2">Generate summaries for deals missing or with stale (&gt;5 days) summaries</p>
               </div>
             </div>
-            <div className="bg-gray-50 rounded-xl px-4 py-3 mb-5">
+            <div className="bg-gray-50 dark:bg-ink-2 rounded-xl px-4 py-3 mb-5">
               <div className="flex items-center justify-between text-[12px]">
-                <span className="text-brand-navy-70">Deals to process</span>
-                <span className="font-bold text-brand-navy text-[16px]">{oppsNeedingSummary.length}</span>
+                <span className="text-brand-navy-70 dark:text-fg-2">Deals to process</span>
+                <span className="font-bold text-brand-navy dark:text-fg-1 text-[16px]">{oppsNeedingSummary.length}</span>
               </div>
-              <div className="flex items-center justify-between text-[11px] text-brand-navy-70 mt-1">
+              <div className="flex items-center justify-between text-[11px] text-brand-navy-70 dark:text-fg-2 mt-1">
                 <span>Total deals in {fiscal_period} ({region})</span>
                 <span>{filteredOpps.length}</span>
               </div>
-              <div className="flex items-center justify-between text-[11px] text-brand-navy-70 mt-0.5">
+              <div className="flex items-center justify-between text-[11px] text-brand-navy-70 dark:text-fg-2 mt-0.5">
                 <span>Already up to date</span>
                 <span>{filteredOpps.length - oppsNeedingSummary.length}</span>
               </div>
             </div>
-            <p className="text-[11px] text-brand-navy-70 mb-5">
+            <p className="text-[11px] text-brand-navy-70 dark:text-fg-2 mb-5">
               This will make <strong>{oppsNeedingSummary.length}</strong> API calls to Claude. Each deal takes ~2-3 seconds.
               Estimated time: <strong>~{Math.ceil(oppsNeedingSummary.length * 2.5 / 60)} min</strong>.
             </p>
             <div className="flex items-center justify-end gap-3">
               <button
                 onClick={() => setBulkConfirmOpen(false)}
-                className="px-4 py-2 rounded-lg text-[11px] font-medium text-brand-navy-70 hover:bg-gray-100 transition-colors"
+                className="px-4 py-2 rounded-lg text-[11px] font-medium text-brand-navy-70 dark:text-fg-2 hover:bg-gray-100 dark:hover:bg-ink-3 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleBulkGenerate}
-                className="px-4 py-2 rounded-lg bg-brand-purple text-white text-[11px] font-medium hover:bg-brand-purple-70 transition-colors shadow-sm"
+                className="px-4 py-2 rounded-lg bg-brand-purple dark:bg-accent-purple text-white text-[11px] font-medium hover:bg-brand-purple-70 dark:hover:opacity-90 transition-colors shadow-sm"
               >
                 Generate {oppsNeedingSummary.length} Summaries
               </button>
@@ -938,37 +938,37 @@ export default function ForecastingBriefPage() {
 
       {/* Bulk Summary Progress Overlay */}
       {bulkRunning && bulkProgress && (
-        <div className="fixed bottom-6 right-6 z-[9999] bg-white rounded-xl shadow-2xl border border-brand-navy-30/40 p-4 w-[300px]">
+        <div className="fixed bottom-6 right-6 z-[9999] bg-white dark:bg-ink-1 rounded-xl shadow-2xl border border-brand-navy-30/40 dark:border-ink-border-soft p-4 w-[300px]">
           <div className="flex items-center gap-2 mb-2">
-            <svg className="w-4 h-4 text-brand-purple animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2v4m0 12v4m-7.07-3.93l2.83-2.83m8.49-8.49l2.83-2.83M2 12h4m12 0h4m-3.93 7.07l-2.83-2.83M7.76 7.76L4.93 4.93"/></svg>
-            <span className="text-[12px] font-semibold text-brand-navy">Generating AI Summaries…</span>
+            <svg className="w-4 h-4 text-brand-purple dark:text-accent-purple animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2v4m0 12v4m-7.07-3.93l2.83-2.83m8.49-8.49l2.83-2.83M2 12h4m12 0h4m-3.93 7.07l-2.83-2.83M7.76 7.76L4.93 4.93"/></svg>
+            <span className="text-[12px] font-semibold text-brand-navy dark:text-fg-1">Generating AI Summaries…</span>
           </div>
-          <div className="h-2 bg-gray-100 rounded-full overflow-hidden mb-1.5">
+          <div className="h-2 bg-gray-100 dark:bg-ink-3 rounded-full overflow-hidden mb-1.5">
             <div
               className="h-full bg-brand-purple rounded-full transition-all duration-300"
               style={{ width: `${(bulkProgress.done / bulkProgress.total) * 100}%` }}
             />
           </div>
-          <span className="text-[10px] text-brand-navy-70">{bulkProgress.done} of {bulkProgress.total} deals processed</span>
+          <span className="text-[10px] text-brand-navy-70 dark:text-fg-2">{bulkProgress.done} of {bulkProgress.total} deals processed</span>
         </div>
       )}
 
       {/* Bulk Summary Result Toast */}
       {bulkResult && !bulkRunning && (
-        <div className="fixed bottom-6 right-6 z-[9999] bg-white rounded-xl shadow-2xl border border-brand-navy-30/40 p-4 w-[300px]">
+        <div className="fixed bottom-6 right-6 z-[9999] bg-white dark:bg-ink-1 rounded-xl shadow-2xl border border-brand-navy-30/40 dark:border-ink-border-soft p-4 w-[300px]">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="w-6 h-6 rounded-full bg-emerald-50 flex items-center justify-center">
+              <span className="w-6 h-6 rounded-full bg-emerald-50 dark:bg-status-d-success-soft flex items-center justify-center">
                 <svg className="w-3.5 h-3.5 text-emerald-600" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg>
               </span>
               <div>
-                <span className="text-[12px] font-semibold text-brand-navy">Summaries Generated</span>
-                <p className="text-[10px] text-brand-navy-70">
+                <span className="text-[12px] font-semibold text-brand-navy dark:text-fg-1">Summaries Generated</span>
+                <p className="text-[10px] text-brand-navy-70 dark:text-fg-2">
                   {bulkResult.succeeded} succeeded{bulkResult.failed > 0 ? `, ${bulkResult.failed} failed` : ''}
                 </p>
               </div>
             </div>
-            <button onClick={() => setBulkResult(null)} className="text-brand-navy-30 hover:text-brand-navy">
+            <button onClick={() => setBulkResult(null)} className="text-brand-navy-30 dark:text-fg-4 hover:text-brand-navy dark:text-fg-1">
               <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"/></svg>
             </button>
           </div>
@@ -1004,20 +1004,20 @@ function OppRow({ opp, isExpanded, rowBg, freshness, hasBlocker, onToggle, onOpe
         <td className="px-3 py-2.5">
           <div className="flex items-center gap-1.5">
             <svg
-              className={`w-3 h-3 text-brand-navy-30 transition-transform flex-shrink-0 ${isExpanded ? 'rotate-90' : ''}`}
+              className={`w-3 h-3 text-brand-navy-30 dark:text-fg-4 transition-transform flex-shrink-0 ${isExpanded ? 'rotate-90' : ''}`}
               fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"
             ><path d="M9 5l7 7-7 7"/></svg>
-            <span className="font-medium text-brand-navy">{opp.name}</span>
+            <span className="font-medium text-brand-navy dark:text-fg-1">{opp.name}</span>
             {opp.key_deal && <span className="text-[8px] font-semibold bg-yellow-100 text-yellow-700 px-1 py-px rounded-full">KEY</span>}
           </div>
-          <div className="text-[10px] text-brand-navy-70 ml-[18px]">{opp.account_name}{opp.account_industry ? ` · ${opp.account_industry}` : ''}</div>
+          <div className="text-[10px] text-brand-navy-70 dark:text-fg-2 ml-[18px]">{opp.account_name}{opp.account_industry ? ` · ${opp.account_industry}` : ''}</div>
         </td>
         <td className="text-right px-3 py-2.5 font-semibold">{formatARR(opp.arr)}</td>
         <td className="text-center px-2 py-2.5"><StagePill stage={opp.stage} /></td>
-        <td className="px-3 py-2.5 text-[10px] text-brand-navy-70">
+        <td className="px-3 py-2.5 text-[10px] text-brand-navy-70 dark:text-fg-2">
           {opp.se_owner_name ? (
             <span className="font-semibold cursor-default" title={opp.se_owner_name}>{initials(opp.se_owner_name)}</span>
-          ) : <span className="text-status-overdue font-medium italic">—</span>}
+          ) : <span className="text-status-overdue dark:text-status-d-overdue font-medium italic">—</span>}
         </td>
         <td className="px-3 py-2.5" onClick={e => e.stopPropagation()}>
           {opp.se_comments ? (
@@ -1025,30 +1025,30 @@ function OppRow({ opp, isExpanded, rowBg, freshness, hasBlocker, onToggle, onOpe
               <div>
                 <div className="flex items-center gap-1.5 mb-1.5">
                   <span className={`w-2 h-2 rounded-full ${freshness.color}`} />
-                  <span className="text-[10px] font-semibold text-brand-navy-70">
+                  <span className="text-[10px] font-semibold text-brand-navy-70 dark:text-fg-2">
                     SE: {opp.se_owner_name || 'Unassigned'} · Updated {opp.se_comments_days_ago !== null ? `${opp.se_comments_days_ago} days ago` : 'unknown'}
                   </span>
                 </div>
-                <p className="text-[11px] text-brand-navy whitespace-pre-wrap">{opp.se_comments}</p>
+                <p className="text-[11px] text-brand-navy dark:text-fg-1 whitespace-pre-wrap">{opp.se_comments}</p>
               </div>
             }>
               <div className="flex items-center gap-1.5 cursor-default">
                 <span className={`w-1.5 h-1.5 rounded-full ${freshness.color} flex-shrink-0`} />
-                <span className="text-[10px] text-brand-navy-70 truncate max-w-[180px]">{opp.se_comments}</span>
-                <span className={`text-[9px] flex-shrink-0 font-medium ${opp.se_comments_days_ago !== null && opp.se_comments_days_ago > 7 ? 'text-status-overdue' : opp.se_comments_days_ago !== null && opp.se_comments_days_ago > 3 ? 'text-status-warning' : 'text-brand-navy-30'}`}>
+                <span className="text-[10px] text-brand-navy-70 dark:text-fg-2 truncate max-w-[180px]">{opp.se_comments}</span>
+                <span className={`text-[9px] flex-shrink-0 font-medium ${opp.se_comments_days_ago !== null && opp.se_comments_days_ago > 7 ? 'text-status-overdue dark:text-status-d-overdue' : opp.se_comments_days_ago !== null && opp.se_comments_days_ago > 3 ? 'text-status-warning dark:text-status-d-warning' : 'text-brand-navy-30 dark:text-fg-4'}`}>
                   {freshness.label}
                 </span>
               </div>
             </HoverTooltip>
           ) : opp.se_owner_id ? (
-            <span className="text-[10px] text-brand-navy-30 italic">No SE comments</span>
+            <span className="text-[10px] text-brand-navy-30 dark:text-fg-4 italic">No SE comments</span>
           ) : null}
         </td>
         <td className="text-center px-2 py-2.5"><HealthBadge opp={opp} /></td>
-        <td className="px-3 py-2.5 text-[10px] text-brand-navy-70 truncate max-w-[160px]">{opp.next_step_sf || '—'}</td>
+        <td className="px-3 py-2.5 text-[10px] text-brand-navy-70 dark:text-fg-2 truncate max-w-[160px]">{opp.next_step_sf || '—'}</td>
         <td className="text-center px-2 py-2.5">
           {hasBlocker ? (
-            <span className="text-status-overdue" title={opp.technical_blockers || undefined}>
+            <span className="text-status-overdue dark:text-status-d-overdue" title={opp.technical_blockers || undefined}>
               <svg className="w-3.5 h-3.5 mx-auto" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92z"/></svg>
             </span>
           ) : '—'}
@@ -1059,46 +1059,46 @@ function OppRow({ opp, isExpanded, rowBg, freshness, hasBlocker, onToggle, onOpe
       {isExpanded && (
         <tr>
           <td colSpan={8} className="p-0">
-            <div className={`border-l-4 px-5 py-4 ${!opp.se_owner_id ? 'bg-amber-50/40 border-status-warning' : hasBlocker ? 'bg-red-50/40 border-status-overdue' : 'bg-brand-purple-30/10 border-brand-purple'}`}>
+            <div className={`border-l-4 px-5 py-4 ${!opp.se_owner_id ? 'bg-amber-50 dark:bg-status-d-warning-soft/40 border-status-warning' : hasBlocker ? 'bg-red-50 dark:bg-status-d-overdue-soft/40 border-status-overdue' : 'bg-brand-purple-30/10 border-brand-purple'}`}>
               <div className="grid grid-cols-[2fr_1fr_1fr] gap-5">
                 {/* AI Summary — wide left column */}
                 <div>
                   <div className="flex items-center gap-1.5 mb-1.5">
-                    <svg className="w-3 h-3 text-brand-purple" viewBox="0 0 24 24" fill="none"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="currentColor"/></svg>
-                    <h4 className="text-[10px] font-semibold text-brand-navy uppercase tracking-wider">AI Summary</h4>
+                    <svg className="w-3 h-3 text-brand-purple dark:text-accent-purple" viewBox="0 0 24 24" fill="none"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="currentColor"/></svg>
+                    <h4 className="text-[10px] font-semibold text-brand-navy dark:text-fg-1 uppercase tracking-wider">AI Summary</h4>
                   </div>
                   {opp.ai_summary ? (
                     <>
-                      <p className="text-[11px] text-brand-navy leading-relaxed">{renderBold(opp.ai_summary)}</p>
+                      <p className="text-[11px] text-brand-navy dark:text-fg-1 leading-relaxed">{renderBold(opp.ai_summary)}</p>
                       {opp.ai_summary_generated_at && (
-                        <p className="text-[9px] text-brand-navy-30 mt-1">Generated {formatDate(opp.ai_summary_generated_at)}</p>
+                        <p className="text-[9px] text-brand-navy-30 dark:text-fg-4 mt-1">Generated {formatDate(opp.ai_summary_generated_at)}</p>
                       )}
                     </>
                   ) : (
-                    <p className="text-[10px] text-brand-navy-30 italic">No AI summary cached. Open full detail to generate.</p>
+                    <p className="text-[10px] text-brand-navy-30 dark:text-fg-4 italic">No AI summary cached. Open full detail to generate.</p>
                   )}
                 </div>
 
                 {/* SE Comments — middle column */}
                 <div>
-                  <h4 className="text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wider mb-1.5">SE Comments</h4>
+                  <h4 className="text-[10px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wider mb-1.5">SE Comments</h4>
                   {opp.se_comments ? (
                     <>
                       <div className="flex items-center gap-1.5 mb-1">
                         <span className={`w-1.5 h-1.5 rounded-full ${freshnessDot(opp.se_comments_days_ago).color}`} />
-                        <span className={`text-[9px] font-medium ${opp.se_comments_days_ago !== null && opp.se_comments_days_ago > 7 ? 'text-status-overdue' : opp.se_comments_days_ago !== null && opp.se_comments_days_ago > 3 ? 'text-status-warning' : 'text-emerald-700'}`}>
+                        <span className={`text-[9px] font-medium ${opp.se_comments_days_ago !== null && opp.se_comments_days_ago > 7 ? 'text-status-overdue dark:text-status-d-overdue' : opp.se_comments_days_ago !== null && opp.se_comments_days_ago > 3 ? 'text-status-warning dark:text-status-d-warning' : 'text-emerald-700'}`}>
                           Updated {opp.se_comments_days_ago !== null ? `${opp.se_comments_days_ago} days ago` : 'unknown'}
                           {opp.se_comments_days_ago !== null && opp.se_comments_days_ago > 7 && ' — STALE'}
                         </span>
                       </div>
-                      <p className="text-[11px] text-brand-navy leading-relaxed">{opp.se_comments}</p>
+                      <p className="text-[11px] text-brand-navy dark:text-fg-1 leading-relaxed">{opp.se_comments}</p>
                     </>
                   ) : !opp.se_owner_id ? (
                     <div className="mt-2 rounded-lg bg-amber-100/60 border border-amber-200/60 px-3 py-2 text-center">
                       <span className="text-[10px] text-amber-800 font-medium">No SE assigned — no comments available</span>
                     </div>
                   ) : (
-                    <p className="text-[10px] text-brand-navy-30 italic">No SE comments yet.</p>
+                    <p className="text-[10px] text-brand-navy-30 dark:text-fg-4 italic">No SE comments yet.</p>
                   )}
                 </div>
 
@@ -1106,30 +1106,30 @@ function OppRow({ opp, isExpanded, rowBg, freshness, hasBlocker, onToggle, onOpe
                 <div className="space-y-4">
                   {/* Technical Status */}
                   <div>
-                    <h4 className="text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wider mb-1.5">Technical Status</h4>
+                    <h4 className="text-[10px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wider mb-1.5">Technical Status</h4>
                     <div className="space-y-1 text-[11px]">
                       <div className="flex items-center gap-2">
-                        <span className="text-[9px] font-semibold text-brand-navy-70 w-16">PoC:</span>
+                        <span className="text-[9px] font-semibold text-brand-navy-70 dark:text-fg-2 w-16">PoC:</span>
                         {opp.poc_status ? (
-                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold ${opp.poc_status.toLowerCase().includes('completed') ? 'bg-emerald-50 text-emerald-700' : opp.poc_status.toLowerCase().includes('in progress') ? 'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700'}`}>
+                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold ${opp.poc_status.toLowerCase().includes('completed') ? 'bg-emerald-50 dark:bg-status-d-success-soft text-emerald-700' : opp.poc_status.toLowerCase().includes('in progress') ? 'bg-blue-50 dark:bg-status-d-info-soft text-blue-700' : 'bg-amber-50 dark:bg-status-d-warning-soft text-amber-700'}`}>
                             {opp.poc_status}
                           </span>
-                        ) : <span className="text-brand-navy-30">N/A</span>}
+                        ) : <span className="text-brand-navy-30 dark:text-fg-4">N/A</span>}
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-[9px] font-semibold text-brand-navy-70 w-16">Blockers:</span>
+                        <span className="text-[9px] font-semibold text-brand-navy-70 dark:text-fg-2 w-16">Blockers:</span>
                         {opp.technical_blockers ? (
-                          <span className="text-status-overdue font-semibold">{opp.technical_blockers}</span>
+                          <span className="text-status-overdue dark:text-status-d-overdue font-semibold">{opp.technical_blockers}</span>
                         ) : <span className="text-emerald-600">None</span>}
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-[9px] font-semibold text-brand-navy-70 w-16">Compete:</span>
-                        <span className="text-brand-navy">{opp.engaged_competitors || 'None'}</span>
+                        <span className="text-[9px] font-semibold text-brand-navy-70 dark:text-fg-2 w-16">Compete:</span>
+                        <span className="text-brand-navy dark:text-fg-1">{opp.engaged_competitors || 'None'}</span>
                       </div>
                       {opp.deploy_mode && (
                         <div className="flex items-center gap-2">
-                          <span className="text-[9px] font-semibold text-brand-navy-70 w-16">Deploy:</span>
-                          <span className="text-brand-navy">{opp.deploy_mode}</span>
+                          <span className="text-[9px] font-semibold text-brand-navy-70 dark:text-fg-2 w-16">Deploy:</span>
+                          <span className="text-brand-navy dark:text-fg-1">{opp.deploy_mode}</span>
                         </div>
                       )}
                     </div>
@@ -1137,36 +1137,36 @@ function OppRow({ opp, isExpanded, rowBg, freshness, hasBlocker, onToggle, onOpe
 
                   {/* MEDDPICC Gaps */}
                   <div>
-                    <h4 className="text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wider mb-1.5">MEDDPICC Gaps</h4>
+                    <h4 className="text-[10px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wider mb-1.5">MEDDPICC Gaps</h4>
                     <div className="flex flex-wrap gap-1 mb-1.5">
                       {MEDDPICC_FIELDS.map(f => {
                         const isFilled = filled.has(f.key);
                         return (
                           <span
                             key={f.key}
-                            className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${isFilled ? 'bg-emerald-50 text-emerald-700' : 'bg-status-overdue/10 text-status-overdue font-semibold border border-status-overdue/20'}`}
+                            className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${isFilled ? 'bg-emerald-50 dark:bg-status-d-success-soft text-emerald-700' : 'bg-status-overdue/10 dark:bg-status-d-overdue-soft text-status-overdue dark:text-status-d-overdue font-semibold border border-status-overdue/20'}`}
                           >
                             {f.label} {isFilled ? '✓' : '❌'}
                           </span>
                         );
                       })}
                     </div>
-                    <div className="text-[10px] text-brand-navy-70">
-                      Score: <strong className={score >= 7 ? 'text-emerald-600' : score >= 5 ? 'text-brand-navy' : 'text-status-overdue'}>{score}/9</strong>
+                    <div className="text-[10px] text-brand-navy-70 dark:text-fg-2">
+                      Score: <strong className={score >= 7 ? 'text-emerald-600' : score >= 5 ? 'text-brand-navy' : 'text-status-overdue dark:text-status-d-overdue'}>{score}/9</strong>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Footer */}
-              <div className="mt-3 pt-2.5 border-t border-brand-navy-30/20 flex items-center justify-between">
-                <div className="text-[10px] text-brand-navy-70">
-                  Stage: {opp.stage} for <strong className={stDays !== null && stDays > 30 ? 'text-status-warning' : 'text-brand-navy'}>{stDays !== null ? `${stDays} days` : '—'}</strong>
+              <div className="mt-3 pt-2.5 border-t border-brand-navy-30/20 dark:border-ink-border-soft flex items-center justify-between">
+                <div className="text-[10px] text-brand-navy-70 dark:text-fg-2">
+                  Stage: {opp.stage} for <strong className={stDays !== null && stDays > 30 ? 'text-status-warning dark:text-status-d-warning' : 'text-brand-navy'}>{stDays !== null ? `${stDays} days` : '—'}</strong>
                   {opp.close_date && <> · Close: {formatDate(opp.close_date)}</>}
                 </div>
                 <button
                   onClick={e => { e.stopPropagation(); onOpenDetail(); }}
-                  className="flex items-center gap-1 text-[11px] text-brand-purple font-semibold hover:text-brand-purple-70 transition-colors"
+                  className="flex items-center gap-1 text-[11px] text-brand-purple dark:text-accent-purple font-semibold hover:text-brand-purple-70 dark:text-accent-purple transition-colors"
                 >
                   Open full detail
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M9 5l7 7-7 7"/></svg>
@@ -1191,86 +1191,86 @@ function KeyDealCard({ opp, onOpenDetail }: { opp: ForecastOpp; onOpenDetail: ()
   const stDays = daysInStage(opp.stage_changed_at);
   const freshness = freshnessDot(opp.se_comments_days_ago);
 
-  const borderColor = !opp.se_owner_id ? 'border-status-warning/30' : hasBlocker || health < 40 ? 'border-status-overdue/20' : 'border-brand-navy-30/40';
-  const headerBg = !opp.se_owner_id ? 'hover:bg-amber-50/30 bg-amber-50/10' : hasBlocker || health < 40 ? 'hover:bg-red-50/30 bg-red-50/10' : 'hover:bg-gray-50/50';
+  const borderColor = !opp.se_owner_id ? 'border-status-warning/30' : hasBlocker || health < 40 ? 'border-status-overdue/20' : 'border-brand-navy-30/40 dark:border-ink-border-soft';
+  const headerBg = !opp.se_owner_id ? 'hover:bg-amber-50 dark:bg-status-d-warning-soft/30 bg-amber-50 dark:bg-status-d-warning-soft/10' : hasBlocker || health < 40 ? 'hover:bg-red-50 dark:bg-status-d-overdue-soft/30 bg-red-50 dark:bg-status-d-overdue-soft/10' : 'hover:bg-gray-50 dark:hover:bg-ink-2/50';
 
   return (
-    <div className={`bg-white rounded-xl border ${borderColor} shadow-sm overflow-hidden`}>
+    <div className={`bg-white dark:bg-ink-1 rounded-xl border ${borderColor} shadow-sm overflow-hidden`}>
       <div
         className={`flex items-center gap-4 px-5 py-3.5 cursor-pointer select-none transition-colors ${headerBg}`}
         onClick={() => setIsOpen(!isOpen)}
       >
         <svg
-          className={`w-3.5 h-3.5 text-brand-navy-70 transition-transform flex-shrink-0 ${isOpen ? 'rotate-90' : ''}`}
+          className={`w-3.5 h-3.5 text-brand-navy-70 dark:text-fg-2 transition-transform flex-shrink-0 ${isOpen ? 'rotate-90' : ''}`}
           fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"
         ><path d="M9 5l7 7-7 7"/></svg>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-[13px] text-brand-navy">{opp.name}</span>
+            <span className="font-semibold text-[13px] text-brand-navy dark:text-fg-1">{opp.name}</span>
             <span className="text-[8px] font-semibold bg-yellow-100 text-yellow-700 px-1.5 py-px rounded-full">KEY</span>
             <ForecastBadge category={opp.forecast_status} />
-            {hasBlocker && <span className="text-[8px] px-1.5 py-0.5 rounded bg-status-overdue/10 text-status-overdue font-bold border border-status-overdue/20">BLOCKER</span>}
-            {!opp.se_owner_id && <span className="text-[8px] px-1.5 py-0.5 rounded bg-status-warning/10 text-status-warning font-bold border border-status-warning/20">NO SE</span>}
+            {hasBlocker && <span className="text-[8px] px-1.5 py-0.5 rounded bg-status-overdue/10 dark:bg-status-d-overdue-soft text-status-overdue dark:text-status-d-overdue font-bold border border-status-overdue/20">BLOCKER</span>}
+            {!opp.se_owner_id && <span className="text-[8px] px-1.5 py-0.5 rounded bg-status-warning/10 dark:bg-status-d-warning-soft text-status-warning dark:text-status-d-warning font-bold border border-status-warning/20">NO SE</span>}
           </div>
-          <div className="text-[10px] text-brand-navy-70 mt-0.5">
+          <div className="text-[10px] text-brand-navy-70 dark:text-fg-2 mt-0.5">
             {opp.account_name} · {formatARR(opp.arr)} · {opp.stage}
             {opp.close_date && <> · Close {formatDate(opp.close_date)}</>}
-            · SE: {opp.se_owner_name ? <span title={opp.se_owner_name}>{initials(opp.se_owner_name)}</span> : <span className="text-status-overdue font-medium">Unassigned</span>}
+            · SE: {opp.se_owner_name ? <span title={opp.se_owner_name}>{initials(opp.se_owner_name)}</span> : <span className="text-status-overdue dark:text-status-d-overdue font-medium">Unassigned</span>}
           </div>
         </div>
         <div className="flex items-center gap-3 flex-shrink-0">
-          <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${health >= 70 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : health >= 40 ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${health >= 70 ? 'bg-emerald-50 dark:bg-status-d-success-soft text-emerald-700 border-emerald-200' : health >= 40 ? 'bg-amber-50 dark:bg-status-d-warning-soft text-amber-700 border-amber-200' : 'bg-red-50 dark:bg-status-d-overdue-soft text-red-700 border-red-200'}`}>
             Health {health}
           </span>
-          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-brand-purple-30 text-brand-purple border border-brand-purple/20">
+          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-brand-purple-30 dark:bg-accent-purple-soft text-brand-purple dark:text-accent-purple border border-brand-purple/20">
             MEDDPICC {score}/9
           </span>
         </div>
       </div>
 
       {isOpen && (
-        <div className={`px-5 pb-4 border-t ${!opp.se_owner_id ? 'border-status-warning/20 bg-amber-50/10' : hasBlocker || health < 40 ? 'border-status-overdue/20 bg-red-50/10' : 'border-brand-navy-30/20 bg-gray-50/30'}`}>
+        <div className={`px-5 pb-4 border-t ${!opp.se_owner_id ? 'border-status-warning/20 bg-amber-50 dark:bg-status-d-warning-soft/10' : hasBlocker || health < 40 ? 'border-status-overdue/20 bg-red-50 dark:bg-status-d-overdue-soft/10' : 'border-brand-navy-30/20 dark:border-ink-border-soft bg-gray-50 dark:bg-ink-2/30'}`}>
           <div className="grid grid-cols-3 gap-5 pt-3">
             {/* SE Perspective */}
             <div>
-              <h4 className="text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wider mb-1.5">SE Comments</h4>
+              <h4 className="text-[10px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wider mb-1.5">SE Comments</h4>
               {opp.se_comments ? (
                 <>
                   <div className="flex items-center gap-1.5 mb-1">
                     <span className={`w-1.5 h-1.5 rounded-full ${freshness.color}`} />
-                    <span className={`text-[9px] font-medium ${opp.se_comments_days_ago !== null && opp.se_comments_days_ago > 7 ? 'text-status-overdue font-bold' : opp.se_comments_days_ago !== null && opp.se_comments_days_ago > 3 ? 'text-status-warning' : 'text-emerald-700'}`}>
+                    <span className={`text-[9px] font-medium ${opp.se_comments_days_ago !== null && opp.se_comments_days_ago > 7 ? 'text-status-overdue dark:text-status-d-overdue font-bold' : opp.se_comments_days_ago !== null && opp.se_comments_days_ago > 3 ? 'text-status-warning dark:text-status-d-warning' : 'text-emerald-700'}`}>
                       Updated {opp.se_comments_days_ago !== null ? `${opp.se_comments_days_ago} days ago` : 'unknown'}
                     </span>
                   </div>
-                  <p className="text-[11px] text-brand-navy leading-relaxed">{opp.se_comments}</p>
+                  <p className="text-[11px] text-brand-navy dark:text-fg-1 leading-relaxed">{opp.se_comments}</p>
                 </>
               ) : (
-                <p className="text-[10px] text-brand-navy-30 italic">{opp.se_owner_id ? 'No SE comments yet.' : 'No SE assigned.'}</p>
+                <p className="text-[10px] text-brand-navy-30 dark:text-fg-4 italic">{opp.se_owner_id ? 'No SE comments yet.' : 'No SE assigned.'}</p>
               )}
             </div>
 
             {/* Technical Status */}
             <div>
-              <h4 className="text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wider mb-1.5">Technical Status</h4>
+              <h4 className="text-[10px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wider mb-1.5">Technical Status</h4>
               <div className="space-y-1.5 text-[11px]">
                 <div className="flex items-center gap-2">
-                  <span className="text-[9px] font-semibold text-brand-navy-70 w-20">PoC Status:</span>
+                  <span className="text-[9px] font-semibold text-brand-navy-70 dark:text-fg-2 w-20">PoC Status:</span>
                   {opp.poc_status ? (
-                    <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold ${opp.poc_status.toLowerCase().includes('completed') ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
+                    <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold ${opp.poc_status.toLowerCase().includes('completed') ? 'bg-emerald-50 dark:bg-status-d-success-soft text-emerald-700' : 'bg-amber-50 dark:bg-status-d-warning-soft text-amber-700'}`}>
                       {opp.poc_status}
                     </span>
-                  ) : <span className="text-brand-navy-30">N/A</span>}
+                  ) : <span className="text-brand-navy-30 dark:text-fg-4">N/A</span>}
                 </div>
                 {opp.engaged_competitors && (
                   <div className="flex items-center gap-2">
-                    <span className="text-[9px] font-semibold text-brand-navy-70 w-20">Competitors:</span>
-                    <span className="text-brand-navy">{opp.engaged_competitors}</span>
+                    <span className="text-[9px] font-semibold text-brand-navy-70 dark:text-fg-2 w-20">Competitors:</span>
+                    <span className="text-brand-navy dark:text-fg-1">{opp.engaged_competitors}</span>
                   </div>
                 )}
                 <div className="flex items-center gap-2">
-                  <span className="text-[9px] font-semibold text-brand-navy-70 w-20">Blockers:</span>
+                  <span className="text-[9px] font-semibold text-brand-navy-70 dark:text-fg-2 w-20">Blockers:</span>
                   {opp.technical_blockers ? (
-                    <span className="text-status-overdue font-semibold">{opp.technical_blockers}</span>
+                    <span className="text-status-overdue dark:text-status-d-overdue font-semibold">{opp.technical_blockers}</span>
                   ) : <span className="text-emerald-600">None</span>}
                 </div>
               </div>
@@ -1278,25 +1278,25 @@ function KeyDealCard({ opp, onOpenDetail }: { opp: ForecastOpp; onOpenDetail: ()
 
             {/* Next Steps + Velocity */}
             <div>
-              <h4 className="text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wider mb-1.5">Next Steps & Velocity</h4>
+              <h4 className="text-[10px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wider mb-1.5">Next Steps & Velocity</h4>
               {opp.next_step_sf && (
                 <div className="space-y-1.5 text-[11px] mb-2">
                   <div className="flex items-start gap-1.5">
-                    <span className="text-brand-purple mt-0.5">●</span>
-                    <span className="text-brand-navy">{opp.next_step_sf}</span>
+                    <span className="text-brand-purple dark:text-accent-purple mt-0.5">●</span>
+                    <span className="text-brand-navy dark:text-fg-1">{opp.next_step_sf}</span>
                   </div>
                 </div>
               )}
-              <div className="mt-2 pt-2 border-t border-brand-navy-30/20">
+              <div className="mt-2 pt-2 border-t border-brand-navy-30/20 dark:border-ink-border-soft">
                 <div className="flex items-center gap-2 text-[10px]">
-                  <span className="text-brand-navy-70">In {opp.stage} for:</span>
-                  <span className={`font-semibold ${stDays !== null && stDays > 30 ? 'text-status-warning' : 'text-brand-navy'}`}>
+                  <span className="text-brand-navy-70 dark:text-fg-2">In {opp.stage} for:</span>
+                  <span className={`font-semibold ${stDays !== null && stDays > 30 ? 'text-status-warning dark:text-status-d-warning' : 'text-brand-navy'}`}>
                     {stDays !== null ? `${stDays} days` : '—'}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 text-[10px] mt-0.5">
-                  <span className="text-brand-navy-70">MEDDPICC gaps:</span>
-                  <span className="text-status-overdue font-medium">
+                  <span className="text-brand-navy-70 dark:text-fg-2">MEDDPICC gaps:</span>
+                  <span className="text-status-overdue dark:text-status-d-overdue font-medium">
                     {MEDDPICC_FIELDS.filter(f => !filled.has(f.key)).map(f => f.label).join(', ') || 'None'}
                   </span>
                 </div>
@@ -1306,17 +1306,17 @@ function KeyDealCard({ opp, onOpenDetail }: { opp: ForecastOpp; onOpenDetail: ()
 
           {/* AI Quick Take */}
           {opp.ai_summary && (
-            <div className={`mt-3 rounded-lg px-3 py-2 flex items-start gap-2 ${hasBlocker || health < 40 ? 'bg-red-50 border border-status-overdue/20' : !opp.se_owner_id ? 'bg-amber-50 border border-amber-200/60' : 'bg-brand-purple-30/20 border border-brand-purple/10'}`}>
-              <svg className={`w-3.5 h-3.5 mt-0.5 flex-shrink-0 ${hasBlocker || health < 40 ? 'text-status-overdue' : !opp.se_owner_id ? 'text-status-warning' : 'text-brand-purple'}`} viewBox="0 0 24 24" fill="none"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="currentColor"/></svg>
-              <p className="text-[11px] text-brand-navy leading-relaxed"><strong>AI Quick Take:</strong> {opp.ai_summary}</p>
+            <div className={`mt-3 rounded-lg px-3 py-2 flex items-start gap-2 ${hasBlocker || health < 40 ? 'bg-red-50 dark:bg-status-d-overdue-soft border border-status-overdue/20' : !opp.se_owner_id ? 'bg-amber-50 dark:bg-status-d-warning-soft border border-amber-200/60' : 'bg-brand-purple-30/20 border border-brand-purple/10'}`}>
+              <svg className={`w-3.5 h-3.5 mt-0.5 flex-shrink-0 ${hasBlocker || health < 40 ? 'text-status-overdue dark:text-status-d-overdue' : !opp.se_owner_id ? 'text-status-warning dark:text-status-d-warning' : 'text-brand-purple'}`} viewBox="0 0 24 24" fill="none"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="currentColor"/></svg>
+              <p className="text-[11px] text-brand-navy dark:text-fg-1 leading-relaxed"><strong>AI Quick Take:</strong> {opp.ai_summary}</p>
             </div>
           )}
 
           {/* Open detail link */}
-          <div className="mt-3 pt-2.5 border-t border-brand-navy-30/20 flex justify-end">
+          <div className="mt-3 pt-2.5 border-t border-brand-navy-30/20 dark:border-ink-border-soft flex justify-end">
             <button
               onClick={e => { e.stopPropagation(); onOpenDetail(); }}
-              className="flex items-center gap-1 text-[11px] text-brand-purple font-semibold hover:text-brand-purple-70 transition-colors"
+              className="flex items-center gap-1 text-[11px] text-brand-purple dark:text-accent-purple font-semibold hover:text-brand-purple-70 dark:text-accent-purple transition-colors"
             >
               Open full detail
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M9 5l7 7-7 7"/></svg>
@@ -1339,7 +1339,7 @@ function NarrativeContent({ content, citations, onJump }: {
   const sections = content.split(/\*\*(On Track|At Risk|Needs Attention)\*\*/i);
 
   if (sections.length <= 1) {
-    return <p className="text-[12px] text-brand-navy leading-relaxed whitespace-pre-wrap">
+    return <p className="text-[12px] text-brand-navy dark:text-fg-1 leading-relaxed whitespace-pre-wrap">
       <TextWithCitations text={content} citations={citations} onJump={onJump} />
     </p>;
   }
@@ -1347,7 +1347,7 @@ function NarrativeContent({ content, citations, onJump }: {
   const rendered: React.JSX.Element[] = [];
   if (sections[0].trim()) {
     rendered.push(
-      <p key="intro" className="text-[12px] text-brand-navy leading-relaxed mb-2">
+      <p key="intro" className="text-[12px] text-brand-navy dark:text-fg-1 leading-relaxed mb-2">
         <TextWithCitations text={sections[0].trim()} citations={citations} onJump={onJump} />
       </p>
     );
@@ -1359,13 +1359,13 @@ function NarrativeContent({ content, citations, onJump }: {
     const colorClass = title.toLowerCase().includes('on track')
       ? 'text-emerald-700'
       : title.toLowerCase().includes('at risk')
-        ? 'text-status-warning'
-        : 'text-status-overdue';
+        ? 'text-status-warning dark:text-status-d-warning'
+        : 'text-status-overdue dark:text-status-d-overdue';
 
     rendered.push(
       <div key={title} className="mb-3">
         <h4 className={`text-[10px] font-semibold uppercase tracking-wider mb-1 ${colorClass}`}>{title}</h4>
-        <p className="text-[12px] text-brand-navy leading-relaxed">{highlightBold(body, citations, onJump)}</p>
+        <p className="text-[12px] text-brand-navy dark:text-fg-1 leading-relaxed">{highlightBold(body, citations, onJump)}</p>
       </div>
     );
   }

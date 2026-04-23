@@ -26,17 +26,17 @@ interface WorkloadRow {
 function Stat({ label, value, highlight, positiveHighlight, to, tooltip }: {
   label: string; value: string; highlight?: boolean; positiveHighlight?: boolean; to?: string; tooltip?: string;
 }) {
-  const color = highlight ? 'text-status-overdue' : positiveHighlight ? 'text-status-success' : 'text-brand-navy';
+  const color = highlight ? 'text-status-overdue dark:text-status-d-overdue' : positiveHighlight ? 'text-status-success dark:text-status-d-success' : 'text-brand-navy';
   const inner = (
     <>
       <p className={`text-xl font-semibold ${color}`}>{value}</p>
-      <p className="text-[10px] text-brand-navy-70 uppercase tracking-wide mt-0.5">{label}</p>
+      <p className="text-[10px] text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide mt-0.5">{label}</p>
     </>
   );
-  const cls = 'bg-[#F5F5F7] rounded-xl p-3 text-center';
+  const cls = 'bg-[#F5F5F7] dark:bg-ink-0 rounded-xl p-3 text-center';
   if (to && parseInt(value) > 0) {
     return (
-      <Link to={to} title={tooltip} className={`${cls} block hover:bg-brand-purple-30/40 transition-colors`}>
+      <Link to={to} title={tooltip} className={`${cls} block hover:bg-brand-purple-30/40 dark:hover:bg-accent-purple-soft transition-colors`}>
         {inner}
       </Link>
     );
@@ -80,14 +80,14 @@ export default function TeamWorkloadPage() {
             const crossCount = crossTerritoryCount(r.team_breakdown ?? []);
             const crossTip = crossTerritoryTooltip(r.team_breakdown ?? []);
             return (
-              <div key={r.id} className="bg-white rounded-2xl border border-brand-navy-30/40 p-5">
+              <div key={r.id} className="bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft p-5">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-9 h-9 rounded-full bg-brand-purple flex items-center justify-center text-sm font-semibold text-white flex-shrink-0">
+                  <div className="w-9 h-9 rounded-full bg-brand-purple dark:bg-accent-purple flex items-center justify-center text-sm font-semibold text-white flex-shrink-0">
                     {r.name[0]?.toUpperCase()}
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-brand-navy">{r.name}</p>
-                    <p className="text-xs text-brand-navy-70">{r.email}</p>
+                    <p className="text-sm font-semibold text-brand-navy dark:text-fg-1">{r.name}</p>
+                    <p className="text-xs text-brand-navy-70 dark:text-fg-2">{r.email}</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-3 gap-2">

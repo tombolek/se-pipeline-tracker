@@ -22,9 +22,9 @@ type Step = 'pick' | 'preview' | 'result';
 
 function StatCard({ label, value, color }: { label: string; value: number; color: string }) {
   return (
-    <div className="bg-white rounded-2xl border border-brand-navy-30/40 px-5 py-4 text-center">
+    <div className="bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft px-5 py-4 text-center">
       <p className={`text-2xl font-bold ${color}`}>{value}</p>
-      <p className="text-xs text-brand-navy-70 mt-1">{label}</p>
+      <p className="text-xs text-brand-navy-70 dark:text-fg-2 mt-1">{label}</p>
     </div>
   );
 }
@@ -133,23 +133,23 @@ export default function ImportPage() {
     <div className="max-w-2xl">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-xl font-semibold text-brand-navy">Import</h1>
-        <p className="text-sm text-brand-navy-70 mt-0.5">Upload a Salesforce XLS export to sync opportunities</p>
+        <h1 className="text-xl font-semibold text-brand-navy dark:text-fg-1">Import</h1>
+        <p className="text-sm text-brand-navy-70 dark:text-fg-2 mt-0.5">Upload a Salesforce XLS export to sync opportunities</p>
       </div>
 
       {/* Undo last import banner */}
       {latest && (
         <div className="mb-5 flex items-center justify-between gap-4 bg-status-warning/8 border border-status-warning/30 rounded-xl px-4 py-3">
           <div className="min-w-0">
-            <p className="text-xs font-semibold text-status-warning">Last import can be undone</p>
-            <p className="text-xs text-brand-navy-70 mt-0.5 truncate">
+            <p className="text-xs font-semibold text-status-warning dark:text-status-d-warning">Last import can be undone</p>
+            <p className="text-xs text-brand-navy-70 dark:text-fg-2 mt-0.5 truncate">
               {latest.filename ?? 'Unknown file'} · {formatDate(latest.imported_at)}
             </p>
           </div>
           <button
             onClick={handleRollback}
             disabled={rollingBack}
-            className="flex-shrink-0 text-xs px-3 py-1.5 rounded-lg border border-status-warning text-status-warning hover:bg-status-warning/10 transition-colors disabled:opacity-40 whitespace-nowrap"
+            className="flex-shrink-0 text-xs px-3 py-1.5 rounded-lg border border-status-warning text-status-warning dark:text-status-d-warning hover:bg-status-warning/10 dark:bg-status-d-warning-soft transition-colors disabled:opacity-40 whitespace-nowrap"
           >
             {rollingBack ? 'Undoing…' : 'Undo import'}
           </button>
@@ -173,8 +173,8 @@ export default function ImportPage() {
               dragging
                 ? 'border-brand-purple bg-brand-purple/5'
                 : file
-                ? 'border-brand-navy-30/40 bg-white cursor-default'
-                : 'border-brand-navy-30/40 bg-white hover:border-brand-purple/50 cursor-pointer'
+                ? 'border-brand-navy-30/40 dark:border-ink-border-soft bg-white dark:bg-ink-1 cursor-default'
+                : 'border-brand-navy-30/40 dark:border-ink-border-soft bg-white dark:bg-ink-1 hover:border-brand-purple/50 cursor-pointer'
             }`}
           >
             <input
@@ -186,30 +186,30 @@ export default function ImportPage() {
             />
             {!file ? (
               <div className="text-center">
-                <div className="w-10 h-10 rounded-xl bg-brand-purple/10 flex items-center justify-center mx-auto mb-3">
-                  <svg className="w-5 h-5 text-brand-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <div className="w-10 h-10 rounded-xl bg-brand-purple/10 dark:bg-accent-purple-soft flex items-center justify-center mx-auto mb-3">
+                  <svg className="w-5 h-5 text-brand-purple dark:text-accent-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                   </svg>
                 </div>
-                <p className="text-sm font-medium text-brand-navy">Drop your Salesforce export here</p>
-                <p className="text-xs text-brand-navy-70 mt-1">
-                  or <span className="text-brand-purple underline">browse files</span> — .xls format from Salesforce report export
+                <p className="text-sm font-medium text-brand-navy dark:text-fg-1">Drop your Salesforce export here</p>
+                <p className="text-xs text-brand-navy-70 dark:text-fg-2 mt-1">
+                  or <span className="text-brand-purple dark:text-accent-purple underline">browse files</span> — .xls format from Salesforce report export
                 </p>
               </div>
             ) : (
               <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-xl bg-brand-purple/10 flex items-center justify-center flex-shrink-0">
-                  <svg className="w-5 h-5 text-brand-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <div className="w-10 h-10 rounded-xl bg-brand-purple/10 dark:bg-accent-purple-soft flex items-center justify-center flex-shrink-0">
+                  <svg className="w-5 h-5 text-brand-purple dark:text-accent-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-brand-navy truncate">{file.name}</p>
-                  <p className="text-xs text-brand-navy-70">{(file.size / 1024).toFixed(0)} KB</p>
+                  <p className="text-sm font-medium text-brand-navy dark:text-fg-1 truncate">{file.name}</p>
+                  <p className="text-xs text-brand-navy-70 dark:text-fg-2">{(file.size / 1024).toFixed(0)} KB</p>
                 </div>
                 <button
                   onClick={e => { e.stopPropagation(); setFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }}
-                  className="text-brand-navy-70 hover:text-brand-navy p-1 rounded transition-colors"
+                  className="text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:text-fg-1 p-1 rounded transition-colors"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -223,11 +223,11 @@ export default function ImportPage() {
             <button
               onClick={handlePreview}
               disabled={!file || previewing}
-              className="px-5 py-2 bg-brand-purple text-white text-sm font-semibold rounded-xl hover:bg-brand-purple-70 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="px-5 py-2 bg-brand-purple dark:bg-accent-purple text-white text-sm font-semibold rounded-xl hover:bg-brand-purple-70 dark:hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               {previewing ? 'Analysing…' : 'Preview Import'}
             </button>
-            {previewError && <p className="text-sm text-status-overdue">{previewError}</p>}
+            {previewError && <p className="text-sm text-status-overdue dark:text-status-d-overdue">{previewError}</p>}
           </div>
         </>
       )}
@@ -236,25 +236,25 @@ export default function ImportPage() {
       {step === 'preview' && preview && (
         <>
           <div className="mb-5">
-            <p className="text-sm font-semibold text-brand-navy mb-1">Preview — {file?.name}</p>
-            <p className="text-xs text-brand-navy-70">Review the changes below before confirming. No data has been changed yet.</p>
+            <p className="text-sm font-semibold text-brand-navy dark:text-fg-1 mb-1">Preview — {file?.name}</p>
+            <p className="text-xs text-brand-navy-70 dark:text-fg-2">Review the changes below before confirming. No data has been changed yet.</p>
           </div>
 
           <div className="grid grid-cols-4 gap-3 mb-5">
-            <StatCard label="Total rows" value={preview.rowCount} color="text-brand-navy" />
-            <StatCard label="New deals" value={preview.added} color="text-status-success" />
-            <StatCard label="Updated" value={preview.updated} color="text-brand-navy-70" />
-            <StatCard label="Removed from open pipeline" value={preview.closedLost} color="text-status-overdue" />
+            <StatCard label="Total rows" value={preview.rowCount} color="text-brand-navy dark:text-fg-1" />
+            <StatCard label="New deals" value={preview.added} color="text-status-success dark:text-status-d-success" />
+            <StatCard label="Updated" value={preview.updated} color="text-brand-navy-70 dark:text-fg-2" />
+            <StatCard label="Removed from open pipeline" value={preview.closedLost} color="text-status-overdue dark:text-status-d-overdue" />
           </div>
 
           {preview.errors.length > 0 && (
             <div className="mb-5 bg-status-overdue/5 border border-status-overdue/20 rounded-xl p-4">
-              <p className="text-sm font-semibold text-status-overdue mb-2">
+              <p className="text-sm font-semibold text-status-overdue dark:text-status-d-overdue mb-2">
                 {preview.errors.length} error{preview.errors.length > 1 ? 's' : ''} found — import blocked
               </p>
               <ul className="space-y-1">
                 {preview.errors.map((e, i) => (
-                  <li key={i} className="text-xs text-status-overdue font-mono">{e}</li>
+                  <li key={i} className="text-xs text-status-overdue dark:text-status-d-overdue font-mono">{e}</li>
                 ))}
               </ul>
             </div>
@@ -264,18 +264,18 @@ export default function ImportPage() {
             <button
               onClick={handleImport}
               disabled={importing || preview.errors.length > 0}
-              className="px-5 py-2 bg-brand-purple text-white text-sm font-semibold rounded-xl hover:bg-brand-purple-70 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="px-5 py-2 bg-brand-purple dark:bg-accent-purple text-white text-sm font-semibold rounded-xl hover:bg-brand-purple-70 dark:hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               {importing ? 'Importing…' : 'Confirm & Import'}
             </button>
             <button
               onClick={resetToStep1}
               disabled={importing}
-              className="px-4 py-2 text-sm text-brand-navy-70 hover:text-brand-navy transition-colors"
+              className="px-4 py-2 text-sm text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:text-fg-1 transition-colors"
             >
               ← Cancel
             </button>
-            {importError && <p className="text-sm text-status-overdue">{importError}</p>}
+            {importError && <p className="text-sm text-status-overdue dark:text-status-d-overdue">{importError}</p>}
           </div>
         </>
       )}
@@ -285,26 +285,26 @@ export default function ImportPage() {
         <div className="bg-status-success/8 border border-status-success/20 rounded-2xl p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-8 h-8 rounded-full bg-status-success/20 flex items-center justify-center flex-shrink-0">
-              <svg className="w-4 h-4 text-status-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <svg className="w-4 h-4 text-status-success dark:text-status-d-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <p className="text-sm font-semibold text-brand-navy">Import complete</p>
+            <p className="text-sm font-semibold text-brand-navy dark:text-fg-1">Import complete</p>
           </div>
           <div className="grid grid-cols-4 gap-3 mb-5">
-            <StatCard label="Total rows" value={result.rowCount} color="text-brand-navy" />
-            <StatCard label="New deals" value={result.added} color="text-status-success" />
-            <StatCard label="Updated" value={result.updated} color="text-brand-navy-70" />
-            <StatCard label="Removed from open pipeline" value={result.closedLost} color="text-status-overdue" />
+            <StatCard label="Total rows" value={result.rowCount} color="text-brand-navy dark:text-fg-1" />
+            <StatCard label="New deals" value={result.added} color="text-status-success dark:text-status-d-success" />
+            <StatCard label="Updated" value={result.updated} color="text-brand-navy-70 dark:text-fg-2" />
+            <StatCard label="Removed from open pipeline" value={result.closedLost} color="text-status-overdue dark:text-status-d-overdue" />
           </div>
           {result.errors.length > 0 && (
-            <p className="text-xs text-status-warning mb-4">
+            <p className="text-xs text-status-warning dark:text-status-d-warning mb-4">
               {result.errors.length} row{result.errors.length > 1 ? 's' : ''} had errors and were skipped.
             </p>
           )}
           <button
             onClick={resetToStep1}
-            className="text-sm text-brand-purple hover:text-brand-purple-70 font-medium transition-colors"
+            className="text-sm text-brand-purple dark:text-accent-purple hover:text-brand-purple-70 dark:text-accent-purple font-medium transition-colors"
           >
             Import another file →
           </button>

@@ -163,15 +163,15 @@ export default function QuickCapture() {
       {/* Modal card */}
       <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
         <div
-          className="w-full max-w-lg bg-white rounded-lg shadow-lg pointer-events-auto"
+          className="w-full max-w-lg bg-white dark:bg-ink-1 rounded-lg shadow-lg pointer-events-auto"
           onClick={e => e.stopPropagation()}
         >
           {/* Header */}
           <div className="flex items-center justify-between px-5 pt-5 pb-3">
-            <h2 className="text-sm font-semibold text-brand-navy">Quick Capture</h2>
+            <h2 className="text-sm font-semibold text-brand-navy dark:text-fg-1">Quick Capture</h2>
             <button
               onClick={closeQuickCapture}
-              className="w-6 h-6 rounded-full bg-brand-navy-30/50 hover:bg-brand-navy-30 flex items-center justify-center text-brand-navy-70 hover:text-brand-navy transition-colors"
+              className="w-6 h-6 rounded-full bg-brand-navy-30/50 hover:bg-brand-navy-30 flex items-center justify-center text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:text-fg-1 transition-colors"
             >
               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -181,7 +181,7 @@ export default function QuickCapture() {
 
           <form onSubmit={handleSubmit} className="px-5 pb-5 space-y-3">
             {/* Type toggle */}
-            <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
+            <div className="flex gap-1 bg-gray-100 dark:bg-ink-3 rounded-lg p-1 w-fit">
               {(['note', 'task'] as CaptureType[]).map(t => (
                 <button
                   key={t}
@@ -189,8 +189,8 @@ export default function QuickCapture() {
                   onClick={() => setType(t)}
                   className={`px-4 py-1 rounded-md text-xs font-semibold transition-colors ${
                     type === t
-                      ? 'bg-white text-brand-navy shadow-sm'
-                      : 'text-brand-navy-70 hover:text-brand-navy'
+                      ? 'bg-white dark:bg-ink-1 text-brand-navy dark:text-fg-1 shadow-sm'
+                      : 'text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy'
                   }`}
                 >
                   {t === 'note' ? 'Note on deal' : 'Task for someone'}
@@ -200,17 +200,17 @@ export default function QuickCapture() {
 
             {/* Opportunity link — first field, focused on open */}
             <div>
-              <p className="text-[11px] text-brand-navy-70 font-medium mb-1.5">
+              <p className="text-[11px] text-brand-navy-70 dark:text-fg-2 font-medium mb-1.5">
                 Link to opportunity <span className="font-normal">(optional — Tab to skip)</span>
               </p>
 
               {selectedOpp ? (
-                <div className="flex items-center gap-2 px-3 py-2 bg-brand-purple-30/40 rounded-lg border border-brand-purple/20">
-                  <svg className="w-3.5 h-3.5 text-brand-purple flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <div className="flex items-center gap-2 px-3 py-2 bg-brand-purple-30/40 dark:bg-accent-purple-soft rounded-lg border border-brand-purple/20">
+                  <svg className="w-3.5 h-3.5 text-brand-purple dark:text-accent-purple flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                   </svg>
-                  <span className="text-xs font-medium text-brand-navy flex-1 min-w-0 truncate">{selectedOpp.name}</span>
-                  <button type="button" onClick={clearOpp} className="text-brand-navy-70 hover:text-brand-navy">
+                  <span className="text-xs font-medium text-brand-navy dark:text-fg-1 flex-1 min-w-0 truncate">{selectedOpp.name}</span>
+                  <button type="button" onClick={clearOpp} className="text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:text-fg-1">
                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                     </svg>
@@ -227,22 +227,22 @@ export default function QuickCapture() {
                     onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
                     onFocus={() => oppResults.length > 0 && setShowDropdown(true)}
                     placeholder="Search opportunities… (↓ then Enter to pick)"
-                    className="w-full px-3 py-2 rounded-lg border border-brand-navy-30 text-sm text-brand-navy placeholder:text-brand-navy-70 focus:outline-none focus:ring-[3px] focus:ring-brand-purple/15 focus:border-brand-purple"
+                    className="w-full px-3 py-2 rounded-lg border border-brand-navy-30 text-sm text-brand-navy dark:text-fg-1 placeholder:text-brand-navy-70 dark:text-fg-2 focus:outline-none focus:ring-[3px] focus:ring-brand-purple/15 focus:border-brand-purple"
                   />
                   {showDropdown && (
-                    <div className="absolute z-10 w-full mt-1 bg-white border border-brand-navy-30 rounded-lg shadow-lg overflow-hidden">
+                    <div className="absolute z-10 w-full mt-1 bg-white dark:bg-ink-1 border border-brand-navy-30 rounded-lg shadow-lg overflow-hidden">
                       {oppResults.map((opp, i) => (
                         <button
                           key={opp.id}
                           type="button"
                           onMouseDown={() => selectOpp(opp)}
                           onMouseEnter={() => setHighlightIdx(i)}
-                          className={`w-full text-left px-3 py-2.5 transition-colors border-b border-brand-navy-30/30 last:border-0 ${
-                            i === highlightIdx ? 'bg-brand-purple-30/50' : 'hover:bg-brand-purple-30/30'
+                          className={`w-full text-left px-3 py-2.5 transition-colors border-b border-brand-navy-30/30 dark:border-ink-border-soft last:border-0 ${
+                            i === highlightIdx ? 'bg-brand-purple-30/50 dark:bg-accent-purple-soft' : 'hover:bg-brand-purple-30/30 dark:hover:bg-accent-purple-soft'
                           }`}
                         >
-                          <p className="text-sm font-medium text-brand-navy truncate">{opp.name}</p>
-                          <p className="text-xs text-brand-navy-70 truncate">{opp.account_name ?? ''}</p>
+                          <p className="text-sm font-medium text-brand-navy dark:text-fg-1 truncate">{opp.name}</p>
+                          <p className="text-xs text-brand-navy-70 dark:text-fg-2 truncate">{opp.account_name ?? ''}</p>
                         </button>
                       ))}
                     </div>
@@ -264,24 +264,24 @@ export default function QuickCapture() {
               }}
               placeholder={type === 'note' ? 'SE comments, next steps, context…' : 'What needs doing…'}
               rows={4}
-              className="w-full px-3 py-2.5 rounded-lg border border-brand-navy-30 text-sm text-brand-navy placeholder:text-brand-navy-70 resize-none focus:outline-none focus:ring-[3px] focus:ring-brand-purple/15 focus:border-brand-purple"
+              className="w-full px-3 py-2.5 rounded-lg border border-brand-navy-30 text-sm text-brand-navy dark:text-fg-1 placeholder:text-brand-navy-70 dark:text-fg-2 resize-none focus:outline-none focus:ring-[3px] focus:ring-brand-purple/15 focus:border-brand-purple"
             />
 
             {/* Due date + assignee (task only) */}
             {type === 'task' && (
               <div className="flex gap-4">
                 <div>
-                  <p className="text-[11px] text-brand-navy-70 font-medium mb-1.5">Due date</p>
+                  <p className="text-[11px] text-brand-navy-70 dark:text-fg-2 font-medium mb-1.5">Due date</p>
                   <input
                     type="date"
                     value={dueDate}
                     onChange={e => setDueDate(e.target.value)}
-                    className="px-3 py-1.5 rounded-lg border border-brand-navy-30 text-sm text-brand-navy focus:outline-none focus:ring-[3px] focus:ring-brand-purple/15 focus:border-brand-purple"
+                    className="px-3 py-1.5 rounded-lg border border-brand-navy-30 text-sm text-brand-navy dark:text-fg-1 focus:outline-none focus:ring-[3px] focus:ring-brand-purple/15 focus:border-brand-purple"
                   />
                 </div>
                 {selectedOpp && (
                   <div className="flex-1 min-w-0">
-                    <p className="text-[11px] text-brand-navy-70 font-medium mb-1.5">
+                    <p className="text-[11px] text-brand-navy-70 dark:text-fg-2 font-medium mb-1.5">
                       Assignee{' '}
                       {selectedOpp.se_owner && assignedTo !== selectedOpp.se_owner.id && (
                         <span className="font-normal">(added as SE contributor)</span>
@@ -290,7 +290,7 @@ export default function QuickCapture() {
                     <select
                       value={assignedTo ?? ''}
                       onChange={e => setAssignedTo(e.target.value ? Number(e.target.value) : null)}
-                      className="w-full px-3 py-1.5 rounded-lg border border-brand-navy-30 text-sm text-brand-navy focus:outline-none focus:ring-[3px] focus:ring-brand-purple/15 focus:border-brand-purple bg-white"
+                      className="w-full px-3 py-1.5 rounded-lg border border-brand-navy-30 text-sm text-brand-navy dark:text-fg-1 focus:outline-none focus:ring-[3px] focus:ring-brand-purple/15 focus:border-brand-purple bg-white dark:bg-ink-1"
                     >
                       <option value="">Unassigned</option>
                       {users.map(u => (
@@ -307,7 +307,7 @@ export default function QuickCapture() {
 
             {/* Footer */}
             <div className="flex items-center justify-between pt-1">
-              <p className="text-[11px] text-brand-navy-70">
+              <p className="text-[11px] text-brand-navy-70 dark:text-fg-2">
                 {selectedOpp
                   ? `Saves as ${type} on ${selectedOpp.name}`
                   : 'Saves to Inbox'}
@@ -316,7 +316,7 @@ export default function QuickCapture() {
                 <button
                   type="button"
                   onClick={closeQuickCapture}
-                  className="text-xs text-brand-navy-70 hover:text-brand-navy transition-colors"
+                  className="text-xs text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:text-fg-1 transition-colors"
                 >
                   Cancel
                 </button>
@@ -326,7 +326,7 @@ export default function QuickCapture() {
                   className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                     saved
                       ? 'bg-status-success text-white'
-                      : 'bg-brand-purple text-white hover:bg-brand-purple-70 disabled:opacity-40'
+                      : 'bg-brand-purple dark:bg-accent-purple text-white hover:bg-brand-purple-70 dark:hover:opacity-90 disabled:opacity-40'
                   }`}
                 >
                   {saved ? 'Saved!' : saving ? 'Saving…' : 'Save'}

@@ -78,15 +78,15 @@ export default function MissingNotesPage() {
       <div className="flex-shrink-0 px-8 pt-6 pb-4">
         <div className="flex items-center gap-4">
           <div>
-            <h1 className="text-xl font-semibold text-brand-navy">Missing Notes</h1>
-            <p className="text-sm text-brand-navy-70 mt-0.5">Opportunities without recent SE comments</p>
+            <h1 className="text-xl font-semibold text-brand-navy dark:text-fg-1">Missing Notes</h1>
+            <p className="text-sm text-brand-navy-70 dark:text-fg-2 mt-0.5">Opportunities without recent SE comments</p>
           </div>
           {seFilterName && (
             <div className="flex items-center gap-2">
-              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-brand-purple/10 border border-brand-purple text-brand-purple">
+              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-brand-purple/10 dark:bg-accent-purple-soft border border-brand-purple text-brand-purple dark:text-accent-purple">
                 SE: {seFilterName}
               </span>
-              <Link to="/insights/missing-notes" className="text-xs text-brand-navy-70 hover:text-brand-navy">Show all</Link>
+              <Link to="/insights/missing-notes" className="text-xs text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:text-fg-1">Show all</Link>
             </div>
           )}
           <div className="ml-auto flex items-center gap-2">
@@ -96,8 +96,8 @@ export default function MissingNotesPage() {
                 onClick={() => setThreshold(d)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                   threshold === d
-                    ? 'bg-brand-purple text-white border-brand-purple'
-                    : 'border-brand-navy-30 text-brand-navy-70 hover:border-brand-navy'
+                    ? 'bg-brand-purple dark:bg-accent-purple text-white border-brand-purple'
+                    : 'border-brand-navy-30 text-brand-navy-70 dark:text-fg-2 hover:border-brand-navy'
                 }`}
               >
                 {d}d
@@ -110,9 +110,9 @@ export default function MissingNotesPage() {
       {/* Scrollable table */}
       <div className="flex-1 overflow-y-auto px-8 pb-6">
         {loading ? <Loading /> : rows.length === 0 ? <Empty /> : (
-          <div className="bg-white rounded-2xl border border-brand-navy-30/40 overflow-hidden">
+          <div className="bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft overflow-hidden">
             <table className="w-full">
-              <thead className="border-b border-brand-navy-30/40">
+              <thead className="border-b border-brand-navy-30/40 dark:border-ink-border-soft">
                 <tr>
                   {COLS.map(c => (
                     <SortableHeader
@@ -122,7 +122,7 @@ export default function MissingNotesPage() {
                       currentKey={sortKey}
                       currentDir={sortDir}
                       onSort={handleSort}
-                      className="px-4 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide"
+                      className="px-4 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide"
                     />
                   ))}
                   <th className="w-8" />
@@ -136,22 +136,22 @@ export default function MissingNotesPage() {
                     <tr
                       key={r.id}
                       onClick={() => setSelectedId(r.id)}
-                      className={`group border-b border-brand-navy-30/20 last:border-0 cursor-pointer transition-colors ${
+                      className={`group border-b border-brand-navy-30/20 dark:border-ink-border-soft last:border-0 cursor-pointer transition-colors ${
                         selected
                           ? 'bg-brand-purple/[0.04] border-l-2 border-l-brand-purple-70'
                           : 'hover:bg-brand-navy/[0.025]'
                       }`}
                     >
                       <td className="px-4 py-3">
-                        <p className="text-sm font-medium text-brand-navy">{r.name}</p>
-                        <p className="text-xs text-brand-navy-70">{r.account_name}</p>
+                        <p className="text-sm font-medium text-brand-navy dark:text-fg-1">{r.name}</p>
+                        <p className="text-xs text-brand-navy-70 dark:text-fg-2">{r.account_name}</p>
                       </td>
                       <td className="px-4 py-3"><StageBadge stage={r.stage} /></td>
-                      <td className="px-4 py-3 text-sm font-medium text-brand-navy">{formatARR(r.arr)}</td>
-                      <td className={`px-4 py-3 text-xs font-medium ${stale ? 'text-status-overdue' : 'text-status-warning'}`}>
+                      <td className="px-4 py-3 text-sm font-medium text-brand-navy dark:text-fg-1">{formatARR(r.arr)}</td>
+                      <td className={`px-4 py-3 text-xs font-medium ${stale ? 'text-status-overdue dark:text-status-d-overdue' : 'text-status-warning dark:text-status-d-warning'}`}>
                         {daysSinceLabel(r.se_comments_updated_at)}
                       </td>
-                      <td className="px-4 py-3 text-xs text-brand-navy-70">{r.se_owner_name ?? <span className="text-status-warning">Unassigned</span>}</td>
+                      <td className="px-4 py-3 text-xs text-brand-navy-70 dark:text-fg-2">{r.se_owner_name ?? <span className="text-status-warning dark:text-status-d-warning">Unassigned</span>}</td>
                       <td className="px-2 py-3" onClick={e => e.stopPropagation()}>
                         <RowCapture oppId={r.id} oppName={r.name} />
                       </td>

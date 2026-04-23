@@ -50,7 +50,7 @@ const STATUS_CONFIG: Record<BlockerStatus, { label: string; dot: string; badge: 
   orange: { label: '🟠 High',      dot: 'bg-orange-400',      badge: 'bg-orange-100 text-orange-700' },
   yellow: { label: '🟡 Medium',    dot: 'bg-status-warning',  badge: 'bg-yellow-100 text-yellow-700' },
   green:  { label: '🟢 Low/None',  dot: 'bg-status-success',  badge: 'bg-green-100 text-green-700' },
-  none:   { label: 'No status',    dot: 'bg-brand-navy-30',   badge: 'bg-gray-100 text-gray-600' },
+  none:   { label: 'No status',    dot: 'bg-brand-navy-30',   badge: 'bg-gray-100 dark:bg-ink-3 text-gray-600' },
 };
 
 function StatusBadge({ status }: { status: BlockerStatus }) {
@@ -125,16 +125,16 @@ function MarkdownContent({
 }) {
   const blocks = text.split(/\n{2,}/);
   return (
-    <div className="space-y-3 text-sm text-brand-navy leading-relaxed">
+    <div className="space-y-3 text-sm text-brand-navy dark:text-fg-1 leading-relaxed">
       {blocks.map((block, i) => {
         const lines = block.trim().split('\n');
 
         // Heading
         if (lines[0].startsWith('## ')) {
-          return <h3 key={i} className="font-semibold text-brand-navy text-sm mt-2 mb-0.5">{lines[0].replace(/^## /, '')}</h3>;
+          return <h3 key={i} className="font-semibold text-brand-navy dark:text-fg-1 text-sm mt-2 mb-0.5">{lines[0].replace(/^## /, '')}</h3>;
         }
         if (lines[0].startsWith('### ')) {
-          return <h4 key={i} className="font-medium text-brand-navy text-sm mt-1">{lines[0].replace(/^### /, '')}</h4>;
+          return <h4 key={i} className="font-medium text-brand-navy dark:text-fg-1 text-sm mt-1">{lines[0].replace(/^### /, '')}</h4>;
         }
 
         // All lines are list items
@@ -350,20 +350,20 @@ export default function TechBlockersPage() {
       </div>
 
       {/* AI Summary — collapsible */}
-      <div className="mb-5 bg-white rounded-2xl border border-brand-navy-30/40 overflow-hidden">
+      <div className="mb-5 bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft overflow-hidden">
         {/* Header row — always visible, click to expand/collapse */}
         <button
           onClick={() => setSummaryOpen(o => !o)}
-          className="w-full flex items-center justify-between gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left"
+          className="w-full flex items-center justify-between gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-ink-2 transition-colors text-left"
         >
           <div className="flex items-center gap-2 flex-wrap">
-            <svg className="w-4 h-4 text-brand-purple flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <svg className="w-4 h-4 text-brand-purple dark:text-accent-purple flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z" />
             </svg>
-            <span className="text-sm font-semibold text-brand-navy">AI Insights</span>
+            <span className="text-sm font-semibold text-brand-navy dark:text-fg-1">AI Insights</span>
             {summary ? (
               <>
-                <span className="text-xs text-brand-navy-70">— pipeline blocker analysis</span>
+                <span className="text-xs text-brand-navy-70 dark:text-fg-2">— pipeline blocker analysis</span>
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                   summaryAgeDays() === 0 ? 'bg-green-100 text-green-700'
                   : summaryAgeDays()! <= 3 ? 'bg-yellow-100 text-yellow-700'
@@ -373,11 +373,11 @@ export default function TechBlockersPage() {
                 </span>
               </>
             ) : (
-              <span className="text-xs text-brand-navy-30">— no summary yet</span>
+              <span className="text-xs text-brand-navy-30 dark:text-fg-4">— no summary yet</span>
             )}
           </div>
           <svg
-            className={`w-4 h-4 text-brand-navy-70 flex-shrink-0 transition-transform ${summaryOpen ? 'rotate-180' : ''}`}
+            className={`w-4 h-4 text-brand-navy-70 dark:text-fg-2 flex-shrink-0 transition-transform ${summaryOpen ? 'rotate-180' : ''}`}
             fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
           >
             <path strokeLinecap="round" strokeLinejoin="round" d="m19 9-7 7-7-7" />
@@ -386,7 +386,7 @@ export default function TechBlockersPage() {
 
         {/* Expanded body */}
         {summaryOpen && (
-          <div className="px-4 pb-4 border-t border-brand-navy-30/30">
+          <div className="px-4 pb-4 border-t border-brand-navy-30/30 dark:border-ink-border-soft">
             {summary ? (
               <>
                 <div className="mt-4">
@@ -396,7 +396,7 @@ export default function TechBlockersPage() {
                   <button
                     onClick={generateSummary}
                     disabled={generatingSummary}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-brand-purple text-white hover:bg-brand-purple-70 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-brand-purple dark:bg-accent-purple text-white hover:bg-brand-purple-70 dark:hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     {generatingSummary ? (
                       <>
@@ -412,13 +412,13 @@ export default function TechBlockersPage() {
               </>
             ) : (
               <div className="mt-4 flex items-center justify-between gap-4">
-                <p className="text-xs text-brand-navy-70">
+                <p className="text-xs text-brand-navy-70 dark:text-fg-2">
                   Analyses all {counts.all} entries weighted by severity — critical and high blockers drive the conclusions.
                 </p>
                 <button
                   onClick={generateSummary}
                   disabled={generatingSummary || counts.all === 0}
-                  className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-brand-purple text-white hover:bg-brand-purple-70 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-brand-purple dark:bg-accent-purple text-white hover:bg-brand-purple-70 dark:hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {generatingSummary ? (
                     <>
@@ -441,7 +441,7 @@ export default function TechBlockersPage() {
         {(['all', 'recent'] as Tab[]).map(t => (
           <button key={t} onClick={() => setTab(t)}
             className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-              tab === t ? 'bg-brand-purple text-white' : 'text-brand-navy-70 hover:text-brand-navy hover:bg-brand-purple-30/50'
+              tab === t ? 'bg-brand-purple dark:bg-accent-purple text-white' : 'text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:text-fg-1 hover:bg-brand-purple-30/50 dark:hover:bg-accent-purple-soft'
             }`}
           >
             {t === 'all' ? 'All Blockers' : 'Recently Changed'}
@@ -453,8 +453,8 @@ export default function TechBlockersPage() {
               <button key={d} onClick={() => setDays(d)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                   days === d
-                    ? 'bg-brand-purple text-white border-brand-purple'
-                    : 'border-brand-navy-30 text-brand-navy-70 hover:border-brand-navy hover:text-brand-navy'
+                    ? 'bg-brand-purple dark:bg-accent-purple text-white border-brand-purple'
+                    : 'border-brand-navy-30 text-brand-navy-70 dark:text-fg-2 hover:border-brand-navy hover:text-brand-navy'
                 }`}
               >
                 {d}d
@@ -502,7 +502,7 @@ export default function TechBlockersPage() {
             statusFilter !== 'active') && (
             <button
               onClick={resetFilters}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium border border-brand-navy-30 text-brand-navy-70 hover:border-brand-navy hover:text-brand-navy transition-colors"
+              className="px-3 py-1.5 rounded-lg text-xs font-medium border border-brand-navy-30 text-brand-navy-70 dark:text-fg-2 hover:border-brand-navy hover:text-brand-navy dark:text-fg-1 transition-colors"
             >
               Reset filters
             </button>
@@ -525,8 +525,8 @@ export default function TechBlockersPage() {
             <button key={key} onClick={() => setStatusFilter(key)}
               className={`px-3 py-1 rounded-lg text-xs font-medium border transition-colors ${
                 statusFilter === key
-                  ? 'bg-brand-purple text-white border-brand-purple'
-                  : 'border-brand-navy-30 text-brand-navy-70 hover:border-brand-navy hover:text-brand-navy'
+                  ? 'bg-brand-purple dark:bg-accent-purple text-white border-brand-purple'
+                  : 'border-brand-navy-30 text-brand-navy-70 dark:text-fg-2 hover:border-brand-navy hover:text-brand-navy'
               }`}
             >
               {label}
@@ -540,35 +540,35 @@ export default function TechBlockersPage() {
         loadingAll ? <Loading /> : allRows.length === 0 ? (
           <Empty />
         ) : filteredRows.length === 0 ? (
-          <div className="text-center py-12 text-sm text-brand-navy-70">No entries match this filter.</div>
+          <div className="text-center py-12 text-sm text-brand-navy-70 dark:text-fg-2">No entries match this filter.</div>
         ) : (
-          <div className="bg-white rounded-2xl border border-brand-navy-30/40 overflow-hidden">
+          <div className="bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft overflow-hidden">
             <table className="w-full">
-              <thead className="border-b border-brand-navy-30/40">
+              <thead className="border-b border-brand-navy-30/40 dark:border-ink-border-soft">
                 <tr>
                   {['Status', 'Opportunity', 'Stage', 'SE Owner', 'Deploy Mode', 'Technical Blockers / Risk'].map(h => (
-                    <th key={h} className="px-4 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">{h}</th>
+                    <th key={h} className="px-4 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {filteredRows.map(r => (
-                  <tr key={r.id} className="border-b border-brand-navy-30/20 last:border-0 hover:bg-gray-50 align-top">
+                  <tr key={r.id} className="border-b border-brand-navy-30/20 dark:border-ink-border-soft last:border-0 hover:bg-gray-50 dark:hover:bg-ink-2 align-top">
                     <td className="px-4 py-3 whitespace-nowrap">
                       <StatusBadge status={r.blocker_status} />
                     </td>
                     <td className="px-4 py-3 min-w-[160px]">
-                      <button onClick={() => setSelectedOppId(r.id)} className="text-sm font-medium text-brand-navy hover:text-brand-purple hover:underline text-left">{r.name}</button>
-                      <p className="text-xs text-brand-navy-70">{r.account_name}</p>
+                      <button onClick={() => setSelectedOppId(r.id)} className="text-sm font-medium text-brand-navy dark:text-fg-1 hover:text-brand-purple dark:text-accent-purple hover:underline text-left">{r.name}</button>
+                      <p className="text-xs text-brand-navy-70 dark:text-fg-2">{r.account_name}</p>
                     </td>
                     <td className="px-4 py-3"><StageBadge stage={r.stage} /></td>
-                    <td className="px-4 py-3 text-xs text-brand-navy-70 whitespace-nowrap">
-                      {r.se_owner_name ?? <span className="text-status-warning">Unassigned</span>}
+                    <td className="px-4 py-3 text-xs text-brand-navy-70 dark:text-fg-2 whitespace-nowrap">
+                      {r.se_owner_name ?? <span className="text-status-warning dark:text-status-d-warning">Unassigned</span>}
                     </td>
-                    <td className="px-4 py-3 text-xs text-brand-navy-70 whitespace-nowrap">
-                      {r.deploy_mode ?? <span className="text-brand-navy-30">—</span>}
+                    <td className="px-4 py-3 text-xs text-brand-navy-70 dark:text-fg-2 whitespace-nowrap">
+                      {r.deploy_mode ?? <span className="text-brand-navy-30 dark:text-fg-4">—</span>}
                     </td>
-                    <td className="px-4 py-3 text-sm text-brand-navy max-w-[400px]">
+                    <td className="px-4 py-3 text-sm text-brand-navy dark:text-fg-1 max-w-[400px]">
                       <p className="whitespace-pre-wrap leading-relaxed">{r.technical_blockers}</p>
                     </td>
                   </tr>
@@ -584,45 +584,45 @@ export default function TechBlockersPage() {
         loadingRecent ? <Loading /> : recentRows.length === 0 ? (
           <div className="text-center py-8">
             <Empty />
-            <p className="mt-2 text-sm text-brand-navy-70 max-w-md mx-auto">
+            <p className="mt-2 text-sm text-brand-navy-70 dark:text-fg-2 max-w-md mx-auto">
               No technical blocker changes in the last {days} days. Changes are tracked from the next import onwards.
             </p>
           </div>
         ) : (
-          <div className="bg-white rounded-2xl border border-brand-navy-30/40 overflow-hidden">
+          <div className="bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft overflow-hidden">
             <table className="w-full">
-              <thead className="border-b border-brand-navy-30/40">
+              <thead className="border-b border-brand-navy-30/40 dark:border-ink-border-soft">
                 <tr>
                   {['Opportunity', 'Stage', 'SE Owner', 'Deploy Mode', 'Previous', 'New Value', 'Changed'].map(h => (
-                    <th key={h} className="px-4 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">{h}</th>
+                    <th key={h} className="px-4 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {recentRows.map((r, i) => (
-                  <tr key={i} className="border-b border-brand-navy-30/20 last:border-0 hover:bg-gray-50 align-top">
+                  <tr key={i} className="border-b border-brand-navy-30/20 dark:border-ink-border-soft last:border-0 hover:bg-gray-50 dark:hover:bg-ink-2 align-top">
                     <td className="px-4 py-3 min-w-[160px]">
-                      <button onClick={() => setSelectedOppId(r.id)} className="text-sm font-medium text-brand-navy hover:text-brand-purple hover:underline text-left">{r.name}</button>
-                      <p className="text-xs text-brand-navy-70">{r.account_name}</p>
+                      <button onClick={() => setSelectedOppId(r.id)} className="text-sm font-medium text-brand-navy dark:text-fg-1 hover:text-brand-purple dark:text-accent-purple hover:underline text-left">{r.name}</button>
+                      <p className="text-xs text-brand-navy-70 dark:text-fg-2">{r.account_name}</p>
                     </td>
                     <td className="px-4 py-3"><StageBadge stage={r.stage} /></td>
-                    <td className="px-4 py-3 text-xs text-brand-navy-70 whitespace-nowrap">
-                      {r.se_owner_name ?? <span className="text-status-warning">Unassigned</span>}
+                    <td className="px-4 py-3 text-xs text-brand-navy-70 dark:text-fg-2 whitespace-nowrap">
+                      {r.se_owner_name ?? <span className="text-status-warning dark:text-status-d-warning">Unassigned</span>}
                     </td>
-                    <td className="px-4 py-3 text-xs text-brand-navy-70 whitespace-nowrap">
-                      {r.deploy_mode ?? <span className="text-brand-navy-30">—</span>}
+                    <td className="px-4 py-3 text-xs text-brand-navy-70 dark:text-fg-2 whitespace-nowrap">
+                      {r.deploy_mode ?? <span className="text-brand-navy-30 dark:text-fg-4">—</span>}
                     </td>
-                    <td className="px-4 py-3 text-xs text-brand-navy-70 max-w-[200px]">
+                    <td className="px-4 py-3 text-xs text-brand-navy-70 dark:text-fg-2 max-w-[200px]">
                       {r.old_value
                         ? <p className="line-clamp-3 whitespace-pre-wrap opacity-60">{r.old_value}</p>
-                        : <span className="italic text-brand-navy-30">new entry</span>}
+                        : <span className="italic text-brand-navy-30 dark:text-fg-4">new entry</span>}
                     </td>
-                    <td className="px-4 py-3 text-sm text-brand-navy max-w-[240px]">
+                    <td className="px-4 py-3 text-sm text-brand-navy dark:text-fg-1 max-w-[240px]">
                       {r.new_value
                         ? <p className="line-clamp-4 whitespace-pre-wrap">{r.new_value}</p>
-                        : <span className="italic text-brand-navy-30">cleared</span>}
+                        : <span className="italic text-brand-navy-30 dark:text-fg-4">cleared</span>}
                     </td>
-                    <td className="px-4 py-3 text-xs text-brand-navy-70 whitespace-nowrap">
+                    <td className="px-4 py-3 text-xs text-brand-navy-70 dark:text-fg-2 whitespace-nowrap">
                       {formatDate(r.changed_at)}
                     </td>
                   </tr>

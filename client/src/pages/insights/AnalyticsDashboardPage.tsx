@@ -171,8 +171,8 @@ function RecordTypeDonut({ data }: { data: ByRecordType[] }) {
         {data.map((d, i) => (
           <div key={d.record_type} className="flex items-center gap-2 text-xs">
             <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: CHART_COLORS[i % CHART_COLORS.length] }} />
-            <span className="text-brand-navy font-medium">{d.record_type}</span>
-            <span className="text-brand-navy-70">{formatARR(d.arr)} ({d.count})</span>
+            <span className="text-brand-navy dark:text-fg-1 font-medium">{d.record_type}</span>
+            <span className="text-brand-navy-70 dark:text-fg-2">{formatARR(d.arr)} ({d.count})</span>
           </div>
         ))}
       </div>
@@ -259,10 +259,10 @@ function SummaryCards({ summary, keyDeals }: { summary: Summary; keyDeals: KeyDe
   return (
     <div className="grid grid-cols-4 gap-4 mb-6">
       {cards.map(c => (
-        <div key={c.label} className="bg-white rounded-2xl border border-brand-navy-30/40 p-5">
-          <p className="text-[11px] font-medium text-brand-navy-70 uppercase tracking-wide">{c.label}</p>
-          <p className="text-2xl font-bold text-brand-navy mt-1">{c.value}</p>
-          <p className="text-xs text-brand-navy-70 mt-0.5">{c.sub}</p>
+        <div key={c.label} className="bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft p-5">
+          <p className="text-[11px] font-medium text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">{c.label}</p>
+          <p className="text-2xl font-bold text-brand-navy dark:text-fg-1 mt-1">{c.value}</p>
+          <p className="text-xs text-brand-navy-70 dark:text-fg-2 mt-0.5">{c.sub}</p>
         </div>
       ))}
     </div>
@@ -276,7 +276,7 @@ function StageLegend() {
   return (
     <div className="flex flex-wrap gap-3 mt-3">
       {stages.map(([name, color]) => (
-        <div key={name} className="flex items-center gap-1.5 text-[10px] text-brand-navy-70">
+        <div key={name} className="flex items-center gap-1.5 text-[10px] text-brand-navy-70 dark:text-fg-2">
           <span className="w-2.5 h-2.5 rounded-full" style={{ background: color }} />
           {name}
         </div>
@@ -308,7 +308,7 @@ export default function AnalyticsDashboardPage() {
   }, []);
 
   if (loading) return <Loading />;
-  if (error || !data) return <div className="text-center py-16 text-sm text-status-overdue">{error || 'No data'}</div>;
+  if (error || !data) return <div className="text-center py-16 text-sm text-status-overdue dark:text-status-d-overdue">{error || 'No data'}</div>;
 
   return (
     <div>
@@ -318,22 +318,22 @@ export default function AnalyticsDashboardPage() {
 
       <div className="grid grid-cols-2 gap-4 mb-4">
         {/* Pipeline Funnel */}
-        <div className="bg-white rounded-2xl border border-brand-navy-30/40 p-5">
-          <h2 className="text-sm font-semibold text-brand-navy mb-4">Pipeline Funnel</h2>
+        <div className="bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft p-5">
+          <h2 className="text-sm font-semibold text-brand-navy dark:text-fg-1 mb-4">Pipeline Funnel</h2>
           <FunnelChart data={data.funnel} />
         </div>
 
         {/* ARR by Record Type */}
-        <div className="bg-white rounded-2xl border border-brand-navy-30/40 p-5">
-          <h2 className="text-sm font-semibold text-brand-navy mb-4">ARR by Record Type</h2>
+        <div className="bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft p-5">
+          <h2 className="text-sm font-semibold text-brand-navy dark:text-fg-1 mb-4">ARR by Record Type</h2>
           <RecordTypeDonut data={data.by_record_type} />
         </div>
       </div>
 
       {/* ARR by SE Owner */}
-      <div className="bg-white rounded-2xl border border-brand-navy-30/40 p-5 mb-4">
+      <div className="bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft p-5 mb-4">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-semibold text-brand-navy">ARR by SE Owner</h2>
+          <h2 className="text-sm font-semibold text-brand-navy dark:text-fg-1">ARR by SE Owner</h2>
           <StageLegend />
         </div>
         <BySeChart data={data.by_se} />
@@ -341,20 +341,20 @@ export default function AnalyticsDashboardPage() {
 
       <div className="grid grid-cols-2 gap-4 mb-4">
         {/* ARR by Close Month */}
-        <div className="bg-white rounded-2xl border border-brand-navy-30/40 p-5">
-          <h2 className="text-sm font-semibold text-brand-navy mb-4">ARR by Close Month</h2>
+        <div className="bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft p-5">
+          <h2 className="text-sm font-semibold text-brand-navy dark:text-fg-1 mb-4">ARR by Close Month</h2>
           {data.by_close_month.length > 0
             ? <CloseMonthChart data={data.by_close_month} />
-            : <p className="text-xs text-brand-navy-70 py-8 text-center">No close dates set</p>
+            : <p className="text-xs text-brand-navy-70 dark:text-fg-2 py-8 text-center">No close dates set</p>
           }
         </div>
 
         {/* Stage Velocity */}
-        <div className="bg-white rounded-2xl border border-brand-navy-30/40 p-5">
-          <h2 className="text-sm font-semibold text-brand-navy mb-4">Stage Velocity</h2>
+        <div className="bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft p-5">
+          <h2 className="text-sm font-semibold text-brand-navy dark:text-fg-1 mb-4">Stage Velocity</h2>
           {data.stage_velocity.length > 0
             ? <VelocityChart data={data.stage_velocity} />
-            : <p className="text-xs text-brand-navy-70 py-8 text-center">No stage change data</p>
+            : <p className="text-xs text-brand-navy-70 dark:text-fg-2 py-8 text-center">No stage change data</p>
           }
         </div>
       </div>

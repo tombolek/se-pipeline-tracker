@@ -45,7 +45,7 @@ function ChevronIcon({ open }: { open: boolean }) {
 
 function DragHandle() {
   return (
-    <svg className="w-3 h-3 text-brand-navy-30 flex-shrink-0" viewBox="0 0 10 16" fill="currentColor">
+    <svg className="w-3 h-3 text-brand-navy-30 dark:text-fg-4 flex-shrink-0" viewBox="0 0 10 16" fill="currentColor">
       <circle cx="3" cy="2" r="1.2" />
       <circle cx="7" cy="2" r="1.2" />
       <circle cx="3" cy="8" r="1.2" />
@@ -202,8 +202,8 @@ export default function ColumnPicker({ visibleColumns, defaultColumns, onChange,
           flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium
           border transition-colors duration-150
           ${open
-            ? 'bg-brand-purple text-white border-brand-purple'
-            : 'bg-white text-brand-navy-70 border-brand-navy-30 hover:border-brand-purple hover:text-brand-purple'
+            ? 'bg-brand-purple dark:bg-accent-purple text-white border-brand-purple'
+            : 'bg-white dark:bg-ink-1 text-brand-navy-70 dark:text-fg-2 border-brand-navy-30 hover:border-brand-purple hover:text-brand-purple'
           }
         `}
       >
@@ -221,21 +221,21 @@ export default function ColumnPicker({ visibleColumns, defaultColumns, onChange,
       {open && (
         <div
           ref={popoverRef}
-          className="absolute right-0 top-full mt-1.5 z-50 w-72 bg-white rounded-xl shadow-xl border border-brand-navy-30/50 flex flex-col overflow-hidden"
+          className="absolute right-0 top-full mt-1.5 z-50 w-72 bg-white dark:bg-ink-1 rounded-xl shadow-xl border border-brand-navy-30/50 flex flex-col overflow-hidden"
           style={{ maxHeight: '80vh' }}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-3 py-2.5 border-b border-brand-navy-30/40 flex-shrink-0">
-            <span className="text-xs font-semibold text-brand-navy">
+          <div className="flex items-center justify-between px-3 py-2.5 border-b border-brand-navy-30/40 dark:border-ink-border-soft flex-shrink-0">
+            <span className="text-xs font-semibold text-brand-navy dark:text-fg-1">
               Visible columns
-              <span className="ml-1.5 text-brand-navy-70 font-normal">
+              <span className="ml-1.5 text-brand-navy-70 dark:text-fg-2 font-normal">
                 ({visibleColumns.length} of {ALL_COLUMNS.filter(c => !excludeKeys.includes(c.key)).length})
               </span>
             </span>
             <button
               onClick={resetToDefaults}
               disabled={isDefault}
-              className="text-[11px] font-medium text-brand-purple hover:text-brand-purple-70 disabled:opacity-30 disabled:cursor-not-allowed transition-opacity"
+              className="text-[11px] font-medium text-brand-purple dark:text-accent-purple hover:text-brand-purple-70 dark:text-accent-purple disabled:opacity-30 disabled:cursor-not-allowed transition-opacity"
             >
               Reset to defaults
             </button>
@@ -243,8 +243,8 @@ export default function ColumnPicker({ visibleColumns, defaultColumns, onChange,
 
           <div className="overflow-y-auto flex-1">
             {/* ── Section 1: Active columns (draggable) ── */}
-            <div className="border-b border-brand-navy-30/40 pb-1">
-              <p className="px-3 pt-2.5 pb-1.5 text-[10px] font-semibold uppercase tracking-widest text-brand-navy-30">
+            <div className="border-b border-brand-navy-30/40 dark:border-ink-border-soft pb-1">
+              <p className="px-3 pt-2.5 pb-1.5 text-[10px] font-semibold uppercase tracking-widest text-brand-navy-30 dark:text-fg-4">
                 Active — drag to reorder
               </p>
               {visibleColumns.map((key, index) => {
@@ -262,19 +262,19 @@ export default function ColumnPicker({ visibleColumns, defaultColumns, onChange,
                       isDragging
                         ? 'opacity-40 bg-brand-purple-30/20'
                         : isOver
-                          ? 'bg-brand-purple-30/40 border-t-2 border-brand-purple'
-                          : 'hover:bg-brand-purple-30/20'
+                          ? 'bg-brand-purple-30/40 dark:bg-accent-purple-soft border-t-2 border-brand-purple'
+                          : 'hover:bg-brand-purple-30/20 dark:hover:bg-accent-purple-soft'
                     }`}
                   >
-                    <span className="cursor-grab active:cursor-grabbing text-brand-navy-30 group-hover:text-brand-navy-70 transition-colors">
+                    <span className="cursor-grab active:cursor-grabbing text-brand-navy-30 dark:text-fg-4 group-hover:text-brand-navy-70 dark:text-fg-2 transition-colors">
                       <DragHandle />
                     </span>
-                    <span className="flex-1 text-xs text-brand-navy truncate">{labelFor(key)}</span>
+                    <span className="flex-1 text-xs text-brand-navy dark:text-fg-1 truncate">{labelFor(key)}</span>
                     <button
                       onClick={() => hideColumn(key)}
                       disabled={visibleColumns.length <= 1}
                       title="Hide column"
-                      className="opacity-0 group-hover:opacity-100 text-brand-navy-30 hover:text-brand-pink disabled:opacity-0 transition-opacity flex-shrink-0"
+                      className="opacity-0 group-hover:opacity-100 text-brand-navy-30 dark:text-fg-4 hover:text-brand-pink dark:text-accent-pink disabled:opacity-0 transition-opacity flex-shrink-0"
                     >
                       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -290,9 +290,9 @@ export default function ColumnPicker({ visibleColumns, defaultColumns, onChange,
               {/* Collapsible toggle */}
               <button
                 onClick={() => setAddOpen(v => !v)}
-                className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-brand-purple-30/20 transition-colors group"
+                className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-brand-purple-30/20 dark:hover:bg-accent-purple-soft transition-colors group"
               >
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-purple">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-purple dark:text-accent-purple">
                   + Add columns
                 </p>
                 <ChevronIcon open={addOpen} />
@@ -306,9 +306,9 @@ export default function ColumnPicker({ visibleColumns, defaultColumns, onChange,
                 const expanded = expandedGroups.has(group);
 
                 return (
-                  <div key={group} className="border-t border-brand-navy-30/20">
+                  <div key={group} className="border-t border-brand-navy-30/20 dark:border-ink-border-soft">
                     {/* Group header */}
-                    <div className="flex items-center px-3 py-2 gap-2 hover:bg-gray-50">
+                    <div className="flex items-center px-3 py-2 gap-2 hover:bg-gray-50 dark:hover:bg-ink-2">
                       <button
                         onClick={() => toggleGroup(group)}
                         className="flex-shrink-0"
@@ -333,10 +333,10 @@ export default function ColumnPicker({ visibleColumns, defaultColumns, onChange,
                         onClick={() => toggleGroupExpanded(group)}
                         className="flex-1 flex items-center justify-between text-left"
                       >
-                        <span className="text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">
+                        <span className="text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">
                           {group}
                         </span>
-                        <span className="flex items-center gap-1.5 text-[10px] text-brand-navy-30">
+                        <span className="flex items-center gap-1.5 text-[10px] text-brand-navy-30 dark:text-fg-4">
                           {visibleCount}/{groupKeys.length}
                           <ChevronIcon open={expanded} />
                         </span>
@@ -351,7 +351,7 @@ export default function ColumnPicker({ visibleColumns, defaultColumns, onChange,
                           return (
                             <label
                               key={col.key}
-                              className="flex items-center gap-2.5 px-3 py-1.5 pl-9 cursor-pointer hover:bg-brand-purple-30/30 transition-colors"
+                              className="flex items-center gap-2.5 px-3 py-1.5 pl-9 cursor-pointer hover:bg-brand-purple-30/30 dark:hover:bg-accent-purple-soft transition-colors"
                             >
                               <span className={`flex-shrink-0 flex items-center justify-center w-3.5 h-3.5 rounded border transition-colors ${
                                 checked ? 'bg-brand-purple border-brand-purple text-white' : 'border-brand-navy-30 bg-white'
@@ -363,10 +363,10 @@ export default function ColumnPicker({ visibleColumns, defaultColumns, onChange,
                                 )}
                               </span>
                               <input type="checkbox" className="sr-only" checked={checked} onChange={() => toggleColumn(col.key)} />
-                              <span className="text-xs text-brand-navy-70 leading-tight">
+                              <span className="text-xs text-brand-navy-70 dark:text-fg-2 leading-tight">
                                 {col.label}
                                 {col.truncate && (
-                                  <span className="ml-1 text-[9px] text-brand-navy-30 font-medium">long text</span>
+                                  <span className="ml-1 text-[9px] text-brand-navy-30 dark:text-fg-4 font-medium">long text</span>
                                 )}
                               </span>
                             </label>

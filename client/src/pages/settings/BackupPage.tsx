@@ -39,7 +39,7 @@ function ConfirmModal({ counts, onConfirm, onCancel, loading, result }: {
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onCancel}>
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-sm mx-4 p-6" onClick={e => e.stopPropagation()}>
+      <div className="bg-white dark:bg-ink-1 rounded-lg shadow-lg w-full max-w-sm mx-4 p-6" onClick={e => e.stopPropagation()}>
         {result ? (
           <>
             <div className="flex items-center gap-2 mb-4">
@@ -48,35 +48,35 @@ function ConfirmModal({ counts, onConfirm, onCancel, loading, result }: {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                 </svg>
               </span>
-              <h2 className="text-base font-semibold text-brand-navy">Restore complete</h2>
+              <h2 className="text-base font-semibold text-brand-navy dark:text-fg-1">Restore complete</h2>
             </div>
-            <ul className="text-sm text-brand-navy-70 space-y-1 mb-5">
+            <ul className="text-sm text-brand-navy-70 dark:text-fg-2 space-y-1 mb-5">
               <li>{result.usersProcessed} users restored</li>
               <li>{result.tasksRestored} tasks restored{result.tasksSkipped > 0 && `, ${result.tasksSkipped} skipped (opportunity not found)`}</li>
               <li>{result.notesRestored} notes restored</li>
               <li>{result.assignmentsProcessed} SE assignments applied</li>
             </ul>
             <button onClick={onCancel}
-              className="w-full px-4 py-2 rounded-lg bg-brand-purple text-white text-sm font-semibold hover:bg-brand-purple-70 transition-colors">
+              className="w-full px-4 py-2 rounded-lg bg-brand-purple dark:bg-accent-purple text-white text-sm font-semibold hover:bg-brand-purple-70 dark:hover:opacity-90 transition-colors">
               Done
             </button>
           </>
         ) : (
           <>
-            <h2 className="text-base font-semibold text-brand-navy mb-1">Restore this backup?</h2>
-            <p className="text-xs text-brand-navy-70 mb-4">
+            <h2 className="text-base font-semibold text-brand-navy dark:text-fg-1 mb-1">Restore this backup?</h2>
+            <p className="text-xs text-brand-navy-70 dark:text-fg-2 mb-4">
               This will merge the backup data into the current database. Existing user passwords are preserved.
               New users will be created with a temporary password.
             </p>
-            <ul className="text-xs text-brand-navy-70 bg-brand-navy-30/10 rounded-lg px-4 py-3 space-y-1 mb-5">
-              <li><span className="font-medium text-brand-navy">{counts.users}</span> users</li>
-              <li><span className="font-medium text-brand-navy">{counts.tasks}</span> tasks</li>
-              <li><span className="font-medium text-brand-navy">{counts.notes}</span> notes</li>
-              <li><span className="font-medium text-brand-navy">{counts.se_assignments}</span> SE → deal assignments</li>
+            <ul className="text-xs text-brand-navy-70 dark:text-fg-2 bg-brand-navy-30/10 rounded-lg px-4 py-3 space-y-1 mb-5">
+              <li><span className="font-medium text-brand-navy dark:text-fg-1">{counts.users}</span> users</li>
+              <li><span className="font-medium text-brand-navy dark:text-fg-1">{counts.tasks}</span> tasks</li>
+              <li><span className="font-medium text-brand-navy dark:text-fg-1">{counts.notes}</span> notes</li>
+              <li><span className="font-medium text-brand-navy dark:text-fg-1">{counts.se_assignments}</span> SE → deal assignments</li>
             </ul>
             <div className="flex justify-end gap-2">
               <button onClick={onCancel} disabled={loading}
-                className="px-4 py-2 rounded-lg border border-brand-navy-30 text-sm text-brand-navy-70 hover:text-brand-navy transition-colors disabled:opacity-50">
+                className="px-4 py-2 rounded-lg border border-brand-navy-30 text-sm text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:text-fg-1 transition-colors disabled:opacity-50">
                 Cancel
               </button>
               <button onClick={onConfirm} disabled={loading}
@@ -209,24 +209,24 @@ export default function BackupPage() {
       )}
 
       <div className="mb-6">
-        <h1 className="text-lg font-semibold text-brand-navy">Backup &amp; Restore</h1>
-        <p className="text-sm text-brand-navy-70 mt-0.5">
+        <h1 className="text-lg font-semibold text-brand-navy dark:text-fg-1">Backup &amp; Restore</h1>
+        <p className="text-sm text-brand-navy-70 dark:text-fg-2 mt-0.5">
           Back up user hierarchy, territories, tasks, notes, and SE assignments.
           Opportunities are re-imported from Salesforce and are not included.
         </p>
       </div>
 
       {/* ── Back Up Now ─────────────────────────────────────────────────── */}
-      <div className="bg-white rounded-lg border border-brand-navy-30/40 p-5 mb-4">
+      <div className="bg-white dark:bg-ink-1 rounded-lg border border-brand-navy-30/40 dark:border-ink-border-soft p-5 mb-4">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h2 className="text-sm font-semibold text-brand-navy">Create backup</h2>
-            <p className="text-xs text-brand-navy-70 mt-0.5">
+            <h2 className="text-sm font-semibold text-brand-navy dark:text-fg-1">Create backup</h2>
+            <p className="text-xs text-brand-navy-70 dark:text-fg-2 mt-0.5">
               Saves to S3 and downloads a copy to your browser.
             </p>
           </div>
           <button onClick={handleCreate} disabled={creating}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-purple text-white text-sm font-semibold hover:bg-brand-purple-70 disabled:opacity-50 transition-colors whitespace-nowrap flex-shrink-0">
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-purple dark:bg-accent-purple text-white text-sm font-semibold hover:bg-brand-purple-70 dark:hover:opacity-90 disabled:opacity-50 transition-colors whitespace-nowrap flex-shrink-0">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
             </svg>
@@ -234,56 +234,56 @@ export default function BackupPage() {
           </button>
         </div>
         {createMsg && (
-          <p className={`mt-3 text-xs ${createMsg.startsWith('Failed') ? 'text-status-overdue' : 'text-status-success'}`}>
+          <p className={`mt-3 text-xs ${createMsg.startsWith('Failed') ? 'text-status-overdue dark:text-status-d-overdue' : 'text-status-success dark:text-status-d-success'}`}>
             {createMsg}
           </p>
         )}
       </div>
 
       {/* ── S3 Backup List ──────────────────────────────────────────────── */}
-      <div className="bg-white rounded-lg border border-brand-navy-30/40 overflow-hidden mb-4">
-        <div className="flex items-center justify-between px-5 py-3 border-b border-brand-navy-30/30">
-          <h2 className="text-sm font-semibold text-brand-navy">Stored backups</h2>
+      <div className="bg-white dark:bg-ink-1 rounded-lg border border-brand-navy-30/40 dark:border-ink-border-soft overflow-hidden mb-4">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-brand-navy-30/30 dark:border-ink-border-soft">
+          <h2 className="text-sm font-semibold text-brand-navy dark:text-fg-1">Stored backups</h2>
           <button onClick={loadList} disabled={loadingList}
-            className="text-xs text-brand-navy-70 hover:text-brand-navy transition-colors">
+            className="text-xs text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:text-fg-1 transition-colors">
             Refresh
           </button>
         </div>
 
         {loadingList ? (
-          <div className="px-5 py-8 text-center text-sm text-brand-navy-70">Loading…</div>
+          <div className="px-5 py-8 text-center text-sm text-brand-navy-70 dark:text-fg-2">Loading…</div>
         ) : backups.length === 0 ? (
           <div className="px-5 py-8 text-center">
-            <p className="text-sm font-medium text-brand-navy-70">No backups yet</p>
-            <p className="text-xs text-brand-navy-30 mt-1">Create your first backup above.</p>
+            <p className="text-sm font-medium text-brand-navy-70 dark:text-fg-2">No backups yet</p>
+            <p className="text-xs text-brand-navy-30 dark:text-fg-4 mt-1">Create your first backup above.</p>
           </div>
         ) : (
           <table className="w-full">
             <thead>
-              <tr className="border-b border-brand-navy-30/20">
-                <th className="text-left px-5 py-2 text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">Date</th>
-                <th className="text-left px-3 py-2 text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">Created by</th>
-                <th className="text-right px-3 py-2 text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">Size</th>
+              <tr className="border-b border-brand-navy-30/20 dark:border-ink-border-soft">
+                <th className="text-left px-5 py-2 text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">Date</th>
+                <th className="text-left px-3 py-2 text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">Created by</th>
+                <th className="text-right px-3 py-2 text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">Size</th>
                 <th className="px-5 py-2" />
               </tr>
             </thead>
             <tbody>
               {backups.map(b => (
-                <tr key={b.key} className="border-b border-brand-navy-30/20 last:border-0 hover:bg-brand-navy/[0.025]">
-                  <td className="px-5 py-3 text-sm text-brand-navy">{fmtDate(b.last_modified)}</td>
-                  <td className="px-3 py-3 text-sm text-brand-navy-70 truncate max-w-[180px]">{b.created_by || '—'}</td>
-                  <td className="px-3 py-3 text-sm text-brand-navy-70 text-right">{fmtSize(b.size)}</td>
+                <tr key={b.key} className="border-b border-brand-navy-30/20 dark:border-ink-border-soft last:border-0 hover:bg-brand-navy/[0.025]">
+                  <td className="px-5 py-3 text-sm text-brand-navy dark:text-fg-1">{fmtDate(b.last_modified)}</td>
+                  <td className="px-3 py-3 text-sm text-brand-navy-70 dark:text-fg-2 truncate max-w-[180px]">{b.created_by || '—'}</td>
+                  <td className="px-3 py-3 text-sm text-brand-navy-70 dark:text-fg-2 text-right">{fmtSize(b.size)}</td>
                   <td className="px-5 py-3">
                     <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={() => handleDownload(b.key)}
                         disabled={downloading === b.key}
-                        className="text-xs px-2.5 py-1 rounded border border-brand-navy-30 text-brand-navy-70 hover:text-brand-navy transition-colors disabled:opacity-40">
+                        className="text-xs px-2.5 py-1 rounded border border-brand-navy-30 text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:text-fg-1 transition-colors disabled:opacity-40">
                         {downloading === b.key ? '…' : 'Download'}
                       </button>
                       <button
                         onClick={() => setPendingRestore({ source: 's3', key: b.key, backup: undefined })}
-                        className="text-xs px-2.5 py-1 rounded border border-status-overdue/40 text-status-overdue hover:bg-status-overdue/5 transition-colors">
+                        className="text-xs px-2.5 py-1 rounded border border-status-overdue/40 text-status-overdue dark:text-status-d-overdue hover:bg-status-overdue/5 transition-colors">
                         Restore
                       </button>
                     </div>
@@ -296,25 +296,25 @@ export default function BackupPage() {
       </div>
 
       {/* ── Restore from file ───────────────────────────────────────────── */}
-      <div className="bg-white rounded-lg border border-brand-navy-30/40 p-5">
-        <h2 className="text-sm font-semibold text-brand-navy mb-0.5">Restore from file</h2>
-        <p className="text-xs text-brand-navy-70 mb-4">Upload a previously downloaded backup JSON file.</p>
+      <div className="bg-white dark:bg-ink-1 rounded-lg border border-brand-navy-30/40 dark:border-ink-border-soft p-5">
+        <h2 className="text-sm font-semibold text-brand-navy dark:text-fg-1 mb-0.5">Restore from file</h2>
+        <p className="text-xs text-brand-navy-70 dark:text-fg-2 mb-4">Upload a previously downloaded backup JSON file.</p>
 
         <input ref={fileRef} type="file" accept=".json" className="hidden" onChange={handleFileChange} />
         <button onClick={() => { fileRef.current?.click(); }}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg border border-brand-navy-30 text-sm text-brand-navy-70 hover:text-brand-navy hover:border-brand-navy transition-colors mb-3">
+          className="flex items-center gap-2 px-3 py-2 rounded-lg border border-brand-navy-30 text-sm text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:text-fg-1 hover:border-brand-navy transition-colors mb-3">
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
           </svg>
           Choose backup file…
         </button>
 
-        {fileError && <p className="text-xs text-status-overdue mb-2">{fileError}</p>}
+        {fileError && <p className="text-xs text-status-overdue dark:text-status-d-overdue mb-2">{fileError}</p>}
 
         {fileCounts && fileBackup && (
           <div className="bg-brand-navy-30/10 rounded-lg px-4 py-3 mb-3">
-            <p className="text-xs font-medium text-brand-navy mb-1">File contents:</p>
-            <ul className="text-xs text-brand-navy-70 space-y-0.5">
+            <p className="text-xs font-medium text-brand-navy dark:text-fg-1 mb-1">File contents:</p>
+            <ul className="text-xs text-brand-navy-70 dark:text-fg-2 space-y-0.5">
               <li>{fileCounts.users} users · {fileCounts.tasks} tasks · {fileCounts.notes} notes · {fileCounts.se_assignments} SE assignments</li>
             </ul>
           </div>

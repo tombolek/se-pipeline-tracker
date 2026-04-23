@@ -91,8 +91,8 @@ function pillBtn<T extends string>(current: T, value: T, onClick: (v: T) => void
       onClick={() => onClick(value)}
       className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
         current === value
-          ? 'bg-brand-purple text-white border-brand-purple'
-          : 'border-brand-navy-30 text-brand-navy-70 hover:border-brand-navy hover:text-brand-navy'
+          ? 'bg-brand-purple dark:bg-accent-purple text-white border-brand-purple'
+          : 'border-brand-navy-30 text-brand-navy-70 dark:text-fg-2 hover:border-brand-navy hover:text-brand-navy'
       }`}
     >
       {label}
@@ -170,10 +170,10 @@ function GroupCard({ group, asOfMonthIdx, onViewDeals }: {
     .join(' → ');
 
   return (
-    <div className="bg-white rounded-2xl border border-brand-navy-30/40 p-5">
+    <div className="bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft p-5">
       <div className="flex items-start justify-between mb-3">
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-brand-navy truncate">{group.name}</p>
+          <p className="text-sm font-semibold text-brand-navy dark:text-fg-1 truncate">{group.name}</p>
           <RuleChip group={group} />
         </div>
         <span className="text-[11px] font-semibold whitespace-nowrap" style={{ color }}>{Math.round(pctAtAsOf)}%</span>
@@ -181,21 +181,21 @@ function GroupCard({ group, asOfMonthIdx, onViewDeals }: {
       <div className="relative flex items-center justify-center py-2">
         <Donut pct={pctAtAsOf} color={color} />
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <p className="text-[11px] font-medium text-brand-navy-70">Closed</p>
-          <p className="text-xl font-bold text-brand-navy leading-tight">{formatARR(arrAtAsOf)}</p>
-          <p className="text-[10px] text-brand-navy-70">of {formatARR(group.target_amount)}</p>
+          <p className="text-[11px] font-medium text-brand-navy-70 dark:text-fg-2">Closed</p>
+          <p className="text-xl font-bold text-brand-navy dark:text-fg-1 leading-tight">{formatARR(arrAtAsOf)}</p>
+          <p className="text-[10px] text-brand-navy-70 dark:text-fg-2">of {formatARR(group.target_amount)}</p>
         </div>
       </div>
       <div>
-        <div className="flex items-center justify-between text-[10px] text-brand-navy-70 font-medium">
+        <div className="flex items-center justify-between text-[10px] text-brand-navy-70 dark:text-fg-2 font-medium">
           <span>% to target — month over month</span>
           <span className="truncate ml-2 text-right">{monthlyForLabel}</span>
         </div>
         <Sparkline pctSeries={group.monthly_cumulative_pct} asOfMonthIdx={asOfMonthIdx} color={color} />
       </div>
-      <div className="mt-2 pt-3 border-t border-brand-navy-30/40 flex items-center justify-between text-xs">
-        <span className="text-brand-navy-70">{group.deal_count} deal{group.deal_count === 1 ? '' : 's'}</span>
-        <button onClick={() => onViewDeals(group)} className="text-brand-purple font-medium hover:underline">View deals →</button>
+      <div className="mt-2 pt-3 border-t border-brand-navy-30/40 dark:border-ink-border-soft flex items-center justify-between text-xs">
+        <span className="text-brand-navy-70 dark:text-fg-2">{group.deal_count} deal{group.deal_count === 1 ? '' : 's'}</span>
+        <button onClick={() => onViewDeals(group)} className="text-brand-purple dark:text-accent-purple font-medium hover:underline">View deals →</button>
       </div>
     </div>
   );
@@ -203,10 +203,10 @@ function GroupCard({ group, asOfMonthIdx, onViewDeals }: {
 
 function RuleChip({ group }: { group: { rule_type: QuotaRuleType; rule_value: string[] } }) {
   if (group.rule_type === 'global') {
-    return <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-brand-navy-30/60 text-brand-navy">All Closed Won</span>;
+    return <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-brand-navy-30/60 text-brand-navy dark:text-fg-1">All Closed Won</span>;
   }
   if (group.rule_type === 'teams') {
-    return <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-brand-purple-30 text-brand-navy max-w-full truncate">Teams: {group.rule_value.join(', ')}</span>;
+    return <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-brand-purple-30 text-brand-navy dark:text-fg-1 max-w-full truncate">Teams: {group.rule_value.join(', ')}</span>;
   }
   return <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-brand-pink-30 text-[#33012A] max-w-full truncate">AE: {group.rule_value.join(', ')}</span>;
 }
@@ -408,10 +408,10 @@ export default function PercentToTargetPage() {
       {/* Header */}
       <div className="flex items-start gap-4 mb-6 flex-wrap">
         <div>
-          <h1 className="text-xl font-semibold text-brand-navy">% to Target</h1>
-          <p className="text-sm text-brand-navy-70 mt-0.5">
+          <h1 className="text-xl font-semibold text-brand-navy dark:text-fg-1">% to Target</h1>
+          <p className="text-sm text-brand-navy-70 dark:text-fg-2 mt-0.5">
             Closed Won progress toward quota targets — new business only. Configure groups in{' '}
-            <a className="text-brand-purple underline" href="/settings/quotas">Settings → Quotas</a>.
+            <a className="text-brand-purple dark:text-accent-purple underline" href="/settings/quotas">Settings → Quotas</a>.
           </p>
         </div>
         <div className="ml-auto flex items-center gap-3 flex-wrap">
@@ -419,7 +419,7 @@ export default function PercentToTargetPage() {
             <select
               value={fiscalYear ?? ''}
               onChange={e => setFiscalYear(e.target.value || null)}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium border border-brand-navy-30 text-brand-navy bg-white hover:border-brand-navy focus:outline-none focus:border-brand-purple"
+              className="px-3 py-1.5 rounded-lg text-xs font-medium border border-brand-navy-30 text-brand-navy dark:text-fg-1 bg-white dark:bg-ink-1 hover:border-brand-navy focus:outline-none focus:border-brand-purple"
             >
               {fiscalYears.map(fy => <option key={fy} value={fy}>{fy}</option>)}
             </select>
@@ -434,19 +434,19 @@ export default function PercentToTargetPage() {
         </div>
       </div>
 
-      {error && <p className="text-xs text-status-overdue mb-3">{error}</p>}
+      {error && <p className="text-xs text-status-overdue dark:text-status-d-overdue mb-3">{error}</p>}
 
       {/* Headline summary (only if a Global group exists) */}
       {globalGroup && (
-        <div className="bg-white rounded-2xl border border-brand-navy-30/40 px-6 py-4 mb-6 flex items-center gap-6 flex-wrap">
+        <div className="bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft px-6 py-4 mb-6 flex items-center gap-6 flex-wrap">
           <div className="flex-1 min-w-[240px]">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-brand-navy-70">Global progress</p>
-            <p className="text-2xl font-bold text-brand-navy mt-0.5">{formatARR(headlineArr)} <span className="text-base font-medium text-brand-navy-70">/ {formatARR(headlineTarget)}</span></p>
-            <p className="text-xs text-brand-navy-70 mt-1">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-brand-navy-70 dark:text-fg-2">Global progress</p>
+            <p className="text-2xl font-bold text-brand-navy dark:text-fg-1 mt-0.5">{formatARR(headlineArr)} <span className="text-base font-medium text-brand-navy-70 dark:text-fg-2">/ {formatARR(headlineTarget)}</span></p>
+            <p className="text-xs text-brand-navy-70 dark:text-fg-2 mt-1">
               {Math.round(headlinePct)}% to target ·
               {paceGap >= 0
-                ? <span className="text-status-success font-semibold"> {formatARR(paceGap)} ahead of pace</span>
-                : <span className="text-status-warning font-semibold"> {formatARR(Math.abs(paceGap))} behind pace</span>
+                ? <span className="text-status-success dark:text-status-d-success font-semibold"> {formatARR(paceGap)} ahead of pace</span>
+                : <span className="text-status-warning dark:text-status-d-warning font-semibold"> {formatARR(Math.abs(paceGap))} behind pace</span>
               }
             </p>
           </div>
@@ -454,7 +454,7 @@ export default function PercentToTargetPage() {
             <div className="h-3 w-full bg-brand-navy-30/40 rounded-full overflow-hidden">
               <div className="h-full bg-gradient-to-r from-brand-purple to-brand-pink rounded-full" style={{ width: `${Math.min(headlinePct, 100)}%` }}></div>
             </div>
-            <div className="flex justify-between text-[10px] text-brand-navy-70 mt-1.5 font-medium">
+            <div className="flex justify-between text-[10px] text-brand-navy-70 dark:text-fg-2 mt-1.5 font-medium">
               <span>$0</span>
               <span>Pace at as-of: {formatARR(paceArr)}</span>
               <span>Target: {formatARR(headlineTarget)}</span>
@@ -464,9 +464,9 @@ export default function PercentToTargetPage() {
       )}
 
       {loading ? <Loading /> : groups.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-brand-navy-30/40 px-6 py-12 text-center">
-          <p className="text-sm text-brand-navy-70">No quota groups configured yet.</p>
-          <a href="/settings/quotas" className="inline-block mt-3 text-sm text-brand-purple font-medium hover:underline">Configure groups in Settings → Quotas →</a>
+        <div className="bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft px-6 py-12 text-center">
+          <p className="text-sm text-brand-navy-70 dark:text-fg-2">No quota groups configured yet.</p>
+          <a href="/settings/quotas" className="inline-block mt-3 text-sm text-brand-purple dark:text-accent-purple font-medium hover:underline">Configure groups in Settings → Quotas →</a>
         </div>
       ) : (
         <>
@@ -483,10 +483,10 @@ export default function PercentToTargetPage() {
           </div>
 
           {/* Combined trend chart */}
-          <div className="bg-white rounded-2xl border border-brand-navy-30/40 overflow-hidden mb-6">
-            <div className="px-5 py-3.5 border-b border-brand-navy-30/40 flex items-center gap-3 flex-wrap">
-              <h2 className="text-sm font-semibold text-brand-navy">% to target — pacing by month</h2>
-              <span className="text-xs text-brand-navy-70">Cumulative through end of each month. Dashed = linear FY pace.</span>
+          <div className="bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft overflow-hidden mb-6">
+            <div className="px-5 py-3.5 border-b border-brand-navy-30/40 dark:border-ink-border-soft flex items-center gap-3 flex-wrap">
+              <h2 className="text-sm font-semibold text-brand-navy dark:text-fg-1">% to target — pacing by month</h2>
+              <span className="text-xs text-brand-navy-70 dark:text-fg-2">Cumulative through end of each month. Dashed = linear FY pace.</span>
               <div className="ml-auto flex items-center gap-3 text-[11px] flex-wrap">
                 {groups.map(g => {
                   const color = groupColorById.get(g.id) ?? '#1A0C42';
@@ -503,11 +503,11 @@ export default function PercentToTargetPage() {
                         className="inline-block w-2.5 h-2.5 rounded-sm mr-1.5"
                         style={{ background: hidden ? 'transparent' : color, border: `1.5px solid ${color}` }}
                       />
-                      <span className="text-brand-navy-70">{g.name}</span>
+                      <span className="text-brand-navy-70 dark:text-fg-2">{g.name}</span>
                     </button>
                   );
                 })}
-                <span className="text-brand-navy-70 inline-flex items-center">
+                <span className="text-brand-navy-70 dark:text-fg-2 inline-flex items-center">
                   <span className="inline-block w-2.5 h-2.5 mr-1.5" style={{ background: 'repeating-linear-gradient(90deg,#665D81 0 4px,transparent 4px 8px)' }}></span>
                   FY pace
                 </span>
@@ -521,7 +521,7 @@ export default function PercentToTargetPage() {
                 groupColorById={groupColorById}
               />
               {meta.today && (
-                <p className="text-[11px] text-brand-navy-70 mt-2">
+                <p className="text-[11px] text-brand-navy-70 dark:text-fg-2 mt-2">
                   As-of: {quarter === 'YTD' ? `today (${meta.today})` : `end of ${quarter}`}.
                   {asOfMonthIdx === currentMonthIdx && ' Current month is partial (month-to-date).'}
                 </p>
@@ -530,21 +530,21 @@ export default function PercentToTargetPage() {
           </div>
 
           {/* Breakdown table */}
-          <div className="bg-white rounded-2xl border border-brand-navy-30/40 overflow-hidden">
-            <div className="px-5 py-3.5 border-b border-brand-navy-30/40 flex items-center gap-3">
-              <h2 className="text-sm font-semibold text-brand-navy">Breakdown</h2>
-              <span className="text-xs text-brand-navy-70">A single deal can count toward multiple groups.</span>
+          <div className="bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-brand-navy-30/40 dark:border-ink-border-soft flex items-center gap-3">
+              <h2 className="text-sm font-semibold text-brand-navy dark:text-fg-1">Breakdown</h2>
+              <span className="text-xs text-brand-navy-70 dark:text-fg-2">A single deal can count toward multiple groups.</span>
             </div>
             <table className="w-full">
-              <thead className="bg-gray-50/50 border-b border-brand-navy-30/40">
+              <thead className="bg-gray-50 dark:bg-ink-2/50 border-b border-brand-navy-30/40 dark:border-ink-border-soft">
                 <tr>
-                  <th className="px-5 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">Group</th>
-                  <th className="px-5 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">Rule</th>
-                  <th className="px-5 py-2.5 text-right text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">Target</th>
-                  <th className="px-5 py-2.5 text-right text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">Closed</th>
-                  <th className="px-5 py-2.5 text-right text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">Gap</th>
-                  <th className="px-5 py-2.5 text-right text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">Deals</th>
-                  <th className="px-5 py-2.5 text-right text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">%</th>
+                  <th className="px-5 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">Group</th>
+                  <th className="px-5 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">Rule</th>
+                  <th className="px-5 py-2.5 text-right text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">Target</th>
+                  <th className="px-5 py-2.5 text-right text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">Closed</th>
+                  <th className="px-5 py-2.5 text-right text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">Gap</th>
+                  <th className="px-5 py-2.5 text-right text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">Deals</th>
+                  <th className="px-5 py-2.5 text-right text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">%</th>
                   <th className="px-5 py-2.5 w-[20%]"></th>
                 </tr>
               </thead>
@@ -558,13 +558,13 @@ export default function PercentToTargetPage() {
                   return (
                     <Fragment key={g.id}>
                       <tr
-                        className="border-b border-brand-navy-30/20 last:border-0 hover:bg-gray-50 cursor-pointer"
+                        className="border-b border-brand-navy-30/20 dark:border-ink-border-soft last:border-0 hover:bg-gray-50 dark:hover:bg-ink-2 cursor-pointer"
                         onClick={() => toggleBreakdownExpanded(g.id)}
                       >
-                        <td className="px-5 py-3 text-sm font-semibold text-brand-navy">
+                        <td className="px-5 py-3 text-sm font-semibold text-brand-navy dark:text-fg-1">
                           <div className="flex items-center gap-2">
                             <svg
-                              className={`w-3 h-3 text-brand-navy-70 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                              className={`w-3 h-3 text-brand-navy-70 dark:text-fg-2 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
                               fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
                             >
                               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/>
@@ -573,26 +573,26 @@ export default function PercentToTargetPage() {
                           </div>
                         </td>
                         <td className="px-5 py-3"><RuleChip group={g} /></td>
-                        <td className="px-5 py-3 text-right text-sm text-brand-navy">{formatARR(g.target_amount)}</td>
-                        <td className="px-5 py-3 text-right text-sm font-medium text-brand-navy">{formatARR(arr)}</td>
+                        <td className="px-5 py-3 text-right text-sm text-brand-navy dark:text-fg-1">{formatARR(g.target_amount)}</td>
+                        <td className="px-5 py-3 text-right text-sm font-medium text-brand-navy dark:text-fg-1">{formatARR(arr)}</td>
                         <td className="px-5 py-3 text-right text-sm font-medium" style={{ color }}>{gap >= 0 ? '+' : '−'}{formatARR(Math.abs(gap))}</td>
-                        <td className="px-5 py-3 text-right text-sm text-brand-navy-70">{g.deal_count}</td>
+                        <td className="px-5 py-3 text-right text-sm text-brand-navy-70 dark:text-fg-2">{g.deal_count}</td>
                         <td className="px-5 py-3 text-right text-sm font-semibold" style={{ color }}>{Math.round(pct)}%</td>
                         <td className="px-5 py-3"><div className="h-1.5 bg-brand-navy-30/40 rounded"><div className="h-full rounded" style={{ width: `${Math.min(pct, 100)}%`, background: color }}></div></div></td>
                       </tr>
                       {isExpanded && (
-                        <tr className="bg-gray-50/60 border-b border-brand-navy-30/20">
+                        <tr className="bg-gray-50 dark:bg-ink-2/60 border-b border-brand-navy-30/20 dark:border-ink-border-soft">
                           <td colSpan={8} className="px-8 py-4">
-                            <div className="text-[11px] font-semibold uppercase tracking-wide text-brand-navy-70 mb-2">
+                            <div className="text-[11px] font-semibold uppercase tracking-wide text-brand-navy-70 dark:text-fg-2 mb-2">
                               Pacing by month — cumulative through end of each month
                             </div>
                             <table className="w-full">
                               <thead>
-                                <tr className="border-b border-brand-navy-30/30">
-                                  <th className="px-3 py-1.5 text-left text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wide">Month</th>
-                                  <th className="px-3 py-1.5 text-right text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wide">%</th>
-                                  <th className="px-3 py-1.5 text-right text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wide">Cumulative ARR</th>
-                                  <th className="px-3 py-1.5 text-right text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wide">Month Δ</th>
+                                <tr className="border-b border-brand-navy-30/30 dark:border-ink-border-soft">
+                                  <th className="px-3 py-1.5 text-left text-[10px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">Month</th>
+                                  <th className="px-3 py-1.5 text-right text-[10px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">%</th>
+                                  <th className="px-3 py-1.5 text-right text-[10px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">Cumulative ARR</th>
+                                  <th className="px-3 py-1.5 text-right text-[10px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">Month Δ</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -603,19 +603,19 @@ export default function PercentToTargetPage() {
                                   const delta = mArr - prev;
                                   const isCurrent = mi === asOfMonthIdx;
                                   const future = mi > asOfMonthIdx;
-                                  const rowColor = future ? 'text-brand-navy-30' : isCurrent ? 'text-brand-navy font-semibold' : 'text-brand-navy';
+                                  const rowColor = future ? 'text-brand-navy-30 dark:text-fg-4' : isCurrent ? 'text-brand-navy dark:text-fg-1 font-semibold' : 'text-brand-navy';
                                   return (
-                                    <tr key={mi} className={`border-b border-brand-navy-30/10 last:border-0`}>
+                                    <tr key={mi} className={`border-b border-brand-navy-30/10 dark:border-ink-border-soft last:border-0`}>
                                       <td className={`px-3 py-1.5 text-xs ${rowColor}`}>
                                         {mn}{isCurrent ? ' *' : ''}
                                       </td>
-                                      <td className={`px-3 py-1.5 text-right text-xs ${future ? 'text-brand-navy-30' : ''}`} style={!future ? { color: ragColor(mPct, mi) } : undefined}>
+                                      <td className={`px-3 py-1.5 text-right text-xs ${future ? 'text-brand-navy-30 dark:text-fg-4' : ''}`} style={!future ? { color: ragColor(mPct, mi) } : undefined}>
                                         {future ? '—' : `${Math.round(mPct)}%`}
                                       </td>
                                       <td className={`px-3 py-1.5 text-right text-xs ${rowColor}`}>
                                         {future ? '—' : formatARR(mArr)}
                                       </td>
-                                      <td className={`px-3 py-1.5 text-right text-xs ${future ? 'text-brand-navy-30' : 'text-brand-navy-70'}`}>
+                                      <td className={`px-3 py-1.5 text-right text-xs ${future ? 'text-brand-navy-30 dark:text-fg-4' : 'text-brand-navy-70 dark:text-fg-2'}`}>
                                         {future ? '—' : (delta > 0 ? `+${formatARR(delta)}` : delta < 0 ? `−${formatARR(Math.abs(delta))}` : '—')}
                                       </td>
                                     </tr>
@@ -623,7 +623,7 @@ export default function PercentToTargetPage() {
                                 })}
                               </tbody>
                             </table>
-                            <p className="text-[10px] text-brand-navy-70 mt-2">
+                            <p className="text-[10px] text-brand-navy-70 dark:text-fg-2 mt-2">
                               * Current month is partial (month-to-date). Future months show no data yet.
                             </p>
                           </td>
@@ -641,36 +641,36 @@ export default function PercentToTargetPage() {
       {/* Drill-down: list of deals counted toward a group */}
       {drillGroup && (
         <div className="fixed inset-0 z-40 bg-brand-navy/60 flex items-center justify-center p-4" onClick={() => setDrillGroup(null)}>
-          <div className="bg-white rounded-2xl border border-brand-navy-30/40 shadow-xl max-w-[920px] w-full max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="px-6 py-4 border-b border-brand-navy-30/40 flex items-center gap-3">
+          <div className="bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft shadow-xl max-w-[920px] w-full max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b border-brand-navy-30/40 dark:border-ink-border-soft flex items-center gap-3">
               <div>
-                <h3 className="text-base font-semibold text-brand-navy">{drillGroup.name} — deals</h3>
-                <p className="text-xs text-brand-navy-70 mt-0.5">{drillGroup.deal_count} deal{drillGroup.deal_count === 1 ? '' : 's'} · {formatARR(drillGroup.total_arr)} closed</p>
+                <h3 className="text-base font-semibold text-brand-navy dark:text-fg-1">{drillGroup.name} — deals</h3>
+                <p className="text-xs text-brand-navy-70 dark:text-fg-2 mt-0.5">{drillGroup.deal_count} deal{drillGroup.deal_count === 1 ? '' : 's'} · {formatARR(drillGroup.total_arr)} closed</p>
               </div>
-              <button onClick={() => setDrillGroup(null)} className="ml-auto text-brand-navy-70 hover:text-brand-navy text-xl leading-none">×</button>
+              <button onClick={() => setDrillGroup(null)} className="ml-auto text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:text-fg-1 text-xl leading-none">×</button>
             </div>
             <div className="flex-1 overflow-y-auto">
               <table className="w-full">
-                <thead className="bg-gray-50/50 border-b border-brand-navy-30/40 sticky top-0">
+                <thead className="bg-gray-50 dark:bg-ink-2/50 border-b border-brand-navy-30/40 dark:border-ink-border-soft sticky top-0">
                   <tr>
-                    <th className="px-5 py-2 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">Opportunity</th>
-                    <th className="px-5 py-2 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">Team</th>
-                    <th className="px-5 py-2 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">AE</th>
-                    <th className="px-5 py-2 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">Period</th>
-                    <th className="px-5 py-2 text-right text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">ARR (USD)</th>
+                    <th className="px-5 py-2 text-left text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">Opportunity</th>
+                    <th className="px-5 py-2 text-left text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">Team</th>
+                    <th className="px-5 py-2 text-left text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">AE</th>
+                    <th className="px-5 py-2 text-left text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">Period</th>
+                    <th className="px-5 py-2 text-right text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">ARR (USD)</th>
                   </tr>
                 </thead>
                 <tbody>
                   {drillGroup.deals.map(d => (
-                    <tr key={d.id} className="border-b border-brand-navy-30/20 hover:bg-gray-50 cursor-pointer" onClick={() => { setSelectedOppId(d.id); setDrillGroup(null); }}>
+                    <tr key={d.id} className="border-b border-brand-navy-30/20 dark:border-ink-border-soft hover:bg-gray-50 dark:hover:bg-ink-2 cursor-pointer" onClick={() => { setSelectedOppId(d.id); setDrillGroup(null); }}>
                       <td className="px-5 py-2.5 text-sm">
-                        <p className="font-medium text-brand-navy">{d.name}</p>
-                        <p className="text-xs text-brand-navy-70">{d.account_name ?? '—'} · {d.record_type ?? '—'}</p>
+                        <p className="font-medium text-brand-navy dark:text-fg-1">{d.name}</p>
+                        <p className="text-xs text-brand-navy-70 dark:text-fg-2">{d.account_name ?? '—'} · {d.record_type ?? '—'}</p>
                       </td>
-                      <td className="px-5 py-2.5 text-xs text-brand-navy-70">{d.team ?? '—'}</td>
-                      <td className="px-5 py-2.5 text-xs text-brand-navy-70">{d.ae_owner_name ?? '—'}</td>
-                      <td className="px-5 py-2.5 text-xs text-brand-navy-70">{d.fiscal_period ?? '—'}</td>
-                      <td className="px-5 py-2.5 text-right text-sm font-medium text-brand-navy">{formatARR(d.arr_converted)}</td>
+                      <td className="px-5 py-2.5 text-xs text-brand-navy-70 dark:text-fg-2">{d.team ?? '—'}</td>
+                      <td className="px-5 py-2.5 text-xs text-brand-navy-70 dark:text-fg-2">{d.ae_owner_name ?? '—'}</td>
+                      <td className="px-5 py-2.5 text-xs text-brand-navy-70 dark:text-fg-2">{d.fiscal_period ?? '—'}</td>
+                      <td className="px-5 py-2.5 text-right text-sm font-medium text-brand-navy dark:text-fg-1">{formatARR(d.arr_converted)}</td>
                     </tr>
                   ))}
                 </tbody>

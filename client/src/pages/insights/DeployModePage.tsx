@@ -40,9 +40,9 @@ function dealQuarter(deal: DeployDeal): string {
 
 // ── Stat card ─────────────────────────────────────────────────────────────────
 const MODE_COLORS: Record<string, { bg: string; border: string; dot: string; text: string }> = {
-  'PaaS+':  { bg: 'bg-brand-purple/10',  border: 'border-brand-purple',    dot: 'bg-brand-purple',    text: 'text-brand-purple' },
-  'SaaS':   { bg: 'bg-status-info/10',   border: 'border-status-info',     dot: 'bg-status-info',     text: 'text-[#00BBDD]' },
-  'Other':  { bg: 'bg-brand-navy-30/20', border: 'border-brand-navy-30',   dot: 'bg-brand-navy-30',   text: 'text-brand-navy-70' },
+  'PaaS+':  { bg: 'bg-brand-purple/10 dark:bg-accent-purple-soft',  border: 'border-brand-purple',    dot: 'bg-brand-purple',    text: 'text-brand-purple' },
+  'SaaS':   { bg: 'bg-status-info/10 dark:bg-status-d-info-soft',   border: 'border-status-info',     dot: 'bg-status-info',     text: 'text-[#00BBDD]' },
+  'Other':  { bg: 'bg-brand-navy-30/20', border: 'border-brand-navy-30',   dot: 'bg-brand-navy-30',   text: 'text-brand-navy-70 dark:text-fg-2' },
 };
 
 function modeColors(mode: string | null) {
@@ -65,19 +65,19 @@ function StatCard({
     <button
       onClick={onClick}
       className={`flex-1 min-w-[160px] p-4 rounded-2xl border-2 text-left transition-all ${
-        selected ? `${c.bg} ${c.border} shadow-md` : 'bg-white border-brand-navy-30/40 hover:border-brand-navy-30'
+        selected ? `${c.bg} ${c.border} shadow-md` : 'bg-white dark:bg-ink-1 border-brand-navy-30/40 dark:border-ink-border-soft hover:border-brand-navy-30'
       }`}
     >
       <div className="flex items-center gap-2 mb-3">
         <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${c.dot}`} />
-        <span className="text-sm font-semibold text-brand-navy">{label}</span>
+        <span className="text-sm font-semibold text-brand-navy dark:text-fg-1">{label}</span>
       </div>
       <div className="space-y-1">
         <div>
           <span className={`text-2xl font-bold ${selected ? c.text : 'text-brand-navy'}`}>{count}</span>
-          <span className="text-xs text-brand-navy-70 ml-1.5">active deals</span>
+          <span className="text-xs text-brand-navy-70 dark:text-fg-2 ml-1.5">active deals</span>
         </div>
-        <div className="text-xs text-brand-navy-70">{formatARR(arr.toString())} total ARR</div>
+        <div className="text-xs text-brand-navy-70 dark:text-fg-2">{formatARR(arr.toString())} total ARR</div>
       </div>
     </button>
   );
@@ -92,14 +92,14 @@ function DealRow({ deal, selected, onClick }: {
   return (
     <tr
       onClick={onClick}
-      className={`group border-b border-brand-navy-30/20 last:border-0 cursor-pointer transition-colors ${
+      className={`group border-b border-brand-navy-30/20 dark:border-ink-border-soft last:border-0 cursor-pointer transition-colors ${
         selected ? 'bg-brand-purple-30/20 border-l-2 border-l-brand-purple' : 'hover:bg-brand-purple-30/10'
       }`}
     >
       {/* Name + account */}
       <td className="px-4 py-3">
-        <p className="text-sm font-medium text-brand-navy truncate max-w-[200px]">{deal.name}</p>
-        <p className="text-xs text-brand-navy-70 truncate max-w-[200px]">{deal.account_name}</p>
+        <p className="text-sm font-medium text-brand-navy dark:text-fg-1 truncate max-w-[200px]">{deal.name}</p>
+        <p className="text-xs text-brand-navy-70 dark:text-fg-2 truncate max-w-[200px]">{deal.account_name}</p>
       </td>
 
       {/* Stage */}
@@ -108,47 +108,47 @@ function DealRow({ deal, selected, onClick }: {
       </td>
 
       {/* ARR */}
-      <td className="px-3 py-3 text-sm font-medium text-brand-navy whitespace-nowrap">
+      <td className="px-3 py-3 text-sm font-medium text-brand-navy dark:text-fg-1 whitespace-nowrap">
         {formatARR(deal.arr)}
       </td>
 
       {/* Close date */}
-      <td className="px-3 py-3 text-xs text-brand-navy-70 whitespace-nowrap">
+      <td className="px-3 py-3 text-xs text-brand-navy-70 dark:text-fg-2 whitespace-nowrap">
         {formatDate(deal.close_date)}
       </td>
 
       {/* SE Comments */}
       <td className="px-3 py-3 max-w-[200px]">
         {deal.se_comments
-          ? <p className="text-xs text-brand-navy line-clamp-2">{deal.se_comments}</p>
-          : <span className="text-xs text-brand-navy-30 italic">—</span>
+          ? <p className="text-xs text-brand-navy dark:text-fg-1 line-clamp-2">{deal.se_comments}</p>
+          : <span className="text-xs text-brand-navy-30 dark:text-fg-4 italic">—</span>
         }
       </td>
 
       {/* Agentic Qual */}
       <td className="px-3 py-3 max-w-[160px]">
         {deal.agentic_qual
-          ? <p className="text-xs text-brand-navy line-clamp-2">{deal.agentic_qual}</p>
-          : <span className="text-xs text-brand-navy-30 italic">—</span>
+          ? <p className="text-xs text-brand-navy dark:text-fg-1 line-clamp-2">{deal.agentic_qual}</p>
+          : <span className="text-xs text-brand-navy-30 dark:text-fg-4 italic">—</span>
         }
       </td>
 
       {/* Technical Blockers */}
       <td className="px-3 py-3 max-w-[160px]">
         {deal.technical_blockers
-          ? <p className="text-xs text-status-overdue line-clamp-2">{deal.technical_blockers}</p>
-          : <span className="text-xs text-brand-navy-30 italic">—</span>
+          ? <p className="text-xs text-status-overdue dark:text-status-d-overdue line-clamp-2">{deal.technical_blockers}</p>
+          : <span className="text-xs text-brand-navy-30 dark:text-fg-4 italic">—</span>
         }
       </td>
 
       {/* AE / SE */}
-      <td className="px-3 py-3 text-xs text-brand-navy-70 whitespace-nowrap">
+      <td className="px-3 py-3 text-xs text-brand-navy-70 dark:text-fg-2 whitespace-nowrap">
         <div>{deal.ae_owner_name ?? '—'}</div>
-        <div className="text-brand-navy-30">{deal.se_owner_name ?? 'Unassigned'}</div>
+        <div className="text-brand-navy-30 dark:text-fg-4">{deal.se_owner_name ?? 'Unassigned'}</div>
       </td>
 
       {/* Chevron */}
-      <td className="px-3 py-3 text-brand-navy-30">
+      <td className="px-3 py-3 text-brand-navy-30 dark:text-fg-4">
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
         </svg>
@@ -262,8 +262,8 @@ export default function DeployModePage() {
       <div className="flex-shrink-0 px-8 pt-6 pb-4">
         <div className="flex items-center gap-4">
           <div>
-            <h1 className="text-xl font-semibold text-brand-navy">DeployMode Overview</h1>
-            <p className="text-sm text-brand-navy-70 mt-0.5">Active pipeline breakdown by deployment model</p>
+            <h1 className="text-xl font-semibold text-brand-navy dark:text-fg-1">DeployMode Overview</h1>
+            <p className="text-sm text-brand-navy-70 dark:text-fg-2 mt-0.5">Active pipeline breakdown by deployment model</p>
           </div>
           {!loading && quarters.length > 0 && (
             <div className="ml-auto" ref={quarterDropdownRef}>
@@ -272,8 +272,8 @@ export default function DeployModePage() {
                   onClick={() => setQuarterDropdownOpen(o => !o)}
                   className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                     selectedQuarters.length > 0
-                      ? 'bg-brand-purple text-white border-brand-purple'
-                      : 'border-brand-navy-30 text-brand-navy-70 hover:border-brand-navy bg-white'
+                      ? 'bg-brand-purple dark:bg-accent-purple text-white border-brand-purple'
+                      : 'border-brand-navy-30 text-brand-navy-70 dark:text-fg-2 hover:border-brand-navy bg-white'
                   }`}
                 >
                   <span>{quarterLabel}</span>
@@ -291,16 +291,16 @@ export default function DeployModePage() {
                 </button>
 
                 {quarterDropdownOpen && (
-                  <div className="absolute right-0 top-full mt-1 z-20 bg-white border border-brand-navy-30/40 rounded-xl shadow-lg py-1 min-w-[160px]">
+                  <div className="absolute right-0 top-full mt-1 z-20 bg-white dark:bg-ink-1 border border-brand-navy-30/40 dark:border-ink-border-soft rounded-xl shadow-lg py-1 min-w-[160px]">
                     {quarters.map(q => (
-                      <label key={q} className="flex items-center gap-2.5 px-3 py-2 hover:bg-brand-purple-30/20 cursor-pointer">
+                      <label key={q} className="flex items-center gap-2.5 px-3 py-2 hover:bg-brand-purple-30/20 dark:hover:bg-accent-purple-soft cursor-pointer">
                         <input
                           type="checkbox"
                           checked={selectedQuarters.includes(q)}
                           onChange={() => toggleQuarter(q)}
                           className="accent-brand-purple w-3.5 h-3.5"
                         />
-                        <span className="text-xs text-brand-navy font-medium">{q}</span>
+                        <span className="text-xs text-brand-navy dark:text-fg-1 font-medium">{q}</span>
                       </label>
                     ))}
                   </div>
@@ -323,19 +323,19 @@ export default function DeployModePage() {
                 className={`flex-1 min-w-[160px] p-4 rounded-2xl border-2 text-left transition-all ${
                   selectedMode === 'ALL'
                     ? 'bg-brand-navy/5 border-brand-navy shadow-md'
-                    : 'bg-white border-brand-navy-30/40 hover:border-brand-navy-30'
+                    : 'bg-white dark:bg-ink-1 border-brand-navy-30/40 dark:border-ink-border-soft hover:border-brand-navy-30'
                 }`}
               >
                 <div className="flex items-center gap-2 mb-3">
                   <span className="w-2.5 h-2.5 rounded-full bg-brand-navy flex-shrink-0" />
-                  <span className="text-sm font-semibold text-brand-navy">All</span>
+                  <span className="text-sm font-semibold text-brand-navy dark:text-fg-1">All</span>
                 </div>
                 <div className="space-y-1">
                   <div>
                     <span className={`text-2xl font-bold ${selectedMode === 'ALL' ? 'text-brand-navy' : 'text-brand-navy'}`}>{totalCount}</span>
-                    <span className="text-xs text-brand-navy-70 ml-1.5">active deals</span>
+                    <span className="text-xs text-brand-navy-70 dark:text-fg-2 ml-1.5">active deals</span>
                   </div>
-                  <div className="text-xs text-brand-navy-70">{formatARR(totalArr.toString())} total ARR</div>
+                  <div className="text-xs text-brand-navy-70 dark:text-fg-2">{formatARR(totalArr.toString())} total ARR</div>
                 </div>
               </button>
 
@@ -353,27 +353,27 @@ export default function DeployModePage() {
 
             {/* Deal table */}
             {filtered.length === 0 ? (
-              <div className="flex items-center justify-center py-16 text-sm text-brand-navy-70">No deals found.</div>
+              <div className="flex items-center justify-center py-16 text-sm text-brand-navy-70 dark:text-fg-2">No deals found.</div>
             ) : (
-              <div className="bg-white rounded-2xl border border-brand-navy-30/40 overflow-hidden">
-                <div className="px-4 py-3 border-b border-brand-navy-30/40 flex items-center gap-2">
-                  <span className="text-sm font-semibold text-brand-navy">
+              <div className="bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft overflow-hidden">
+                <div className="px-4 py-3 border-b border-brand-navy-30/40 dark:border-ink-border-soft flex items-center gap-2">
+                  <span className="text-sm font-semibold text-brand-navy dark:text-fg-1">
                     {selectedMode === 'ALL' ? 'All Deals' : selectedMode ?? 'No Deploy Mode'}
                   </span>
-                  <span className="text-[10px] bg-brand-navy-30/60 text-brand-navy-70 rounded-full px-1.5 py-px font-medium">{filtered.length}</span>
+                  <span className="text-[10px] bg-brand-navy-30/60 text-brand-navy-70 dark:text-fg-2 rounded-full px-1.5 py-px font-medium">{filtered.length}</span>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full">
-                    <thead className="border-b border-brand-navy-30/40 bg-gray-50/50">
+                    <thead className="border-b border-brand-navy-30/40 dark:border-ink-border-soft bg-gray-50 dark:bg-ink-2/50">
                       <tr>
-                        <SortableHeader colKey="name"          label="Opportunity"         currentKey={sortKey} currentDir={sortDir} onSort={handleSort} className="px-4 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide" />
-                        <SortableHeader colKey="stage"         label="Stage"               currentKey={sortKey} currentDir={sortDir} onSort={handleSort} className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide" />
-                        <SortableHeader colKey="arr"           label="ARR"                 currentKey={sortKey} currentDir={sortDir} onSort={handleSort} className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide" />
-                        <SortableHeader colKey="close_date"    label="Close"               currentKey={sortKey} currentDir={sortDir} onSort={handleSort} className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide" />
-                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">SE Comments</th>
-                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">Agentic Qual</th>
-                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">Technical Blockers</th>
-                        <SortableHeader colKey="ae_owner_name" label="AE / SE"             currentKey={sortKey} currentDir={sortDir} onSort={handleSort} className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide" />
+                        <SortableHeader colKey="name"          label="Opportunity"         currentKey={sortKey} currentDir={sortDir} onSort={handleSort} className="px-4 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide" />
+                        <SortableHeader colKey="stage"         label="Stage"               currentKey={sortKey} currentDir={sortDir} onSort={handleSort} className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide" />
+                        <SortableHeader colKey="arr"           label="ARR"                 currentKey={sortKey} currentDir={sortDir} onSort={handleSort} className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide" />
+                        <SortableHeader colKey="close_date"    label="Close"               currentKey={sortKey} currentDir={sortDir} onSort={handleSort} className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide" />
+                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">SE Comments</th>
+                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">Agentic Qual</th>
+                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">Technical Blockers</th>
+                        <SortableHeader colKey="ae_owner_name" label="AE / SE"             currentKey={sortKey} currentDir={sortDir} onSort={handleSort} className="px-3 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide" />
                         <th className="w-8" />
                       </tr>
                     </thead>

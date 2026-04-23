@@ -86,11 +86,11 @@ interface DigestData {
 
 function Badge({ count, variant }: { count: number; variant: 'purple' | 'red' | 'amber' | 'green' | 'blue' }) {
   const styles: Record<string, string> = {
-    purple: 'bg-brand-purple-30 text-brand-purple',
-    red:    'bg-red-50 text-status-overdue',
-    amber:  'bg-amber-50 text-status-warning',
-    green:  'bg-emerald-50 text-status-success',
-    blue:   'bg-sky-50 text-status-info',
+    purple: 'bg-brand-purple-30 dark:bg-accent-purple-soft text-brand-purple',
+    red:    'bg-red-50 dark:bg-status-d-overdue-soft text-status-overdue dark:text-status-d-overdue',
+    amber:  'bg-amber-50 dark:bg-status-d-warning-soft text-status-warning dark:text-status-d-warning',
+    green:  'bg-emerald-50 dark:bg-status-d-success-soft text-status-success dark:text-status-d-success',
+    blue:   'bg-sky-50 dark:bg-status-d-info-soft text-status-info dark:text-status-d-info',
   };
   return (
     <span className={`inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-[11px] font-semibold ${styles[variant]}`}>
@@ -114,8 +114,8 @@ function CollapsibleSection<T>({ items, header, renderItems, emptyNode }: {
   const hidden = count - PREVIEW_COUNT;
 
   return (
-    <div className="bg-white rounded-2xl border border-brand-navy-30/40 overflow-visible">
-      <div className="flex items-center gap-2 px-5 py-3 border-b border-brand-navy-30/40 rounded-t-2xl">
+    <div className="bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft overflow-visible">
+      <div className="flex items-center gap-2 px-5 py-3 border-b border-brand-navy-30/40 dark:border-ink-border-soft rounded-t-2xl">
         {header}
       </div>
       {count === 0 ? (emptyNode ?? <Empty />) : (
@@ -124,7 +124,7 @@ function CollapsibleSection<T>({ items, header, renderItems, emptyNode }: {
           {collapsible && (
             <button
               onClick={() => setExpanded(e => !e)}
-              className="w-full px-5 py-2.5 text-xs font-medium text-brand-purple hover:bg-gray-50 border-t border-brand-navy-30/40 rounded-b-2xl flex items-center justify-center gap-1.5 transition-colors select-none"
+              className="w-full px-5 py-2.5 text-xs font-medium text-brand-purple dark:text-accent-purple hover:bg-gray-50 dark:hover:bg-ink-2 border-t border-brand-navy-30/40 dark:border-ink-border-soft rounded-b-2xl flex items-center justify-center gap-1.5 transition-colors select-none"
             >
               {expanded ? 'Show less' : `Show ${hidden} more`}
               <svg
@@ -143,7 +143,7 @@ function CollapsibleSection<T>({ items, header, renderItems, emptyNode }: {
 
 function TH({ children }: { children: React.ReactNode }) {
   return (
-    <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">
+    <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">
       {children}
     </th>
   );
@@ -151,7 +151,7 @@ function TH({ children }: { children: React.ReactNode }) {
 
 function TR({ children }: { children: React.ReactNode }) {
   return (
-    <tr className="border-b border-brand-navy-30/20 last:border-0 hover:bg-gray-50 last:rounded-b-2xl">
+    <tr className="border-b border-brand-navy-30/20 dark:border-ink-border-soft last:border-0 hover:bg-gray-50 dark:hover:bg-ink-2 last:rounded-b-2xl">
       {children}
     </tr>
   );
@@ -161,20 +161,20 @@ function OppCell({ name, account, onClick }: { name: string; account: string | n
   return (
     <td className="px-4 py-3">
       {onClick
-        ? <button onClick={onClick} className="text-sm font-medium text-brand-navy hover:text-brand-purple hover:underline text-left">{name}</button>
-        : <p className="text-sm font-medium text-brand-navy">{name}</p>
+        ? <button onClick={onClick} className="text-sm font-medium text-brand-navy dark:text-fg-1 hover:text-brand-purple dark:text-accent-purple hover:underline text-left">{name}</button>
+        : <p className="text-sm font-medium text-brand-navy dark:text-fg-1">{name}</p>
       }
-      {account && <p className="text-xs text-brand-navy-70">{account}</p>}
+      {account && <p className="text-xs text-brand-navy-70 dark:text-fg-2">{account}</p>}
     </td>
   );
 }
 
 function ArrCell({ arr }: { arr: string | null }) {
-  return <td className="px-4 py-3 text-sm font-medium text-brand-navy">{formatARR(arr)}</td>;
+  return <td className="px-4 py-3 text-sm font-medium text-brand-navy dark:text-fg-1">{formatARR(arr)}</td>;
 }
 
 function MutedCell({ children }: { children: React.ReactNode }) {
-  return <td className="px-4 py-3 text-xs text-brand-navy-70">{children}</td>;
+  return <td className="px-4 py-3 text-xs text-brand-navy-70 dark:text-fg-2">{children}</td>;
 }
 
 // Inline cell for longer free-text fields (Next Step / SE Comment / Lost
@@ -182,19 +182,19 @@ function MutedCell({ children }: { children: React.ReactNode }) {
 // string via a native tooltip. Renders a muted em-dash when empty so the
 // column grid stays aligned across rows.
 function TextCell({ value, accent, width = 'w-60' }: { value: string | null; accent?: 'red'; width?: string }) {
-  const tone = accent === 'red' ? 'text-status-overdue' : 'text-brand-navy';
+  const tone = accent === 'red' ? 'text-status-overdue dark:text-status-d-overdue' : 'text-brand-navy';
   return (
     <td className={`px-4 py-3 align-top ${width}`}>
       {value && value.trim()
         ? <p className={`text-xs ${tone} line-clamp-2`} title={value}>{value}</p>
-        : <span className="text-xs text-brand-navy-30">—</span>}
+        : <span className="text-xs text-brand-navy-30 dark:text-fg-4">—</span>}
     </td>
   );
 }
 
 function InfoNote({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-1.5 ml-auto text-[11px] text-brand-navy-70 font-light">
+    <div className="flex items-center gap-1.5 ml-auto text-[11px] text-brand-navy-70 dark:text-fg-2 font-light">
       <svg className="w-3 h-3 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
         <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
       </svg>
@@ -268,8 +268,8 @@ export default function WeeklyDigestPage() {
               onClick={() => setDays(d)}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                 days === d
-                  ? 'bg-brand-purple text-white border-brand-purple'
-                  : 'border-brand-navy-30 text-brand-navy-70 hover:border-brand-navy hover:text-brand-navy'
+                  ? 'bg-brand-purple dark:bg-accent-purple text-white border-brand-purple'
+                  : 'border-brand-navy-30 text-brand-navy-70 dark:text-fg-2 hover:border-brand-navy hover:text-brand-navy'
               }`}
             >
               {d}d
@@ -281,16 +281,16 @@ export default function WeeklyDigestPage() {
       {/* Summary stats */}
       <div className="grid grid-cols-5 gap-3">
         {[
-          { label: 'ARR Moved Forward', value: formatARRNum(arrMovedForward), sub: `${stageProgressions.length} progressions`, color: 'text-status-success' },
-          { label: 'ARR Closed Lost',   value: formatARRNum(-arrClosedLost),  sub: `${closedLost.length} deals`,             color: 'text-status-overdue' },
-          { label: 'Net Pipeline',      value: formatARRNum(netChange),       sub: 'new minus closed lost',                  color: netChange >= 0 ? 'text-brand-purple' : 'text-status-overdue' },
+          { label: 'ARR Moved Forward', value: formatARRNum(arrMovedForward), sub: `${stageProgressions.length} progressions`, color: 'text-status-success dark:text-status-d-success' },
+          { label: 'ARR Closed Lost',   value: formatARRNum(-arrClosedLost),  sub: `${closedLost.length} deals`,             color: 'text-status-overdue dark:text-status-d-overdue' },
+          { label: 'Net Pipeline',      value: formatARRNum(netChange),       sub: 'new minus closed lost',                  color: netChange >= 0 ? 'text-brand-purple' : 'text-status-overdue dark:text-status-d-overdue' },
           { label: 'New Qualified',      value: String(newOpps.length),        sub: 'entered Build Value',                    color: 'text-brand-navy' },
-          { label: 'Stale Deals',       value: String(staleDeals.length),     sub: `no notes, tasks or SE comments in ${days}d+`, color: 'text-status-warning' },
+          { label: 'Stale Deals',       value: String(staleDeals.length),     sub: `no notes, tasks or SE comments in ${days}d+`, color: 'text-status-warning dark:text-status-d-warning' },
         ].map(s => (
-          <div key={s.label} className="bg-white rounded-2xl border border-brand-navy-30/40 px-4 py-4">
-            <p className="text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide mb-1.5">{s.label}</p>
+          <div key={s.label} className="bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft px-4 py-4">
+            <p className="text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide mb-1.5">{s.label}</p>
             <p className={`text-2xl font-semibold ${s.color}`}>{s.value}</p>
-            <p className="text-[11px] text-brand-navy-70 font-light mt-0.5">{s.sub}</p>
+            <p className="text-[11px] text-brand-navy-70 dark:text-fg-2 font-light mt-0.5">{s.sub}</p>
           </div>
         ))}
       </div>
@@ -299,13 +299,13 @@ export default function WeeklyDigestPage() {
       <CollapsibleSection
         items={newOpps}
         header={<>
-          <span className="text-sm font-semibold text-brand-navy">New Qualified Opportunities</span>
+          <span className="text-sm font-semibold text-brand-navy dark:text-fg-1">New Qualified Opportunities</span>
           <Badge count={newOpps.length} variant="purple" />
-          <span className="text-xs text-brand-navy-70 font-light">Entered Build Value this period</span>
+          <span className="text-xs text-brand-navy-70 dark:text-fg-2 font-light">Entered Build Value this period</span>
         </>}
         renderItems={rows => (
           <table className="w-full">
-            <thead className="border-b border-brand-navy-30/40">
+            <thead className="border-b border-brand-navy-30/40 dark:border-ink-border-soft">
               <tr><TH>Opportunity</TH><TH>Stage</TH><TH>ARR</TH><TH>Close Date</TH><TH>SE Owner</TH></tr>
             </thead>
             <tbody>
@@ -313,17 +313,17 @@ export default function WeeklyDigestPage() {
                 <TR key={r.id}>
                   <td className="px-4 py-3">
                     <div className="flex items-start gap-2">
-                      <span className="mt-1 w-1.5 h-1.5 rounded-full bg-brand-purple flex-shrink-0" />
+                      <span className="mt-1 w-1.5 h-1.5 rounded-full bg-brand-purple dark:bg-accent-purple flex-shrink-0" />
                       <div>
-                        <button onClick={() => setSelectedOppId(r.id)} className="text-sm font-medium text-brand-navy hover:text-brand-purple hover:underline text-left">{r.name}</button>
-                        {r.account_name && <p className="text-xs text-brand-navy-70">{r.account_name}</p>}
+                        <button onClick={() => setSelectedOppId(r.id)} className="text-sm font-medium text-brand-navy dark:text-fg-1 hover:text-brand-purple dark:text-accent-purple hover:underline text-left">{r.name}</button>
+                        {r.account_name && <p className="text-xs text-brand-navy-70 dark:text-fg-2">{r.account_name}</p>}
                       </div>
                     </div>
                   </td>
                   <td className="px-4 py-3"><StageBadge stage={r.stage} /></td>
                   <ArrCell arr={r.arr} />
                   <MutedCell>{formatDate(null)}</MutedCell>
-                  <MutedCell>{r.se_owner_name ?? <span className="text-status-warning">Unassigned</span>}</MutedCell>
+                  <MutedCell>{r.se_owner_name ?? <span className="text-status-warning dark:text-status-d-warning">Unassigned</span>}</MutedCell>
                 </TR>
               ))}
             </tbody>
@@ -335,13 +335,13 @@ export default function WeeklyDigestPage() {
       <CollapsibleSection
         items={stageProgressions}
         header={<>
-          <span className="text-sm font-semibold text-brand-navy">Stage Progressions</span>
+          <span className="text-sm font-semibold text-brand-navy dark:text-fg-1">Stage Progressions</span>
           <Badge count={stageProgressions.length} variant="green" />
-          <span className="text-xs text-brand-navy-70 font-light">Any stage movement this period</span>
+          <span className="text-xs text-brand-navy-70 dark:text-fg-2 font-light">Any stage movement this period</span>
         </>}
         renderItems={rows => (
           <table className="w-full">
-            <thead className="border-b border-brand-navy-30/40">
+            <thead className="border-b border-brand-navy-30/40 dark:border-ink-border-soft">
               <tr><TH>Opportunity</TH><TH>Stage Change</TH><TH>Next Step</TH><TH>SE Comment</TH><TH>ARR</TH><TH>Moved</TH><TH>SE Owner</TH></tr>
             </thead>
             <tbody>
@@ -350,8 +350,8 @@ export default function WeeklyDigestPage() {
                   <OppCell name={r.name} account={r.account_name} onClick={() => setSelectedOppId(r.id)} />
                   <td className="px-4 py-3 align-top">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-xs text-brand-navy-70">{r.previous_stage ?? '—'}</span>
-                      <svg className="w-3 h-3 text-brand-navy-30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <span className="text-xs text-brand-navy-70 dark:text-fg-2">{r.previous_stage ?? '—'}</span>
+                      <svg className="w-3 h-3 text-brand-navy-30 dark:text-fg-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                       </svg>
                       <StageBadge stage={r.current_stage} />
@@ -361,7 +361,7 @@ export default function WeeklyDigestPage() {
                   <TextCell value={r.se_comments} />
                   <ArrCell arr={r.arr} />
                   <MutedCell>{formatDate(r.stage_changed_at)}</MutedCell>
-                  <MutedCell>{r.se_owner_name ?? <span className="text-status-warning">Unassigned</span>}</MutedCell>
+                  <MutedCell>{r.se_owner_name ?? <span className="text-status-warning dark:text-status-d-warning">Unassigned</span>}</MutedCell>
                 </TR>
               ))}
             </tbody>
@@ -373,13 +373,13 @@ export default function WeeklyDigestPage() {
       <CollapsibleSection
         items={staleDeals}
         header={<>
-          <span className="text-sm font-semibold text-brand-navy">Stale Deals</span>
+          <span className="text-sm font-semibold text-brand-navy dark:text-fg-1">Stale Deals</span>
           <Badge count={staleDeals.length} variant="amber" />
-          <span className="text-xs text-brand-navy-70 font-light">No notes, tasks, or SE comments update in {days}+ days</span>
+          <span className="text-xs text-brand-navy-70 dark:text-fg-2 font-light">No notes, tasks, or SE comments update in {days}+ days</span>
         </>}
         renderItems={rows => (
           <table className="w-full">
-            <thead className="border-b border-brand-navy-30/40">
+            <thead className="border-b border-brand-navy-30/40 dark:border-ink-border-soft">
               <tr><TH>Opportunity</TH><TH>Stage</TH><TH>Next Step</TH><TH>SE Comment</TH><TH>ARR</TH><TH>Last Activity</TH><TH>SE Owner</TH></tr>
             </thead>
             <tbody>
@@ -391,11 +391,11 @@ export default function WeeklyDigestPage() {
                   <TextCell value={r.se_comments} />
                   <ArrCell arr={r.arr} />
                   <td className="px-4 py-3 align-top">
-                    <span className="text-xs text-status-warning font-medium">
+                    <span className="text-xs text-status-warning dark:text-status-d-warning font-medium">
                       {r.days_stale != null ? `${r.days_stale}d ago` : 'Never'}
                     </span>
                   </td>
-                  <MutedCell>{r.se_owner_name ?? <span className="text-status-warning">Unassigned</span>}</MutedCell>
+                  <MutedCell>{r.se_owner_name ?? <span className="text-status-warning dark:text-status-d-warning">Unassigned</span>}</MutedCell>
                 </TR>
               ))}
             </tbody>
@@ -408,21 +408,21 @@ export default function WeeklyDigestPage() {
         <CollapsibleSection
           items={pocsStarted}
           header={<>
-            <span className="text-sm font-semibold text-brand-navy">PoCs Started</span>
+            <span className="text-sm font-semibold text-brand-navy dark:text-fg-1">PoCs Started</span>
             <Badge count={pocsStarted.length} variant="blue" />
-            <span className="text-xs text-brand-navy-70 font-light">This period</span>
+            <span className="text-xs text-brand-navy-70 dark:text-fg-2 font-light">This period</span>
           </>}
           renderItems={rows => <>{rows.map(r => (
-            <div key={r.id} className="px-5 py-3 border-b border-brand-navy-30/20 last:border-0">
+            <div key={r.id} className="px-5 py-3 border-b border-brand-navy-30/20 dark:border-ink-border-soft last:border-0">
               <div className="flex items-center gap-2">
-                <button onClick={() => setSelectedOppId(r.id)} className="text-sm font-medium text-brand-navy truncate hover:text-brand-purple hover:underline text-left">{r.name}</button>
+                <button onClick={() => setSelectedOppId(r.id)} className="text-sm font-medium text-brand-navy dark:text-fg-1 truncate hover:text-brand-purple dark:text-accent-purple hover:underline text-left">{r.name}</button>
                 {r.poc_type && (
-                  <span className="text-[10px] font-semibold text-status-info bg-sky-50 px-1.5 py-0.5 rounded uppercase tracking-wide flex-shrink-0">
+                  <span className="text-[10px] font-semibold text-status-info dark:text-status-d-info bg-sky-50 dark:bg-status-d-info-soft px-1.5 py-0.5 rounded uppercase tracking-wide flex-shrink-0">
                     {r.poc_type}
                   </span>
                 )}
               </div>
-              <p className="text-xs text-brand-navy-70 font-light mt-0.5">
+              <p className="text-xs text-brand-navy-70 dark:text-fg-2 font-light mt-0.5">
                 Started {formatDate(r.poc_start_date)}
                 {r.poc_end_date && ` · Ends ${formatDate(r.poc_end_date)}`}
                 {r.se_owner_name && ` · `}
@@ -435,19 +435,19 @@ export default function WeeklyDigestPage() {
         <CollapsibleSection
           items={pocsEnded}
           header={<>
-            <span className="text-sm font-semibold text-brand-navy">PoCs Ended</span>
+            <span className="text-sm font-semibold text-brand-navy dark:text-fg-1">PoCs Ended</span>
             <Badge count={pocsEnded.length} variant="green" />
-            <span className="text-xs text-brand-navy-70 font-light">This period</span>
+            <span className="text-xs text-brand-navy-70 dark:text-fg-2 font-light">This period</span>
           </>}
           renderItems={rows => <>{rows.map(r => (
-            <div key={r.id} className="px-5 py-3 border-b border-brand-navy-30/20 last:border-0">
+            <div key={r.id} className="px-5 py-3 border-b border-brand-navy-30/20 dark:border-ink-border-soft last:border-0">
               <div className="flex items-center gap-2">
-                <button onClick={() => setSelectedOppId(r.id)} className="text-sm font-medium text-brand-navy truncate hover:text-brand-purple hover:underline text-left">{r.name}</button>
-                <span className="text-[10px] font-semibold text-status-success bg-emerald-50 px-1.5 py-0.5 rounded uppercase tracking-wide flex-shrink-0">
+                <button onClick={() => setSelectedOppId(r.id)} className="text-sm font-medium text-brand-navy dark:text-fg-1 truncate hover:text-brand-purple dark:text-accent-purple hover:underline text-left">{r.name}</button>
+                <span className="text-[10px] font-semibold text-status-success dark:text-status-d-success bg-emerald-50 dark:bg-status-d-success-soft px-1.5 py-0.5 rounded uppercase tracking-wide flex-shrink-0">
                   {r.poc_status ?? 'Ended'}
                 </span>
               </div>
-              <p className="text-xs text-brand-navy-70 font-light mt-0.5">
+              <p className="text-xs text-brand-navy-70 dark:text-fg-2 font-light mt-0.5">
                 Ended {formatDate(r.poc_end_date)}
                 {r.poc_start_date && ` · Started ${formatDate(r.poc_start_date)}`}
                 {r.se_owner_name && ` · `}
@@ -462,13 +462,13 @@ export default function WeeklyDigestPage() {
       <CollapsibleSection
         items={atRiskDeals}
         header={<>
-          <span className="text-sm font-semibold text-brand-navy">Deals Flagged At-Risk</span>
+          <span className="text-sm font-semibold text-brand-navy dark:text-fg-1">Deals Flagged At-Risk</span>
           <Badge count={atRiskDeals.length} variant="red" />
-          <span className="text-xs text-brand-navy-70 font-light">Currently Red health score</span>
+          <span className="text-xs text-brand-navy-70 dark:text-fg-2 font-light">Currently Red health score</span>
         </>}
         renderItems={rows => (
           <table className="w-full">
-            <thead className="border-b border-brand-navy-30/40">
+            <thead className="border-b border-brand-navy-30/40 dark:border-ink-border-soft">
               <tr><TH>Opportunity</TH><TH>Stage</TH><TH>ARR</TH><TH>Health</TH><TH>Top Risk Factor</TH><TH>SE Owner</TH></tr>
             </thead>
             <tbody>
@@ -483,10 +483,10 @@ export default function WeeklyDigestPage() {
                     <td className="px-4 py-3">
                       <HealthScoreBadge opp={r as unknown as Opportunity} />
                     </td>
-                    <td className="px-4 py-3 text-xs text-status-overdue">
+                    <td className="px-4 py-3 text-xs text-status-overdue dark:text-status-d-overdue">
                       {topFactor ? `${topFactor.label}: ${topFactor.detail}` : '—'}
                     </td>
-                    <MutedCell>{r.se_owner_name ?? <span className="text-status-warning">Unassigned</span>}</MutedCell>
+                    <MutedCell>{r.se_owner_name ?? <span className="text-status-warning dark:text-status-d-warning">Unassigned</span>}</MutedCell>
                   </TR>
                 );
               })}
@@ -499,16 +499,16 @@ export default function WeeklyDigestPage() {
       <CollapsibleSection
         items={closedLost}
         header={<>
-          <span className="text-sm font-semibold text-brand-navy">Closed Lost This Period</span>
+          <span className="text-sm font-semibold text-brand-navy dark:text-fg-1">Closed Lost This Period</span>
           <Badge count={closedLost.length} variant="red" />
-          <span className="text-xs text-brand-navy-70 font-light">Deals that dropped from the pipeline</span>
+          <span className="text-xs text-brand-navy-70 dark:text-fg-2 font-light">Deals that dropped from the pipeline</span>
           <InfoNote>
             Deals with Stage = "Closed Lost" in SF; closed date comes from SF's Stage Date: Closed - Lost.
           </InfoNote>
         </>}
         renderItems={rows => (
           <table className="w-full">
-            <thead className="border-b border-brand-navy-30/40">
+            <thead className="border-b border-brand-navy-30/40 dark:border-ink-border-soft">
               <tr>
                 <TH>Opportunity</TH>
                 <TH>Stage When Closed</TH>
@@ -524,15 +524,15 @@ export default function WeeklyDigestPage() {
               {rows.map(r => {
                 const reasonLine = [r.lost_reason, r.lost_sub_reason].filter(Boolean).join(' · ');
                 return (
-                  <tr key={r.id} className="border-b border-brand-navy-30/20 last:border-0 hover:bg-gray-50 border-l-2 border-l-status-overdue">
+                  <tr key={r.id} className="border-b border-brand-navy-30/20 dark:border-ink-border-soft last:border-0 hover:bg-gray-50 dark:hover:bg-ink-2 border-l-2 border-l-status-overdue">
                     <OppCell name={r.name} account={r.account_name} onClick={() => setSelectedOppId(r.id)} />
                     <td className="px-4 py-3 align-top"><StageBadge stage={r.previous_stage ?? r.stage} /></td>
                     <TextCell value={reasonLine || null} accent="red" width="w-52" />
                     <TextCell value={r.lost_to_competitor} accent="red" width="w-32" />
                     <TextCell value={r.lost_reason_comments} width="w-72" />
-                    <td className="px-4 py-3 text-sm font-medium text-status-overdue align-top">{formatARR(r.arr)}</td>
+                    <td className="px-4 py-3 text-sm font-medium text-status-overdue dark:text-status-d-overdue align-top">{formatARR(r.arr)}</td>
                     <MutedCell>{formatDate(r.closed_at)}</MutedCell>
-                    <MutedCell>{r.se_owner_name ?? <span className="text-status-warning">Unassigned</span>}</MutedCell>
+                    <MutedCell>{r.se_owner_name ?? <span className="text-status-warning dark:text-status-d-warning">Unassigned</span>}</MutedCell>
                   </tr>
                 );
               })}

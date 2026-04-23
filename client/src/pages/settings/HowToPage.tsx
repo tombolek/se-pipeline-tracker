@@ -23,22 +23,22 @@ const SECTIONS = [
 
 function SectionTitle({ id, children }: { id: string; children: React.ReactNode }) {
   return (
-    <h2 id={id} className="text-lg font-semibold text-brand-navy mt-10 mb-3 pt-2 border-t border-brand-navy-30/40 first:border-0 first:mt-0 scroll-mt-4">
+    <h2 id={id} className="text-lg font-semibold text-brand-navy dark:text-fg-1 mt-10 mb-3 pt-2 border-t border-brand-navy-30/40 dark:border-ink-border-soft first:border-0 first:mt-0 scroll-mt-4">
       {children}
     </h2>
   );
 }
 
 function SubTitle({ children }: { children: React.ReactNode }) {
-  return <h3 className="text-sm font-semibold text-brand-navy mt-5 mb-1.5">{children}</h3>;
+  return <h3 className="text-sm font-semibold text-brand-navy dark:text-fg-1 mt-5 mb-1.5">{children}</h3>;
 }
 
 function P({ children }: { children: React.ReactNode }) {
-  return <p className="text-sm text-brand-navy-70 leading-relaxed mb-2">{children}</p>;
+  return <p className="text-sm text-brand-navy-70 dark:text-fg-2 leading-relaxed mb-2">{children}</p>;
 }
 
 function Ul({ children }: { children: React.ReactNode }) {
-  return <ul className="list-disc list-inside space-y-1 text-sm text-brand-navy-70 mb-3 pl-1">{children}</ul>;
+  return <ul className="list-disc list-inside space-y-1 text-sm text-brand-navy-70 dark:text-fg-2 mb-3 pl-1">{children}</ul>;
 }
 
 function Li({ children }: { children: React.ReactNode }) {
@@ -47,12 +47,12 @@ function Li({ children }: { children: React.ReactNode }) {
 
 function Badge({ color, children }: { color: 'purple' | 'pink' | 'green' | 'amber' | 'red' | 'gray'; children: React.ReactNode }) {
   const cls = {
-    purple: 'bg-brand-purple/10 text-brand-purple border-brand-purple/30',
-    pink:   'bg-brand-pink/10 text-brand-pink border-brand-pink/30',
+    purple: 'bg-brand-purple/10 dark:bg-accent-purple-soft text-brand-purple dark:text-accent-purple border-brand-purple/30 dark:border-accent-purple/30',
+    pink:   'bg-brand-pink/10 dark:bg-accent-pink-soft text-brand-pink dark:text-accent-pink border-brand-pink/30',
     green:  'bg-green-100 text-green-700 border-green-200',
     amber:  'bg-amber-100 text-amber-700 border-amber-200',
     red:    'bg-red-100 text-red-600 border-red-200',
-    gray:   'bg-gray-100 text-gray-500 border-gray-200',
+    gray:   'bg-gray-100 dark:bg-ink-3 text-gray-500 border-gray-200',
   }[color];
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border ${cls}`}>
@@ -63,7 +63,7 @@ function Badge({ color, children }: { color: 'purple' | 'pink' | 'green' | 'ambe
 
 function InfoBox({ children }: { children: React.ReactNode }) {
   return (
-    <div className="bg-brand-purple-30/30 border border-brand-purple/20 rounded-lg px-4 py-3 text-sm text-brand-navy-70 leading-relaxed mb-4">
+    <div className="bg-brand-purple-30/30 dark:bg-accent-purple-soft border border-brand-purple/20 rounded-lg px-4 py-3 text-sm text-brand-navy-70 dark:text-fg-2 leading-relaxed mb-4">
       {children}
     </div>
   );
@@ -79,16 +79,16 @@ function RoleTag({ role }: { role: 'manager' | 'se' | 'all' }) {
 
 function ToC() {
   return (
-    <nav className="bg-white border border-brand-navy-30/40 rounded-xl px-5 py-4 mb-8">
-      <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-navy-70 mb-3">Table of Contents</p>
+    <nav className="bg-white dark:bg-ink-1 border border-brand-navy-30/40 dark:border-ink-border-soft rounded-xl px-5 py-4 mb-8">
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-navy-70 dark:text-fg-2 mb-3">Table of Contents</p>
       <ol className="space-y-1.5">
         {SECTIONS.map((s, i) => (
           <li key={s.id}>
             <a
               href={`#${s.id}`}
-              className="flex items-center gap-2 text-sm text-brand-navy-70 hover:text-brand-purple transition-colors"
+              className="flex items-center gap-2 text-sm text-brand-navy-70 dark:text-fg-2 hover:text-brand-purple dark:text-accent-purple transition-colors"
             >
-              <span className="w-5 text-right text-[11px] text-brand-navy-30 font-mono">{i + 1}.</span>
+              <span className="w-5 text-right text-[11px] text-brand-navy-30 dark:text-fg-4 font-mono">{i + 1}.</span>
               {s.label}
             </a>
           </li>
@@ -105,8 +105,8 @@ export default function HowToPage() {
     <div className="max-w-3xl">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-brand-navy">User Guide</h1>
-        <p className="text-sm text-brand-navy-70 mt-1">How to use the SE Pipeline Tracker — page by page.</p>
+        <h1 className="text-2xl font-semibold text-brand-navy dark:text-fg-1">User Guide</h1>
+        <p className="text-sm text-brand-navy-70 dark:text-fg-2 mt-1">How to use the SE Pipeline Tracker — page by page.</p>
       </div>
 
       <ToC />
@@ -147,37 +147,37 @@ export default function HowToPage() {
       <div className="overflow-x-auto mb-4">
         <table className="w-full text-sm border-collapse">
           <thead>
-            <tr className="border-b border-brand-navy-30/40">
-              <th className="text-left py-2 pr-4 text-xs font-semibold text-brand-navy-70 uppercase tracking-wide">Factor</th>
-              <th className="text-left py-2 pr-4 text-xs font-semibold text-brand-navy-70 uppercase tracking-wide">Max deduction</th>
-              <th className="text-left py-2 text-xs font-semibold text-brand-navy-70 uppercase tracking-wide">Logic</th>
+            <tr className="border-b border-brand-navy-30/40 dark:border-ink-border-soft">
+              <th className="text-left py-2 pr-4 text-xs font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">Factor</th>
+              <th className="text-left py-2 pr-4 text-xs font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">Max deduction</th>
+              <th className="text-left py-2 text-xs font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">Logic</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-brand-navy-30/20">
             <tr>
-              <td className="py-2 pr-4 font-medium text-brand-navy">MEDDPICC completeness</td>
-              <td className="py-2 pr-4 text-brand-navy-70">−30</td>
-              <td className="py-2 text-brand-navy-70">−3.3 pts for each of the 9 MEDDPICC fields that is blank</td>
+              <td className="py-2 pr-4 font-medium text-brand-navy dark:text-fg-1">MEDDPICC completeness</td>
+              <td className="py-2 pr-4 text-brand-navy-70 dark:text-fg-2">−30</td>
+              <td className="py-2 text-brand-navy-70 dark:text-fg-2">−3.3 pts for each of the 9 MEDDPICC fields that is blank</td>
             </tr>
             <tr>
-              <td className="py-2 pr-4 font-medium text-brand-navy">SE Comments freshness</td>
-              <td className="py-2 pr-4 text-brand-navy-70">−25</td>
-              <td className="py-2 text-brand-navy-70">0 if ≤7d · −10 if 8–21d · −20 if &gt;21d · −25 if never updated</td>
+              <td className="py-2 pr-4 font-medium text-brand-navy dark:text-fg-1">SE Comments freshness</td>
+              <td className="py-2 pr-4 text-brand-navy-70 dark:text-fg-2">−25</td>
+              <td className="py-2 text-brand-navy-70 dark:text-fg-2">0 if ≤7d · −10 if 8–21d · −20 if &gt;21d · −25 if never updated</td>
             </tr>
             <tr>
-              <td className="py-2 pr-4 font-medium text-brand-navy">Note freshness</td>
-              <td className="py-2 pr-4 text-brand-navy-70">−20</td>
-              <td className="py-2 text-brand-navy-70">0 if ≤14d · −10 if 15–30d · −20 if &gt;30d or no notes ever</td>
+              <td className="py-2 pr-4 font-medium text-brand-navy dark:text-fg-1">Note freshness</td>
+              <td className="py-2 pr-4 text-brand-navy-70 dark:text-fg-2">−20</td>
+              <td className="py-2 text-brand-navy-70 dark:text-fg-2">0 if ≤14d · −10 if 15–30d · −20 if &gt;30d or no notes ever</td>
             </tr>
             <tr>
-              <td className="py-2 pr-4 font-medium text-brand-navy">Overdue tasks</td>
-              <td className="py-2 pr-4 text-brand-navy-70">−20</td>
-              <td className="py-2 text-brand-navy-70">−5 per overdue task, capped at 4 tasks (−20 max)</td>
+              <td className="py-2 pr-4 font-medium text-brand-navy dark:text-fg-1">Overdue tasks</td>
+              <td className="py-2 pr-4 text-brand-navy-70 dark:text-fg-2">−20</td>
+              <td className="py-2 text-brand-navy-70 dark:text-fg-2">−5 per overdue task, capped at 4 tasks (−20 max)</td>
             </tr>
             <tr>
-              <td className="py-2 pr-4 font-medium text-brand-navy">Time in current stage</td>
-              <td className="py-2 pr-4 text-brand-navy-70">−15</td>
-              <td className="py-2 text-brand-navy-70">0 if &lt;30d · −10 if 30–60d · −15 if &gt;60d in the same stage</td>
+              <td className="py-2 pr-4 font-medium text-brand-navy dark:text-fg-1">Time in current stage</td>
+              <td className="py-2 pr-4 text-brand-navy-70 dark:text-fg-2">−15</td>
+              <td className="py-2 text-brand-navy-70 dark:text-fg-2">0 if &lt;30d · −10 if 30–60d · −15 if &gt;60d in the same stage</td>
             </tr>
           </tbody>
         </table>
@@ -297,7 +297,7 @@ export default function HowToPage() {
       <P>A personal scratch pad for capturing thoughts before they're linked to a deal.</P>
 
       <SubTitle>Quick Capture</SubTitle>
-      <P>Press <kbd className="bg-gray-100 border border-gray-300 rounded px-1.5 py-0.5 text-xs font-mono">Ctrl+K</kbd> (or <kbd className="bg-gray-100 border border-gray-300 rounded px-1.5 py-0.5 text-xs font-mono">⌘K</kbd> on Mac) from anywhere in the app to open the Quick Capture modal. Type your note or task, optionally link it to an opportunity, then submit.</P>
+      <P>Press <kbd className="bg-gray-100 dark:bg-ink-3 border border-gray-300 rounded px-1.5 py-0.5 text-xs font-mono">Ctrl+K</kbd> (or <kbd className="bg-gray-100 dark:bg-ink-3 border border-gray-300 rounded px-1.5 py-0.5 text-xs font-mono">⌘K</kbd> on Mac) from anywhere in the app to open the Quick Capture modal. Type your note or task, optionally link it to an opportunity, then submit.</P>
       <Ul>
         <Li><strong>Linked + type = Note</strong> → saved directly as a note on that opportunity.</Li>
         <Li><strong>Linked + type = Task</strong> → saved directly as a task on that opportunity.</Li>
@@ -313,25 +313,25 @@ export default function HowToPage() {
       <P>A dedicated view for managing which SE owns each opportunity.</P>
 
       <SubTitle>Who can assign whom?</SubTitle>
-      <div className="overflow-hidden rounded-xl border border-brand-navy-30/40 mb-4">
+      <div className="overflow-hidden rounded-xl border border-brand-navy-30/40 dark:border-ink-border-soft mb-4">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-brand-navy-30/20 text-left">
-              <th className="px-4 py-2.5 font-semibold text-brand-navy-70 text-xs uppercase tracking-wide">Role</th>
-              <th className="px-4 py-2.5 font-semibold text-brand-navy-70 text-xs uppercase tracking-wide">Can assign</th>
-              <th className="px-4 py-2.5 font-semibold text-brand-navy-70 text-xs uppercase tracking-wide">Restriction</th>
+              <th className="px-4 py-2.5 font-semibold text-brand-navy-70 dark:text-fg-2 text-xs uppercase tracking-wide">Role</th>
+              <th className="px-4 py-2.5 font-semibold text-brand-navy-70 dark:text-fg-2 text-xs uppercase tracking-wide">Can assign</th>
+              <th className="px-4 py-2.5 font-semibold text-brand-navy-70 dark:text-fg-2 text-xs uppercase tracking-wide">Restriction</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-brand-navy-30/30">
-            <tr className="bg-white">
+            <tr className="bg-white dark:bg-ink-1">
               <td className="px-4 py-2.5"><Badge color="pink">Manager</Badge></td>
-              <td className="px-4 py-2.5 text-brand-navy-70">Any active SE to any deal</td>
-              <td className="px-4 py-2.5 text-brand-navy-70">None</td>
+              <td className="px-4 py-2.5 text-brand-navy-70 dark:text-fg-2">Any active SE to any deal</td>
+              <td className="px-4 py-2.5 text-brand-navy-70 dark:text-fg-2">None</td>
             </tr>
-            <tr className="bg-white">
+            <tr className="bg-white dark:bg-ink-1">
               <td className="px-4 py-2.5"><Badge color="purple">SE</Badge></td>
-              <td className="px-4 py-2.5 text-brand-navy-70">Themselves only</td>
-              <td className="px-4 py-2.5 text-brand-navy-70">Can only add themselves to an unassigned deal, or remove themselves from a deal they own. Cannot assign another SE.</td>
+              <td className="px-4 py-2.5 text-brand-navy-70 dark:text-fg-2">Themselves only</td>
+              <td className="px-4 py-2.5 text-brand-navy-70 dark:text-fg-2">Can only add themselves to an unassigned deal, or remove themselves from a deal they own. Cannot assign another SE.</td>
             </tr>
           </tbody>
         </table>

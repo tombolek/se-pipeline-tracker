@@ -55,7 +55,7 @@ export default function MultiSelectFilter({ options, selected, onChange, placeho
         onClick={() => setOpen(v => !v)}
         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm transition-colors whitespace-nowrap ${
           active
-            ? 'bg-brand-purple/10 border-brand-purple text-brand-purple font-medium'
+            ? 'bg-brand-purple/10 dark:bg-accent-purple-soft border-brand-purple text-brand-purple dark:text-accent-purple font-medium'
             : 'border-brand-navy-30 text-brand-navy'
         }`}
       >
@@ -69,17 +69,17 @@ export default function MultiSelectFilter({ options, selected, onChange, placeho
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full mt-1 z-50 bg-white rounded-xl shadow-xl border border-brand-navy-30/50 py-1 min-w-[200px] max-h-72 overflow-y-auto">
-          <div className="flex border-b border-brand-navy-30/30">
+        <div className="absolute left-0 top-full mt-1 z-50 bg-white dark:bg-ink-1 rounded-xl shadow-xl border border-brand-navy-30/50 py-1 min-w-[200px] max-h-72 overflow-y-auto">
+          <div className="flex border-b border-brand-navy-30/30 dark:border-ink-border-soft">
             <button
               onClick={() => onChange([...options])}
-              className="flex-1 px-3 py-1.5 text-xs font-medium text-brand-purple hover:bg-brand-purple-30/30 text-left"
+              className="flex-1 px-3 py-1.5 text-xs font-medium text-brand-purple dark:text-accent-purple hover:bg-brand-purple-30/30 dark:hover:bg-accent-purple-soft text-left"
             >
               Select all
             </button>
             <button
               onClick={() => onChange([])}
-              className="flex-1 px-3 py-1.5 text-xs font-medium text-brand-navy-70 hover:bg-gray-50 text-left border-l border-brand-navy-30/30"
+              className="flex-1 px-3 py-1.5 text-xs font-medium text-brand-navy-70 dark:text-fg-2 hover:bg-gray-50 dark:hover:bg-ink-2 text-left border-l border-brand-navy-30/30 dark:border-ink-border-soft"
             >
               Deselect all
             </button>
@@ -87,7 +87,7 @@ export default function MultiSelectFilter({ options, selected, onChange, placeho
           {options.map(opt => {
             const checked = selected.includes(opt);
             return (
-              <label key={opt} className="flex items-center gap-2.5 px-3 py-1.5 cursor-pointer hover:bg-brand-purple-30/30">
+              <label key={opt} className="flex items-center gap-2.5 px-3 py-1.5 cursor-pointer hover:bg-brand-purple-30/30 dark:hover:bg-accent-purple-soft">
                 <span className={`flex-shrink-0 flex items-center justify-center w-3.5 h-3.5 rounded border transition-colors ${
                   checked
                     ? 'bg-brand-purple border-brand-purple text-white'
@@ -100,7 +100,7 @@ export default function MultiSelectFilter({ options, selected, onChange, placeho
                   )}
                 </span>
                 <input type="checkbox" className="sr-only" checked={checked} onChange={() => toggle(opt)} />
-                <span className="text-sm text-brand-navy">{opt}</span>
+                <span className="text-sm text-brand-navy dark:text-fg-1">{opt}</span>
               </label>
             );
           })}

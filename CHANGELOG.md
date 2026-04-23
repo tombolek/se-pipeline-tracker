@@ -5,6 +5,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ---
 
+## 2026-04-23
+
+### Added
+- **Dark mode · Chunk D — Insights + Settings + Quick Capture (Issue #138)** — the final migration pass. All 20 Insights pages (Closed Lost Stats, Weekly Digest, Stage Movement, Win Rate, PoC Board, RFx Board, Team Workload, Tech Blockers, 1:1 Prep, SE Contribution, Forecasting Brief, …), all 13 Settings pages (Users, Import, Import History, Backup, Deploy, Deal Info Layout, Quotas, Templates, Knowledge Base, Role Access, Menu Settings, Developer, How-To), the Quick Capture modal (⌘K), Recent Actions modal, Changelog modal, and shared helpers (FreshnessDot, StatusChip, MultiSelectFilter, SortableHeader, ColumnPicker, TeamScopeSelector, MeddpiccBadge, TruncatedCell, OutOfTerritoryBanner, LowConfidenceBanner) now render in dark when the theme toggle is Dark or System-dark. Tailwind `bg-gray-50` page gutters move to `ink-2` (raised strips) or `ink-0` (page shell), `bg-red-50`/`bg-amber-50`/`bg-emerald-50`/`bg-sky-50`/`bg-orange-50`/`bg-blue-50` badge backgrounds pick up their matching `status-d-*-soft` tokens, standalone `bg-brand-purple-30` chip surfaces get `accent-purple-soft`. Light mode remains pixel-identical. Full app now rebuilds in dark end-to-end — this completes #138.
+
 ## 2026-04-22
 
 ### Added

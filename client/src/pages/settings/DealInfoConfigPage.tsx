@@ -228,7 +228,7 @@ export default function DealInfoConfigPage() {
   }
 
   if (!config) {
-    return <p className="text-sm text-status-overdue p-4">Failed to load configuration.</p>;
+    return <p className="text-sm text-status-overdue dark:text-status-d-overdue p-4">Failed to load configuration.</p>;
   }
 
   const usedKeys = getUsedFieldKeys();
@@ -240,16 +240,16 @@ export default function DealInfoConfigPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-lg font-semibold text-brand-navy">Deal Info Layout</h2>
-            <p className="text-xs text-brand-navy-70 mt-0.5">Configure fields and sections. Changes apply to all users.</p>
+            <h2 className="text-lg font-semibold text-brand-navy dark:text-fg-1">Deal Info Layout</h2>
+            <p className="text-xs text-brand-navy-70 dark:text-fg-2 mt-0.5">Configure fields and sections. Changes apply to all users.</p>
           </div>
           <div className="flex items-center gap-2">
-            {saved && <span className="text-xs text-status-success font-medium">Saved</span>}
-            {saving && <span className="text-xs text-brand-navy-70">Saving...</span>}
-            {error && <span className="text-xs text-status-overdue">{error}</span>}
+            {saved && <span className="text-xs text-status-success dark:text-status-d-success font-medium">Saved</span>}
+            {saving && <span className="text-xs text-brand-navy-70 dark:text-fg-2">Saving...</span>}
+            {error && <span className="text-xs text-status-overdue dark:text-status-d-overdue">{error}</span>}
             <button
               onClick={handleReset}
-              className="px-3 py-1.5 text-xs font-medium text-brand-navy-70 border border-brand-navy-30 rounded-lg hover:border-brand-navy hover:text-brand-navy transition-colors"
+              className="px-3 py-1.5 text-xs font-medium text-brand-navy-70 dark:text-fg-2 border border-brand-navy-30 rounded-lg hover:border-brand-navy hover:text-brand-navy dark:text-fg-1 transition-colors"
             >
               Reset to default
             </button>
@@ -261,7 +261,7 @@ export default function DealInfoConfigPage() {
           {config.sections.map((section, idx) => {
             const isExpanded = expandedSection === section.id;
             const typeLabel = section.type === 'grid' ? 'Grid' : section.type === 'computed' ? 'Special' : 'Collapsible';
-            const typeBg = section.type === 'grid' ? 'bg-blue-50 text-blue-600' : section.type === 'computed' ? 'bg-amber-50 text-amber-600' : 'bg-gray-100 text-brand-navy-70';
+            const typeBg = section.type === 'grid' ? 'bg-blue-50 dark:bg-status-d-info-soft text-blue-600' : section.type === 'computed' ? 'bg-amber-50 dark:bg-status-d-warning-soft text-amber-600' : 'bg-gray-100 dark:bg-ink-3 text-brand-navy-70 dark:text-fg-2';
 
             return (
               <div
@@ -270,20 +270,20 @@ export default function DealInfoConfigPage() {
                 onDragStart={() => onDragSectionStart(idx)}
                 onDragOver={e => onDragSectionOver(e, idx)}
                 onDragEnd={onDragSectionEnd}
-                className={`bg-white rounded-xl border border-brand-navy-30/40 overflow-hidden ${
+                className={`bg-white dark:bg-ink-1 rounded-xl border border-brand-navy-30/40 dark:border-ink-border-soft overflow-hidden ${
                   dragSectionIdx === idx ? 'opacity-40 ring-2 ring-brand-purple' : ''
                 }`}
               >
                 {/* Section header */}
                 <div className="flex items-center gap-3 px-4 py-3">
                   {/* Drag handle */}
-                  <svg className="w-4 h-4 text-brand-navy-30 flex-shrink-0 cursor-grab" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <svg className="w-4 h-4 text-brand-navy-30 dark:text-fg-4 flex-shrink-0 cursor-grab" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M4 8h16M4 16h16" />
                   </svg>
 
                   {/* Section name + type badge */}
                   <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <span className="text-sm font-medium text-brand-navy truncate">{section.label}</span>
+                    <span className="text-sm font-medium text-brand-navy dark:text-fg-1 truncate">{section.label}</span>
                     <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${typeBg}`}>{typeLabel}</span>
                   </div>
 
@@ -292,8 +292,8 @@ export default function DealInfoConfigPage() {
                     onClick={() => toggleSectionOpen(section.id)}
                     className={`text-[10px] font-medium px-2 py-1 rounded-md border transition-colors ${
                       section.defaultOpen
-                        ? 'bg-brand-purple-30 text-brand-purple border-brand-purple/20'
-                        : 'bg-gray-50 text-brand-navy-70 border-brand-navy-30/40'
+                        ? 'bg-brand-purple-30 dark:bg-accent-purple-soft text-brand-purple dark:text-accent-purple border-brand-purple/20'
+                        : 'bg-gray-50 dark:bg-ink-2 text-brand-navy-70 dark:text-fg-2 border-brand-navy-30/40 dark:border-ink-border-soft'
                     }`}
                     title="Toggle default expanded/collapsed"
                   >
@@ -303,13 +303,13 @@ export default function DealInfoConfigPage() {
                   {/* Up/Down */}
                   <div className="flex items-center gap-0.5">
                     <button onClick={() => moveSection(idx, -1)} disabled={idx === 0}
-                      className="p-1 text-brand-navy-30 hover:text-brand-navy disabled:opacity-20 transition-colors rounded">
+                      className="p-1 text-brand-navy-30 dark:text-fg-4 hover:text-brand-navy dark:text-fg-1 disabled:opacity-20 transition-colors rounded">
                       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
                       </svg>
                     </button>
                     <button onClick={() => moveSection(idx, 1)} disabled={idx === config.sections.length - 1}
-                      className="p-1 text-brand-navy-30 hover:text-brand-navy disabled:opacity-20 transition-colors rounded">
+                      className="p-1 text-brand-navy-30 dark:text-fg-4 hover:text-brand-navy dark:text-fg-1 disabled:opacity-20 transition-colors rounded">
                       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                       </svg>
@@ -320,7 +320,7 @@ export default function DealInfoConfigPage() {
                   {section.type !== 'computed' && (
                     <button
                       onClick={() => setExpandedSection(isExpanded ? null : section.id)}
-                      className="p-1 text-brand-navy-70 hover:text-brand-navy transition-colors rounded"
+                      className="p-1 text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:text-fg-1 transition-colors rounded"
                       title="Edit fields"
                     >
                       <svg className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -330,7 +330,7 @@ export default function DealInfoConfigPage() {
                   )}
 
                   {/* Remove */}
-                  <button onClick={() => removeSection(section.id)} className="p-1 text-brand-navy-30 hover:text-status-overdue transition-colors rounded" title="Remove section">
+                  <button onClick={() => removeSection(section.id)} className="p-1 text-brand-navy-30 dark:text-fg-4 hover:text-status-overdue dark:text-status-d-overdue transition-colors rounded" title="Remove section">
                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                     </svg>
@@ -339,7 +339,7 @@ export default function DealInfoConfigPage() {
 
                 {/* Expanded field list */}
                 {isExpanded && section.type !== 'computed' && (
-                  <div className="border-t border-brand-navy-30/20 bg-gray-50/50 px-4 py-3">
+                  <div className="border-t border-brand-navy-30/20 dark:border-ink-border-soft bg-gray-50 dark:bg-ink-2/50 px-4 py-3">
                     {section.fields && section.fields.length > 0 ? (
                       <div className="space-y-1">
                         {section.fields.map((field, fIdx) => (
@@ -349,38 +349,38 @@ export default function DealInfoConfigPage() {
                             onDragStart={() => onDragFieldStart(section.id, fIdx)}
                             onDragOver={e => onDragFieldOver(e, section.id, fIdx)}
                             onDragEnd={onDragFieldEnd}
-                            className={`flex items-center gap-2 px-3 py-2 bg-white rounded-lg border border-brand-navy-30/30 ${
+                            className={`flex items-center gap-2 px-3 py-2 bg-white dark:bg-ink-1 rounded-lg border border-brand-navy-30/30 dark:border-ink-border-soft ${
                               dragFieldState?.sectionId === section.id && dragFieldState.idx === fIdx ? 'opacity-40' : ''
                             }`}
                           >
-                            <svg className="w-3.5 h-3.5 text-brand-navy-30 flex-shrink-0 cursor-grab" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <svg className="w-3.5 h-3.5 text-brand-navy-30 dark:text-fg-4 flex-shrink-0 cursor-grab" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M4 8h16M4 16h16" />
                             </svg>
-                            <span className="text-xs text-brand-navy font-medium flex-1">{field.label}</span>
+                            <span className="text-xs text-brand-navy dark:text-fg-1 font-medium flex-1">{field.label}</span>
                             <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-                              field.source === 'column' ? 'bg-blue-50 text-blue-500' : 'bg-amber-50 text-amber-500'
+                              field.source === 'column' ? 'bg-blue-50 dark:bg-status-d-info-soft text-blue-500' : 'bg-amber-50 dark:bg-status-d-warning-soft text-amber-500'
                             }`}>
                               {field.source === 'column' ? 'DB' : 'SF Raw'}
                             </span>
                             {field.format && (
-                              <span className="text-[10px] text-brand-navy-30">{field.format}</span>
+                              <span className="text-[10px] text-brand-navy-30 dark:text-fg-4">{field.format}</span>
                             )}
                             <div className="flex items-center gap-0.5">
                               <button onClick={() => moveField(section.id, fIdx, -1)} disabled={fIdx === 0}
-                                className="p-0.5 text-brand-navy-30 hover:text-brand-navy disabled:opacity-20">
+                                className="p-0.5 text-brand-navy-30 dark:text-fg-4 hover:text-brand-navy dark:text-fg-1 disabled:opacity-20">
                                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
                                 </svg>
                               </button>
                               <button onClick={() => moveField(section.id, fIdx, 1)} disabled={fIdx === (section.fields?.length ?? 0) - 1}
-                                className="p-0.5 text-brand-navy-30 hover:text-brand-navy disabled:opacity-20">
+                                className="p-0.5 text-brand-navy-30 dark:text-fg-4 hover:text-brand-navy dark:text-fg-1 disabled:opacity-20">
                                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                                 </svg>
                               </button>
                             </div>
                             <button onClick={() => removeField(section.id, field.key)}
-                              className="p-0.5 text-brand-navy-30 hover:text-status-overdue transition-colors">
+                              className="p-0.5 text-brand-navy-30 dark:text-fg-4 hover:text-status-overdue dark:text-status-d-overdue transition-colors">
                               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                               </svg>
@@ -389,22 +389,22 @@ export default function DealInfoConfigPage() {
                         ))}
                       </div>
                     ) : (
-                      <p className="text-xs text-brand-navy-30 italic">No fields in this section</p>
+                      <p className="text-xs text-brand-navy-30 dark:text-fg-4 italic">No fields in this section</p>
                     )}
 
                     {/* Add field */}
                     <div className="mt-2 relative">
                       <button
                         onClick={() => setShowFieldPicker(showFieldPicker === section.id ? null : section.id)}
-                        className="text-xs text-brand-purple font-medium hover:text-brand-purple-70 transition-colors"
+                        className="text-xs text-brand-purple dark:text-accent-purple font-medium hover:text-brand-purple-70 dark:text-accent-purple transition-colors"
                       >
                         + Add field
                       </button>
 
                       {showFieldPicker === section.id && (
-                        <div className="absolute left-0 top-full mt-1 z-50 bg-white border border-brand-navy-30 rounded-xl shadow-lg w-[320px] max-h-[280px] overflow-y-auto">
-                          <div className="sticky top-0 bg-white px-3 py-2 border-b border-brand-navy-30/20">
-                            <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-navy-70">Available Fields</p>
+                        <div className="absolute left-0 top-full mt-1 z-50 bg-white dark:bg-ink-1 border border-brand-navy-30 rounded-xl shadow-lg w-[320px] max-h-[280px] overflow-y-auto">
+                          <div className="sticky top-0 bg-white dark:bg-ink-1 px-3 py-2 border-b border-brand-navy-30/20 dark:border-ink-border-soft">
+                            <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-navy-70 dark:text-fg-2">Available Fields</p>
                           </div>
                           {availableFields
                             .filter(f => !usedKeys.has(f.key))
@@ -412,11 +412,11 @@ export default function DealInfoConfigPage() {
                               <button
                                 key={`${f.source}-${f.key}`}
                                 onClick={() => addField(section.id, f)}
-                                className="w-full text-left px-3 py-2 text-xs hover:bg-brand-purple-30/30 transition-colors flex items-center gap-2 border-b border-brand-navy-30/10 last:border-0"
+                                className="w-full text-left px-3 py-2 text-xs hover:bg-brand-purple-30/30 dark:hover:bg-accent-purple-soft transition-colors flex items-center gap-2 border-b border-brand-navy-30/10 dark:border-ink-border-soft last:border-0"
                               >
-                                <span className="text-brand-navy font-medium flex-1">{f.label}</span>
+                                <span className="text-brand-navy dark:text-fg-1 font-medium flex-1">{f.label}</span>
                                 <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-                                  f.source === 'column' ? 'bg-blue-50 text-blue-500' : 'bg-amber-50 text-amber-500'
+                                  f.source === 'column' ? 'bg-blue-50 dark:bg-status-d-info-soft text-blue-500' : 'bg-amber-50 dark:bg-status-d-warning-soft text-amber-500'
                                 }`}>
                                   {f.source === 'column' ? 'DB' : 'SF Raw'}
                                 </span>
@@ -424,7 +424,7 @@ export default function DealInfoConfigPage() {
                             ))
                           }
                           {availableFields.filter(f => !usedKeys.has(f.key)).length === 0 && (
-                            <p className="px-3 py-4 text-xs text-brand-navy-30 text-center">All fields are assigned</p>
+                            <p className="px-3 py-4 text-xs text-brand-navy-30 dark:text-fg-4 text-center">All fields are assigned</p>
                           )}
                         </div>
                       )}
@@ -434,8 +434,8 @@ export default function DealInfoConfigPage() {
 
                 {/* Computed section info */}
                 {isExpanded && section.type === 'computed' && (
-                  <div className="border-t border-brand-navy-30/20 bg-gray-50/50 px-4 py-3">
-                    <p className="text-xs text-brand-navy-70 italic">This section is rendered by a special component and cannot be customized.</p>
+                  <div className="border-t border-brand-navy-30/20 dark:border-ink-border-soft bg-gray-50 dark:bg-ink-2/50 px-4 py-3">
+                    <p className="text-xs text-brand-navy-70 dark:text-fg-2 italic">This section is rendered by a special component and cannot be customized.</p>
                   </div>
                 )}
               </div>
@@ -445,7 +445,7 @@ export default function DealInfoConfigPage() {
 
         {/* Info text at bottom */}
         <div className="mt-4 px-1">
-          <p className="text-[11px] text-brand-navy-70 leading-relaxed">
+          <p className="text-[11px] text-brand-navy-70 dark:text-fg-2 leading-relaxed">
             <strong>Grid</strong> sections display fields in a 2-column layout. <strong>Collapsible</strong> sections show content in expandable blocks. <strong>Special</strong> sections (Health Score, MEDDPICC, See All Fields) have fixed content but can be reordered or removed.
           </p>
         </div>
@@ -454,16 +454,16 @@ export default function DealInfoConfigPage() {
       {/* RIGHT: Live Preview */}
       <div className="flex-1 min-w-[400px] flex flex-col min-h-0">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-brand-navy">Live Preview</h3>
+          <h3 className="text-sm font-semibold text-brand-navy dark:text-fg-1">Live Preview</h3>
           {selectedOpp && (
-            <span className="text-[10px] text-brand-navy-70">Updates as you edit</span>
+            <span className="text-[10px] text-brand-navy-70 dark:text-fg-2">Updates as you edit</span>
           )}
         </div>
 
         {/* Opportunity search */}
         <div ref={searchRef} className="relative mb-4">
           <div className="relative">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-brand-navy-30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-brand-navy-30 dark:text-fg-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             <input
@@ -472,27 +472,27 @@ export default function DealInfoConfigPage() {
               value={searchQuery}
               onChange={e => { setSearchQuery(e.target.value); setSearchOpen(true); }}
               onFocus={() => setSearchOpen(true)}
-              className="w-full pl-9 pr-3 py-2 text-xs border border-brand-navy-30/60 rounded-lg bg-white focus:outline-none focus:border-brand-purple focus:ring-1 focus:ring-brand-purple/30 placeholder:text-brand-navy-30"
+              className="w-full pl-9 pr-3 py-2 text-xs border border-brand-navy-30/60 dark:border-ink-border rounded-lg bg-white dark:bg-ink-1 focus:outline-none focus:border-brand-purple focus:ring-1 focus:ring-brand-purple/30 placeholder:text-brand-navy-30 dark:text-fg-4"
             />
           </div>
 
           {/* Search dropdown */}
           {searchOpen && filteredOpps.length > 0 && (
-            <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-white border border-brand-navy-30 rounded-xl shadow-lg max-h-[240px] overflow-y-auto">
+            <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-white dark:bg-ink-1 border border-brand-navy-30 rounded-xl shadow-lg max-h-[240px] overflow-y-auto">
               {filteredOpps.map(o => (
                 <button
                   key={o.id}
                   onClick={() => { selectOpp(o.id); setSearchQuery(''); setSearchOpen(false); }}
-                  className={`w-full text-left px-3 py-2.5 text-xs hover:bg-brand-purple-30/30 transition-colors border-b border-brand-navy-30/10 last:border-0 flex items-center gap-3 ${
+                  className={`w-full text-left px-3 py-2.5 text-xs hover:bg-brand-purple-30/30 dark:hover:bg-accent-purple-soft transition-colors border-b border-brand-navy-30/10 dark:border-ink-border-soft last:border-0 flex items-center gap-3 ${
                     selectedOpp?.id === o.id ? 'bg-brand-purple-30/20' : ''
                   }`}
                 >
                   <div className="flex-1 min-w-0">
-                    <p className="text-brand-navy font-medium truncate">{o.name}</p>
-                    <p className="text-brand-navy-70 text-[10px] truncate">{o.account_name} &middot; {o.stage}</p>
+                    <p className="text-brand-navy dark:text-fg-1 font-medium truncate">{o.name}</p>
+                    <p className="text-brand-navy-70 dark:text-fg-2 text-[10px] truncate">{o.account_name} &middot; {o.stage}</p>
                   </div>
                   {o.arr != null && (
-                    <span className="text-[10px] text-brand-navy-70 flex-shrink-0">
+                    <span className="text-[10px] text-brand-navy-70 dark:text-fg-2 flex-shrink-0">
                       ${(o.arr / 1000).toFixed(0)}k
                     </span>
                   )}
@@ -504,14 +504,14 @@ export default function DealInfoConfigPage() {
 
         {/* Selected opp pill */}
         {selectedOpp && (
-          <div className="flex items-center gap-2 mb-4 px-3 py-2 bg-brand-purple-30/30 rounded-lg border border-brand-purple/10">
+          <div className="flex items-center gap-2 mb-4 px-3 py-2 bg-brand-purple-30/30 dark:bg-accent-purple-soft rounded-lg border border-brand-purple/10">
             <div className="flex-1 min-w-0">
-              <p className="text-xs text-brand-navy font-medium truncate">{selectedOpp.name}</p>
-              <p className="text-[10px] text-brand-navy-70 truncate">{selectedOpp.account_name} &middot; {selectedOpp.stage}</p>
+              <p className="text-xs text-brand-navy dark:text-fg-1 font-medium truncate">{selectedOpp.name}</p>
+              <p className="text-[10px] text-brand-navy-70 dark:text-fg-2 truncate">{selectedOpp.account_name} &middot; {selectedOpp.stage}</p>
             </div>
             <button
               onClick={() => setSelectedOpp(null)}
-              className="p-1 text-brand-navy-30 hover:text-brand-navy transition-colors"
+              className="p-1 text-brand-navy-30 dark:text-fg-4 hover:text-brand-navy dark:text-fg-1 transition-colors"
             >
               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -522,11 +522,11 @@ export default function DealInfoConfigPage() {
 
         {/* Preview content */}
         {loadingOpp ? (
-          <div className="flex-1 flex items-center justify-center rounded-xl border border-brand-navy-30/40 bg-gray-50/50">
+          <div className="flex-1 flex items-center justify-center rounded-xl border border-brand-navy-30/40 dark:border-ink-border-soft bg-gray-50 dark:bg-ink-2/50">
             <div className="w-5 h-5 border-2 border-brand-purple border-t-transparent rounded-full animate-spin" />
           </div>
         ) : selectedOpp ? (
-          <div className="flex-1 min-h-0 overflow-y-auto rounded-xl border border-brand-navy-30/40 bg-gray-50/50 p-4">
+          <div className="flex-1 min-h-0 overflow-y-auto rounded-xl border border-brand-navy-30/40 dark:border-ink-border-soft bg-gray-50 dark:bg-ink-2/50 p-4">
             <DealInfoTab
               opp={selectedOpp}
               oppId={selectedOpp.id}
@@ -538,13 +538,13 @@ export default function DealInfoConfigPage() {
             />
           </div>
         ) : (
-          <div className="flex-1 flex items-center justify-center rounded-xl border border-dashed border-brand-navy-30 bg-gray-50/30">
+          <div className="flex-1 flex items-center justify-center rounded-xl border border-dashed border-brand-navy-30 bg-gray-50 dark:bg-ink-2/30">
             <div className="text-center py-12">
-              <svg className="w-10 h-10 mx-auto text-brand-navy-30 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+              <svg className="w-10 h-10 mx-auto text-brand-navy-30 dark:text-fg-4 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
               </svg>
-              <p className="text-xs text-brand-navy-70">Search for an opportunity above to see a live preview</p>
+              <p className="text-xs text-brand-navy-70 dark:text-fg-2">Search for an opportunity above to see a live preview</p>
             </div>
           </div>
         )}

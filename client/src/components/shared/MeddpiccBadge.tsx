@@ -2,15 +2,15 @@ import { computeMeddpicc } from '../../utils/meddpicc';
 import type { Opportunity } from '../../types';
 
 const RAG_STYLES = {
-  green: { pill: 'bg-emerald-50 text-status-success',  dot: 'bg-status-success' },
-  amber: { pill: 'bg-amber-50 text-status-warning',    dot: 'bg-status-warning' },
-  red:   { pill: 'bg-red-50 text-status-overdue',      dot: 'bg-status-overdue' },
+  green: { pill: 'bg-emerald-50 dark:bg-status-d-success-soft text-status-success dark:text-status-d-success',  dot: 'bg-status-success' },
+  amber: { pill: 'bg-amber-50 dark:bg-status-d-warning-soft text-status-warning dark:text-status-d-warning',    dot: 'bg-status-warning' },
+  red:   { pill: 'bg-red-50 dark:bg-status-d-overdue-soft text-status-overdue dark:text-status-d-overdue',      dot: 'bg-status-overdue' },
 };
 
 const QUALITY_ICON: Record<string, React.ReactNode> = {
-  strong: <span className="text-status-success">✓</span>,
-  weak:   <span className="text-status-warning">◐</span>,
-  empty:  <span className="text-brand-navy-30">○</span>,
+  strong: <span className="text-status-success dark:text-status-d-success">✓</span>,
+  weak:   <span className="text-status-warning dark:text-status-d-warning">◐</span>,
+  empty:  <span className="text-brand-navy-30 dark:text-fg-4">○</span>,
 };
 
 export default function MeddpiccBadge({ opp }: { opp: Opportunity }) {
@@ -39,7 +39,7 @@ export default function MeddpiccBadge({ opp }: { opp: Opportunity }) {
                 {QUALITY_ICON[f.quality]}
                 <span className={f.quality === 'empty' ? 'opacity-40 italic' : ''}>{f.label}</span>
                 {f.quality === 'weak' && (
-                  <span className="ml-auto text-[10px] text-status-warning/70">short</span>
+                  <span className="ml-auto text-[10px] text-status-warning dark:text-status-d-warning/70">short</span>
                 )}
               </div>
             ))}

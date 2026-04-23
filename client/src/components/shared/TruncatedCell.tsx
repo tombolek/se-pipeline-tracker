@@ -18,7 +18,7 @@ interface Props {
 
 export default function TruncatedCell({ value, maxChars = 60, className = '' }: Props) {
   if (!value) {
-    return <span className={`text-brand-navy-30 ${className}`}>—</span>;
+    return <span className={`text-brand-navy-30 dark:text-fg-4 ${className}`}>—</span>;
   }
 
   const truncated = value.length > maxChars;

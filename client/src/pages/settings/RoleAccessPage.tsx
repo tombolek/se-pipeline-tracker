@@ -139,42 +139,42 @@ export default function RoleAccessPage() {
   }, [toast]);
 
   if (!user?.is_admin) {
-    return <div className="p-8 text-brand-navy-70">Admin access required.</div>;
+    return <div className="p-8 text-brand-navy-70 dark:text-fg-2">Admin access required.</div>;
   }
 
   if (loading) {
-    return <div className="p-8 text-brand-navy-70">Loading...</div>;
+    return <div className="p-8 text-brand-navy-70 dark:text-fg-2">Loading...</div>;
   }
 
   return (
     <div className="max-w-4xl">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-semibold text-brand-navy">Role Access</h1>
-          <p className="text-sm text-brand-navy-70 mt-1">Configure which roles can see each page. Admin users always see Administration pages.</p>
+          <h1 className="text-xl font-semibold text-brand-navy dark:text-fg-1">Role Access</h1>
+          <p className="text-sm text-brand-navy-70 dark:text-fg-2 mt-1">Configure which roles can see each page. Admin users always see Administration pages.</p>
         </div>
         <button
           onClick={save}
           disabled={!isDirty || saving}
-          className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-brand-purple hover:bg-brand-purple-70 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-brand-purple hover:bg-brand-purple-70 dark:hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           {saving ? 'Saving...' : 'Save Changes'}
         </button>
       </div>
 
       {toast && (
-        <div className="mb-4 px-4 py-2 rounded-lg bg-status-success/10 text-sm text-brand-navy border border-status-success/30">
+        <div className="mb-4 px-4 py-2 rounded-lg bg-status-success/10 dark:bg-status-d-success-soft text-sm text-brand-navy dark:text-fg-1 border border-status-success/30">
           {toast}
         </div>
       )}
 
-      <div className="bg-white rounded-xl border border-brand-navy-30/50 overflow-hidden">
+      <div className="bg-white dark:bg-ink-1 rounded-xl border border-brand-navy-30/50 overflow-hidden">
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-[#F5F5F7]">
-              <th className="text-left px-4 py-3 font-medium text-brand-navy">Page</th>
+            <tr className="bg-[#F5F5F7] dark:bg-ink-0">
+              <th className="text-left px-4 py-3 font-medium text-brand-navy dark:text-fg-1">Page</th>
               {ROLES.map(r => (
-                <th key={r} className="text-center px-4 py-3 font-medium text-brand-navy w-28">{ROLE_LABELS[r]}</th>
+                <th key={r} className="text-center px-4 py-3 font-medium text-brand-navy dark:text-fg-1 w-28">{ROLE_LABELS[r]}</th>
               ))}
             </tr>
           </thead>
@@ -212,7 +212,7 @@ function SectionGroup({
     <>
       {/* Section header */}
       <tr className="bg-brand-navy/[0.03]">
-        <td className="px-4 py-2 font-semibold text-xs uppercase tracking-wider text-brand-navy-70">{section}</td>
+        <td className="px-4 py-2 font-semibold text-xs uppercase tracking-wider text-brand-navy-70 dark:text-fg-2">{section}</td>
         {ROLES.map(role => {
           const allChecked = pages.every(p => accessSet.has(toKey(p.key, role)));
           const someChecked = pages.some(p => accessSet.has(toKey(p.key, role)));
@@ -223,7 +223,7 @@ function SectionGroup({
                 checked={allChecked}
                 ref={el => { if (el) el.indeterminate = someChecked && !allChecked; }}
                 onChange={() => onToggleSection(section, role)}
-                className="w-4 h-4 rounded border-brand-navy-30 text-brand-purple focus:ring-brand-purple cursor-pointer accent-brand-purple"
+                className="w-4 h-4 rounded border-brand-navy-30 text-brand-purple dark:text-accent-purple focus:ring-brand-purple cursor-pointer accent-brand-purple"
               />
             </td>
           );
@@ -231,15 +231,15 @@ function SectionGroup({
       </tr>
       {/* Page rows */}
       {pages.map(page => (
-        <tr key={page.key} className="border-t border-brand-navy-30/30 hover:bg-brand-purple-30/10 transition-colors">
-          <td className="px-4 py-2 pl-8 text-brand-navy">{page.label}</td>
+        <tr key={page.key} className="border-t border-brand-navy-30/30 dark:border-ink-border-soft hover:bg-brand-purple-30/10 transition-colors">
+          <td className="px-4 py-2 pl-8 text-brand-navy dark:text-fg-1">{page.label}</td>
           {ROLES.map(role => (
             <td key={role} className="text-center px-4 py-2">
               <input
                 type="checkbox"
                 checked={accessSet.has(toKey(page.key, role))}
                 onChange={() => onToggle(page.key, role)}
-                className="w-4 h-4 rounded border-brand-navy-30 text-brand-purple focus:ring-brand-purple cursor-pointer accent-brand-purple"
+                className="w-4 h-4 rounded border-brand-navy-30 text-brand-purple dark:text-accent-purple focus:ring-brand-purple cursor-pointer accent-brand-purple"
               />
             </td>
           ))}

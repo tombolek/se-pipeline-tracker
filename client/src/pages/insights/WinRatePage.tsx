@@ -72,18 +72,18 @@ function formatPct(n: number | null): string {
 }
 
 function ragForWinRate(pct: number | null): string {
-  if (pct === null) return 'text-brand-navy-70';
-  if (pct >= 0.5) return 'text-status-success';
-  if (pct >= 0.3) return 'text-status-warning';
-  return 'text-status-overdue';
+  if (pct === null) return 'text-brand-navy-70 dark:text-fg-2';
+  if (pct >= 0.5) return 'text-status-success dark:text-status-d-success';
+  if (pct >= 0.3) return 'text-status-warning dark:text-status-d-warning';
+  return 'text-status-overdue dark:text-status-d-overdue';
 }
 
 function StatCard({ label, value, sub, valueColor }: { label: string; value: string; sub?: string; valueColor?: string }) {
   return (
-    <div className="bg-white rounded-2xl border border-brand-navy-30/40 px-4 py-4">
-      <p className="text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide mb-1.5">{label}</p>
+    <div className="bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft px-4 py-4">
+      <p className="text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide mb-1.5">{label}</p>
       <p className={`text-2xl font-semibold ${valueColor ?? 'text-brand-navy'}`}>{value}</p>
-      {sub && <p className="text-[11px] text-brand-navy-70 font-light mt-0.5">{sub}</p>}
+      {sub && <p className="text-[11px] text-brand-navy-70 dark:text-fg-2 font-light mt-0.5">{sub}</p>}
     </div>
   );
 }
@@ -190,13 +190,13 @@ export default function WinRatePage() {
   return (
     <div className="flex flex-col gap-6">
       {/* Work-in-progress banner — see issue for follow-up. */}
-      <div className="flex items-start gap-3 rounded-2xl border border-status-warning/40 bg-amber-50 px-4 py-3">
-        <svg className="w-5 h-5 text-status-warning flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <div className="flex items-start gap-3 rounded-2xl border border-status-warning/40 bg-amber-50 dark:bg-status-d-warning-soft px-4 py-3">
+        <svg className="w-5 h-5 text-status-warning dark:text-status-d-warning flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z" />
         </svg>
         <div className="flex-1">
-          <p className="text-sm font-semibold text-brand-navy">Work in progress</p>
-          <p className="text-xs text-brand-navy-70 mt-0.5">
+          <p className="text-sm font-semibold text-brand-navy dark:text-fg-1">Work in progress</p>
+          <p className="text-xs text-brand-navy-70 dark:text-fg-2 mt-0.5">
             This report is still being validated — the numbers may not yet be fully accurate. We'll revisit methodology (territory attribution, partial-quarter handling, and the "reached Negotiate" definition) in a follow-up pass.
           </p>
         </div>
@@ -212,18 +212,18 @@ export default function WinRatePage() {
             <select
               value={fiscalYear ?? ''}
               onChange={e => setFiscalYear(e.target.value || null)}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium border border-brand-navy-30 text-brand-navy"
+              className="px-3 py-1.5 rounded-lg text-xs font-medium border border-brand-navy-30 text-brand-navy dark:text-fg-1"
             >
               {fiscalYears.map(fy => <option key={fy} value={fy}>{fy}</option>)}
             </select>
           )}
-          <div className="flex gap-1 bg-gray-100 p-0.5 rounded-lg">
+          <div className="flex gap-1 bg-gray-100 dark:bg-ink-3 p-0.5 rounded-lg">
             {(['ALL', 'Q1', 'Q2', 'Q3', 'Q4'] as QuarterFilter[]).map(q => (
               <button
                 key={q}
                 onClick={() => setQuarter(q)}
                 className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-                  quarter === q ? 'bg-white text-brand-navy shadow-sm' : 'text-brand-navy-70 hover:text-brand-navy'
+                  quarter === q ? 'bg-white dark:bg-ink-1 text-brand-navy dark:text-fg-1 shadow-sm' : 'text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy'
                 }`}
               >
                 {q === 'ALL' ? 'All' : q}
@@ -262,33 +262,33 @@ export default function WinRatePage() {
           label="ARR Won"
           value={formatARR(String(view.overall.won_arr))}
           sub={`Lost: ${formatARR(String(view.overall.lost_arr))}`}
-          valueColor="text-status-success"
+          valueColor="text-status-success dark:text-status-d-success"
         />
       </div>
 
       {/* Per-SE table */}
-      <div className="bg-white rounded-2xl border border-brand-navy-30/40 overflow-hidden">
-        <div className="px-5 py-3 border-b border-brand-navy-30/40">
-          <h2 className="text-sm font-semibold text-brand-navy">By SE</h2>
-          <p className="text-[11px] text-brand-navy-70 font-light mt-0.5">
+      <div className="bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft overflow-hidden">
+        <div className="px-5 py-3 border-b border-brand-navy-30/40 dark:border-ink-border-soft">
+          <h2 className="text-sm font-semibold text-brand-navy dark:text-fg-1">By SE</h2>
+          <p className="text-[11px] text-brand-navy-70 dark:text-fg-2 font-light mt-0.5">
             Click a row to expand the underlying deals.
           </p>
         </div>
 
         {view.by_se.length === 0 ? (
-          <div className="px-5 py-10 text-center text-sm text-brand-navy-70">No closed deals for this period.</div>
+          <div className="px-5 py-10 text-center text-sm text-brand-navy-70 dark:text-fg-2">No closed deals for this period.</div>
         ) : (
           <table className="w-full">
-            <thead className="border-b border-brand-navy-30/40">
+            <thead className="border-b border-brand-navy-30/40 dark:border-ink-border-soft">
               <tr>
-                <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">SE</th>
-                <th className="px-4 py-2.5 text-right text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">Closed</th>
-                <th className="px-4 py-2.5 text-right text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">Won</th>
-                <th className="px-4 py-2.5 text-right text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">Lost</th>
-                <th className="px-4 py-2.5 text-right text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">Overall WR</th>
-                <th className="px-4 py-2.5 text-right text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide" title="Share of closed deals that reached Negotiate">Technical WR</th>
-                <th className="px-4 py-2.5 text-right text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide" title="Among deals that reached Negotiate, share that Closed Won">Negotiate WR</th>
-                <th className="px-4 py-2.5 text-right text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">ARR Won</th>
+                <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">SE</th>
+                <th className="px-4 py-2.5 text-right text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">Closed</th>
+                <th className="px-4 py-2.5 text-right text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">Won</th>
+                <th className="px-4 py-2.5 text-right text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">Lost</th>
+                <th className="px-4 py-2.5 text-right text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">Overall WR</th>
+                <th className="px-4 py-2.5 text-right text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide" title="Share of closed deals that reached Negotiate">Technical WR</th>
+                <th className="px-4 py-2.5 text-right text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide" title="Among deals that reached Negotiate, share that Closed Won">Negotiate WR</th>
+                <th className="px-4 py-2.5 text-right text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">ARR Won</th>
               </tr>
             </thead>
             <tbody>
@@ -299,58 +299,58 @@ export default function WinRatePage() {
                   <Fragment key={key}>
                     <tr
                       onClick={() => toggleExpand(key)}
-                      className="border-b border-brand-navy-30/20 last:border-0 hover:bg-gray-50 cursor-pointer"
+                      className="border-b border-brand-navy-30/20 dark:border-ink-border-soft last:border-0 hover:bg-gray-50 dark:hover:bg-ink-2 cursor-pointer"
                     >
-                      <td className="px-4 py-3 text-sm font-medium text-brand-navy">
+                      <td className="px-4 py-3 text-sm font-medium text-brand-navy dark:text-fg-1">
                         <span className="inline-flex items-center gap-2">
-                          <svg className={`w-3 h-3 text-brand-navy-30 transition-transform ${isExpanded ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <svg className={`w-3 h-3 text-brand-navy-30 dark:text-fg-4 transition-transform ${isExpanded ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                           </svg>
                           {s.se_name}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-sm text-right text-brand-navy">{s.total_closed}</td>
-                      <td className="px-4 py-3 text-sm text-right text-status-success">{s.closed_won}</td>
-                      <td className="px-4 py-3 text-sm text-right text-status-overdue">{s.closed_lost}</td>
+                      <td className="px-4 py-3 text-sm text-right text-brand-navy dark:text-fg-1">{s.total_closed}</td>
+                      <td className="px-4 py-3 text-sm text-right text-status-success dark:text-status-d-success">{s.closed_won}</td>
+                      <td className="px-4 py-3 text-sm text-right text-status-overdue dark:text-status-d-overdue">{s.closed_lost}</td>
                       <td className={`px-4 py-3 text-sm text-right font-semibold ${ragForWinRate(s.overall_win_rate)}`}>{formatPct(s.overall_win_rate)}</td>
                       <td className={`px-4 py-3 text-sm text-right font-semibold ${ragForWinRate(s.technical_win_rate)}`}>
                         {formatPct(s.technical_win_rate)}
-                        <span className="block text-[10px] text-brand-navy-70 font-normal">{s.reached_negotiate}/{s.total_closed}</span>
+                        <span className="block text-[10px] text-brand-navy-70 dark:text-fg-2 font-normal">{s.reached_negotiate}/{s.total_closed}</span>
                       </td>
                       <td className={`px-4 py-3 text-sm text-right font-semibold ${ragForWinRate(s.negotiate_win_rate)}`}>
                         {formatPct(s.negotiate_win_rate)}
-                        <span className="block text-[10px] text-brand-navy-70 font-normal">{s.negotiate_won}/{s.negotiate_won + s.negotiate_lost}</span>
+                        <span className="block text-[10px] text-brand-navy-70 dark:text-fg-2 font-normal">{s.negotiate_won}/{s.negotiate_won + s.negotiate_lost}</span>
                       </td>
-                      <td className="px-4 py-3 text-sm text-right text-brand-navy">{formatARR(String(s.won_arr))}</td>
+                      <td className="px-4 py-3 text-sm text-right text-brand-navy dark:text-fg-1">{formatARR(String(s.won_arr))}</td>
                     </tr>
                     {isExpanded && s.deals.length > 0 && (
                       <tr>
-                        <td colSpan={8} className="px-4 py-2 bg-gray-50/60">
+                        <td colSpan={8} className="px-4 py-2 bg-gray-50 dark:bg-ink-2/60">
                           <table className="w-full">
                             <tbody>
                               {s.deals.map(d => (
-                                <tr key={d.id} className="border-b border-brand-navy-30/20 last:border-0">
-                                  <td className="px-2 py-1.5 text-sm text-brand-navy">
-                                    <button onClick={e => { e.stopPropagation(); setSelectedOppId(d.id); }} className="text-left font-medium hover:text-brand-purple hover:underline">
+                                <tr key={d.id} className="border-b border-brand-navy-30/20 dark:border-ink-border-soft last:border-0">
+                                  <td className="px-2 py-1.5 text-sm text-brand-navy dark:text-fg-1">
+                                    <button onClick={e => { e.stopPropagation(); setSelectedOppId(d.id); }} className="text-left font-medium hover:text-brand-purple dark:text-accent-purple hover:underline">
                                       {d.name}
                                     </button>
-                                    {d.account_name && <span className="ml-2 text-[11px] text-brand-navy-70">{d.account_name}</span>}
+                                    {d.account_name && <span className="ml-2 text-[11px] text-brand-navy-70 dark:text-fg-2">{d.account_name}</span>}
                                   </td>
                                   <td className="px-2 py-1.5 text-right text-xs">
                                     {d.is_closed_won ? (
-                                      <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-status-success text-[10px] font-semibold uppercase tracking-wide">Won</span>
+                                      <span className="px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-status-d-success-soft text-status-success dark:text-status-d-success text-[10px] font-semibold uppercase tracking-wide">Won</span>
                                     ) : (
-                                      <span className="px-1.5 py-0.5 rounded bg-red-50 text-status-overdue text-[10px] font-semibold uppercase tracking-wide">Lost</span>
+                                      <span className="px-1.5 py-0.5 rounded bg-red-50 dark:bg-status-d-overdue-soft text-status-overdue dark:text-status-d-overdue text-[10px] font-semibold uppercase tracking-wide">Lost</span>
                                     )}
                                   </td>
                                   <td className="px-2 py-1.5 text-right text-xs">
                                     {d.reached_negotiate ? (
-                                      <span className="px-1.5 py-0.5 rounded bg-brand-purple-30 text-brand-navy text-[10px] font-medium">Reached Negotiate</span>
+                                      <span className="px-1.5 py-0.5 rounded bg-brand-purple-30 text-brand-navy dark:text-fg-1 text-[10px] font-medium">Reached Negotiate</span>
                                     ) : (
-                                      <span className="text-brand-navy-30 text-[10px]">Did not reach Negotiate</span>
+                                      <span className="text-brand-navy-30 dark:text-fg-4 text-[10px]">Did not reach Negotiate</span>
                                     )}
                                   </td>
-                                  <td className="px-2 py-1.5 text-right text-sm text-brand-navy">{formatARR(d.arr_converted)}</td>
+                                  <td className="px-2 py-1.5 text-right text-sm text-brand-navy dark:text-fg-1">{formatARR(d.arr_converted)}</td>
                                 </tr>
                               ))}
                             </tbody>

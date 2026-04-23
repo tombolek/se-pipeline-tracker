@@ -220,8 +220,8 @@ export default function ClosedWonPage() {
       onClick={() => onClick(value)}
       className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
         current === value
-          ? 'bg-brand-purple text-white border-brand-purple'
-          : 'border-brand-navy-30 text-brand-navy-70 hover:border-brand-navy hover:text-brand-navy'
+          ? 'bg-brand-purple dark:bg-accent-purple text-white border-brand-purple'
+          : 'border-brand-navy-30 text-brand-navy-70 dark:text-fg-2 hover:border-brand-navy hover:text-brand-navy'
       }`}
     >
       {label}
@@ -246,7 +246,7 @@ export default function ClosedWonPage() {
             <select
               value={fiscalYear ?? ''}
               onChange={e => setFiscalYear(e.target.value || null)}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium border border-brand-navy-30 text-brand-navy bg-white hover:border-brand-navy focus:outline-none focus:border-brand-purple"
+              className="px-3 py-1.5 rounded-lg text-xs font-medium border border-brand-navy-30 text-brand-navy dark:text-fg-1 bg-white dark:bg-ink-1 hover:border-brand-navy focus:outline-none focus:border-brand-purple"
             >
               {fiscalYears.map(fy => (
                 <option key={fy} value={fy}>{fy}</option>
@@ -271,13 +271,13 @@ export default function ClosedWonPage() {
       </div>
 
       {loading ? <Loading /> : parentGroups.length === 0 ? <Empty /> : (
-        <div className="bg-white rounded-2xl border border-brand-navy-30/40 overflow-hidden">
+        <div className="bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft overflow-hidden">
           <table className="w-full">
-            <thead className="border-b border-brand-navy-30/40 bg-gray-50/50">
+            <thead className="border-b border-brand-navy-30/40 dark:border-ink-border-soft bg-gray-50 dark:bg-ink-2/50">
               <tr>
-                <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide w-[40%]">{parentHeaderLabel}</th>
-                <th className="px-4 py-2.5 text-right text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">Deals</th>
-                <th className="px-4 py-2.5 text-right text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide">ARR (USD)</th>
+                <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide w-[40%]">{parentHeaderLabel}</th>
+                <th className="px-4 py-2.5 text-right text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">Deals</th>
+                <th className="px-4 py-2.5 text-right text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">ARR (USD)</th>
                 <th className="px-4 py-2.5" />
               </tr>
             </thead>
@@ -285,14 +285,14 @@ export default function ClosedWonPage() {
               {parentGroups.map((pg, pIdx) => (
                 <Fragment key={`parent-${view}-${pIdx}-${pg.label}`}>
                   {/* Parent header row */}
-                  <tr className="bg-brand-purple-30/30 border-t border-brand-navy-30/40">
-                    <td className="px-4 py-2 text-sm font-semibold text-brand-navy">
+                  <tr className="bg-brand-purple-30/30 dark:bg-accent-purple-soft border-t border-brand-navy-30/40 dark:border-ink-border-soft">
+                    <td className="px-4 py-2 text-sm font-semibold text-brand-navy dark:text-fg-1">
                       {pg.isUnassigned
-                        ? <span className="text-status-warning">{pg.label}</span>
+                        ? <span className="text-status-warning dark:text-status-d-warning">{pg.label}</span>
                         : pg.label}
                     </td>
-                    <td className="px-4 py-2 text-right text-sm font-semibold text-brand-navy">{pg.dealCount}</td>
-                    <td className="px-4 py-2 text-right text-sm font-semibold text-brand-navy">{formatARR(pg.arrTotal)}</td>
+                    <td className="px-4 py-2 text-right text-sm font-semibold text-brand-navy dark:text-fg-1">{pg.dealCount}</td>
+                    <td className="px-4 py-2 text-right text-sm font-semibold text-brand-navy dark:text-fg-1">{formatARR(pg.arrTotal)}</td>
                     <td className="px-4 py-2" />
                   </tr>
                   {pg.leafGroups.map((lg, lIdx) => {
@@ -300,37 +300,37 @@ export default function ClosedWonPage() {
                     const isExpanded = expanded.has(key);
                     return (
                       <Fragment key={key}>
-                        <tr className="border-b border-brand-navy-30/20 hover:bg-gray-50 cursor-pointer" onClick={() => toggleExpand(key)}>
-                          <td className="px-4 py-2.5 pl-8 text-sm text-brand-navy">
+                        <tr className="border-b border-brand-navy-30/20 dark:border-ink-border-soft hover:bg-gray-50 dark:hover:bg-ink-2 cursor-pointer" onClick={() => toggleExpand(key)}>
+                          <td className="px-4 py-2.5 pl-8 text-sm text-brand-navy dark:text-fg-1">
                             <div className="flex items-center gap-2">
                               <svg
-                                className={`w-3 h-3 text-brand-navy-70 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                                className={`w-3 h-3 text-brand-navy-70 dark:text-fg-2 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
                                 fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
                               >
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                               </svg>
                               {lg.isUnassigned
-                                ? <span className="text-status-warning">{lg.label}</span>
+                                ? <span className="text-status-warning dark:text-status-d-warning">{lg.label}</span>
                                 : lg.label}
                             </div>
                           </td>
-                          <td className="px-4 py-2.5 text-right text-sm text-brand-navy">{lg.deals.length}</td>
-                          <td className="px-4 py-2.5 text-right text-sm text-brand-navy">{formatARR(lg.arrTotal)}</td>
+                          <td className="px-4 py-2.5 text-right text-sm text-brand-navy dark:text-fg-1">{lg.deals.length}</td>
+                          <td className="px-4 py-2.5 text-right text-sm text-brand-navy dark:text-fg-1">{formatARR(lg.arrTotal)}</td>
                           <td className="px-4 py-2.5" />
                         </tr>
                         {isExpanded && lg.deals.map(d => (
                           <tr
                             key={`deal-${d.id}`}
-                            className="border-b border-brand-navy-30/10 bg-gray-50/50 hover:bg-gray-100 cursor-pointer"
+                            className="border-b border-brand-navy-30/10 dark:border-ink-border-soft bg-gray-50 dark:bg-ink-2/50 hover:bg-gray-100 dark:hover:bg-ink-3 cursor-pointer"
                             onClick={() => setSelectedOppId(d.id)}
                           >
                             <td className="px-4 py-2 pl-16 text-xs">
-                              <p className="text-brand-navy font-medium">{d.name}</p>
-                              <p className="text-brand-navy-70">{d.account_name ?? '—'} · {d.record_type ?? '—'} · {d.fiscal_period ?? '—'}</p>
+                              <p className="text-brand-navy dark:text-fg-1 font-medium">{d.name}</p>
+                              <p className="text-brand-navy-70 dark:text-fg-2">{d.account_name ?? '—'} · {d.record_type ?? '—'} · {d.fiscal_period ?? '—'}</p>
                             </td>
-                            <td className="px-4 py-2 text-right text-xs text-brand-navy-70">1</td>
-                            <td className="px-4 py-2 text-right text-xs text-brand-navy">{formatARR(d.arr_converted)}</td>
-                            <td className="px-4 py-2 text-right text-xs text-brand-navy-70 pr-4">{formatDate(d.closed_at ?? d.close_date)}</td>
+                            <td className="px-4 py-2 text-right text-xs text-brand-navy-70 dark:text-fg-2">1</td>
+                            <td className="px-4 py-2 text-right text-xs text-brand-navy dark:text-fg-1">{formatARR(d.arr_converted)}</td>
+                            <td className="px-4 py-2 text-right text-xs text-brand-navy-70 dark:text-fg-2 pr-4">{formatDate(d.closed_at ?? d.close_date)}</td>
                           </tr>
                         ))}
                       </Fragment>
@@ -340,9 +340,9 @@ export default function ClosedWonPage() {
               ))}
               {/* Grand total */}
               <tr className="bg-brand-navy/5 border-t-2 border-brand-navy/20">
-                <td className="px-4 py-3 text-sm font-bold text-brand-navy uppercase tracking-wide">Grand Total</td>
-                <td className="px-4 py-3 text-right text-sm font-bold text-brand-navy">{grandDealCount}</td>
-                <td className="px-4 py-3 text-right text-sm font-bold text-brand-navy">{formatARR(grandArr)}</td>
+                <td className="px-4 py-3 text-sm font-bold text-brand-navy dark:text-fg-1 uppercase tracking-wide">Grand Total</td>
+                <td className="px-4 py-3 text-right text-sm font-bold text-brand-navy dark:text-fg-1">{grandDealCount}</td>
+                <td className="px-4 py-3 text-right text-sm font-bold text-brand-navy dark:text-fg-1">{formatARR(grandArr)}</td>
                 <td className="px-4 py-3" />
               </tr>
             </tbody>
@@ -359,9 +359,9 @@ export default function ClosedWonPage() {
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-white rounded-2xl border border-brand-navy-30/40 px-5 py-4">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-brand-navy-70 mb-1">{label}</p>
-      <p className="text-2xl font-bold text-brand-navy">{value}</p>
+    <div className="bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft px-5 py-4">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-brand-navy-70 dark:text-fg-2 mb-1">{label}</p>
+      <p className="text-2xl font-bold text-brand-navy dark:text-fg-1">{value}</p>
     </div>
   );
 }

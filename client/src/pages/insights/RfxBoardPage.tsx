@@ -41,9 +41,9 @@ const COLUMN_BORDER_TOP: Record<string, string> = {
 };
 
 const COLUMN_COUNT_BG: Record<string, string> = {
-  'In Review':   'bg-amber-50 text-amber-700',
-  'In Progress': 'bg-brand-purple-30/50 text-brand-purple',
-  'Completed':   'bg-emerald-50 text-emerald-700',
+  'In Review':   'bg-amber-50 dark:bg-status-d-warning-soft text-amber-700',
+  'In Progress': 'bg-brand-purple-30/50 dark:bg-accent-purple-soft text-brand-purple',
+  'Completed':   'bg-emerald-50 dark:bg-status-d-success-soft text-emerald-700',
 };
 
 const COLUMN_DOT: Record<string, string> = {
@@ -58,34 +58,34 @@ const WIDE_COLUMNS = new Set(['In Progress', 'Completed']);
 // ── Kanban card ───────────────────────────────────────────────────────────────
 function RfxCard({ opp, onClick }: { opp: RfxOpp; onClick: () => void }) {
   return (
-    <div onClick={onClick} className="bg-white rounded-xl border border-brand-navy-30/40 p-3.5 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+    <div onClick={onClick} className="bg-white dark:bg-ink-1 rounded-xl border border-brand-navy-30/40 dark:border-ink-border-soft p-3.5 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
       <div className="flex items-start justify-between gap-2 mb-0.5">
-        <p className="text-sm font-semibold text-brand-navy leading-tight">{opp.name}</p>
+        <p className="text-sm font-semibold text-brand-navy dark:text-fg-1 leading-tight">{opp.name}</p>
         {opp.is_closed_lost && (
-          <span className="text-[9px] font-semibold bg-brand-pink/10 text-brand-pink px-1.5 py-0.5 rounded-full whitespace-nowrap flex-shrink-0">
+          <span className="text-[9px] font-semibold bg-brand-pink/10 dark:bg-accent-pink-soft text-brand-pink dark:text-accent-pink px-1.5 py-0.5 rounded-full whitespace-nowrap flex-shrink-0">
             Closed
           </span>
         )}
       </div>
-      <p className="text-xs text-brand-navy-70 mb-3">{opp.account_name ?? '—'}</p>
+      <p className="text-xs text-brand-navy-70 dark:text-fg-2 mb-3">{opp.account_name ?? '—'}</p>
 
       <div className="space-y-1 mb-3">
         <div className="flex items-center gap-2 text-xs">
-          <span className="text-[10px] font-medium text-brand-navy-30 w-5 flex-shrink-0">AE</span>
-          <span className="text-brand-navy truncate">{opp.ae_owner_name ?? '—'}</span>
+          <span className="text-[10px] font-medium text-brand-navy-30 dark:text-fg-4 w-5 flex-shrink-0">AE</span>
+          <span className="text-brand-navy dark:text-fg-1 truncate">{opp.ae_owner_name ?? '—'}</span>
         </div>
         <div className="flex items-center gap-2 text-xs">
-          <span className="text-[10px] font-medium text-brand-navy-30 w-5 flex-shrink-0">SE</span>
+          <span className="text-[10px] font-medium text-brand-navy-30 dark:text-fg-4 w-5 flex-shrink-0">SE</span>
           {opp.se_owner_name
-            ? <span className="text-brand-navy truncate">{opp.se_owner_name}</span>
-            : <span className="text-brand-navy-30 italic">Unassigned</span>
+            ? <span className="text-brand-navy dark:text-fg-1 truncate">{opp.se_owner_name}</span>
+            : <span className="text-brand-navy-30 dark:text-fg-4 italic">Unassigned</span>
           }
         </div>
       </div>
 
-      <div className="border-t border-brand-navy-30/30 pt-2 flex items-center justify-between">
-        <span className="text-[11px] text-brand-navy-70 font-medium">{formatARR(opp.arr)}</span>
-        <span className="text-[10px] text-brand-navy-30">{opp.stage}</span>
+      <div className="border-t border-brand-navy-30/30 dark:border-ink-border-soft pt-2 flex items-center justify-between">
+        <span className="text-[11px] text-brand-navy-70 dark:text-fg-2 font-medium">{formatARR(opp.arr)}</span>
+        <span className="text-[10px] text-brand-navy-30 dark:text-fg-4">{opp.stage}</span>
       </div>
     </div>
   );
@@ -100,23 +100,23 @@ function RfxColumn({ title, cards, wide, onCardClick, onShowAll }: {
 }) {
   const dotClass     = COLUMN_DOT[title]        ?? 'bg-brand-navy-30';
   const borderTop    = COLUMN_BORDER_TOP[title]  ?? 'border-t-brand-navy-30';
-  const countBg      = COLUMN_COUNT_BG[title]    ?? 'bg-brand-navy-30/20 text-brand-navy-70';
+  const countBg      = COLUMN_COUNT_BG[title]    ?? 'bg-brand-navy-30/20 text-brand-navy-70 dark:text-fg-2';
   const isCompleted  = title === 'Completed';
   const visibleCards = isCompleted && cards.length > COMPLETED_KANBAN_LIMIT ? cards.slice(0, COMPLETED_KANBAN_LIMIT) : cards;
   const hiddenCount  = cards.length - visibleCards.length;
 
   return (
-    <div className={`flex-shrink-0 flex flex-col h-full bg-white/60 rounded-2xl border border-brand-navy-30/30 border-t-[3px] ${borderTop} ${wide ? 'w-[600px]' : 'w-72'}`}>
+    <div className={`flex-shrink-0 flex flex-col h-full bg-white/60 rounded-2xl border border-brand-navy-30/30 dark:border-ink-border-soft border-t-[3px] ${borderTop} ${wide ? 'w-[600px]' : 'w-72'}`}>
       <div className="px-4 py-3 flex items-center gap-2 flex-shrink-0">
         <span className={`w-2 h-2 rounded-full flex-shrink-0 ${dotClass}`} />
-        <h3 className="text-xs font-semibold text-brand-navy">{title}</h3>
+        <h3 className="text-xs font-semibold text-brand-navy dark:text-fg-1">{title}</h3>
         <span className={`ml-auto text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${countBg}`}>
           {cards.length}
         </span>
       </div>
       <div className="flex-1 overflow-y-auto px-3 pb-3">
         {cards.length === 0 ? (
-          <div className="text-xs text-brand-navy-30 text-center py-12 border-2 border-dashed border-brand-navy-30/30 rounded-xl">
+          <div className="text-xs text-brand-navy-30 dark:text-fg-4 text-center py-12 border-2 border-dashed border-brand-navy-30/30 dark:border-ink-border-soft rounded-xl">
             None
           </div>
         ) : wide ? (
@@ -131,7 +131,7 @@ function RfxColumn({ title, cards, wide, onCardClick, onShowAll }: {
         {hiddenCount > 0 && onShowAll && (
           <button
             onClick={onShowAll}
-            className="w-full mt-3 py-2 text-[11px] font-medium text-brand-purple hover:text-brand-purple-70 bg-brand-purple-30/30 hover:bg-brand-purple-30/50 rounded-lg transition-colors"
+            className="w-full mt-3 py-2 text-[11px] font-medium text-brand-purple dark:text-accent-purple hover:text-brand-purple-70 dark:text-accent-purple bg-brand-purple-30/30 dark:bg-accent-purple-soft hover:bg-brand-purple-30/50 dark:hover:bg-accent-purple-soft rounded-lg transition-colors"
           >
             Show all {cards.length} completed →
           </button>
@@ -239,9 +239,9 @@ export default function RfxBoardPage() {
   const activeCount = scopedOpps.filter(o => !o.is_closed_lost).length;
   const closedCount = scopedOpps.filter(o => o.is_closed_lost).length;
 
-  if (loading) return <div className="flex items-center justify-center h-full text-sm text-brand-navy-70">Loading…</div>;
+  if (loading) return <div className="flex items-center justify-center h-full text-sm text-brand-navy-70 dark:text-fg-2">Loading…</div>;
   if (error && !online) return <OfflineUnavailable label="RFx Board" />;
-  if (error)   return <div className="px-8 py-6 text-sm text-status-overdue">{error}</div>;
+  if (error)   return <div className="px-8 py-6 text-sm text-status-overdue dark:text-status-d-overdue">{error}</div>;
 
   return (
     <div className="flex flex-col h-full relative">
@@ -250,8 +250,8 @@ export default function RfxBoardPage() {
         {/* Row 1: title + scope + view toggle */}
         <div className="flex items-center gap-3">
           <div>
-            <h1 className="text-xl font-semibold text-brand-navy">RFx Board</h1>
-            <p className="text-sm text-brand-navy-70 mt-0.5">
+            <h1 className="text-xl font-semibold text-brand-navy dark:text-fg-1">RFx Board</h1>
+            <p className="text-sm text-brand-navy-70 dark:text-fg-2 mt-0.5">
               {activeCount} active{closedCount > 0 ? `, ${closedCount} closed` : ''}
             </p>
           </div>
@@ -265,7 +265,7 @@ export default function RfxBoardPage() {
               <button
                 onClick={() => setView('list')}
                 title="List view"
-                className={`p-1.5 rounded-md transition-colors ${view === 'list' ? 'bg-white shadow-sm text-brand-purple' : 'text-brand-navy-70 hover:text-brand-navy'}`}
+                className={`p-1.5 rounded-md transition-colors ${view === 'list' ? 'bg-white dark:bg-ink-1 shadow-sm text-brand-purple' : 'text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy'}`}
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 14h18M10 3v18M3 6a3 3 0 013-3h12a3 3 0 013 3v12a3 3 0 01-3 3H6a3 3 0 01-3-3V6z" />
@@ -274,7 +274,7 @@ export default function RfxBoardPage() {
               <button
                 onClick={() => setView('kanban')}
                 title="Kanban view"
-                className={`p-1.5 rounded-md transition-colors ${view === 'kanban' ? 'bg-white shadow-sm text-brand-purple' : 'text-brand-navy-70 hover:text-brand-navy'}`}
+                className={`p-1.5 rounded-md transition-colors ${view === 'kanban' ? 'bg-white dark:bg-ink-1 shadow-sm text-brand-purple' : 'text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy'}`}
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
@@ -293,7 +293,7 @@ export default function RfxBoardPage() {
               <MultiSelectFilter options={statusOptions} selected={filterStatus} onChange={setFilterStatus} placeholder="All statuses" />
               <MultiSelectFilter options={seOptions}     selected={filterSe}     onChange={setFilterSe}     placeholder="All SEs" />
               <MultiSelectFilter options={aeOptions}     selected={filterAe}     onChange={setFilterAe}     placeholder="All AEs" />
-              <span className="text-xs text-brand-navy-70 ml-auto">{displayed.length} opportunit{displayed.length !== 1 ? 'ies' : 'y'}</span>
+              <span className="text-xs text-brand-navy-70 dark:text-fg-2 ml-auto">{displayed.length} opportunit{displayed.length !== 1 ? 'ies' : 'y'}</span>
             </>
           )}
         </div>
@@ -303,7 +303,7 @@ export default function RfxBoardPage() {
       </div>
 
       {opps.length === 0 ? (
-        <div className="flex items-center justify-center flex-1 text-sm text-brand-navy-70">
+        <div className="flex items-center justify-center flex-1 text-sm text-brand-navy-70 dark:text-fg-2">
           No opportunities with an RFx status set.
         </div>
       ) : (
@@ -312,11 +312,11 @@ export default function RfxBoardPage() {
           {view === 'list' && (
             <div className="flex-1 overflow-y-auto overflow-x-auto px-8 pb-6">
               {displayed.length === 0 ? (
-                <div className="text-sm text-brand-navy-70 py-10 text-center">No opportunities match this filter.</div>
+                <div className="text-sm text-brand-navy-70 dark:text-fg-2 py-10 text-center">No opportunities match this filter.</div>
               ) : (
-                <div className="bg-white rounded-2xl border border-brand-navy-30/40 overflow-hidden">
+                <div className="bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft overflow-hidden">
                   <table className="w-full">
-                    <thead className="border-b border-brand-navy-30/40">
+                    <thead className="border-b border-brand-navy-30/40 dark:border-ink-border-soft">
                       <tr>
                         {LIST_COLS.map(c => (
                           <SortableHeader
@@ -326,7 +326,7 @@ export default function RfxBoardPage() {
                             currentKey={sortKey}
                             currentDir={sortDir}
                             onSort={handleSort}
-                            className="px-4 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide whitespace-nowrap"
+                            className="px-4 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide whitespace-nowrap"
                           />
                         ))}
                       </tr>
@@ -338,27 +338,27 @@ export default function RfxBoardPage() {
                           <tr
                             key={opp.id}
                             onClick={() => setSelectedId(opp.id)}
-                            className="border-b border-brand-navy-30/20 last:border-0 cursor-pointer hover:bg-brand-purple-30/10 transition-colors"
+                            className="border-b border-brand-navy-30/20 dark:border-ink-border-soft last:border-0 cursor-pointer hover:bg-brand-purple-30/10 transition-colors"
                           >
                             <td className="px-4 py-3">
-                              <span className="flex items-center gap-1.5 text-xs font-medium text-brand-navy">
+                              <span className="flex items-center gap-1.5 text-xs font-medium text-brand-navy dark:text-fg-1">
                                 <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dotClass}`} />
                                 {opp.rfx_status}
                               </span>
                             </td>
                             <td className="px-4 py-3">
-                              <p className="text-sm font-medium text-brand-navy">{opp.name}</p>
+                              <p className="text-sm font-medium text-brand-navy dark:text-fg-1">{opp.name}</p>
                               {opp.is_closed_lost && (
-                                <span className="text-[9px] font-semibold text-brand-pink">Closed</span>
+                                <span className="text-[9px] font-semibold text-brand-pink dark:text-accent-pink">Closed</span>
                               )}
                             </td>
-                            <td className="px-4 py-3 text-xs text-brand-navy-70">{opp.account_name ?? '—'}</td>
+                            <td className="px-4 py-3 text-xs text-brand-navy-70 dark:text-fg-2">{opp.account_name ?? '—'}</td>
                             <td className="px-4 py-3"><StageBadge stage={opp.stage} /></td>
-                            <td className="px-4 py-3 text-xs text-brand-navy-70 whitespace-nowrap">{opp.ae_owner_name ?? '—'}</td>
-                            <td className="px-4 py-3 text-xs text-brand-navy-70 whitespace-nowrap">
-                              {opp.se_owner_name ?? <span className="italic text-brand-navy-30">Unassigned</span>}
+                            <td className="px-4 py-3 text-xs text-brand-navy-70 dark:text-fg-2 whitespace-nowrap">{opp.ae_owner_name ?? '—'}</td>
+                            <td className="px-4 py-3 text-xs text-brand-navy-70 dark:text-fg-2 whitespace-nowrap">
+                              {opp.se_owner_name ?? <span className="italic text-brand-navy-30 dark:text-fg-4">Unassigned</span>}
                             </td>
-                            <td className="px-4 py-3 text-sm font-medium text-brand-navy whitespace-nowrap">{formatARR(opp.arr)}</td>
+                            <td className="px-4 py-3 text-sm font-medium text-brand-navy dark:text-fg-1 whitespace-nowrap">{formatARR(opp.arr)}</td>
                           </tr>
                         );
                       })}
