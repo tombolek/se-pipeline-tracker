@@ -19,7 +19,7 @@ export default function OfflineSimBadge() {
       className="fixed bottom-4 right-4 z-50 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-status-overdue text-white text-xs font-semibold shadow-lg hover:brightness-110 transition-all"
       style={{ fontFamily: 'Poppins, system-ui, sans-serif' }}
     >
-      <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+      <span className="w-2 h-2 rounded-full bg-white dark:bg-ink-1 animate-pulse" />
       SIMULATED OFFLINE
       <span className="text-[10px] font-normal opacity-80">· click to exit</span>
     </button>

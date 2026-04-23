@@ -2,9 +2,9 @@
  * Data freshness indicator — lives in the top AppHeader, just left of the
  * ConnectionIndicator. Shows how long ago the last successful SF import ran.
  *
- *   - Green  (text-status-success)  : < 6 hours old
- *   - Amber  (text-status-warning)  : 6–12 hours old
- *   - Red    (text-status-overdue)  : > 12 hours old
+ *   - Green  (text-status-success dark:text-status-d-success)  : < 6 hours old
+ *   - Amber  (text-status-warning dark:text-status-d-warning)  : 6–12 hours old
+ *   - Red    (text-status-overdue dark:text-status-d-overdue)  : > 12 hours old
  *   - Muted grey                     : no successful import yet
  *
  * Thresholds aligned with ~2× / day import cadence. Managers click through to
@@ -50,9 +50,9 @@ function fmtAbsolute(iso: string): string {
 function ageClass(iso: string | null): { text: string; label: string } {
   if (!iso) return { text: 'text-white/40', label: 'no import yet' };
   const hrs = (Date.now() - new Date(iso).getTime()) / 3_600_000;
-  if (hrs < 6)  return { text: 'text-status-success', label: 'fresh' };
-  if (hrs < 12) return { text: 'text-status-warning', label: 'aging' };
-  return { text: 'text-status-overdue', label: 'stale' };
+  if (hrs < 6)  return { text: 'text-status-success dark:text-status-d-success', label: 'fresh' };
+  if (hrs < 12) return { text: 'text-status-warning dark:text-status-d-warning', label: 'aging' };
+  return { text: 'text-status-overdue dark:text-status-d-overdue', label: 'stale' };
 }
 
 export default function DataFreshnessIndicator() {
@@ -133,9 +133,9 @@ export default function DataFreshnessIndicator() {
 
       {/* Hover tooltip — explains what this is + drops the exact details. */}
       <div
-        className="pointer-events-none absolute right-0 top-full z-50 mt-1.5 w-64 rounded-xl bg-white px-3 py-2.5 text-[11px] text-brand-navy opacity-0 shadow-xl border border-brand-navy-30/50 transition-opacity duration-150 group-hover:opacity-100"
+        className="pointer-events-none absolute right-0 top-full z-50 mt-1.5 w-64 rounded-xl bg-white dark:bg-ink-1 px-3 py-2.5 text-[11px] text-brand-navy dark:text-fg-1 opacity-0 shadow-xl border border-brand-navy-30/50 transition-opacity duration-150 group-hover:opacity-100"
       >
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-navy-70 mb-1">SF data freshness</p>
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-navy-70 dark:text-fg-2 mb-1">SF data freshness</p>
         {data ? (
           <>
             <p className="font-semibold leading-snug">
@@ -145,19 +145,19 @@ export default function DataFreshnessIndicator() {
               </span>
             </p>
             {data.row_count != null && (
-              <p className="text-brand-navy-70 text-[10px] mt-1">
+              <p className="text-brand-navy-70 dark:text-fg-2 text-[10px] mt-1">
                 {data.row_count} rows
                 {data.opportunities_added != null && <> · {data.opportunities_added} added</>}
                 {data.opportunities_updated != null && <> · {data.opportunities_updated} updated</>}
               </p>
             )}
-            <p className="text-brand-navy-70 text-[10px] mt-2 leading-relaxed">
-              We expect two imports per day. <span className="text-status-success font-semibold">Green</span> &lt; 6h, <span className="text-status-warning font-semibold">amber</span> 6–12h, <span className="text-status-overdue font-semibold">red</span> &gt; 12h.
+            <p className="text-brand-navy-70 dark:text-fg-2 text-[10px] mt-2 leading-relaxed">
+              We expect two imports per day. <span className="text-status-success dark:text-status-d-success font-semibold">Green</span> &lt; 6h, <span className="text-status-warning dark:text-status-d-warning font-semibold">amber</span> 6–12h, <span className="text-status-overdue dark:text-status-d-overdue font-semibold">red</span> &gt; 12h.
               {canNavigate && <> Click to open Import History.</>}
             </p>
           </>
         ) : (
-          <p className="text-brand-navy-70 leading-relaxed">No successful SF import on record yet.</p>
+          <p className="text-brand-navy-70 dark:text-fg-2 leading-relaxed">No successful SF import on record yet.</p>
         )}
       </div>
     </div>

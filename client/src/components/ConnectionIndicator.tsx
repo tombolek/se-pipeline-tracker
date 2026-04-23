@@ -118,36 +118,36 @@ export default function ConnectionIndicator() {
       {/* Hover tooltip — explains what the current state actually means.
           Hidden while the click-dropdown is open so the two don't overlap. */}
       {!open && (
-        <div className="pointer-events-none absolute right-0 top-full z-50 mt-1.5 w-64 rounded-xl bg-white px-3 py-2.5 text-[11px] text-brand-navy opacity-0 shadow-xl border border-brand-navy-30/50 transition-opacity duration-150 group-hover:opacity-100">
+        <div className="pointer-events-none absolute right-0 top-full z-50 mt-1.5 w-64 rounded-xl bg-white dark:bg-ink-1 px-3 py-2.5 text-[11px] text-brand-navy dark:text-fg-1 opacity-0 shadow-xl border border-brand-navy-30/50 transition-opacity duration-150 group-hover:opacity-100">
           <p className="font-semibold flex items-center gap-1.5">
             <span className={`w-2 h-2 rounded-full ${dotClass}`} />
             {tooltipTitle}
           </p>
-          <p className="text-brand-navy-70 leading-relaxed mt-1">{tooltipBody}</p>
+          <p className="text-brand-navy-70 dark:text-fg-2 leading-relaxed mt-1">{tooltipBody}</p>
           {lastSync !== null && (
-            <p className="text-brand-navy-70 text-[10px] mt-1.5">Last sync: {timeAgo(lastSync)}</p>
+            <p className="text-brand-navy-70 dark:text-fg-2 text-[10px] mt-1.5">Last sync: {timeAgo(lastSync)}</p>
           )}
         </div>
       )}
 
       {open && (
-        <div className="absolute top-full left-0 mt-1 z-50 w-72 bg-white text-brand-navy rounded-xl border border-brand-navy-30 shadow-xl overflow-hidden">
-          <div className="px-4 py-3 bg-brand-purple/[0.04] border-b border-brand-navy-30/40">
+        <div className="absolute top-full left-0 mt-1 z-50 w-72 bg-white dark:bg-ink-1 text-brand-navy dark:text-fg-1 rounded-xl border border-brand-navy-30 shadow-xl overflow-hidden">
+          <div className="px-4 py-3 bg-brand-purple/[0.04] border-b border-brand-navy-30/40 dark:border-ink-border-soft">
             <p className="text-xs font-semibold flex items-center gap-2">
               <span className={`w-2 h-2 rounded-full ${dotClass}`} />
               {online ? (stale ? 'Cached data' : syncing ? 'Syncing…' : 'Online') : "You're offline"}
             </p>
-            <p className="text-[11px] text-brand-navy-70 mt-0.5">
+            <p className="text-[11px] text-brand-navy-70 dark:text-fg-2 mt-0.5">
               {lastSync !== null
                 ? `Last synced ${timeAgo(lastSync)}`
                 : 'No successful sync yet'}
             </p>
           </div>
           {(pending > 0 || conflicts > 0) && (
-            <div className="px-4 py-3 border-b border-brand-navy-30/40">
+            <div className="px-4 py-3 border-b border-brand-navy-30/40 dark:border-ink-border-soft">
               {pending > 0 && (
-                <p className="text-[11px] text-brand-navy-70">
-                  <span className="font-semibold text-brand-navy">{pending} pending</span>
+                <p className="text-[11px] text-brand-navy-70 dark:text-fg-2">
+                  <span className="font-semibold text-brand-navy dark:text-fg-1">{pending} pending</span>
                   {' '}{pending === 1 ? 'change is' : 'changes are'} queued and will sync when you reconnect.
                 </p>
               )}
@@ -155,21 +155,21 @@ export default function ConnectionIndicator() {
                 <button
                   type="button"
                   onClick={() => { setOpen(false); navigate('/review-offline-changes'); }}
-                  className="text-[11px] text-status-overdue mt-1 text-left hover:underline block w-full"
+                  className="text-[11px] text-status-overdue dark:text-status-d-overdue mt-1 text-left hover:underline block w-full"
                 >
                   <span className="font-semibold">{conflicts} {conflicts === 1 ? 'change needs' : 'changes need'} review</span> →
                 </button>
               )}
             </div>
           )}
-          <div className="px-4 py-2.5 border-t border-brand-navy-30/40 flex items-center justify-between bg-gray-50">
+          <div className="px-4 py-2.5 border-t border-brand-navy-30/40 dark:border-ink-border-soft flex items-center justify-between bg-gray-50 dark:bg-ink-2">
             <button
               onClick={() => { setOpen(false); window.location.reload(); }}
-              className="text-[11px] font-medium text-brand-purple hover:text-brand-purple-70"
+              className="text-[11px] font-medium text-brand-purple dark:text-accent-purple hover:text-brand-purple-70 dark:text-accent-purple"
             >
               {online ? 'Sync now' : 'Try reconnect'}
             </button>
-            <span className="text-[10px] text-brand-navy-70">
+            <span className="text-[10px] text-brand-navy-70 dark:text-fg-2">
               Favorites are kept offline.
             </span>
           </div>

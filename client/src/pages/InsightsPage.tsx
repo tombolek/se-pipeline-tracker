@@ -38,7 +38,7 @@ export default function InsightsPage() {
   // Full-height pages (kanban boards + scroll-managed pages) get their own flex container
   if (pathname.includes('forecasting-brief')) {
     return (
-      <div className="flex-1 overflow-hidden bg-[#F5F5F7] flex flex-col relative">
+      <div className="flex-1 overflow-hidden bg-[#F5F5F7] dark:bg-ink-0 flex flex-col relative">
         {/* No ScopeBar — ForecastingBriefPage has its own NA/INTL region toggle */}
         <div className="flex-1 overflow-hidden flex flex-col">
           <ForecastingBriefPage />
@@ -48,7 +48,7 @@ export default function InsightsPage() {
   }
   if (pathname.includes('poc-board')) {
     return (
-      <div className="flex-1 overflow-hidden bg-[#F5F5F7] flex flex-col relative">
+      <div className="flex-1 overflow-hidden bg-[#F5F5F7] dark:bg-ink-0 flex flex-col relative">
         <div className="flex-1 overflow-hidden flex flex-col">
           <PocBoardPage />
         </div>
@@ -57,7 +57,7 @@ export default function InsightsPage() {
   }
   if (pathname.includes('rfx-board')) {
     return (
-      <div className="flex-1 overflow-hidden bg-[#F5F5F7] flex flex-col relative">
+      <div className="flex-1 overflow-hidden bg-[#F5F5F7] dark:bg-ink-0 flex flex-col relative">
         <div className="flex-1 overflow-hidden flex flex-col">
           <RfxBoardPage />
         </div>
@@ -66,7 +66,7 @@ export default function InsightsPage() {
   }
   if (pathname.includes('missing-notes')) {
     return (
-      <div className="flex-1 overflow-hidden bg-[#F5F5F7] flex flex-col relative">
+      <div className="flex-1 overflow-hidden bg-[#F5F5F7] dark:bg-ink-0 flex flex-col relative">
         <ScopeBar />
         <div className="flex-1 overflow-hidden flex flex-col">
           <MissingNotesPage />
@@ -76,7 +76,7 @@ export default function InsightsPage() {
   }
   if (pathname.includes('deploy-mode')) {
     return (
-      <div className="flex-1 overflow-hidden bg-[#F5F5F7] flex flex-col relative">
+      <div className="flex-1 overflow-hidden bg-[#F5F5F7] dark:bg-ink-0 flex flex-col relative">
         <ScopeBar />
         <div className="flex-1 overflow-hidden flex flex-col">
           <DeployModePage />
@@ -86,7 +86,7 @@ export default function InsightsPage() {
   }
   if (pathname.includes('closed-lost-stats')) {
     return (
-      <div className="flex-1 overflow-hidden bg-[#F5F5F7] flex flex-col relative">
+      <div className="flex-1 overflow-hidden bg-[#F5F5F7] dark:bg-ink-0 flex flex-col relative">
         <ScopeBar />
         <div className="flex-1 overflow-hidden flex flex-col">
           <ClosedLostStatsPage />
@@ -96,7 +96,7 @@ export default function InsightsPage() {
   }
   if (pathname.includes('percent-to-target')) {
     return (
-      <div className="flex-1 bg-[#F5F5F7] flex flex-col overflow-hidden">
+      <div className="flex-1 bg-[#F5F5F7] dark:bg-ink-0 flex flex-col overflow-hidden">
         <div className="flex-1 overflow-y-auto px-8 py-6">
           <PercentToTargetPage />
         </div>
@@ -106,7 +106,7 @@ export default function InsightsPage() {
   if (pathname.includes('closed-won')) {
     // No ScopeBar — this report is by territory/SE by design; showing all teams is the point.
     return (
-      <div className="flex-1 bg-[#F5F5F7] flex flex-col overflow-hidden">
+      <div className="flex-1 bg-[#F5F5F7] dark:bg-ink-0 flex flex-col overflow-hidden">
         <div className="flex-1 overflow-y-auto px-8 py-6">
           <ClosedWonPage />
         </div>
@@ -116,7 +116,7 @@ export default function InsightsPage() {
   if (pathname.includes('win-rate')) {
     // Same treatment as Closed Won — by-SE breakdown is the point, no team scoping.
     return (
-      <div className="flex-1 bg-[#F5F5F7] flex flex-col overflow-hidden">
+      <div className="flex-1 bg-[#F5F5F7] dark:bg-ink-0 flex flex-col overflow-hidden">
         <div className="flex-1 overflow-y-auto px-8 py-6">
           <WinRatePage />
         </div>
@@ -126,7 +126,7 @@ export default function InsightsPage() {
   if (pathname.includes('se-contribution')) {
     // Per-SE performance report; team scoping would hide the comparison that is the point.
     return (
-      <div className="flex-1 bg-[#F5F5F7] flex flex-col overflow-hidden">
+      <div className="flex-1 bg-[#F5F5F7] dark:bg-ink-0 flex flex-col overflow-hidden">
         <div className="flex-1 overflow-y-auto px-8 py-6">
           <SeContributionPage />
         </div>
@@ -135,7 +135,7 @@ export default function InsightsPage() {
   }
   if (pathname.includes('se-mapping')) {
     return (
-      <div className="flex-1 overflow-hidden bg-[#F5F5F7] flex flex-col relative">
+      <div className="flex-1 overflow-hidden bg-[#F5F5F7] dark:bg-ink-0 flex flex-col relative">
         <ScopeBar />
         <div className="flex-1 overflow-hidden flex flex-col">
           <SeDealMappingPage />
@@ -146,7 +146,7 @@ export default function InsightsPage() {
 
   if (pathname.includes('team-tasks')) {
     return (
-      <div className="flex-1 overflow-hidden bg-[#F5F5F7] flex flex-col relative">
+      <div className="flex-1 overflow-hidden bg-[#F5F5F7] dark:bg-ink-0 flex flex-col relative">
         <div className="flex-1 overflow-hidden flex flex-col">
           <TeamTasksPage />
         </div>
@@ -156,7 +156,7 @@ export default function InsightsPage() {
 
   if (pathname.includes('analytics')) {
     return (
-      <div className="flex-1 bg-[#F5F5F7] flex flex-col overflow-hidden">
+      <div className="flex-1 bg-[#F5F5F7] dark:bg-ink-0 flex flex-col overflow-hidden">
         <ScopeBar />
         <div className="flex-1 overflow-y-auto px-8 py-6">
           <AnalyticsDashboardPage />
@@ -175,7 +175,7 @@ export default function InsightsPage() {
   else content = <StageMovementPage />;
 
   return (
-    <div className="flex-1 bg-[#F5F5F7] flex flex-col overflow-hidden">
+    <div className="flex-1 bg-[#F5F5F7] dark:bg-ink-0 flex flex-col overflow-hidden">
       <ScopeBar />
       <div className="flex-1 overflow-y-auto px-8 py-6">
         {content}

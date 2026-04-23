@@ -367,10 +367,10 @@ function DayPopover({ date, events, colorMap, onClose, onEventClick }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
-      <div ref={ref} className="bg-white rounded-xl shadow-2xl w-80 max-h-[70vh] flex flex-col border border-brand-navy-30">
+      <div ref={ref} className="bg-white dark:bg-ink-1 rounded-xl shadow-2xl w-80 max-h-[70vh] flex flex-col border border-brand-navy-30">
         <div className="flex items-center justify-between px-4 py-3 border-b border-brand-navy-30">
-          <span className="text-sm font-semibold text-brand-navy">{dateLabel}</span>
-          <button onClick={onClose} className="text-brand-navy-70 hover:text-brand-navy transition-colors">
+          <span className="text-sm font-semibold text-brand-navy dark:text-fg-1">{dateLabel}</span>
+          <button onClick={onClose} className="text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:text-fg-1 transition-colors">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -394,13 +394,13 @@ function DayPopover({ date, events, colorMap, onClose, onEventClick }: {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1">
                     <span className="text-[11px]">{icon}</span>
-                    <span className="text-xs font-medium text-brand-navy truncate">{evt.label}</span>
+                    <span className="text-xs font-medium text-brand-navy dark:text-fg-1 truncate">{evt.label}</span>
                     {(evt.isEstimatedStart || evt.isEstimatedEnd) && (
-                      <span className="text-[9px] text-brand-navy-70 flex-shrink-0">*est.</span>
+                      <span className="text-[9px] text-brand-navy-70 dark:text-fg-2 flex-shrink-0">*est.</span>
                     )}
                   </div>
-                  <p className="text-[10px] text-brand-navy-70 truncate">{evt.sublabel}</p>
-                  {evt.seName && <p className="text-[10px] text-brand-navy-70">{evt.seName}</p>}
+                  <p className="text-[10px] text-brand-navy-70 dark:text-fg-2 truncate">{evt.sublabel}</p>
+                  {evt.seName && <p className="text-[10px] text-brand-navy-70 dark:text-fg-2">{evt.seName}</p>}
                 </div>
               </div>
             );
@@ -476,15 +476,15 @@ function WeekRow({ week, events, viewMonth, colorMap, onMoreClick, onEventClick,
               if (!isNaN(id)) onTaskDrop(id, day);
               setDropTargetDay(null);
             } : undefined}
-            className={`border-r last:border-r-0 border-brand-navy-30 px-1.5 pb-1.5 transition-colors ${!inMonth ? 'bg-gray-50/70' : ''} ${isDragTarget ? 'bg-brand-purple/10 ring-1 ring-inset ring-brand-purple/40' : ''}`}
+            className={`border-r last:border-r-0 border-brand-navy-30 px-1.5 pb-1.5 transition-colors ${!inMonth ? 'bg-gray-50 dark:bg-ink-2/70' : ''} ${isDragTarget ? 'bg-brand-purple/10 dark:bg-accent-purple-soft ring-1 ring-inset ring-brand-purple/40' : ''}`}
             style={{ paddingTop: spansH + 4 }}
           >
             <div className={`text-[11px] font-medium w-5 h-5 flex items-center justify-center rounded-full mb-1 ${
               isToday
-                ? 'bg-brand-purple text-white font-semibold'
+                ? 'bg-brand-purple dark:bg-accent-purple text-white font-semibold'
                 : inMonth
-                  ? 'text-brand-navy-70'
-                  : 'text-brand-navy-30'
+                  ? 'text-brand-navy-70 dark:text-fg-2'
+                  : 'text-brand-navy-30 dark:text-fg-4'
             }`}>
               {day.getDate()}
             </div>
@@ -496,7 +496,7 @@ function WeekRow({ week, events, viewMonth, colorMap, onMoreClick, onEventClick,
               {overflow > 0 && (
                 <button
                   onClick={() => onMoreClick(day, dayChips)}
-                  className="text-[10px] text-brand-purple hover:underline pl-1 leading-[18px]"
+                  className="text-[10px] text-brand-purple dark:text-accent-purple hover:underline pl-1 leading-[18px]"
                 >
                   +{overflow} more
                 </button>
@@ -653,14 +653,14 @@ export default function CalendarPage() {
   if (loadError && !online) return <OfflineUnavailable label="Calendar" />;
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-white min-h-0 max-h-[95vh]">
+    <div className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-ink-1 min-h-0 max-h-[95vh]">
       {/* ── Header ── */}
-      <div className="flex-shrink-0 flex items-center gap-3 px-6 py-3 border-b border-brand-navy-30 bg-white flex-wrap">
+      <div className="flex-shrink-0 flex items-center gap-3 px-6 py-3 border-b border-brand-navy-30 bg-white dark:bg-ink-1 flex-wrap">
         {/* Month nav */}
         <div className="flex items-center gap-1.5">
           <button
             onClick={() => setMonth(m => addMonths(m, -1))}
-            className="w-7 h-7 flex items-center justify-center rounded-lg border border-brand-navy-30 text-brand-navy-70 hover:bg-gray-50 transition-colors"
+            className="w-7 h-7 flex items-center justify-center rounded-lg border border-brand-navy-30 text-brand-navy-70 dark:text-fg-2 hover:bg-gray-50 dark:bg-ink-2 transition-colors"
           >
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -668,13 +668,13 @@ export default function CalendarPage() {
           </button>
           <button
             onClick={() => setMonth(new Date(today.getFullYear(), today.getMonth(), 1))}
-            className="text-sm font-semibold text-brand-navy min-w-[150px] text-center hover:text-brand-purple transition-colors"
+            className="text-sm font-semibold text-brand-navy dark:text-fg-1 min-w-[150px] text-center hover:text-brand-purple dark:text-accent-purple transition-colors"
           >
             {is1m ? formatMonthYear(month) : format3mRange(month)}
           </button>
           <button
             onClick={() => setMonth(m => addMonths(m, 1))}
-            className="w-7 h-7 flex items-center justify-center rounded-lg border border-brand-navy-30 text-brand-navy-70 hover:bg-gray-50 transition-colors"
+            className="w-7 h-7 flex items-center justify-center rounded-lg border border-brand-navy-30 text-brand-navy-70 dark:text-fg-2 hover:bg-gray-50 dark:bg-ink-2 transition-colors"
           >
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -691,7 +691,7 @@ export default function CalendarPage() {
               className={`px-2.5 py-1 font-medium transition-colors ${
                 viewMode === v
                   ? 'bg-brand-navy text-white'
-                  : 'bg-white text-brand-navy-70 hover:bg-gray-50'
+                  : 'bg-white dark:bg-ink-1 text-brand-navy-70 dark:text-fg-2 hover:bg-gray-50 dark:bg-ink-2'
               } ${v === '3m' ? 'border-l border-brand-navy-30' : ''}`}
             >
               {v.toUpperCase()}
@@ -711,8 +711,8 @@ export default function CalendarPage() {
                 onClick={() => toggleType(t)}
                 className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors ${
                   types.has(t)
-                    ? 'bg-brand-purple text-white border-brand-purple'
-                    : 'bg-white text-brand-navy-70 border-brand-navy-30 hover:bg-gray-50'
+                    ? 'bg-brand-purple dark:bg-accent-purple text-white border-brand-purple'
+                    : 'bg-white dark:bg-ink-1 text-brand-navy-70 dark:text-fg-2 border-brand-navy-30 hover:bg-gray-50 dark:bg-ink-2'
                 }`}
               >
                 {labels[t]}
@@ -731,7 +731,7 @@ export default function CalendarPage() {
               className={`px-2 py-1 rounded-lg text-[11px] font-medium border transition-colors ${
                 filterSe === null
                   ? 'bg-brand-navy text-white border-brand-navy'
-                  : 'bg-white text-brand-navy-70 border-brand-navy-30 hover:bg-gray-50'
+                  : 'bg-white dark:bg-ink-1 text-brand-navy-70 dark:text-fg-2 border-brand-navy-30 hover:bg-gray-50 dark:bg-ink-2'
               }`}
             >
               All
@@ -745,7 +745,7 @@ export default function CalendarPage() {
                   className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium border transition-colors ${
                     filterSe === id
                       ? 'text-white border-transparent'
-                      : 'bg-white text-brand-navy-70 border-brand-navy-30 hover:bg-gray-50'
+                      : 'bg-white dark:bg-ink-1 text-brand-navy-70 dark:text-fg-2 border-brand-navy-30 hover:bg-gray-50 dark:bg-ink-2'
                   }`}
                   style={filterSe === id ? { background: color, borderColor: color } : {}}
                 >
@@ -774,13 +774,13 @@ export default function CalendarPage() {
 
       {/* ── Calendar grid ── */}
       {loading ? (
-        <div className="flex-1 flex items-center justify-center text-sm text-brand-navy-70">Loading…</div>
+        <div className="flex-1 flex items-center justify-center text-sm text-brand-navy-70 dark:text-fg-2">Loading…</div>
       ) : (
         <div className={`overflow-auto ${is1m ? 'flex flex-col flex-1' : ''}`}>
           {/* DOW header */}
-          <div className="grid grid-cols-7 border-b border-brand-navy-30 sticky top-0 bg-white z-10 flex-shrink-0">
+          <div className="grid grid-cols-7 border-b border-brand-navy-30 sticky top-0 bg-white dark:bg-ink-1 z-10 flex-shrink-0">
             {DOW.map(d => (
-              <div key={d} className="text-center py-2 text-[11px] font-semibold uppercase tracking-wide text-brand-navy-70 border-r last:border-r-0 border-brand-navy-30">
+              <div key={d} className="text-center py-2 text-[11px] font-semibold uppercase tracking-wide text-brand-navy-70 dark:text-fg-2 border-r last:border-r-0 border-brand-navy-30">
                 {d}
               </div>
             ))}
@@ -793,7 +793,7 @@ export default function CalendarPage() {
                 {/* Month divider in 3m mode */}
                 {!is1m && (
                   <div className="sticky top-[33px] z-[9] px-4 py-1.5 bg-brand-navy-30/30 border-b border-brand-navy-30">
-                    <span className="text-xs font-semibold text-brand-navy-70 uppercase tracking-wide">
+                    <span className="text-xs font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">
                       {formatMonthYear(sectionMonth)}
                     </span>
                   </div>
@@ -819,16 +819,16 @@ export default function CalendarPage() {
           </div>
 
           {/* Legend */}
-          <div className="flex items-center gap-4 px-6 py-3 border-t border-brand-navy-30 text-[10px] text-brand-navy-70 flex-shrink-0">
+          <div className="flex items-center gap-4 px-6 py-3 border-t border-brand-navy-30 text-[10px] text-brand-navy-70 dark:text-fg-2 flex-shrink-0">
             <span className="font-semibold uppercase tracking-wide">Legend:</span>
             <span>🔬 POC span</span>
             <span>📄 RFP submission date</span>
             <span>☐ Task due date</span>
-            <span className="ml-2 text-brand-navy-30">|</span>
+            <span className="ml-2 text-brand-navy-30 dark:text-fg-4">|</span>
             <span>* = estimated date (21-day assumption)</span>
-            <span className="ml-2 text-brand-navy-30">|</span>
+            <span className="ml-2 text-brand-navy-30 dark:text-fg-4">|</span>
             <span>Click any item to open opportunity detail</span>
-            <span className="ml-2 text-brand-navy-30">|</span>
+            <span className="ml-2 text-brand-navy-30 dark:text-fg-4">|</span>
             <span>Drag tasks to reschedule due date</span>
           </div>
         </div>

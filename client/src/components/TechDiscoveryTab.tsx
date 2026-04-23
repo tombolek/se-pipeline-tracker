@@ -99,9 +99,9 @@ function Textarea({ value, onBlurSave, hint, disabled }: {
         onBlur={() => { if (local !== (value ?? '')) onBlurSave(local.trim() === '' ? null : local); }}
         rows={2}
         disabled={disabled}
-        className="w-full text-[12px] text-brand-navy px-3 py-2 rounded-lg border border-brand-navy-30/60 focus:outline-none focus:border-brand-purple focus:ring-2 focus:ring-brand-purple/20 disabled:opacity-60 disabled:cursor-not-allowed"
+        className="w-full text-[12px] text-brand-navy dark:text-fg-1 px-3 py-2 rounded-lg border border-brand-navy-30/60 dark:border-ink-border focus:outline-none focus:border-brand-purple focus:ring-2 focus:ring-brand-purple/20 disabled:opacity-60 disabled:cursor-not-allowed"
       />
-      {hint && <p className="text-[10px] text-brand-navy-70 mt-0.5 leading-relaxed">{hint}</p>}
+      {hint && <p className="text-[10px] text-brand-navy-70 dark:text-fg-2 mt-0.5 leading-relaxed">{hint}</p>}
     </div>
   );
 }
@@ -119,8 +119,8 @@ function Chip({ selected, onClick, disabled, children }: {
       disabled={disabled}
       className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${
         selected
-          ? 'bg-brand-purple-30 text-brand-purple border-brand-purple/40 font-semibold'
-          : 'bg-white text-brand-navy-70 border-brand-navy-30 hover:border-brand-purple/40 hover:text-brand-navy'
+          ? 'bg-brand-purple-30 dark:bg-accent-purple-soft text-brand-purple dark:text-accent-purple border-brand-purple/40 dark:border-accent-purple/40 font-semibold'
+          : 'bg-white dark:bg-ink-1 text-brand-navy-70 dark:text-fg-2 border-brand-navy-30 hover:border-brand-purple/40 dark:hover:border-accent-purple/40 hover:text-brand-navy'
       } disabled:opacity-50 disabled:cursor-not-allowed`}
     >
       {children}
@@ -144,7 +144,7 @@ function SpecifyField({ value, onBlurSave, placeholder, disabled }: {
       onBlur={() => { if (local !== (value ?? '')) onBlurSave(local); }}
       disabled={disabled}
       placeholder={placeholder}
-      className="text-[11px] text-brand-navy px-2 py-1 rounded border border-brand-navy-30/60 focus:outline-none focus:border-brand-purple min-w-0 w-full disabled:opacity-60"
+      className="text-[11px] text-brand-navy dark:text-fg-1 px-2 py-1 rounded border border-brand-navy-30/60 dark:border-ink-border focus:outline-none focus:border-brand-purple min-w-0 w-full disabled:opacity-60"
     />
   );
 }
@@ -223,14 +223,14 @@ export default function TechDiscoveryTab({ oppId, readOnly = false }: { oppId: n
   if (loading) {
     return (
       <div className="space-y-4">
-        {[0, 1, 2].map(i => <div key={i} className="h-28 bg-gray-50 rounded-xl animate-pulse" />)}
+        {[0, 1, 2].map(i => <div key={i} className="h-28 bg-gray-50 dark:bg-ink-2 rounded-xl animate-pulse" />)}
       </div>
     );
   }
 
   if (error || !data) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-[12px] text-red-700">
+      <div className="bg-red-50 dark:bg-status-d-overdue-soft border border-red-200 rounded-xl px-4 py-3 text-[12px] text-red-700">
         {error ?? 'No data'}
       </div>
     );
@@ -243,26 +243,26 @@ export default function TechDiscoveryTab({ oppId, readOnly = false }: { oppId: n
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-sm font-semibold text-brand-navy">Tech Discovery</h2>
-          <p className="text-[11px] text-brand-navy-70 mt-0.5 leading-relaxed max-w-2xl">
+          <h2 className="text-sm font-semibold text-brand-navy dark:text-fg-1">Tech Discovery</h2>
+          <p className="text-[11px] text-brand-navy-70 dark:text-fg-2 mt-0.5 leading-relaxed max-w-2xl">
             Structured capture of the technical side of this deal — inspired by the Technical Discovery Document template. Fill in what you know after each discovery call; it feeds Similar Deals scoring (shared tech stack) and Call Prep context.
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {savingFlash && <span className="text-[10px] text-status-success font-semibold">Saved</span>}
-          {anyActivity && <span className="text-[10px] text-brand-navy-70">Last updated {new Date(data.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>}
+          {savingFlash && <span className="text-[10px] text-status-success dark:text-status-d-success font-semibold">Saved</span>}
+          {anyActivity && <span className="text-[10px] text-brand-navy-70 dark:text-fg-2">Last updated {new Date(data.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>}
         </div>
       </div>
 
       {/* Section 1: Discovery Notes */}
-      <section className="bg-white border border-brand-navy-30/40 rounded-xl overflow-hidden">
-        <div className="px-4 py-2.5 border-b border-brand-navy-30/40 bg-[#F5F5F7]">
-          <h3 className="text-[11px] font-semibold uppercase tracking-widest text-brand-navy-70">Discovery Notes</h3>
+      <section className="bg-white dark:bg-ink-1 border border-brand-navy-30/40 dark:border-ink-border-soft rounded-xl overflow-hidden">
+        <div className="px-4 py-2.5 border-b border-brand-navy-30/40 dark:border-ink-border-soft bg-[#F5F5F7] dark:bg-ink-0">
+          <h3 className="text-[11px] font-semibold uppercase tracking-widest text-brand-navy-70 dark:text-fg-2">Discovery Notes</h3>
         </div>
         <div className="px-4 py-3 space-y-3">
           {PROSE_SECTIONS.map(s => (
             <div key={String(s.key)} data-cite-target={`td:${String(s.key)}`}>
-              <label className="text-[11px] font-semibold text-brand-navy block mb-1">{s.label}</label>
+              <label className="text-[11px] font-semibold text-brand-navy dark:text-fg-1 block mb-1">{s.label}</label>
               <Textarea
                 value={data[s.key] as string | null}
                 onBlurSave={next => save({ [s.key]: next } as Partial<TechDiscovery>)}
@@ -275,9 +275,9 @@ export default function TechDiscoveryTab({ oppId, readOnly = false }: { oppId: n
       </section>
 
       {/* Section 2: Technology Stack */}
-      <section className="bg-white border border-brand-navy-30/40 rounded-xl overflow-hidden">
-        <div className="px-4 py-2.5 border-b border-brand-navy-30/40 bg-[#F5F5F7]">
-          <h3 className="text-[11px] font-semibold uppercase tracking-widest text-brand-navy-70">Technology Stack</h3>
+      <section className="bg-white dark:bg-ink-1 border border-brand-navy-30/40 dark:border-ink-border-soft rounded-xl overflow-hidden">
+        <div className="px-4 py-2.5 border-b border-brand-navy-30/40 dark:border-ink-border-soft bg-[#F5F5F7] dark:bg-ink-0">
+          <h3 className="text-[11px] font-semibold uppercase tracking-widest text-brand-navy-70 dark:text-fg-2">Technology Stack</h3>
         </div>
         <div className="px-4 py-3 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
           {TECH_STACK_GROUPS.map(g => {
@@ -285,7 +285,7 @@ export default function TechDiscoveryTab({ oppId, readOnly = false }: { oppId: n
             const otherSpecify = (techStack.other_specify as Record<string, string> | undefined) ?? {};
             return (
               <div key={g.key}>
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-navy-70 mb-1.5">{g.heading}</p>
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-navy-70 dark:text-fg-2 mb-1.5">{g.heading}</p>
                 <div className="flex flex-wrap gap-1.5 mb-1.5">
                   {g.options.map(opt => (
                     <Chip
@@ -313,17 +313,17 @@ export default function TechDiscoveryTab({ oppId, readOnly = false }: { oppId: n
       </section>
 
       {/* Section 3: Enterprise systems + existing DMG */}
-      <section className="bg-white border border-brand-navy-30/40 rounded-xl overflow-hidden">
-        <div className="px-4 py-2.5 border-b border-brand-navy-30/40 bg-[#F5F5F7]">
-          <h3 className="text-[11px] font-semibold uppercase tracking-widest text-brand-navy-70">Enterprise Systems & Existing Data Management Tools</h3>
+      <section className="bg-white dark:bg-ink-1 border border-brand-navy-30/40 dark:border-ink-border-soft rounded-xl overflow-hidden">
+        <div className="px-4 py-2.5 border-b border-brand-navy-30/40 dark:border-ink-border-soft bg-[#F5F5F7] dark:bg-ink-0">
+          <h3 className="text-[11px] font-semibold uppercase tracking-widest text-brand-navy-70 dark:text-fg-2">Enterprise Systems & Existing Data Management Tools</h3>
         </div>
         <div className="px-4 py-3 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-navy-70 mb-1.5">Enterprise Software</p>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-navy-70 dark:text-fg-2 mb-1.5">Enterprise Software</p>
             <div className="space-y-1.5">
               {ENTERPRISE_FIELDS.map(f => (
                 <div key={f.key} className="grid grid-cols-[110px,1fr] items-center gap-2">
-                  <span className="text-[11px] text-brand-navy-70">{f.label}</span>
+                  <span className="text-[11px] text-brand-navy-70 dark:text-fg-2">{f.label}</span>
                   <SpecifyField
                     value={enterpriseSystems[f.key] ?? ''}
                     onBlurSave={v => setEnterpriseSystem(f.key, v)}
@@ -335,11 +335,11 @@ export default function TechDiscoveryTab({ oppId, readOnly = false }: { oppId: n
             </div>
           </div>
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-navy-70 mb-1.5">Existing Data Mgmt & Governance</p>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-navy-70 dark:text-fg-2 mb-1.5">Existing Data Mgmt & Governance</p>
             <div className="space-y-1.5">
               {DMG_FIELDS.map(f => (
                 <div key={f.key} className="grid grid-cols-[110px,1fr] items-center gap-2">
-                  <span className="text-[11px] text-brand-navy-70">{f.label}</span>
+                  <span className="text-[11px] text-brand-navy-70 dark:text-fg-2">{f.label}</span>
                   <SpecifyField
                     value={existingDmg[f.key] ?? ''}
                     onBlurSave={v => setExistingDmg(f.key, v)}
@@ -353,7 +353,7 @@ export default function TechDiscoveryTab({ oppId, readOnly = false }: { oppId: n
         </div>
       </section>
 
-      <p className="text-[10px] text-brand-navy-70 leading-relaxed">
+      <p className="text-[10px] text-brand-navy-70 dark:text-fg-2 leading-relaxed">
         Auto-saves on blur. Tech-stack selections factor into Similar Deals scoring — a deal sharing Snowflake or dbt with this one will rank higher.
       </p>
     </div>

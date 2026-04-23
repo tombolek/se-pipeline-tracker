@@ -36,11 +36,11 @@ export default function ReconnectToast() {
   return (
     <div className={`fixed bottom-4 left-1/2 -translate-x-1/2 z-50 rounded-lg shadow-xl border text-sm flex items-center gap-3 px-4 py-2.5 ${
       hasConflicts
-        ? 'bg-white border-status-overdue text-brand-navy'
+        ? 'bg-white dark:bg-ink-1 border-status-overdue text-brand-navy'
         : 'bg-status-success/90 border-status-success text-white'
     }`}>
       {hasConflicts ? (
-        <svg className="w-4 h-4 text-status-overdue" fill="currentColor" viewBox="0 0 20 20">
+        <svg className="w-4 h-4 text-status-overdue dark:text-status-d-overdue" fill="currentColor" viewBox="0 0 20 20">
           <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 6a1 1 0 011 1v4a1 1 0 11-2 0V7a1 1 0 011-1zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
         </svg>
       ) : (
@@ -52,7 +52,7 @@ export default function ReconnectToast() {
         {succeeded > 0 && <strong>Synced {succeeded} change{succeeded === 1 ? '' : 's'}</strong>}
         {succeeded > 0 && hasConflicts && ' · '}
         {hasConflicts && (
-          <span className="text-status-overdue font-medium">
+          <span className="text-status-overdue dark:text-status-d-overdue font-medium">
             {conflicts} need{conflicts === 1 ? 's' : ''} review
           </span>
         )}
@@ -60,14 +60,14 @@ export default function ReconnectToast() {
       {hasConflicts && (
         <button
           onClick={() => { setSummary(null); navigate('/review-offline-changes'); }}
-          className="text-xs font-semibold text-brand-purple hover:text-brand-purple-70"
+          className="text-xs font-semibold text-brand-purple dark:text-accent-purple hover:text-brand-purple-70 dark:text-accent-purple"
         >
           Review →
         </button>
       )}
       <button
         onClick={() => setSummary(null)}
-        className={`ml-1 ${hasConflicts ? 'text-brand-navy-70 hover:text-brand-navy' : 'text-white/70 hover:text-white'}`}
+        className={`ml-1 ${hasConflicts ? 'text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy' : 'text-white/70 hover:text-white'}`}
         aria-label="Dismiss"
       >
         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>

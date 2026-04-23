@@ -153,20 +153,20 @@ export default function ReviewOfflineChangesPage() {
 
   if (conflicts.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-gray-50 px-6 py-16">
+      <div className="flex-1 flex items-center justify-center bg-gray-50 dark:bg-ink-2 px-6 py-16">
         <div className="max-w-md text-center">
-          <div className="w-14 h-14 rounded-2xl bg-status-success/10 border border-status-success/30 flex items-center justify-center mx-auto mb-4">
-            <svg className="w-7 h-7 text-status-success" fill="currentColor" viewBox="0 0 20 20">
+          <div className="w-14 h-14 rounded-2xl bg-status-success/10 dark:bg-status-d-success-soft border border-status-success/30 flex items-center justify-center mx-auto mb-4">
+            <svg className="w-7 h-7 text-status-success dark:text-status-d-success" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
             </svg>
           </div>
-          <h2 className="text-base font-semibold text-brand-navy">All offline changes are in sync</h2>
-          <p className="text-sm text-brand-navy-70 mt-2 leading-relaxed">
+          <h2 className="text-base font-semibold text-brand-navy dark:text-fg-1">All offline changes are in sync</h2>
+          <p className="text-sm text-brand-navy-70 dark:text-fg-2 mt-2 leading-relaxed">
             Nothing to review. Your queued edits applied cleanly.
           </p>
           <button
             onClick={() => navigate(-1)}
-            className="mt-5 px-4 py-2 rounded-lg bg-brand-purple text-white text-xs font-medium hover:bg-brand-purple-70 transition-colors"
+            className="mt-5 px-4 py-2 rounded-lg bg-brand-purple dark:bg-accent-purple text-white text-xs font-medium hover:bg-brand-purple-70 dark:hover:opacity-90 transition-colors"
           >
             Go back
           </button>
@@ -176,36 +176,36 @@ export default function ReviewOfflineChangesPage() {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto bg-gray-50 px-6 py-6">
+    <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-ink-2 px-6 py-6">
       <div className="max-w-2xl mx-auto">
-        <h1 className="text-lg font-semibold text-brand-navy mb-1">Review offline changes</h1>
-        <p className="text-xs text-brand-navy-70 mb-6">
+        <h1 className="text-lg font-semibold text-brand-navy dark:text-fg-1 mb-1">Review offline changes</h1>
+        <p className="text-xs text-brand-navy-70 dark:text-fg-2 mb-6">
           Some of the edits you made while offline conflict with changes made by others. Pick what to do with each.
         </p>
 
         {conflicts.map(c => (
-          <div key={c.id} className="bg-white rounded-xl border-2 border-status-overdue mb-3 p-4">
+          <div key={c.id} className="bg-white dark:bg-ink-1 rounded-xl border-2 border-status-overdue mb-3 p-4">
             <div className="flex items-start gap-3">
-              <span className="w-6 h-6 rounded-full bg-status-overdue/20 text-status-overdue flex items-center justify-center flex-shrink-0 text-sm">⚠</span>
+              <span className="w-6 h-6 rounded-full bg-status-overdue/20 text-status-overdue dark:text-status-d-overdue flex items-center justify-center flex-shrink-0 text-sm">⚠</span>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-brand-navy">
+                <p className="text-xs font-medium text-brand-navy dark:text-fg-1">
                   {kindLabel(c.kind)} on <span className="font-semibold">{c.opportunity_name}</span>
                 </p>
-                <p className="text-[11px] text-brand-navy-70 mt-0.5">
+                <p className="text-[11px] text-brand-navy-70 dark:text-fg-2 mt-0.5">
                   Not applied · queued {formatTimestamp(c.queued_at)}
                   {c.server_actor ? <> · conflicts with edit by <strong>{c.server_actor}</strong></> : null}
                 </p>
 
                 <div className="mt-3 p-3 rounded-lg bg-status-overdue/[0.04] border border-status-overdue/20 text-[11px] space-y-1">
-                  <p><span className="text-brand-navy-70">Your change:</span> {describeUserIntent(c)}</p>
-                  <p><span className="text-brand-navy-70">Current state:</span> {describeServerState(c)}</p>
+                  <p><span className="text-brand-navy-70 dark:text-fg-2">Your change:</span> {describeUserIntent(c)}</p>
+                  <p><span className="text-brand-navy-70 dark:text-fg-2">Current state:</span> {describeServerState(c)}</p>
                 </div>
 
                 <div className="flex items-center gap-2 mt-3 flex-wrap">
                   <button
                     onClick={() => reapply(c)}
                     disabled={busy === c.id}
-                    className="px-3 py-1.5 bg-brand-purple text-white text-[11px] font-medium rounded-md hover:bg-brand-purple-70 disabled:opacity-50"
+                    className="px-3 py-1.5 bg-brand-purple dark:bg-accent-purple text-white text-[11px] font-medium rounded-md hover:bg-brand-purple-70 dark:hover:opacity-90 disabled:opacity-50"
                   >
                     {busy === c.id ? 'Applying…' : 'Re-apply my change'}
                   </button>
@@ -218,7 +218,7 @@ export default function ReviewOfflineChangesPage() {
                   </button>
                   <button
                     onClick={() => { navigate(`/pipeline?oppId=${c.opportunity_id}`); }}
-                    className="px-3 py-1.5 text-[11px] font-medium text-brand-navy-70 rounded-md hover:text-brand-navy ml-auto"
+                    className="px-3 py-1.5 text-[11px] font-medium text-brand-navy-70 dark:text-fg-2 rounded-md hover:text-brand-navy dark:text-fg-1 ml-auto"
                   >
                     View opportunity
                   </button>
@@ -231,7 +231,7 @@ export default function ReviewOfflineChangesPage() {
         <div className="text-right mt-4">
           <button
             onClick={discardAll}
-            className="text-xs text-brand-navy-70 hover:text-status-overdue"
+            className="text-xs text-brand-navy-70 dark:text-fg-2 hover:text-status-overdue dark:text-status-d-overdue"
           >
             Discard all unapplied changes
           </button>

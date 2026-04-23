@@ -52,31 +52,31 @@ function filterType(e: TimelineEvent): EventType | 'all' {
 function EventIcon({ type }: { type: EventType }) {
   const configs: Record<EventType, { bg: string; icon: React.ReactNode }> = {
     note: {
-      bg: 'bg-sky-50 text-status-info',
+      bg: 'bg-sky-50 dark:bg-status-d-info-soft text-status-info dark:text-status-d-info',
       icon: <path strokeLinecap="round" strokeLinejoin="round" d="M7 8h10M7 12h6m-6 4h10M5 4h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z" />,
     },
     task_created: {
-      bg: 'bg-emerald-50 text-status-success',
+      bg: 'bg-emerald-50 dark:bg-status-d-success-soft text-status-success dark:text-status-d-success',
       icon: <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />,
     },
     task_completed: {
-      bg: 'bg-emerald-50 text-status-success',
+      bg: 'bg-emerald-50 dark:bg-status-d-success-soft text-status-success dark:text-status-d-success',
       icon: <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />,
     },
     stage_change: {
-      bg: 'bg-brand-purple-30 text-brand-purple',
+      bg: 'bg-brand-purple-30 dark:bg-accent-purple-soft text-brand-purple',
       icon: <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />,
     },
     import_update: {
-      bg: 'bg-amber-50 text-status-warning',
+      bg: 'bg-amber-50 dark:bg-status-d-warning-soft text-status-warning dark:text-status-d-warning',
       icon: <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />,
     },
     owner_change: {
-      bg: 'bg-brand-pink-30 text-brand-pink',
+      bg: 'bg-brand-pink-30 text-brand-pink dark:text-accent-pink',
       icon: <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />,
     },
     first_seen: {
-      bg: 'bg-brand-purple-30 text-brand-purple',
+      bg: 'bg-brand-purple-30 dark:bg-accent-purple-soft text-brand-purple',
       icon: <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />,
     },
   };
@@ -128,17 +128,17 @@ function NoteCard({ event }: { event: TimelineEvent }) {
   return (
     <div>
       <div className="flex items-baseline gap-2 mb-1">
-        <span className="text-[10px] font-semibold uppercase tracking-wide text-brand-navy-70">Note</span>
-        <span className="text-xs font-light text-brand-navy-70">
-          by <strong className="font-medium text-brand-navy">{event.payload.author as string}</strong>
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-brand-navy-70 dark:text-fg-2">Note</span>
+        <span className="text-xs font-light text-brand-navy-70 dark:text-fg-2">
+          by <strong className="font-medium text-brand-navy dark:text-fg-1">{event.payload.author as string}</strong>
           {' · '}{relativeTime(event.timestamp)}
         </span>
       </div>
-      <p className="text-sm text-brand-navy-70 font-light leading-relaxed border-l-2 border-brand-navy-30 pl-3">
+      <p className="text-sm text-brand-navy-70 dark:text-fg-2 font-light leading-relaxed border-l-2 border-brand-navy-30 pl-3">
         {expanded ? content : preview}
       </p>
       {hasMore && (
-        <button onClick={() => setExpanded(!expanded)} className="text-[11px] text-brand-purple font-medium mt-1 hover:text-brand-purple-70">
+        <button onClick={() => setExpanded(!expanded)} className="text-[11px] text-brand-purple dark:text-accent-purple font-medium mt-1 hover:text-brand-purple-70 dark:text-accent-purple">
           {expanded ? 'Show less ↑' : 'Show more ↓'}
         </button>
       )}
@@ -148,28 +148,28 @@ function NoteCard({ event }: { event: TimelineEvent }) {
 
 function TaskCreatedCard({ event }: { event: TimelineEvent }) {
   const statusColors: Record<string, string> = {
-    open:        'bg-brand-purple-30 text-brand-purple',
-    in_progress: 'bg-sky-50 text-status-info',
-    done:        'bg-emerald-50 text-status-success',
-    blocked:     'bg-red-50 text-status-overdue',
+    open:        'bg-brand-purple-30 dark:bg-accent-purple-soft text-brand-purple',
+    in_progress: 'bg-sky-50 dark:bg-status-d-info-soft text-status-info dark:text-status-d-info',
+    done:        'bg-emerald-50 dark:bg-status-d-success-soft text-status-success dark:text-status-d-success',
+    blocked:     'bg-red-50 dark:bg-status-d-overdue-soft text-status-overdue dark:text-status-d-overdue',
   };
   const status = event.payload.status as string;
   return (
     <div>
       <div className="flex items-baseline gap-2 mb-1">
-        <span className="text-[10px] font-semibold uppercase tracking-wide text-brand-navy-70">Task created</span>
-        <span className="text-xs font-light text-brand-navy-70">{relativeTime(event.timestamp)}</span>
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-brand-navy-70 dark:text-fg-2">Task created</span>
+        <span className="text-xs font-light text-brand-navy-70 dark:text-fg-2">{relativeTime(event.timestamp)}</span>
       </div>
-      <p className="text-sm font-medium text-brand-navy">{event.payload.title as string}</p>
+      <p className="text-sm font-medium text-brand-navy dark:text-fg-1">{event.payload.title as string}</p>
       <div className="flex items-center gap-2 mt-1.5">
-        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded ${statusColors[status] ?? 'bg-gray-100 text-gray-600'}`}>
+        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded ${statusColors[status] ?? 'bg-gray-100 dark:bg-ink-3 text-gray-600'}`}>
           {status.replace('_', ' ')}
         </span>
         {Boolean(event.payload.is_next_step) && (
           <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-yellow-50 text-yellow-700">Next Step</span>
         )}
         {(event.payload.assigned_to as string | null) && (
-          <span className="text-xs text-brand-navy-70 font-light">{event.payload.assigned_to as string}</span>
+          <span className="text-xs text-brand-navy-70 dark:text-fg-2 font-light">{event.payload.assigned_to as string}</span>
         )}
       </div>
     </div>
@@ -180,12 +180,12 @@ function TaskCompletedCard({ event }: { event: TimelineEvent }) {
   return (
     <div>
       <div className="flex items-baseline gap-2 mb-1">
-        <span className="text-[10px] font-semibold uppercase tracking-wide text-status-success">Task completed</span>
-        <span className="text-xs font-light text-brand-navy-70">{relativeTime(event.timestamp)}</span>
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-status-success dark:text-status-d-success">Task completed</span>
+        <span className="text-xs font-light text-brand-navy-70 dark:text-fg-2">{relativeTime(event.timestamp)}</span>
       </div>
-      <p className="text-sm font-medium text-brand-navy line-through opacity-60">{event.payload.title as string}</p>
+      <p className="text-sm font-medium text-brand-navy dark:text-fg-1 line-through opacity-60">{event.payload.title as string}</p>
       {(event.payload.assigned_to as string | null) && (
-        <p className="text-xs text-brand-navy-70 font-light mt-0.5">{event.payload.assigned_to as string}</p>
+        <p className="text-xs text-brand-navy-70 dark:text-fg-2 font-light mt-0.5">{event.payload.assigned_to as string}</p>
       )}
     </div>
   );
@@ -197,14 +197,14 @@ function StageChangeCard({ event }: { event: TimelineEvent }) {
   return (
     <div>
       <div className="flex items-baseline gap-2 mb-1.5">
-        <span className="text-[10px] font-semibold uppercase tracking-wide text-brand-navy-70">Stage change</span>
-        <span className="text-xs font-light text-brand-navy-70">{relativeTime(event.timestamp)}</span>
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-brand-navy-70 dark:text-fg-2">Stage change</span>
+        <span className="text-xs font-light text-brand-navy-70 dark:text-fg-2">{relativeTime(event.timestamp)}</span>
       </div>
       <div className="flex items-center gap-2 flex-wrap">
         {from ? (
           <>
-            <span className="text-xs text-brand-navy-70">{from}</span>
-            <svg className="w-3 h-3 text-brand-navy-30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <span className="text-xs text-brand-navy-70 dark:text-fg-2">{from}</span>
+            <svg className="w-3 h-3 text-brand-navy-30 dark:text-fg-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
             </svg>
           </>
@@ -224,26 +224,26 @@ function ImportUpdateCard({ event }: { event: TimelineEvent }) {
   return (
     <div>
       <div className="flex items-baseline gap-2 mb-2">
-        <span className="text-[10px] font-semibold uppercase tracking-wide text-brand-navy-70">SF import update</span>
-        <span className="text-xs font-light text-brand-navy-70">{relativeTime(event.timestamp)}</span>
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-brand-navy-70 dark:text-fg-2">SF import update</span>
+        <span className="text-xs font-light text-brand-navy-70 dark:text-fg-2">{relativeTime(event.timestamp)}</span>
       </div>
       <div className="flex flex-col gap-1.5">
         {visible.map((f, i) => (
-          <div key={i} className="text-xs text-brand-navy-70 font-light">
-            <span className="font-medium text-brand-navy">{FIELD_LABELS[f.field] ?? f.field}</span>
+          <div key={i} className="text-xs text-brand-navy-70 dark:text-fg-2 font-light">
+            <span className="font-medium text-brand-navy dark:text-fg-1">{FIELD_LABELS[f.field] ?? f.field}</span>
             {f.new_value ? (
               <>
                 {' — '}
                 <span className="italic">"{f.new_value.length > 80 ? f.new_value.slice(0, 80) + '…' : f.new_value}"</span>
               </>
             ) : (
-              <span className="italic text-brand-navy-70"> cleared</span>
+              <span className="italic text-brand-navy-70 dark:text-fg-2"> cleared</span>
             )}
           </div>
         ))}
       </div>
       {hasMore && (
-        <button onClick={() => setExpanded(!expanded)} className="text-[11px] text-brand-purple font-medium mt-1.5 hover:text-brand-purple-70">
+        <button onClick={() => setExpanded(!expanded)} className="text-[11px] text-brand-purple dark:text-accent-purple font-medium mt-1.5 hover:text-brand-purple-70 dark:text-accent-purple">
           {expanded ? `Show less ↑` : `+${fields.length - 2} more fields ↓`}
         </button>
       )}
@@ -256,13 +256,13 @@ function OwnerChangeCard({ event }: { event: TimelineEvent }) {
   return (
     <div>
       <div className="flex items-baseline gap-2 mb-0.5">
-        <span className="text-[10px] font-semibold uppercase tracking-wide text-brand-navy-70">SE Owner</span>
-        <span className="text-xs font-light text-brand-navy-70">{relativeTime(event.timestamp)}</span>
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-brand-navy-70 dark:text-fg-2">SE Owner</span>
+        <span className="text-xs font-light text-brand-navy-70 dark:text-fg-2">{relativeTime(event.timestamp)}</span>
       </div>
-      <p className="text-sm text-brand-navy">
+      <p className="text-sm text-brand-navy dark:text-fg-1">
         {name
           ? <>Assigned to <strong className="font-semibold">{name}</strong></>
-          : <span className="text-brand-navy-70 italic">Unassigned</span>
+          : <span className="text-brand-navy-70 dark:text-fg-2 italic">Unassigned</span>
         }
       </p>
     </div>
@@ -273,8 +273,8 @@ function FirstSeenCard({ event }: { event: TimelineEvent }) {
   return (
     <div>
       <div className="flex items-baseline gap-2 mb-0.5">
-        <span className="text-[10px] font-semibold uppercase tracking-wide text-brand-navy-70">First seen in import</span>
-        <span className="text-xs font-light text-brand-navy-70">{relativeTime(event.timestamp)}</span>
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-brand-navy-70 dark:text-fg-2">First seen in import</span>
+        <span className="text-xs font-light text-brand-navy-70 dark:text-fg-2">{relativeTime(event.timestamp)}</span>
       </div>
       <StageBadge stage={event.payload.stage as string} />
     </div>
@@ -313,11 +313,11 @@ export default function OpportunityTimeline({ oppId }: { oppId: number }) {
   );
 
   if (loading) {
-    return <p className="text-sm text-brand-navy-70 py-8 text-center">Loading…</p>;
+    return <p className="text-sm text-brand-navy-70 dark:text-fg-2 py-8 text-center">Loading…</p>;
   }
 
   if (events.length === 0) {
-    return <p className="text-sm text-brand-navy-70 py-8 text-center italic">No activity recorded yet.</p>;
+    return <p className="text-sm text-brand-navy-70 dark:text-fg-2 py-8 text-center italic">No activity recorded yet.</p>;
   }
 
   return (
@@ -330,21 +330,21 @@ export default function OpportunityTimeline({ oppId }: { oppId: number }) {
             onClick={() => setFilter(f.type as EventType | 'all')}
             className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-medium border transition-colors ${
               filter === f.type
-                ? 'bg-brand-purple-30 text-brand-purple border-brand-purple'
-                : 'bg-white text-brand-navy-70 border-brand-navy-30 hover:border-brand-navy hover:text-brand-navy'
+                ? 'bg-brand-purple-30 dark:bg-accent-purple-soft text-brand-purple dark:text-accent-purple border-brand-purple'
+                : 'bg-white dark:bg-ink-1 text-brand-navy-70 dark:text-fg-2 border-brand-navy-30 hover:border-brand-navy hover:text-brand-navy'
             }`}
           >
             {f.dot && <span className={`w-1.5 h-1.5 rounded-full ${f.dot}`} />}
             {f.label}
             {f.type === 'all' && (
-              <span className="ml-0.5 bg-brand-navy-30/50 text-brand-navy-70 rounded-full px-1 text-[10px]">{events.length}</span>
+              <span className="ml-0.5 bg-brand-navy-30/50 text-brand-navy-70 dark:text-fg-2 rounded-full px-1 text-[10px]">{events.length}</span>
             )}
           </button>
         ))}
       </div>
 
       {filtered.length === 0 && (
-        <p className="text-sm text-brand-navy-70 py-6 text-center italic">No events of this type.</p>
+        <p className="text-sm text-brand-navy-70 dark:text-fg-2 py-6 text-center italic">No events of this type.</p>
       )}
 
       {/* Timeline */}
@@ -362,14 +362,14 @@ export default function OpportunityTimeline({ oppId }: { oppId: number }) {
               <div key={event.id}>
                 {label && (
                   <div className="flex items-center gap-3 py-2 pl-10">
-                    <hr className="flex-1 border-brand-navy-30/30" />
-                    <span className="text-[11px] font-medium text-brand-navy-70 whitespace-nowrap">{label}</span>
-                    <hr className="flex-1 border-brand-navy-30/30" />
+                    <hr className="flex-1 border-brand-navy-30/30 dark:border-ink-border-soft" />
+                    <span className="text-[11px] font-medium text-brand-navy-70 dark:text-fg-2 whitespace-nowrap">{label}</span>
+                    <hr className="flex-1 border-brand-navy-30/30 dark:border-ink-border-soft" />
                   </div>
                 )}
                 <div className="flex gap-3 items-start">
                   <EventIcon type={event.type} />
-                  <div className="flex-1 bg-white border border-brand-navy-30/40 rounded-xl px-4 py-3 mb-1">
+                  <div className="flex-1 bg-white dark:bg-ink-1 border border-brand-navy-30/40 dark:border-ink-border-soft rounded-xl px-4 py-3 mb-1">
                     <EventCard event={event} />
                   </div>
                 </div>

@@ -74,19 +74,19 @@ function fmtClosedDate(iso: string | null): string {
 
 function chipClass(kind: MatchChip['kind']): string {
   switch (kind) {
-    case 'match':      return 'bg-emerald-50 text-emerald-700';
-    case 'competitor': return 'bg-red-50 text-red-700';
-    case 'warn':       return 'bg-amber-50 text-amber-700';
+    case 'match':      return 'bg-emerald-50 dark:bg-status-d-success-soft text-emerald-700';
+    case 'competitor': return 'bg-red-50 dark:bg-status-d-overdue-soft text-red-700';
+    case 'warn':       return 'bg-amber-50 dark:bg-status-d-warning-soft text-amber-700';
     case 'product':    return 'bg-brand-purple-30/70 text-brand-purple';
   }
 }
 
 function outcomeBadge(r: SimilarDeal): { label: string; class: string } {
   switch (r.outcome) {
-    case 'won':          return { label: 'Won',          class: 'text-status-success bg-emerald-50' };
-    case 'lost':         return { label: 'Lost',         class: 'text-status-overdue bg-red-50' };
+    case 'won':          return { label: 'Won',          class: 'text-status-success dark:text-status-d-success bg-emerald-50 dark:bg-status-d-success-soft' };
+    case 'lost':         return { label: 'Lost',         class: 'text-status-overdue dark:text-status-d-overdue bg-red-50 dark:bg-status-d-overdue-soft' };
     case 'in_flight':    return { label: r.stage ? `In flight · ${r.stage}` : 'In flight', class: 'text-cyan-700 bg-cyan-50' };
-    case 'kb_reference': return { label: 'KB reference', class: 'text-brand-purple bg-brand-purple-30/60' };
+    case 'kb_reference': return { label: 'KB reference', class: 'text-brand-purple dark:text-accent-purple bg-brand-purple-30/60 dark:bg-accent-purple-soft' };
   }
 }
 
@@ -123,8 +123,8 @@ function ScoreRing({ score }: { score: number }) {
       className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
       style={{ background: `conic-gradient(#6A2CF5 ${deg}deg, #E5E7EB 0)` }}
     >
-      <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center">
-        <span className="text-[10px] font-bold text-brand-purple tabular-nums">{score}</span>
+      <div className="w-7 h-7 rounded-full bg-white dark:bg-ink-1 flex items-center justify-center">
+        <span className="text-[10px] font-bold text-brand-purple dark:text-accent-purple tabular-nums">{score}</span>
       </div>
     </div>
   );
@@ -314,16 +314,16 @@ export default function SimilarDealsTab({ oppId }: { oppId: number; oppName?: st
   if (loading) {
     return (
       <div className="space-y-4">
-        <div className="h-10 bg-gray-50 rounded-xl animate-pulse" />
-        <div className="h-24 bg-gray-50 rounded-xl animate-pulse" />
-        <div className="h-40 bg-gray-50 rounded-xl animate-pulse" />
+        <div className="h-10 bg-gray-50 dark:bg-ink-2 rounded-xl animate-pulse" />
+        <div className="h-24 bg-gray-50 dark:bg-ink-2 rounded-xl animate-pulse" />
+        <div className="h-40 bg-gray-50 dark:bg-ink-2 rounded-xl animate-pulse" />
       </div>
     );
   }
 
   if (error || !data) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-[12px] text-red-700">
+      <div className="bg-red-50 dark:bg-status-d-overdue-soft border border-red-200 rounded-xl px-4 py-3 text-[12px] text-red-700">
         {error ?? 'No data'}
       </div>
     );
@@ -338,7 +338,7 @@ export default function SimilarDealsTab({ oppId }: { oppId: number; oppName?: st
         <div className="bg-gradient-to-br from-brand-purple-30/40 to-brand-pink-30/30 border border-brand-purple/20 rounded-xl px-4 py-3">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 border-2 border-brand-purple border-t-transparent rounded-full animate-spin" />
-            <span className="text-[11px] text-brand-navy-70">Synthesizing a playbook from {playbook.sources_available} matching KB proof point{playbook.sources_available === 1 ? '' : 's'}…</span>
+            <span className="text-[11px] text-brand-navy-70 dark:text-fg-2">Synthesizing a playbook from {playbook.sources_available} matching KB proof point{playbook.sources_available === 1 ? '' : 's'}…</span>
           </div>
         </div>
       );
@@ -346,7 +346,7 @@ export default function SimilarDealsTab({ oppId }: { oppId: number; oppName?: st
 
     if (playbookError) {
       return (
-        <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
+        <div className="bg-red-50 dark:bg-status-d-overdue-soft border border-red-200 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
           <span className="text-[11px] text-red-700">Playbook generation failed: {playbookError}</span>
           <button onClick={generatePlaybook} className="text-[10px] font-semibold text-red-700 hover:text-red-800 underline">Retry</button>
         </div>
@@ -367,12 +367,12 @@ export default function SimilarDealsTab({ oppId }: { oppId: number; oppName?: st
             <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="url(#pbg)" />
             <defs><linearGradient id="pbg" x1="2" y1="2" x2="22" y2="22"><stop stopColor="#F10090" /><stop offset="1" stopColor="#6A2CF5" /></linearGradient></defs>
           </svg>
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-brand-purple">Synthesized Playbook</span>
-          <span className="text-[10px] text-brand-navy-70 ml-1">no direct matches — drawn from KB proof points</span>
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-brand-purple dark:text-accent-purple">Synthesized Playbook</span>
+          <span className="text-[10px] text-brand-navy-70 dark:text-fg-2 ml-1">no direct matches — drawn from KB proof points</span>
           <button
             onClick={generatePlaybook}
             disabled={playbookGenerating}
-            className="ml-auto text-[10px] font-semibold text-brand-navy-70 hover:text-brand-purple disabled:opacity-40"
+            className="ml-auto text-[10px] font-semibold text-brand-navy-70 dark:text-fg-2 hover:text-brand-purple dark:text-accent-purple disabled:opacity-40"
           >
             Refresh
           </button>
@@ -380,38 +380,38 @@ export default function SimilarDealsTab({ oppId }: { oppId: number; oppName?: st
 
         <div className="px-4 py-3 space-y-3">
           <div>
-            <p className="text-[10px] font-semibold text-brand-purple uppercase tracking-wide mb-1">Win pattern</p>
-            <p className="text-[11px] text-brand-navy leading-relaxed">
+            <p className="text-[10px] font-semibold text-brand-purple dark:text-accent-purple uppercase tracking-wide mb-1">Win pattern</p>
+            <p className="text-[11px] text-brand-navy dark:text-fg-1 leading-relaxed">
               <TextWithCitations text={p.win_pattern} citations={p.citations} />
             </p>
           </div>
           <div>
-            <p className="text-[10px] font-semibold text-brand-purple uppercase tracking-wide mb-1">Positioning</p>
-            <p className="text-[11px] text-brand-navy leading-relaxed">
+            <p className="text-[10px] font-semibold text-brand-purple dark:text-accent-purple uppercase tracking-wide mb-1">Positioning</p>
+            <p className="text-[11px] text-brand-navy dark:text-fg-1 leading-relaxed">
               <TextWithCitations text={p.positioning} citations={p.citations} />
             </p>
           </div>
           {p.lead_with.length > 0 && (
             <div>
-              <p className="text-[10px] font-semibold text-brand-purple uppercase tracking-wide mb-1">Lead with</p>
-              <ul className="text-[11px] text-brand-navy leading-relaxed space-y-0.5 list-disc pl-4 marker:text-brand-purple">
+              <p className="text-[10px] font-semibold text-brand-purple dark:text-accent-purple uppercase tracking-wide mb-1">Lead with</p>
+              <ul className="text-[11px] text-brand-navy dark:text-fg-1 leading-relaxed space-y-0.5 list-disc pl-4 marker:text-brand-purple dark:text-accent-purple">
                 {p.lead_with.map((item, i) => <li key={i}><TextWithCitations text={item} citations={p.citations} /></li>)}
               </ul>
             </div>
           )}
           {p.anticipate.length > 0 && (
             <div>
-              <p className="text-[10px] font-semibold text-brand-purple uppercase tracking-wide mb-1">Anticipate</p>
-              <ul className="text-[11px] text-brand-navy leading-relaxed space-y-0.5 list-disc pl-4 marker:text-brand-purple">
+              <p className="text-[10px] font-semibold text-brand-purple dark:text-accent-purple uppercase tracking-wide mb-1">Anticipate</p>
+              <ul className="text-[11px] text-brand-navy dark:text-fg-1 leading-relaxed space-y-0.5 list-disc pl-4 marker:text-brand-purple dark:text-accent-purple">
                 {p.anticipate.map((item, i) => <li key={i}><TextWithCitations text={item} citations={p.citations} /></li>)}
               </ul>
             </div>
           )}
           {p.based_on.length > 0 && (
             <div className="pt-2 border-t border-brand-purple/10">
-              <p className="text-[10px] text-brand-navy-70">
-                Based on: <span className="font-medium text-brand-navy">{p.based_on.join(' · ')}</span>
-                {playbook.generated_at && <span className="text-brand-navy-30"> · generated {new Date(playbook.generated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>}
+              <p className="text-[10px] text-brand-navy-70 dark:text-fg-2">
+                Based on: <span className="font-medium text-brand-navy dark:text-fg-1">{p.based_on.join(' · ')}</span>
+                {playbook.generated_at && <span className="text-brand-navy-30 dark:text-fg-4"> · generated {new Date(playbook.generated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>}
               </p>
             </div>
           )}
@@ -423,7 +423,7 @@ export default function SimilarDealsTab({ oppId }: { oppId: number; oppName?: st
   if (data.total_above_threshold === 0) {
     return (
       <div className="space-y-3">
-        <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+        <div className="bg-amber-50 dark:bg-status-d-warning-soft border border-amber-200 rounded-xl px-4 py-3">
           <p className="text-xs font-semibold text-amber-800 mb-1">Not enough historical signal yet</p>
           <p className="text-[11px] text-amber-700 leading-relaxed">
             Scanned {data.total_candidates} closed + in-flight deals and KB proof points but none scored ≥ 40. {playbook && playbook.sources_available > 0
@@ -452,37 +452,37 @@ export default function SimilarDealsTab({ oppId }: { oppId: number; oppName?: st
       {/* Tab heading + controls */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h2 className="text-sm font-semibold text-brand-navy flex items-center gap-2">
+          <h2 className="text-sm font-semibold text-brand-navy dark:text-fg-1 flex items-center gap-2">
             Similar Deals
-            <span className="text-[10px] font-normal text-brand-navy-70">
+            <span className="text-[10px] font-normal text-brand-navy-70 dark:text-fg-2">
               top {filtered.length} of {data.total_above_threshold} matches · 18 mo window
             </span>
           </h2>
-          <p className="text-[11px] text-brand-navy-70 mt-0.5">
+          <p className="text-[11px] text-brand-navy-70 dark:text-fg-2 mt-0.5">
             Historical closed, in-flight deals in advanced stages, and KB proof points — ranked by industry, segment, ARR band, products, competitor, and free-text overlap.
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <label className="flex items-center gap-1.5 text-[10px] text-brand-navy-70">
+          <label className="flex items-center gap-1.5 text-[10px] text-brand-navy-70 dark:text-fg-2">
             <input type="checkbox" checked={showWon} onChange={e => setShowWon(e.target.checked)} className="w-3 h-3 accent-brand-purple" />
-            Won {counts.won > 0 && <span className="text-brand-navy-30">({counts.won})</span>}
+            Won {counts.won > 0 && <span className="text-brand-navy-30 dark:text-fg-4">({counts.won})</span>}
           </label>
-          <label className="flex items-center gap-1.5 text-[10px] text-brand-navy-70">
+          <label className="flex items-center gap-1.5 text-[10px] text-brand-navy-70 dark:text-fg-2">
             <input type="checkbox" checked={showLost} onChange={e => setShowLost(e.target.checked)} className="w-3 h-3 accent-brand-purple" />
-            Lost {counts.lost > 0 && <span className="text-brand-navy-30">({counts.lost})</span>}
+            Lost {counts.lost > 0 && <span className="text-brand-navy-30 dark:text-fg-4">({counts.lost})</span>}
           </label>
-          <label className="flex items-center gap-1.5 text-[10px] text-brand-navy-70">
+          <label className="flex items-center gap-1.5 text-[10px] text-brand-navy-70 dark:text-fg-2">
             <input type="checkbox" checked={showInFlight} onChange={e => setShowInFlight(e.target.checked)} className="w-3 h-3 accent-brand-purple" />
-            In flight {counts.in_flight > 0 && <span className="text-brand-navy-30">({counts.in_flight})</span>}
+            In flight {counts.in_flight > 0 && <span className="text-brand-navy-30 dark:text-fg-4">({counts.in_flight})</span>}
           </label>
-          <label className="flex items-center gap-1.5 text-[10px] text-brand-navy-70">
+          <label className="flex items-center gap-1.5 text-[10px] text-brand-navy-70 dark:text-fg-2">
             <input type="checkbox" checked={showKb} onChange={e => setShowKb(e.target.checked)} className="w-3 h-3 accent-brand-purple" />
-            KB {counts.kb_reference > 0 && <span className="text-brand-navy-30">({counts.kb_reference})</span>}
+            KB {counts.kb_reference > 0 && <span className="text-brand-navy-30 dark:text-fg-4">({counts.kb_reference})</span>}
           </label>
           <select
             value={sort}
             onChange={e => setSort(e.target.value as SortKey)}
-            className="text-[10px] border border-brand-navy-30 rounded px-2 py-1 text-brand-navy-70 bg-white"
+            className="text-[10px] border border-brand-navy-30 rounded px-2 py-1 text-brand-navy-70 dark:text-fg-2 bg-white dark:bg-ink-1"
           >
             <option value="score">Sort: Match score</option>
             <option value="recency">Sort: Recency</option>
@@ -492,40 +492,40 @@ export default function SimilarDealsTab({ oppId }: { oppId: number; oppName?: st
       </div>
 
       {/* Signature strip */}
-      <div className="bg-gradient-to-br from-brand-pink-30/30 to-brand-purple-30/30 border border-brand-purple/20 rounded-xl px-4 py-2.5 flex items-center gap-2 flex-wrap text-[10px] text-brand-navy-70">
-        <span className="font-semibold text-brand-navy uppercase tracking-wide text-[10px]">This deal</span>
-        <span className="text-brand-navy-30">·</span>
-        {data.active.account_industry && <span className="bg-white px-1.5 py-0.5 rounded border border-brand-purple/20">{data.active.account_industry}</span>}
-        {data.active.account_segment && <span className="bg-white px-1.5 py-0.5 rounded border border-brand-purple/20">{data.active.account_segment}</span>}
-        {data.active.arr_band && <span className="bg-white px-1.5 py-0.5 rounded border border-brand-purple/20">${data.active.arr_band}</span>}
-        {data.active.deploy_mode && <span className="bg-white px-1.5 py-0.5 rounded border border-brand-purple/20">{data.active.deploy_mode}</span>}
-        {data.active.record_type && <span className="bg-white px-1.5 py-0.5 rounded border border-brand-purple/20">{data.active.record_type}</span>}
+      <div className="bg-gradient-to-br from-brand-pink-30/30 to-brand-purple-30/30 border border-brand-purple/20 rounded-xl px-4 py-2.5 flex items-center gap-2 flex-wrap text-[10px] text-brand-navy-70 dark:text-fg-2">
+        <span className="font-semibold text-brand-navy dark:text-fg-1 uppercase tracking-wide text-[10px]">This deal</span>
+        <span className="text-brand-navy-30 dark:text-fg-4">·</span>
+        {data.active.account_industry && <span className="bg-white dark:bg-ink-1 px-1.5 py-0.5 rounded border border-brand-purple/20">{data.active.account_industry}</span>}
+        {data.active.account_segment && <span className="bg-white dark:bg-ink-1 px-1.5 py-0.5 rounded border border-brand-purple/20">{data.active.account_segment}</span>}
+        {data.active.arr_band && <span className="bg-white dark:bg-ink-1 px-1.5 py-0.5 rounded border border-brand-purple/20">${data.active.arr_band}</span>}
+        {data.active.deploy_mode && <span className="bg-white dark:bg-ink-1 px-1.5 py-0.5 rounded border border-brand-purple/20">{data.active.deploy_mode}</span>}
+        {data.active.record_type && <span className="bg-white dark:bg-ink-1 px-1.5 py-0.5 rounded border border-brand-purple/20">{data.active.record_type}</span>}
         {data.active.products.length > 0 && (
-          <span className="bg-white px-1.5 py-0.5 rounded border border-brand-purple/20">{data.active.products.join(' + ')}</span>
+          <span className="bg-white dark:bg-ink-1 px-1.5 py-0.5 rounded border border-brand-purple/20">{data.active.products.join(' + ')}</span>
         )}
         {data.active.engaged_competitors.map(c => (
-          <span key={c} className="bg-red-50 text-red-700 px-1.5 py-0.5 rounded border border-red-200">vs. {c}</span>
+          <span key={c} className="bg-red-50 dark:bg-status-d-overdue-soft text-red-700 px-1.5 py-0.5 rounded border border-red-200">vs. {c}</span>
         ))}
       </div>
 
       {/* AI insights status strip — only rendered when we have plenty of candidates */}
       {showInsightsStrip && (
         insightsGenerating ? (
-          <div className="flex items-center gap-2 text-[10px] text-brand-navy-70 bg-brand-purple-30/20 border border-brand-purple/20 rounded-lg px-3 py-1.5">
+          <div className="flex items-center gap-2 text-[10px] text-brand-navy-70 dark:text-fg-2 bg-brand-purple-30/20 border border-brand-purple/20 rounded-lg px-3 py-1.5">
             <div className="w-2.5 h-2.5 border-2 border-brand-purple border-t-transparent rounded-full animate-spin" />
             Generating AI insights for the top {insights?.candidates_considered ?? ''} candidates…
           </div>
         ) : insightsError ? (
-          <div className="flex items-center justify-between gap-2 text-[10px] bg-red-50 border border-red-200 rounded-lg px-3 py-1.5">
+          <div className="flex items-center justify-between gap-2 text-[10px] bg-red-50 dark:bg-status-d-overdue-soft border border-red-200 rounded-lg px-3 py-1.5">
             <span className="text-red-700">AI insights failed: {insightsError}</span>
             <button onClick={generateInsights} className="font-semibold text-red-700 hover:text-red-800 underline">Retry</button>
           </div>
         ) : insights && insights.insights.length > 0 ? (
-          <div className="flex items-center justify-between gap-2 text-[10px] text-brand-navy-70 bg-brand-purple-30/20 border border-brand-purple/20 rounded-lg px-3 py-1.5">
+          <div className="flex items-center justify-between gap-2 text-[10px] text-brand-navy-70 dark:text-fg-2 bg-brand-purple-30/20 border border-brand-purple/20 rounded-lg px-3 py-1.5">
             <span>AI "why it matches" captions shown inline on each result
               {insights.generated_at && <> · generated {new Date(insights.generated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</>}
             </span>
-            <button onClick={generateInsights} disabled={insightsGenerating} className="font-semibold text-brand-purple hover:text-brand-purple-70 disabled:opacity-40">
+            <button onClick={generateInsights} disabled={insightsGenerating} className="font-semibold text-brand-purple dark:text-accent-purple hover:text-brand-purple-70 dark:text-accent-purple disabled:opacity-40">
               Refresh
             </button>
           </div>
@@ -539,12 +539,12 @@ export default function SimilarDealsTab({ oppId }: { oppId: number; oppName?: st
       {hasCompetitorPlaybook && (
         <div className="bg-gradient-to-br from-brand-purple-30/40 to-brand-pink-30/30 border border-brand-purple/20 rounded-xl px-4 py-3">
           <div className="flex items-center gap-1.5 mb-1.5">
-            <svg className="w-3.5 h-3.5 text-brand-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="w-3.5 h-3.5 text-brand-purple dark:text-accent-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-brand-purple">Playbook Summary</span>
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-brand-purple dark:text-accent-purple">Playbook Summary</span>
           </div>
-          <p className="text-[11px] text-brand-navy leading-relaxed">
+          <p className="text-[11px] text-brand-navy dark:text-fg-1 leading-relaxed">
             Against <strong>{pb.against_competitor}</strong>{data.active.account_industry ? <> in <strong>{data.active.account_industry}</strong></> : null}:{' '}
             <strong>{pb.against_competitor_won}</strong> won, <strong>{pb.against_competitor_lost}</strong> lost in the last 18 months. Review the scored matches below to pattern-match on what won or lost them.
           </p>
@@ -552,9 +552,9 @@ export default function SimilarDealsTab({ oppId }: { oppId: number; oppName?: st
       )}
 
       {/* Results list */}
-      <div className="border border-brand-navy-30/40 rounded-xl divide-y divide-brand-navy-30/20 overflow-hidden bg-white">
+      <div className="border border-brand-navy-30/40 dark:border-ink-border-soft rounded-xl divide-y divide-brand-navy-30/20 overflow-hidden bg-white dark:bg-ink-1">
         {filtered.length === 0 ? (
-          <div className="px-4 py-8 text-center text-[11px] text-brand-navy-70">No matches for the selected filters.</div>
+          <div className="px-4 py-8 text-center text-[11px] text-brand-navy-70 dark:text-fg-2">No matches for the selected filters.</div>
         ) : filtered.map(r => {
           const badge = outcomeBadge(r);
           return (
@@ -563,11 +563,11 @@ export default function SimilarDealsTab({ oppId }: { oppId: number; oppName?: st
                 <ScoreRing score={r.score} />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-semibold text-brand-navy">{r.name}</span>
+                    <span className="text-xs font-semibold text-brand-navy dark:text-fg-1">{r.name}</span>
                     <span className={`text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded ${badge.class}`}>
                       {badge.label}
                     </span>
-                    <span className="text-[10px] text-brand-navy-70">{metaLine(r)}</span>
+                    <span className="text-[10px] text-brand-navy-70 dark:text-fg-2">{metaLine(r)}</span>
                   </div>
 
                   {r.match_chips.length > 0 && (
@@ -594,16 +594,16 @@ export default function SimilarDealsTab({ oppId }: { oppId: number; oppName?: st
                               <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="url(#iig)" />
                               <defs><linearGradient id="iig" x1="2" y1="2" x2="22" y2="22"><stop stopColor="#F10090" /><stop offset="1" stopColor="#6A2CF5" /></linearGradient></defs>
                             </svg>
-                            <span className="text-[9px] font-semibold text-brand-purple uppercase tracking-wide">Why it matches</span>
+                            <span className="text-[9px] font-semibold text-brand-purple dark:text-accent-purple uppercase tracking-wide">Why it matches</span>
                           </div>
-                          <p className="text-[11px] text-brand-navy leading-relaxed">{aiInsight}</p>
+                          <p className="text-[11px] text-brand-navy dark:text-fg-1 leading-relaxed">{aiInsight}</p>
                         </div>
                       );
                     }
                     if (r.why_text) {
                       return (
-                        <p className="text-[11px] text-brand-navy-70 mt-2 leading-relaxed">
-                          <span className="font-semibold text-brand-navy">{whyLabel(r.outcome)}</span>{' '}
+                        <p className="text-[11px] text-brand-navy-70 dark:text-fg-2 mt-2 leading-relaxed">
+                          <span className="font-semibold text-brand-navy dark:text-fg-1">{whyLabel(r.outcome)}</span>{' '}
                           {r.why_text}
                         </p>
                       );
@@ -616,17 +616,17 @@ export default function SimilarDealsTab({ oppId }: { oppId: number; oppName?: st
                       <button
                         type="button"
                         onClick={() => openSimilarDeal(r.sf_opportunity_id!)}
-                        className="text-[10px] font-semibold text-brand-purple hover:text-brand-purple-70"
+                        className="text-[10px] font-semibold text-brand-purple dark:text-accent-purple hover:text-brand-purple-70 dark:text-accent-purple"
                       >
                         Open deal →
                       </button>
                     ) : (
-                      <span className="text-[10px] font-semibold text-brand-purple">KB proof point</span>
+                      <span className="text-[10px] font-semibold text-brand-purple dark:text-accent-purple">KB proof point</span>
                     )}
                     {r.account_industry && (
                       <>
-                        <span className="text-brand-navy-30 text-[10px]">·</span>
-                        <span className="text-[10px] text-brand-navy-70">{r.account_industry}</span>
+                        <span className="text-brand-navy-30 dark:text-fg-4 text-[10px]">·</span>
+                        <span className="text-[10px] text-brand-navy-70 dark:text-fg-2">{r.account_industry}</span>
                       </>
                     )}
                   </div>
@@ -639,7 +639,7 @@ export default function SimilarDealsTab({ oppId }: { oppId: number; oppName?: st
 
       {/* Footer */}
       <div className="flex items-center justify-between pt-1">
-        <span className="text-[10px] text-brand-navy-70">
+        <span className="text-[10px] text-brand-navy-70 dark:text-fg-2">
           Scanned {data.total_candidates} records · score ≥ 40 · {data.total_above_threshold} total matches
         </span>
       </div>

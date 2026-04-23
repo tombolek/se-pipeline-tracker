@@ -32,7 +32,7 @@ export default function SettingsPage() {
   else                                       content = <UsersPage />;
 
   return (
-    <div className="flex-1 overflow-y-auto bg-[#F5F5F7] px-8 py-6">
+    <div className="flex-1 overflow-y-auto bg-[#F5F5F7] dark:bg-ink-0 px-8 py-6">
       {content}
     </div>
   );

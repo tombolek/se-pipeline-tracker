@@ -102,7 +102,7 @@ export default function RowCapture({ oppId, oppName, seOwnerId, onSaved }: Props
         type="button"
         onClick={openPopover}
         title="Quick capture"
-        className="w-6 h-6 rounded-md flex items-center justify-center text-brand-navy-70 hover:bg-brand-purple/10 hover:text-brand-purple transition-colors"
+        className="w-6 h-6 rounded-md flex items-center justify-center text-brand-navy-70 dark:text-fg-2 hover:bg-brand-purple/10 dark:bg-accent-purple-soft hover:text-brand-purple dark:text-accent-purple transition-colors"
       >
         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -115,12 +115,12 @@ export default function RowCapture({ oppId, oppName, seOwnerId, onSaved }: Props
           <div className="fixed inset-0 z-40" onClick={close} />
 
           <div
-            className="fixed z-50 w-72 bg-white rounded-xl shadow-xl border border-brand-navy-30/40 p-3"
+            className="fixed z-50 w-72 bg-white dark:bg-ink-1 rounded-xl shadow-xl border border-brand-navy-30/40 dark:border-ink-border-soft p-3"
             style={{ top: pos.top, left: pos.left }}
             onClick={e => e.stopPropagation()}
           >
             {/* Type toggle */}
-            <div className="flex gap-1 bg-gray-100 rounded-lg p-0.5 w-fit mb-2.5">
+            <div className="flex gap-1 bg-gray-100 dark:bg-ink-3 rounded-lg p-0.5 w-fit mb-2.5">
               {(['note', 'task'] as CaptureType[]).map(t => (
                 <button
                   key={t}
@@ -128,8 +128,8 @@ export default function RowCapture({ oppId, oppName, seOwnerId, onSaved }: Props
                   onClick={() => setType(t)}
                   className={`px-3 py-0.5 rounded-md text-[11px] font-semibold transition-colors capitalize ${
                     type === t
-                      ? 'bg-white text-brand-navy shadow-sm'
-                      : 'text-brand-navy-70 hover:text-brand-navy'
+                      ? 'bg-white dark:bg-ink-1 text-brand-navy dark:text-fg-1 shadow-sm'
+                      : 'text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy'
                   }`}
                 >
                   {t}
@@ -144,7 +144,7 @@ export default function RowCapture({ oppId, oppName, seOwnerId, onSaved }: Props
                 value={text}
                 onChange={e => setText(e.target.value)}
                 placeholder={type === 'note' ? 'Write a note…' : 'Task title…'}
-                className="w-full px-2.5 py-1.5 rounded-lg border border-brand-navy-30 text-sm text-brand-navy placeholder:text-brand-navy-70 focus:outline-none focus:ring-[3px] focus:ring-brand-purple/15 focus:border-brand-purple mb-2"
+                className="w-full px-2.5 py-1.5 rounded-lg border border-brand-navy-30 text-sm text-brand-navy dark:text-fg-1 placeholder:text-brand-navy-70 dark:text-fg-2 focus:outline-none focus:ring-[3px] focus:ring-brand-purple/15 focus:border-brand-purple mb-2"
               />
 
               {type === 'task' && (
@@ -154,14 +154,14 @@ export default function RowCapture({ oppId, oppName, seOwnerId, onSaved }: Props
                     type="date"
                     value={dueDate}
                     onChange={e => setDueDate(e.target.value)}
-                    className="w-full px-2.5 py-1.5 rounded-lg border border-brand-navy-30 text-xs text-brand-navy focus:outline-none focus:ring-[3px] focus:ring-brand-purple/15 focus:border-brand-purple mb-2"
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-brand-navy-30 text-xs text-brand-navy dark:text-fg-1 focus:outline-none focus:ring-[3px] focus:ring-brand-purple/15 focus:border-brand-purple mb-2"
                   />
 
                   {/* Assignee */}
                   <select
                     value={assignedTo ?? ''}
                     onChange={e => setAssignedTo(e.target.value ? Number(e.target.value) : null)}
-                    className="w-full px-2.5 py-1.5 rounded-lg border border-brand-navy-30 text-xs text-brand-navy focus:outline-none focus:ring-[3px] focus:ring-brand-purple/15 focus:border-brand-purple mb-2 bg-white"
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-brand-navy-30 text-xs text-brand-navy dark:text-fg-1 focus:outline-none focus:ring-[3px] focus:ring-brand-purple/15 focus:border-brand-purple mb-2 bg-white dark:bg-ink-1"
                   >
                     <option value="">Unassigned</option>
                     {users.map(u => (
@@ -172,7 +172,7 @@ export default function RowCapture({ oppId, oppName, seOwnerId, onSaved }: Props
               )}
 
               <div className="flex items-center justify-between">
-                <p className="text-[10px] text-brand-navy-70 truncate max-w-[140px]" title={oppName}>
+                <p className="text-[10px] text-brand-navy-70 dark:text-fg-2 truncate max-w-[140px]" title={oppName}>
                   → {oppName}
                 </p>
                 <button
@@ -181,7 +181,7 @@ export default function RowCapture({ oppId, oppName, seOwnerId, onSaved }: Props
                   className={`px-3 py-1 rounded-lg text-[11px] font-semibold transition-all ${
                     saved
                       ? 'bg-status-success text-white'
-                      : 'bg-brand-purple text-white hover:bg-brand-purple-70 disabled:opacity-40'
+                      : 'bg-brand-purple dark:bg-accent-purple text-white hover:bg-brand-purple-70 dark:hover:opacity-90 disabled:opacity-40'
                   }`}
                 >
                   {saved ? 'Saved ✓' : saving ? '…' : 'Save'}

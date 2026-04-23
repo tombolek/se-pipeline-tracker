@@ -138,15 +138,15 @@ function savePrefs(prefs: Prefs) {
 // ── Small UI primitives ─────────────────────────────────────────────────────
 
 function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return <div className={`bg-white border border-brand-navy-30/60 rounded-2xl overflow-hidden ${className}`}>{children}</div>;
+  return <div className={`bg-white dark:bg-ink-1 border border-brand-navy-30/60 dark:border-ink-border rounded-2xl overflow-hidden ${className}`}>{children}</div>;
 }
 
 function SectionHeading({ title, subtitle, action }: { title: string; subtitle?: string; action?: React.ReactNode }) {
   return (
     <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
       <div>
-        <h3 className="text-sm font-semibold text-brand-navy">{title}</h3>
-        {subtitle && <div className="text-[11px] text-brand-navy-70 mt-0.5">{subtitle}</div>}
+        <h3 className="text-sm font-semibold text-brand-navy dark:text-fg-1">{title}</h3>
+        {subtitle && <div className="text-[11px] text-brand-navy-70 dark:text-fg-2 mt-0.5">{subtitle}</div>}
       </div>
       {action && <div className="flex items-center gap-2">{action}</div>}
     </div>
@@ -155,7 +155,7 @@ function SectionHeading({ title, subtitle, action }: { title: string; subtitle?:
 
 function ConfirmedChip({ label }: { label: string }) {
   return (
-    <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-status-success">
+    <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-status-success dark:text-status-d-success">
       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
       </svg>
@@ -473,7 +473,7 @@ export default function ProcessCallNotesPage() {
         <button
           type="button"
           onClick={backToOpp}
-          className="w-9 h-9 rounded-xl border border-brand-navy-30 bg-white flex items-center justify-center hover:border-brand-navy hover:text-brand-navy text-brand-navy-70 transition-colors"
+          className="w-9 h-9 rounded-xl border border-brand-navy-30 bg-white dark:bg-ink-1 flex items-center justify-center hover:border-brand-navy hover:text-brand-navy dark:text-fg-1 text-brand-navy-70 dark:text-fg-2 transition-colors"
           title="Back to opportunity"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -481,28 +481,28 @@ export default function ProcessCallNotesPage() {
           </svg>
         </button>
         <div>
-          <h1 className="text-lg font-semibold text-brand-navy">Process Call Notes</h1>
-          <div className="text-[12px] text-brand-navy-70 flex items-center gap-2 flex-wrap mt-0.5">
+          <h1 className="text-lg font-semibold text-brand-navy dark:text-fg-1">Process Call Notes</h1>
+          <div className="text-[12px] text-brand-navy-70 dark:text-fg-2 flex items-center gap-2 flex-wrap mt-0.5">
             {opp ? (
               <>
-                <span className="inline-flex items-center gap-1.5 bg-brand-purple-30 text-brand-purple px-2 py-0.5 rounded-full text-[11px] font-medium">{opp.name}</span>
-                <span className="text-brand-navy-30">·</span>
+                <span className="inline-flex items-center gap-1.5 bg-brand-purple-30 dark:bg-accent-purple-soft text-brand-purple dark:text-accent-purple px-2 py-0.5 rounded-full text-[11px] font-medium">{opp.name}</span>
+                <span className="text-brand-navy-30 dark:text-fg-4">·</span>
                 <span>{opp.account_name ?? '—'}</span>
-                <span className="text-brand-navy-30">·</span>
+                <span className="text-brand-navy-30 dark:text-fg-4">·</span>
                 <span>{opp.stage}</span>
               </>
-            ) : oppLoading ? 'Loading…' : <span className="text-status-overdue">{oppError}</span>}
+            ) : oppLoading ? 'Loading…' : <span className="text-status-overdue dark:text-status-d-overdue">{oppError}</span>}
           </div>
         </div>
       </div>
 
       {phase === 'results' && (
-        <div className="inline-flex items-center bg-white border border-brand-navy-30 rounded-xl p-0.5 gap-0.5">
+        <div className="inline-flex items-center bg-white dark:bg-ink-1 border border-brand-navy-30 rounded-xl p-0.5 gap-0.5">
           {([['tabs','Tabs'], ['wizard','Wizard'], ['scroll','Scroll']] as const).map(([m, label]) => (
             <button
               key={m}
               onClick={() => setViewMode(m)}
-              className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors ${viewMode === m ? 'bg-brand-purple text-white' : 'text-brand-navy-70 hover:text-brand-navy'}`}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors ${viewMode === m ? 'bg-brand-purple dark:bg-accent-purple text-white' : 'text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy'}`}
             >
               {label}
             </button>
@@ -517,7 +517,7 @@ export default function ProcessCallNotesPage() {
     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
       <Card>
         <div className="px-5 py-4 border-b border-brand-navy-30/50">
-          <h2 className="text-[13px] font-semibold text-brand-navy flex items-center gap-2"><span className="w-5 h-5 rounded-full bg-brand-purple text-white flex items-center justify-center text-[10px] font-bold">1</span>What would you like to extract?</h2>
+          <h2 className="text-[13px] font-semibold text-brand-navy dark:text-fg-1 flex items-center gap-2"><span className="w-5 h-5 rounded-full bg-brand-purple dark:bg-accent-purple text-white flex items-center justify-center text-[10px] font-bold">1</span>What would you like to extract?</h2>
         </div>
         <div className="px-5 py-4 space-y-1">
           {ALL_SECTIONS.map(s => (
@@ -529,11 +529,11 @@ export default function ProcessCallNotesPage() {
                 className="mt-1 w-4 h-4 accent-brand-purple cursor-pointer flex-shrink-0"
               />
               <div className="min-w-0">
-                <div className="text-[12px] font-medium text-brand-navy">
+                <div className="text-[12px] font-medium text-brand-navy dark:text-fg-1">
                   {SECTION_LABELS[s]}
-                  {s === 'meddpicc' && <span className="ml-2 text-[9px] font-semibold uppercase tracking-wide text-brand-navy-70 bg-brand-navy-30/40 px-1.5 py-0.5 rounded">note-only</span>}
+                  {s === 'meddpicc' && <span className="ml-2 text-[9px] font-semibold uppercase tracking-wide text-brand-navy-70 dark:text-fg-2 bg-brand-navy-30/40 px-1.5 py-0.5 rounded">note-only</span>}
                 </div>
-                <div className="text-[11px] text-brand-navy-70 mt-0.5 leading-relaxed">{SECTION_HINTS[s]}</div>
+                <div className="text-[11px] text-brand-navy-70 dark:text-fg-2 mt-0.5 leading-relaxed">{SECTION_HINTS[s]}</div>
               </div>
             </label>
           ))}
@@ -546,52 +546,52 @@ export default function ProcessCallNotesPage() {
               className="mt-1 w-4 h-4 accent-brand-purple cursor-pointer flex-shrink-0"
             />
             <div>
-              <div className="text-[12px] font-medium text-brand-navy">Save raw notes as a note on the opportunity</div>
-              <div className="text-[11px] text-brand-navy-70 mt-0.5 leading-relaxed">Attaches the pasted notes + source URL to this deal's Notes tab. Turn off for throwaway processing.</div>
+              <div className="text-[12px] font-medium text-brand-navy dark:text-fg-1">Save raw notes as a note on the opportunity</div>
+              <div className="text-[11px] text-brand-navy-70 dark:text-fg-2 mt-0.5 leading-relaxed">Attaches the pasted notes + source URL to this deal's Notes tab. Turn off for throwaway processing.</div>
             </div>
           </label>
-          <p className="text-[10px] text-brand-navy-30 mt-2 px-2">Your choices are remembered for next time.</p>
+          <p className="text-[10px] text-brand-navy-30 dark:text-fg-4 mt-2 px-2">Your choices are remembered for next time.</p>
         </div>
       </Card>
 
       <Card>
         <div className="px-5 py-4 border-b border-brand-navy-30/50">
-          <h2 className="text-[13px] font-semibold text-brand-navy flex items-center gap-2"><span className="w-5 h-5 rounded-full bg-brand-purple text-white flex items-center justify-center text-[10px] font-bold">2</span>Paste the call notes</h2>
+          <h2 className="text-[13px] font-semibold text-brand-navy dark:text-fg-1 flex items-center gap-2"><span className="w-5 h-5 rounded-full bg-brand-purple dark:bg-accent-purple text-white flex items-center justify-center text-[10px] font-bold">2</span>Paste the call notes</h2>
         </div>
         <div className="px-5 py-4">
-          <label className="block text-[10px] font-semibold uppercase tracking-widest text-brand-navy-70 mb-1.5">Source URL <span className="text-brand-navy-30 font-normal normal-case tracking-normal">optional</span></label>
+          <label className="block text-[10px] font-semibold uppercase tracking-widest text-brand-navy-70 dark:text-fg-2 mb-1.5">Source URL <span className="text-brand-navy-30 dark:text-fg-4 font-normal normal-case tracking-normal">optional</span></label>
           <input
             type="url"
             value={sourceUrl}
             onChange={e => setSourceUrl(e.target.value)}
             placeholder="Notion page, Slack canvas, recording transcript URL…"
-            className="w-full px-3 py-2 border border-brand-navy-30 rounded-lg text-[13px] text-brand-navy placeholder:text-brand-navy-30 focus:outline-none focus:ring-[3px] focus:ring-brand-purple/15 focus:border-brand-purple"
+            className="w-full px-3 py-2 border border-brand-navy-30 rounded-lg text-[13px] text-brand-navy dark:text-fg-1 placeholder:text-brand-navy-30 dark:text-fg-4 focus:outline-none focus:ring-[3px] focus:ring-brand-purple/15 focus:border-brand-purple"
           />
-          <p className="text-[10px] text-brand-navy-30 mt-1">Saved with the note when the save-as-note toggle is on.</p>
+          <p className="text-[10px] text-brand-navy-30 dark:text-fg-4 mt-1">Saved with the note when the save-as-note toggle is on.</p>
           <div className="h-3"></div>
-          <label className="block text-[10px] font-semibold uppercase tracking-widest text-brand-navy-70 mb-1.5">Raw call notes</label>
+          <label className="block text-[10px] font-semibold uppercase tracking-widest text-brand-navy-70 dark:text-fg-2 mb-1.5">Raw call notes</label>
           <textarea
             value={rawNotes}
             onChange={e => setRawNotes(e.target.value)}
             placeholder="Paste rough notes, bullet points, or transcript snippets from the call…"
             style={{ minHeight: 360 }}
-            className="w-full px-3 py-3 border border-brand-navy-30 rounded-lg text-[13px] text-brand-navy placeholder:text-brand-navy-30 resize-y focus:outline-none focus:ring-[3px] focus:ring-brand-purple/15 focus:border-brand-purple leading-relaxed"
+            className="w-full px-3 py-3 border border-brand-navy-30 rounded-lg text-[13px] text-brand-navy dark:text-fg-1 placeholder:text-brand-navy-30 dark:text-fg-4 resize-y focus:outline-none focus:ring-[3px] focus:ring-brand-purple/15 focus:border-brand-purple leading-relaxed"
           />
 
           {processError && (
-            <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-[12px] text-red-700">
+            <div className="mt-3 rounded-lg border border-red-200 bg-red-50 dark:bg-status-d-overdue-soft px-3 py-2.5 text-[12px] text-red-700">
               <strong>Processing failed.</strong> {processError}
             </div>
           )}
         </div>
-        <div className="px-5 py-3 bg-[#F5F5F7] border-t border-brand-navy-30/40 flex items-center justify-between">
-          <p className="text-[11px] text-brand-navy-70">{sections.length} of {ALL_SECTIONS.length} extraction types selected</p>
+        <div className="px-5 py-3 bg-[#F5F5F7] dark:bg-ink-0 border-t border-brand-navy-30/40 dark:border-ink-border-soft flex items-center justify-between">
+          <p className="text-[11px] text-brand-navy-70 dark:text-fg-2">{sections.length} of {ALL_SECTIONS.length} extraction types selected</p>
           <div className="flex items-center gap-2">
-            <button onClick={backToOpp} className="px-3 py-1.5 rounded-lg border border-brand-navy-30 text-[12px] font-medium text-brand-navy-70 hover:text-brand-navy hover:border-brand-navy transition-colors">Cancel</button>
+            <button onClick={backToOpp} className="px-3 py-1.5 rounded-lg border border-brand-navy-30 text-[12px] font-medium text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:text-fg-1 hover:border-brand-navy transition-colors">Cancel</button>
             <button
               onClick={handleProcess}
               disabled={!rawNotes.trim() || !opp || sections.length === 0}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-purple text-white text-[12px] font-medium hover:bg-brand-purple-70 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-purple dark:bg-accent-purple text-white text-[12px] font-medium hover:bg-brand-purple-70 dark:hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
               Process with Claude
@@ -606,10 +606,10 @@ export default function ProcessCallNotesPage() {
   const processingView = (
     <Card className="py-20 flex flex-col items-center gap-3">
       <div className="w-9 h-9 rounded-full border-[3px] border-brand-purple-30 border-t-brand-purple animate-spin" />
-      <p className="text-[13px] font-medium text-brand-navy-70">Claude is reading your notes…</p>
-      <p className="text-[11px] text-brand-navy-30">Extracting {sections.map(s => SECTION_LABELS[s]).join(' · ')}</p>
+      <p className="text-[13px] font-medium text-brand-navy-70 dark:text-fg-2">Claude is reading your notes…</p>
+      <p className="text-[11px] text-brand-navy-30 dark:text-fg-4">Extracting {sections.map(s => SECTION_LABELS[s]).join(' · ')}</p>
       {sections.length < ALL_SECTIONS.length && (
-        <p className="text-[10px] text-brand-navy-30">
+        <p className="text-[10px] text-brand-navy-30 dark:text-fg-4">
           Skipped: {ALL_SECTIONS.filter(s => !sections.includes(s)).map(s => SECTION_LABELS[s]).join(', ')}
         </p>
       )}
@@ -620,15 +620,15 @@ export default function ProcessCallNotesPage() {
   const successView = opp && (
     <Card className="px-8 py-10 text-center">
       <div className="w-14 h-14 rounded-full bg-status-success/15 flex items-center justify-center mx-auto mb-3">
-        <svg className="w-7 h-7 text-status-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
+        <svg className="w-7 h-7 text-status-success dark:text-status-d-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
       </div>
-      <h2 className="text-lg font-semibold text-brand-navy">All applied</h2>
-      <p className="text-[12px] text-brand-navy-70 mt-1">Your accepted proposals are saved on <strong>{opp.name}</strong>.</p>
+      <h2 className="text-lg font-semibold text-brand-navy dark:text-fg-1">All applied</h2>
+      <p className="text-[12px] text-brand-navy-70 dark:text-fg-2 mt-1">Your accepted proposals are saved on <strong>{opp.name}</strong>.</p>
       {appliedSummary.length > 0 && (
-        <ul className="mt-4 inline-block text-left text-[12px] text-brand-navy-70 space-y-1.5">
+        <ul className="mt-4 inline-block text-left text-[12px] text-brand-navy-70 dark:text-fg-2 space-y-1.5">
           {appliedSummary.map((line, i) => (
             <li key={i} className="flex items-center gap-2">
-              <svg className="w-3 h-3 text-status-success flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
+              <svg className="w-3 h-3 text-status-success dark:text-status-d-success flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
               {line}
             </li>
           ))}
@@ -637,13 +637,13 @@ export default function ProcessCallNotesPage() {
       <div className="mt-6 flex items-center justify-center gap-2">
         <button
           onClick={() => { setPhase('configure'); setRawNotes(''); setResult(null); setAppliedSummary([]); }}
-          className="px-4 py-2 rounded-xl border border-brand-navy-30 text-[12px] font-medium text-brand-navy-70 hover:text-brand-navy hover:border-brand-navy transition-colors"
+          className="px-4 py-2 rounded-xl border border-brand-navy-30 text-[12px] font-medium text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:text-fg-1 hover:border-brand-navy transition-colors"
         >
           Process more notes
         </button>
         <button
           onClick={() => navigate(`/home?oppId=${sfid}`)}
-          className="px-4 py-2 rounded-xl bg-brand-purple text-white text-[12px] font-medium hover:bg-brand-purple-70 transition-colors inline-flex items-center gap-1.5"
+          className="px-4 py-2 rounded-xl bg-brand-purple dark:bg-accent-purple text-white text-[12px] font-medium hover:bg-brand-purple-70 dark:hover:opacity-90 transition-colors inline-flex items-center gap-1.5"
         >
           View deal
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
@@ -664,14 +664,14 @@ export default function ProcessCallNotesPage() {
             <>
               <button
                 onClick={() => setEditedTasks(prev => prev.map(t => ({ ...t, selected: true })))}
-                className="text-[11px] font-medium text-brand-purple hover:text-brand-purple-70"
+                className="text-[11px] font-medium text-brand-purple dark:text-accent-purple hover:text-brand-purple-70 dark:text-accent-purple"
               >
                 Select all
               </button>
               <button
                 onClick={confirmTasks}
                 disabled={busy === 'tasks' || !editedTasks.some(t => t.selected)}
-                className="px-3 py-1.5 rounded-lg bg-brand-purple text-white text-[11px] font-medium hover:bg-brand-purple-70 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="px-3 py-1.5 rounded-lg bg-brand-purple dark:bg-accent-purple text-white text-[11px] font-medium hover:bg-brand-purple-70 dark:hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 {busy === 'tasks' ? 'Adding…' : `Add ${editedTasks.filter(t => t.selected).length} task${editedTasks.filter(t => t.selected).length === 1 ? '' : 's'}`}
               </button>
@@ -681,7 +681,7 @@ export default function ProcessCallNotesPage() {
       />
       <div className="space-y-2">
         {editedTasks.map((t, i) => (
-          <label key={i} className={`flex items-start gap-3 px-3 py-2.5 border rounded-xl cursor-pointer transition-colors ${t.selected ? 'border-brand-purple bg-brand-purple-30/10' : 'border-brand-navy-30 bg-gray-50/80 hover:border-brand-navy-70'}`}>
+          <label key={i} className={`flex items-start gap-3 px-3 py-2.5 border rounded-xl cursor-pointer transition-colors ${t.selected ? 'border-brand-purple bg-brand-purple-30/10' : 'border-brand-navy-30 bg-gray-50 dark:bg-ink-2/80 hover:border-brand-navy-70'}`}>
             <input
               type="checkbox"
               checked={t.selected}
@@ -693,10 +693,10 @@ export default function ProcessCallNotesPage() {
               <input
                 value={t.title}
                 onChange={e => setEditedTasks(prev => prev.map((x, j) => j === i ? { ...x, title: e.target.value } : x))}
-                className="w-full bg-transparent text-[13px] font-medium text-brand-navy outline-none border-none"
+                className="w-full bg-transparent text-[13px] font-medium text-brand-navy dark:text-fg-1 outline-none border-none"
                 disabled={tasksConfirmed}
               />
-              <p className="text-[10px] text-brand-navy-70 mt-0.5">Due in {t.due_days} days</p>
+              <p className="text-[10px] text-brand-navy-70 dark:text-fg-2 mt-0.5">Due in {t.due_days} days</p>
             </div>
           </label>
         ))}
@@ -711,7 +711,7 @@ export default function ProcessCallNotesPage() {
         subtitle="Prefix uses your initials. Review and copy for Salesforce."
         action={commentCopied
           ? <ConfirmedChip label="Copied" />
-          : <button onClick={copyComment} className="px-3 py-1.5 rounded-lg border border-brand-navy-30 text-[11px] font-medium text-brand-navy-70 hover:text-brand-navy hover:border-brand-navy transition-colors">Copy to clipboard</button>
+          : <button onClick={copyComment} className="px-3 py-1.5 rounded-lg border border-brand-navy-30 text-[11px] font-medium text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:text-fg-1 hover:border-brand-navy transition-colors">Copy to clipboard</button>
         }
       />
       <textarea
@@ -719,7 +719,7 @@ export default function ProcessCallNotesPage() {
         onChange={e => setEditedComment(e.target.value)}
         rows={3}
         disabled={commentCopied}
-        className="w-full px-3 py-2.5 border border-brand-navy-30 rounded-xl text-[13px] text-brand-navy bg-gray-50/80 resize-none focus:outline-none focus:ring-[3px] focus:ring-brand-purple/15 focus:border-brand-purple leading-relaxed disabled:opacity-60"
+        className="w-full px-3 py-2.5 border border-brand-navy-30 rounded-xl text-[13px] text-brand-navy dark:text-fg-1 bg-gray-50 dark:bg-ink-2/80 resize-none focus:outline-none focus:ring-[3px] focus:ring-brand-purple/15 focus:border-brand-purple leading-relaxed disabled:opacity-60"
       />
     </div>
   );
@@ -731,18 +731,18 @@ export default function ProcessCallNotesPage() {
         subtitle="Prepended to the Technical Blockers field on the opportunity."
         action={blockersConfirmed
           ? <ConfirmedChip label="Saved" />
-          : <button onClick={confirmBlockers} disabled={busy === 'blockers'} className="px-3 py-1.5 rounded-lg bg-brand-purple text-white text-[11px] font-medium hover:bg-brand-purple-70 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">{busy === 'blockers' ? 'Saving…' : 'Save to opportunity'}</button>
+          : <button onClick={confirmBlockers} disabled={busy === 'blockers'} className="px-3 py-1.5 rounded-lg bg-brand-purple dark:bg-accent-purple text-white text-[11px] font-medium hover:bg-brand-purple-70 dark:hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">{busy === 'blockers' ? 'Saving…' : 'Save to opportunity'}</button>
         }
       />
       <div className="space-y-2">
         {editedBlockers.map((b, i) => (
           <div key={i} className="flex items-start gap-3 px-3 py-2.5 border border-status-overdue/25 rounded-xl bg-status-overdue/[0.03]">
-            <div className="w-4 h-4 rounded-md bg-status-overdue/12 flex items-center justify-center flex-shrink-0 mt-0.5"><svg className="w-2.5 h-2.5 text-status-overdue" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01"/></svg></div>
+            <div className="w-4 h-4 rounded-md bg-status-overdue/12 flex items-center justify-center flex-shrink-0 mt-0.5"><svg className="w-2.5 h-2.5 text-status-overdue dark:text-status-d-overdue" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01"/></svg></div>
             <input
               value={b}
               onChange={e => setEditedBlockers(prev => prev.map((x, j) => j === i ? e.target.value : x))}
               disabled={blockersConfirmed}
-              className="flex-1 bg-transparent text-[13px] text-brand-navy outline-none border-none min-w-0 disabled:opacity-60"
+              className="flex-1 bg-transparent text-[13px] text-brand-navy dark:text-fg-1 outline-none border-none min-w-0 disabled:opacity-60"
             />
           </div>
         ))}
@@ -757,14 +757,14 @@ export default function ProcessCallNotesPage() {
         subtitle="Will be flagged as a next-step task on this opportunity."
         action={nextStepConfirmed
           ? <ConfirmedChip label="Created" />
-          : <button onClick={confirmNextStep} disabled={busy === 'nextstep' || !editedNextStep.trim()} className="px-3 py-1.5 rounded-lg bg-brand-purple text-white text-[11px] font-medium hover:bg-brand-purple-70 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">{busy === 'nextstep' ? 'Creating…' : 'Create as next-step task'}</button>
+          : <button onClick={confirmNextStep} disabled={busy === 'nextstep' || !editedNextStep.trim()} className="px-3 py-1.5 rounded-lg bg-brand-purple dark:bg-accent-purple text-white text-[11px] font-medium hover:bg-brand-purple-70 dark:hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">{busy === 'nextstep' ? 'Creating…' : 'Create as next-step task'}</button>
         }
       />
       <input
         value={editedNextStep}
         onChange={e => setEditedNextStep(e.target.value)}
         disabled={nextStepConfirmed}
-        className="w-full px-3 py-2.5 border border-brand-navy-30 rounded-xl text-[13px] text-brand-navy bg-gray-50/80 focus:outline-none focus:ring-[3px] focus:ring-brand-purple/15 focus:border-brand-purple disabled:opacity-60"
+        className="w-full px-3 py-2.5 border border-brand-navy-30 rounded-xl text-[13px] text-brand-navy dark:text-fg-1 bg-gray-50 dark:bg-ink-2/80 focus:outline-none focus:ring-[3px] focus:ring-brand-purple/15 focus:border-brand-purple disabled:opacity-60"
       />
     </div>
   );
@@ -785,13 +785,13 @@ export default function ProcessCallNotesPage() {
           subtitle="Stack chips, enterprise systems, existing DMG tools, and prose proposals. Click to dismiss any item."
           action={techDiscoveryConfirmed
             ? <ConfirmedChip label="Saved" />
-            : <button onClick={confirmTechDiscovery} disabled={busy === 'techdiscovery'} className="px-3 py-1.5 rounded-lg bg-brand-purple text-white text-[11px] font-medium hover:bg-brand-purple-70 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">{busy === 'techdiscovery' ? 'Saving…' : 'Apply accepted items'}</button>
+            : <button onClick={confirmTechDiscovery} disabled={busy === 'techdiscovery'} className="px-3 py-1.5 rounded-lg bg-brand-purple dark:bg-accent-purple text-white text-[11px] font-medium hover:bg-brand-purple-70 dark:hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">{busy === 'techdiscovery' ? 'Saving…' : 'Apply accepted items'}</button>
           }
         />
 
         {stackEntries.length > 0 && (
           <div className="mb-3">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-purple mb-1.5">Technology stack detected</p>
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-purple dark:text-accent-purple mb-1.5">Technology stack detected</p>
             <div className="flex flex-wrap gap-1.5">
               {stackEntries.flatMap(([cat, items]) =>
                 items.map(it => {
@@ -803,9 +803,9 @@ export default function ProcessCallNotesPage() {
                       type="button"
                       disabled={techDiscoveryConfirmed}
                       onClick={() => toggleTechReject(key)}
-                      className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${rejected ? 'border-brand-navy-30 bg-white text-brand-navy-30 line-through' : 'border-brand-purple/40 bg-brand-purple-30/40 text-brand-purple font-medium'} disabled:opacity-60 disabled:cursor-not-allowed`}
+                      className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${rejected ? 'border-brand-navy-30 bg-white dark:bg-ink-1 text-brand-navy-30 dark:text-fg-4 line-through' : 'border-brand-purple/40 dark:border-accent-purple/40 bg-brand-purple-30/40 dark:bg-accent-purple-soft text-brand-purple dark:text-accent-purple font-medium'} disabled:opacity-60 disabled:cursor-not-allowed`}
                     >
-                      <span className="text-brand-navy-70 font-normal mr-1">{TECH_STACK_CATEGORY_LABELS[cat] ?? cat}</span>
+                      <span className="text-brand-navy-70 dark:text-fg-2 font-normal mr-1">{TECH_STACK_CATEGORY_LABELS[cat] ?? cat}</span>
                       {it}
                     </button>
                   );
@@ -817,21 +817,21 @@ export default function ProcessCallNotesPage() {
 
         {(esEntries.length + dmgEntries.length) > 0 && (
           <div className="mb-3">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-purple mb-1.5">Enterprise systems &amp; existing tools</p>
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-purple dark:text-accent-purple mb-1.5">Enterprise systems &amp; existing tools</p>
             <div className="flex flex-col gap-1.5">
               {[...esEntries.map(([k, v]) => ({ cat: 'es', label: ENTERPRISE_SYSTEM_LABELS[k] ?? k, k, v })),
                 ...dmgEntries.map(([k, v]) => ({ cat: 'dmg', label: DMG_LABELS[k] ?? k, k, v }))].map(({ cat, label, k, v }) => {
                 const key = `${cat}:${k}`;
                 const rejected = techRejects.has(key);
                 return (
-                  <div key={key} className={`grid grid-cols-[110px,1fr,auto] items-center gap-2 px-3 py-2 rounded-lg border ${rejected ? 'border-brand-navy-30 bg-white opacity-50' : 'border-brand-navy-30 bg-gray-50/80'}`}>
-                    <span className="text-[11px] text-brand-navy-70">{label}</span>
-                    <span className={`text-[12px] ${rejected ? 'line-through text-brand-navy-30' : 'text-brand-navy font-medium'}`}>{v}</span>
+                  <div key={key} className={`grid grid-cols-[110px,1fr,auto] items-center gap-2 px-3 py-2 rounded-lg border ${rejected ? 'border-brand-navy-30 bg-white dark:bg-ink-1 opacity-50' : 'border-brand-navy-30 bg-gray-50 dark:bg-ink-2/80'}`}>
+                    <span className="text-[11px] text-brand-navy-70 dark:text-fg-2">{label}</span>
+                    <span className={`text-[12px] ${rejected ? 'line-through text-brand-navy-30 dark:text-fg-4' : 'text-brand-navy dark:text-fg-1 font-medium'}`}>{v}</span>
                     <button
                       type="button"
                       disabled={techDiscoveryConfirmed}
                       onClick={() => toggleTechReject(key)}
-                      className="text-[10px] text-brand-navy-70 hover:text-brand-navy disabled:opacity-50"
+                      className="text-[10px] text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:text-fg-1 disabled:opacity-50"
                     >
                       {rejected ? 'Accept' : 'Dismiss'}
                     </button>
@@ -844,24 +844,24 @@ export default function ProcessCallNotesPage() {
 
         {prose.length > 0 && (
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-purple mb-1.5">Discovery notes proposed</p>
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-purple dark:text-accent-purple mb-1.5">Discovery notes proposed</p>
             <div className="flex flex-col gap-2">
               {prose.map(p => {
                 const key = `prose:${p.field}`;
                 const rejected = techRejects.has(key);
                 return (
-                  <div key={key} className={`px-3 py-2.5 border rounded-xl ${rejected ? 'border-brand-navy-30/50 bg-white opacity-50' : 'border-brand-navy-30/60 bg-gray-50/80'}`}>
+                  <div key={key} className={`px-3 py-2.5 border rounded-xl ${rejected ? 'border-brand-navy-30/50 bg-white dark:bg-ink-1 opacity-50' : 'border-brand-navy-30/60 dark:border-ink-border bg-gray-50 dark:bg-ink-2/80'}`}>
                     <div className="flex items-center justify-between gap-2 mb-1">
-                      <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-purple">
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-purple dark:text-accent-purple">
                         {PROSE_FIELD_LABELS[p.field] ?? p.field}
-                        <span className={`ml-2 text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded ${p.mode === 'replace' ? 'bg-brand-purple-30/60 text-brand-purple' : 'bg-status-info/15 text-[#0088a8]'}`}>{p.mode === 'replace' ? 'new' : 'append'}</span>
+                        <span className={`ml-2 text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded ${p.mode === 'replace' ? 'bg-brand-purple-30/60 dark:bg-accent-purple-soft text-brand-purple' : 'bg-status-info/15 text-[#0088a8]'}`}>{p.mode === 'replace' ? 'new' : 'append'}</span>
                       </p>
-                      <button type="button" disabled={techDiscoveryConfirmed} onClick={() => toggleTechReject(key)} className="text-[10px] text-brand-navy-70 hover:text-brand-navy disabled:opacity-50">{rejected ? 'Accept' : 'Dismiss'}</button>
+                      <button type="button" disabled={techDiscoveryConfirmed} onClick={() => toggleTechReject(key)} className="text-[10px] text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:text-fg-1 disabled:opacity-50">{rejected ? 'Accept' : 'Dismiss'}</button>
                     </div>
                     {p.mode === 'append' && p.current && (
-                      <p className="text-[11px] text-brand-navy-30 italic leading-relaxed mb-1 border-l-2 border-brand-navy-30 pl-2">{p.current}</p>
+                      <p className="text-[11px] text-brand-navy-30 dark:text-fg-4 italic leading-relaxed mb-1 border-l-2 border-brand-navy-30 pl-2">{p.current}</p>
                     )}
-                    <p className={`text-[12px] leading-relaxed ${rejected ? 'line-through text-brand-navy-30' : 'text-brand-navy bg-status-success/10 border-l-2 border-status-success px-2 py-1 rounded-r-lg'}`}>{p.suggested}</p>
+                    <p className={`text-[12px] leading-relaxed ${rejected ? 'line-through text-brand-navy-30 dark:text-fg-4' : 'text-brand-navy dark:text-fg-1 bg-status-success/10 dark:bg-status-d-success-soft border-l-2 border-status-success px-2 py-1 rounded-r-lg'}`}>{p.suggested}</p>
                   </div>
                 );
               })}
@@ -879,21 +879,21 @@ export default function ProcessCallNotesPage() {
         subtitle="Saved as a structured note on the opp. Salesforce is NOT modified."
         action={meddpiccConfirmed
           ? <ConfirmedChip label="Saved as note" />
-          : <button onClick={confirmMeddpiccAsNote} disabled={busy === 'meddpicc'} className="px-3 py-1.5 rounded-lg bg-brand-purple text-white text-[11px] font-medium hover:bg-brand-purple-70 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">{busy === 'meddpicc' ? 'Saving…' : 'Save as note'}</button>
+          : <button onClick={confirmMeddpiccAsNote} disabled={busy === 'meddpicc'} className="px-3 py-1.5 rounded-lg bg-brand-purple dark:bg-accent-purple text-white text-[11px] font-medium hover:bg-brand-purple-70 dark:hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">{busy === 'meddpicc' ? 'Saving…' : 'Save as note'}</button>
         }
       />
-      <div className="mb-3 rounded-lg bg-status-info/10 border border-status-info/30 px-3 py-2">
+      <div className="mb-3 rounded-lg bg-status-info/10 dark:bg-status-d-info-soft border border-status-info/30 px-3 py-2">
         <p className="text-[10px] font-semibold uppercase tracking-widest text-[#0088a8]">Salesforce is not modified</p>
-        <p className="text-[11px] text-brand-navy-70 leading-relaxed mt-0.5">MEDDPICC in this app mirrors SF. Accepted proposals are saved as a structured note flagged <em>"Consider updating SF"</em>. The score/pill won't shift until the SF edit is made separately.</p>
+        <p className="text-[11px] text-brand-navy-70 dark:text-fg-2 leading-relaxed mt-0.5">MEDDPICC in this app mirrors SF. Accepted proposals are saved as a structured note flagged <em>"Consider updating SF"</em>. The score/pill won't shift until the SF edit is made separately.</p>
       </div>
       <div className="space-y-2">
         {result.meddpicc_updates.map((u, i) => (
-          <div key={i} className="px-3 py-2.5 border border-brand-navy-30/50 rounded-xl bg-gray-50/80">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-purple mb-1">{MEDDPICC_LABELS[u.field] ?? u.field}</p>
+          <div key={i} className="px-3 py-2.5 border border-brand-navy-30/50 rounded-xl bg-gray-50 dark:bg-ink-2/80">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-purple dark:text-accent-purple mb-1">{MEDDPICC_LABELS[u.field] ?? u.field}</p>
             {u.current
-              ? <p className="text-[11px] text-brand-navy-30 italic line-through leading-relaxed mb-1">{u.current}</p>
-              : <p className="text-[11px] text-brand-navy-30 italic mb-1">— not set</p>}
-            <p className="text-[12px] text-brand-navy leading-relaxed bg-status-success/10 border-l-2 border-status-success px-2 py-1 rounded-r-lg">{u.suggested}</p>
+              ? <p className="text-[11px] text-brand-navy-30 dark:text-fg-4 italic line-through leading-relaxed mb-1">{u.current}</p>
+              : <p className="text-[11px] text-brand-navy-30 dark:text-fg-4 italic mb-1">— not set</p>}
+            <p className="text-[12px] text-brand-navy dark:text-fg-1 leading-relaxed bg-status-success/10 dark:bg-status-d-success-soft border-l-2 border-status-success px-2 py-1 rounded-r-lg">{u.suggested}</p>
           </div>
         ))}
       </div>
@@ -953,16 +953,16 @@ export default function ProcessCallNotesPage() {
               disabled={!unlocked}
               className={`flex items-center gap-2 px-3.5 py-2 rounded-t-lg text-[12px] font-medium whitespace-nowrap transition-colors ${
                 active
-                  ? 'bg-white text-brand-purple border border-brand-navy-30/50 border-b-0 -mb-px'
+                  ? 'bg-white dark:bg-ink-1 text-brand-purple dark:text-accent-purple border border-brand-navy-30/50 border-b-0 -mb-px'
                   : unlocked
-                    ? 'text-brand-navy-70 hover:text-brand-navy hover:bg-brand-purple-30/10'
-                    : 'text-brand-navy-30 cursor-not-allowed'
+                    ? 'text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:text-fg-1 hover:bg-brand-purple-30/10'
+                    : 'text-brand-navy-30 dark:text-fg-4 cursor-not-allowed'
               }`}
               title={unlocked ? undefined : 'Complete the current section first'}
             >
               {SECTION_LABELS[s]}
               {sectionConfirmed[s]
-                ? <svg className="w-3 h-3 text-status-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
+                ? <svg className="w-3 h-3 text-status-success dark:text-status-d-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
                 : !unlocked
                   ? <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
                   : null}
@@ -972,17 +972,17 @@ export default function ProcessCallNotesPage() {
       </div>
       <div className="px-5 py-5">
         {sectionsWithContent.length === 0
-          ? <p className="text-[12px] text-brand-navy-70 text-center py-8">Claude didn't find content for any of the selected sections.</p>
+          ? <p className="text-[12px] text-brand-navy-70 dark:text-fg-2 text-center py-8">Claude didn't find content for any of the selected sections.</p>
           : sectionRenderers[activeTab]()}
       </div>
-      <div className="px-5 py-3 bg-[#F5F5F7] border-t border-brand-navy-30/40 flex items-center justify-between">
-        <p className="text-[11px] text-brand-navy-70">
+      <div className="px-5 py-3 bg-[#F5F5F7] dark:bg-ink-0 border-t border-brand-navy-30/40 dark:border-ink-border-soft flex items-center justify-between">
+        <p className="text-[11px] text-brand-navy-70 dark:text-fg-2">
           Section {currentTabIndex + 1} of {sectionsWithContent.length}
           {' · '}
           {sectionsWithContent.filter(s => sectionConfirmed[s]).length} confirmed
         </p>
         <div className="flex items-center gap-2">
-          <button onClick={backToOpp} className="px-3 py-1.5 rounded-lg border border-brand-navy-30 text-[12px] font-medium text-brand-navy-70 hover:text-brand-navy hover:border-brand-navy transition-colors">Leave</button>
+          <button onClick={backToOpp} className="px-3 py-1.5 rounded-lg border border-brand-navy-30 text-[12px] font-medium text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:text-fg-1 hover:border-brand-navy transition-colors">Leave</button>
           {!isLastTab
             ? (
               <button
@@ -993,7 +993,7 @@ export default function ProcessCallNotesPage() {
                   setActiveTab(nextSection);
                   setMaxTabIndex(prev => Math.max(prev, nextIdx));
                 }}
-                className="px-4 py-1.5 rounded-lg bg-brand-purple text-white text-[12px] font-medium hover:bg-brand-purple-70 transition-colors inline-flex items-center gap-1.5"
+                className="px-4 py-1.5 rounded-lg bg-brand-purple dark:bg-accent-purple text-white text-[12px] font-medium hover:bg-brand-purple-70 dark:hover:opacity-90 transition-colors inline-flex items-center gap-1.5"
               >
                 Next section
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
@@ -1003,7 +1003,7 @@ export default function ProcessCallNotesPage() {
               <button
                 onClick={confirmAllAndFinish}
                 disabled={busy === 'all'}
-                className="px-4 py-1.5 rounded-lg bg-brand-purple text-white text-[12px] font-medium hover:bg-brand-purple-70 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="px-4 py-1.5 rounded-lg bg-brand-purple dark:bg-accent-purple text-white text-[12px] font-medium hover:bg-brand-purple-70 dark:hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 {busy === 'all' ? 'Applying…' : 'Apply all & finish'}
               </button>
@@ -1027,26 +1027,26 @@ export default function ProcessCallNotesPage() {
             <div key={s} className="flex items-center gap-2">
               <button
                 onClick={() => setWizardStep(i)}
-                className={`text-[11px] font-medium px-2.5 py-1 rounded-full inline-flex items-center gap-1.5 transition-colors ${active ? 'bg-brand-purple text-white' : done ? 'bg-status-success/15 text-[#009e75]' : 'bg-[#F5F5F7] text-brand-navy-70 hover:text-brand-navy'}`}
+                className={`text-[11px] font-medium px-2.5 py-1 rounded-full inline-flex items-center gap-1.5 transition-colors ${active ? 'bg-brand-purple dark:bg-accent-purple text-white' : done ? 'bg-status-success/15 text-[#009e75]' : 'bg-[#F5F5F7] dark:bg-ink-0 text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy'}`}
               >
                 <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold ${active ? 'bg-white/25' : done ? 'bg-status-success/25' : 'bg-brand-navy-30 text-white'}`}>{done ? '✓' : i + 1}</span>
                 {SECTION_LABELS[s]}
               </button>
-              {i < sectionsWithContent.length - 1 && <span className="text-brand-navy-30 text-[11px]">›</span>}
+              {i < sectionsWithContent.length - 1 && <span className="text-brand-navy-30 dark:text-fg-4 text-[11px]">›</span>}
             </div>
           );
         })}
       </div>
       <div className="px-5 py-5 min-h-[200px]">
-        {currentWizardSection ? sectionRenderers[currentWizardSection]() : <p className="text-[12px] text-brand-navy-70 text-center py-8">Nothing to review.</p>}
+        {currentWizardSection ? sectionRenderers[currentWizardSection]() : <p className="text-[12px] text-brand-navy-70 dark:text-fg-2 text-center py-8">Nothing to review.</p>}
       </div>
-      <div className="px-5 py-3 bg-[#F5F5F7] border-t border-brand-navy-30/40 flex items-center justify-between">
-        <p className="text-[11px] text-brand-navy-70">Step {wizardStepClamped + 1} of {sectionsWithContent.length}</p>
+      <div className="px-5 py-3 bg-[#F5F5F7] dark:bg-ink-0 border-t border-brand-navy-30/40 dark:border-ink-border-soft flex items-center justify-between">
+        <p className="text-[11px] text-brand-navy-70 dark:text-fg-2">Step {wizardStepClamped + 1} of {sectionsWithContent.length}</p>
         <div className="flex items-center gap-2">
-          <button onClick={() => setWizardStep(Math.max(0, wizardStepClamped - 1))} disabled={wizardStepClamped === 0} className="px-3 py-1.5 rounded-lg border border-brand-navy-30 text-[12px] font-medium text-brand-navy-70 hover:text-brand-navy hover:border-brand-navy disabled:opacity-40 disabled:cursor-not-allowed transition-colors">← Previous</button>
+          <button onClick={() => setWizardStep(Math.max(0, wizardStepClamped - 1))} disabled={wizardStepClamped === 0} className="px-3 py-1.5 rounded-lg border border-brand-navy-30 text-[12px] font-medium text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:text-fg-1 hover:border-brand-navy disabled:opacity-40 disabled:cursor-not-allowed transition-colors">← Previous</button>
           {wizardStepClamped < sectionsWithContent.length - 1
-            ? <button onClick={() => setWizardStep(wizardStepClamped + 1)} className="px-4 py-1.5 rounded-lg bg-brand-purple text-white text-[12px] font-medium hover:bg-brand-purple-70 transition-colors">Next →</button>
-            : <button onClick={confirmAllAndFinish} disabled={busy === 'all'} className="px-4 py-1.5 rounded-lg bg-brand-purple text-white text-[12px] font-medium hover:bg-brand-purple-70 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">{busy === 'all' ? 'Applying…' : 'Apply all & finish'}</button>
+            ? <button onClick={() => setWizardStep(wizardStepClamped + 1)} className="px-4 py-1.5 rounded-lg bg-brand-purple dark:bg-accent-purple text-white text-[12px] font-medium hover:bg-brand-purple-70 dark:hover:opacity-90 transition-colors">Next →</button>
+            : <button onClick={confirmAllAndFinish} disabled={busy === 'all'} className="px-4 py-1.5 rounded-lg bg-brand-purple dark:bg-accent-purple text-white text-[12px] font-medium hover:bg-brand-purple-70 dark:hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">{busy === 'all' ? 'Applying…' : 'Apply all & finish'}</button>
           }
         </div>
       </div>
@@ -1056,17 +1056,17 @@ export default function ProcessCallNotesPage() {
   // Scroll view
   const scrollView = (
     <Card>
-      {sectionsWithContent.length === 0 && <p className="text-[12px] text-brand-navy-70 text-center py-8 px-5">Claude didn't find content for any of the selected sections.</p>}
+      {sectionsWithContent.length === 0 && <p className="text-[12px] text-brand-navy-70 dark:text-fg-2 text-center py-8 px-5">Claude didn't find content for any of the selected sections.</p>}
       {sectionsWithContent.map((s, i) => (
-        <div key={s} className={`px-5 py-5 ${i < sectionsWithContent.length - 1 ? 'border-b border-brand-navy-30/40' : ''}`}>
+        <div key={s} className={`px-5 py-5 ${i < sectionsWithContent.length - 1 ? 'border-b border-brand-navy-30/40 dark:border-ink-border-soft' : ''}`}>
           {sectionRenderers[s]()}
         </div>
       ))}
-      <div className="px-5 py-3 bg-[#F5F5F7] border-t border-brand-navy-30/40 flex items-center justify-between sticky bottom-0">
-        <p className="text-[11px] text-brand-navy-70">{sectionsWithContent.length} section{sectionsWithContent.length === 1 ? '' : 's'} · {sectionsWithContent.filter(s => sectionConfirmed[s]).length} confirmed</p>
+      <div className="px-5 py-3 bg-[#F5F5F7] dark:bg-ink-0 border-t border-brand-navy-30/40 dark:border-ink-border-soft flex items-center justify-between sticky bottom-0">
+        <p className="text-[11px] text-brand-navy-70 dark:text-fg-2">{sectionsWithContent.length} section{sectionsWithContent.length === 1 ? '' : 's'} · {sectionsWithContent.filter(s => sectionConfirmed[s]).length} confirmed</p>
         <div className="flex items-center gap-2">
-          <button onClick={backToOpp} className="px-3 py-1.5 rounded-lg border border-brand-navy-30 text-[12px] font-medium text-brand-navy-70 hover:text-brand-navy hover:border-brand-navy transition-colors">Leave</button>
-          <button onClick={confirmAllAndFinish} disabled={busy === 'all'} className="px-4 py-1.5 rounded-lg bg-brand-purple text-white text-[12px] font-medium hover:bg-brand-purple-70 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">{busy === 'all' ? 'Applying…' : 'Apply all accepted'}</button>
+          <button onClick={backToOpp} className="px-3 py-1.5 rounded-lg border border-brand-navy-30 text-[12px] font-medium text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:text-fg-1 hover:border-brand-navy transition-colors">Leave</button>
+          <button onClick={confirmAllAndFinish} disabled={busy === 'all'} className="px-4 py-1.5 rounded-lg bg-brand-purple dark:bg-accent-purple text-white text-[12px] font-medium hover:bg-brand-purple-70 dark:hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">{busy === 'all' ? 'Applying…' : 'Apply all accepted'}</button>
         </div>
       </div>
     </Card>
@@ -1075,20 +1075,20 @@ export default function ProcessCallNotesPage() {
   // ── Leave guard overlay ──────────────────────────────────────────────────
   const leaveGuard = showLeaveGuard && (
     <div className="fixed inset-0 bg-brand-navy/55 backdrop-blur-[3px] flex items-center justify-center p-6 z-40">
-      <div className="max-w-[440px] bg-white rounded-2xl overflow-hidden shadow-2xl">
+      <div className="max-w-[440px] bg-white dark:bg-ink-1 rounded-2xl overflow-hidden shadow-2xl">
         <div className="p-6">
           <div className="w-9 h-9 rounded-xl bg-status-warning/20 flex items-center justify-center mb-3">
-            <svg className="w-5 h-5 text-status-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>
+            <svg className="w-5 h-5 text-status-warning dark:text-status-d-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>
           </div>
-          <h2 className="text-[15px] font-semibold text-brand-navy">Unsaved proposals</h2>
-          <p className="text-[12px] text-brand-navy-70 mt-1.5 leading-relaxed">You have AI proposals that haven't been applied yet. Leaving will discard them. {saveRawNotes && <>Your raw notes are already saved on the deal — only the proposals would be lost.</>}</p>
+          <h2 className="text-[15px] font-semibold text-brand-navy dark:text-fg-1">Unsaved proposals</h2>
+          <p className="text-[12px] text-brand-navy-70 dark:text-fg-2 mt-1.5 leading-relaxed">You have AI proposals that haven't been applied yet. Leaving will discard them. {saveRawNotes && <>Your raw notes are already saved on the deal — only the proposals would be lost.</>}</p>
         </div>
-        <div className="px-6 py-3 bg-[#F5F5F7] flex items-center justify-end gap-2">
+        <div className="px-6 py-3 bg-[#F5F5F7] dark:bg-ink-0 flex items-center justify-end gap-2">
           <button
             onClick={() => {
               const fn = pendingNavRef.current; pendingNavRef.current = null; setShowLeaveGuard(false); if (fn) fn();
             }}
-            className="px-3 py-1.5 text-[12px] text-brand-navy-70 hover:text-brand-navy transition-colors"
+            className="px-3 py-1.5 text-[12px] text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:text-fg-1 transition-colors"
           >
             Discard &amp; leave
           </button>
@@ -1098,13 +1098,13 @@ export default function ProcessCallNotesPage() {
               pendingNavRef.current = null;
               await confirmAllAndFinish();
             }}
-            className="px-3 py-1.5 rounded-lg border border-brand-navy-30 text-[12px] font-medium text-brand-navy-70 hover:text-brand-navy hover:border-brand-navy transition-colors"
+            className="px-3 py-1.5 rounded-lg border border-brand-navy-30 text-[12px] font-medium text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:text-fg-1 hover:border-brand-navy transition-colors"
           >
             Apply all, then leave
           </button>
           <button
             onClick={() => { pendingNavRef.current = null; setShowLeaveGuard(false); }}
-            className="px-4 py-1.5 rounded-lg bg-brand-purple text-white text-[12px] font-medium hover:bg-brand-purple-70 transition-colors"
+            className="px-4 py-1.5 rounded-lg bg-brand-purple dark:bg-accent-purple text-white text-[12px] font-medium hover:bg-brand-purple-70 dark:hover:opacity-90 transition-colors"
           >
             Stay &amp; review
           </button>
@@ -1114,7 +1114,7 @@ export default function ProcessCallNotesPage() {
   );
 
   return (
-    <div className="flex-1 overflow-y-auto bg-[#F5F5F7] px-6 py-6">
+    <div className="flex-1 overflow-y-auto bg-[#F5F5F7] dark:bg-ink-0 px-6 py-6">
       <div className="max-w-[1160px] mx-auto">
         {header}
         {phase === 'configure' && configureView}

@@ -54,7 +54,7 @@ function highlightBold(text: string): React.ReactNode {
   if (parts.length === 1) return text;
   return parts.map((part, i) =>
     i % 2 === 1
-      ? <strong key={i} className="text-brand-navy font-semibold">{part}</strong>
+      ? <strong key={i} className="text-brand-navy dark:text-fg-1 font-semibold">{part}</strong>
       : <React.Fragment key={i}>{part}</React.Fragment>
   );
 }
@@ -69,7 +69,7 @@ function highlightBoldCited(
   const parts = text.split(/\*\*(.+?)\*\*/g);
   return parts.map((part, i) =>
     i % 2 === 1
-      ? <strong key={i} className="text-brand-navy font-semibold">
+      ? <strong key={i} className="text-brand-navy dark:text-fg-1 font-semibold">
           <TextWithCitations text={part} citations={citations} onJump={onJump} />
         </strong>
       : <TextWithCitations key={i} text={part} citations={citations} onJump={onJump} />
@@ -84,9 +84,9 @@ const DEMO_LEVELS = [
 ];
 
 const CONFIDENCE_CONFIG = {
-  strong:  { label: 'Strong',  badge: 'bg-status-success/10 text-emerald-700 border-status-success/30', iconBg: 'bg-status-success/15', iconColor: 'text-status-success' },
-  partial: { label: 'Partial', badge: 'bg-status-warning/10 text-amber-700 border-status-warning/30',   iconBg: 'bg-status-warning/15', iconColor: 'text-status-warning' },
-  missing: { label: 'Missing', badge: 'bg-status-overdue/10 text-red-700 border-status-overdue/30',     iconBg: 'bg-status-overdue/15', iconColor: 'text-status-overdue' },
+  strong:  { label: 'Strong',  badge: 'bg-status-success/10 dark:bg-status-d-success-soft text-emerald-700 border-status-success/30', iconBg: 'bg-status-success/15', iconColor: 'text-status-success dark:text-status-d-success' },
+  partial: { label: 'Partial', badge: 'bg-status-warning/10 dark:bg-status-d-warning-soft text-amber-700 border-status-warning/30',   iconBg: 'bg-status-warning/15', iconColor: 'text-status-warning dark:text-status-d-warning' },
+  missing: { label: 'Missing', badge: 'bg-status-overdue/10 dark:bg-status-d-overdue-soft text-red-700 border-status-overdue/30',     iconBg: 'bg-status-overdue/15', iconColor: 'text-status-overdue dark:text-status-d-overdue' },
 };
 
 /* ── PDF Export ── */
@@ -282,7 +282,7 @@ export default function DemoPrepTab({ oppId, oppName }: { oppId: number; oppName
     return (
       <div className="py-8 text-center">
         <p className="text-sm text-red-600">{error}</p>
-        <button onClick={fetchData} className="mt-2 text-xs text-brand-purple hover:text-brand-purple-70">Retry</button>
+        <button onClick={fetchData} className="mt-2 text-xs text-brand-purple dark:text-accent-purple hover:text-brand-purple-70 dark:text-accent-purple">Retry</button>
       </div>
     );
   }
@@ -292,13 +292,13 @@ export default function DemoPrepTab({ oppId, oppName }: { oppId: number; oppName
     return (
       <div className="py-12 text-center">
         <div className="w-12 h-12 rounded-full bg-gradient-to-br from-brand-pink/20 to-brand-purple/20 flex items-center justify-center mx-auto mb-3">
-          <svg className="w-5 h-5 text-brand-purple animate-spin" fill="none" viewBox="0 0 24 24">
+          <svg className="w-5 h-5 text-brand-purple dark:text-accent-purple animate-spin" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
           </svg>
         </div>
-        <p className="text-sm font-medium text-brand-navy mb-1">Analyzing demo readiness...</p>
-        <p className="text-[11px] text-brand-navy-70">Evaluating the 6-Question Demo Check against your deal data</p>
+        <p className="text-sm font-medium text-brand-navy dark:text-fg-1 mb-1">Analyzing demo readiness...</p>
+        <p className="text-[11px] text-brand-navy-70 dark:text-fg-2">Evaluating the 6-Question Demo Check against your deal data</p>
       </div>
     );
   }
@@ -329,12 +329,12 @@ export default function DemoPrepTab({ oppId, oppName }: { oppId: number; oppName
                   style={{ transform: 'rotate(-90deg)', transformOrigin: '50% 50%' }} />
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-sm font-semibold text-brand-navy">{dp.questions_answered}/{dp.total_questions}</span>
+                <span className="text-sm font-semibold text-brand-navy dark:text-fg-1">{dp.questions_answered}/{dp.total_questions}</span>
               </div>
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-semibold text-brand-navy">Demo Readiness</h3>
+                <h3 className="text-sm font-semibold text-brand-navy dark:text-fg-1">Demo Readiness</h3>
                 <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold text-white shadow-sm ${
                   dp.demo_level === 'D1' ? 'bg-gradient-to-r from-amber-400 to-amber-500' :
                   dp.demo_level === 'D2' ? 'bg-gradient-to-r from-rose-400 to-rose-500' :
@@ -344,7 +344,7 @@ export default function DemoPrepTab({ oppId, oppName }: { oppId: number; oppName
                   {dp.demo_level} {dp.demo_level_label}
                 </span>
               </div>
-              <p className="text-[11px] text-brand-navy-70 mt-0.5">
+              <p className="text-[11px] text-brand-navy-70 dark:text-fg-2 mt-0.5">
                 {dp.questions_answered} of {dp.total_questions} questions answered with sufficient evidence.
                 {dp.total_questions - dp.questions_answered > 0 && ` ${dp.total_questions - dp.questions_answered} gap${dp.total_questions - dp.questions_answered > 1 ? 's' : ''} need discovery.`}
               </p>
@@ -352,11 +352,11 @@ export default function DemoPrepTab({ oppId, oppName }: { oppId: number; oppName
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             {data.generated_at && (
-              <span className="text-[10px] text-brand-navy-30">{timeAgo(data.generated_at)}</span>
+              <span className="text-[10px] text-brand-navy-30 dark:text-fg-4">{timeAgo(data.generated_at)}</span>
             )}
             <button
               onClick={() => exportDemoPrepPdf(dp, oppName ?? `Opportunity #${oppId}`, data.generated_at)}
-              className="text-[11px] text-brand-navy-70 hover:text-brand-purple flex items-center gap-1 px-2 py-1.5 rounded hover:bg-white/70 transition-colors"
+              className="text-[11px] text-brand-navy-70 dark:text-fg-2 hover:text-brand-purple dark:text-accent-purple flex items-center gap-1 px-2 py-1.5 rounded hover:bg-white/70 transition-colors"
               title="Download as PDF"
             >
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
@@ -364,7 +364,7 @@ export default function DemoPrepTab({ oppId, oppName }: { oppId: number; oppName
             </button>
             <button
               onClick={() => alert('Slack integration coming soon!')}
-              className="text-[11px] text-brand-navy-70 hover:text-brand-purple flex items-center gap-1 px-2 py-1.5 rounded hover:bg-white/70 transition-colors"
+              className="text-[11px] text-brand-navy-70 dark:text-fg-2 hover:text-brand-purple dark:text-accent-purple flex items-center gap-1 px-2 py-1.5 rounded hover:bg-white/70 transition-colors"
               title="Send to Slack (coming soon)"
             >
               <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M5.042 15.165a2.528 2.528 0 01-2.52 2.523A2.528 2.528 0 010 15.165a2.527 2.527 0 012.522-2.52h2.52v2.52zm1.271 0a2.527 2.527 0 012.521-2.52 2.527 2.527 0 012.521 2.52v6.313A2.528 2.528 0 018.834 24a2.528 2.528 0 01-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 01-2.521-2.52A2.528 2.528 0 018.834 0a2.528 2.528 0 012.521 2.522v2.52H8.834zm0 1.271a2.528 2.528 0 012.521 2.521 2.528 2.528 0 01-2.521 2.521H2.522A2.528 2.528 0 010 8.834a2.528 2.528 0 012.522-2.521h6.312zm10.122 2.521a2.528 2.528 0 012.522-2.521A2.528 2.528 0 0124 8.834a2.528 2.528 0 01-2.522 2.521h-2.522V8.834zm-1.268 0a2.528 2.528 0 01-2.523 2.521 2.527 2.527 0 01-2.52-2.521V2.522A2.527 2.527 0 0115.165 0a2.528 2.528 0 012.523 2.522v6.312zm-2.523 10.122a2.528 2.528 0 012.523 2.522A2.528 2.528 0 0115.165 24a2.527 2.527 0 01-2.52-2.522v-2.522h2.52zm0-1.268a2.527 2.527 0 01-2.52-2.523 2.526 2.526 0 012.52-2.52h6.313A2.527 2.527 0 0124 15.165a2.528 2.528 0 01-2.522 2.523h-6.313z"/></svg>
@@ -373,7 +373,7 @@ export default function DemoPrepTab({ oppId, oppName }: { oppId: number; oppName
             <button
               onClick={generate}
               disabled={generating}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-purple text-white text-[11px] font-medium hover:bg-brand-purple-70 transition-colors shadow-sm disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-purple dark:bg-accent-purple text-white text-[11px] font-medium hover:bg-brand-purple-70 dark:hover:opacity-90 transition-colors shadow-sm disabled:opacity-50"
             >
               {generating ? (
                 <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -391,11 +391,11 @@ export default function DemoPrepTab({ oppId, oppName }: { oppId: number; oppName
         {/* Demo level calibration bar */}
         <div className="mt-3 pt-3 border-t border-brand-purple/10">
           <div className="flex items-center gap-1.5">
-            <span className="text-[9px] font-semibold text-brand-navy-70 uppercase tracking-wider w-20 flex-shrink-0">Demo Level:</span>
+            <span className="text-[9px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wider w-20 flex-shrink-0">Demo Level:</span>
             <div className="flex items-center gap-1 flex-1 flex-wrap">
               {DEMO_LEVELS.map((lvl, i) => (
                 <React.Fragment key={lvl.key}>
-                  {i > 0 && <svg className="w-3 h-3 text-brand-navy-30 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 5l7 7-7 7"/></svg>}
+                  {i > 0 && <svg className="w-3 h-3 text-brand-navy-30 dark:text-fg-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 5l7 7-7 7"/></svg>}
                   <span className={`px-2 py-0.5 rounded text-[9px] font-semibold border ${
                     dp.demo_level === lvl.key
                       ? `${lvl.color.split(' ').slice(0, 2).join(' ')} ${lvl.activeRing} ring-2`
@@ -407,7 +407,7 @@ export default function DemoPrepTab({ oppId, oppName }: { oppId: number; oppName
               ))}
             </div>
           </div>
-          <p className="text-[10px] text-brand-navy-70 mt-1.5 ml-20 italic">{dp.demo_level_reasoning}</p>
+          <p className="text-[10px] text-brand-navy-70 dark:text-fg-2 mt-1.5 ml-20 italic">{dp.demo_level_reasoning}</p>
         </div>
       </div>
 
@@ -423,17 +423,17 @@ export default function DemoPrepTab({ oppId, oppName }: { oppId: number; oppName
             <div
               key={q.question_number}
               className={`rounded-xl border overflow-hidden ${
-                isMissing ? 'border-status-overdue/20' : 'border-brand-navy-30/40'
+                isMissing ? 'border-status-overdue/20' : 'border-brand-navy-30/40 dark:border-ink-border-soft'
               }`}
             >
               {/* Summary row */}
               <button
                 onClick={() => setExpandedQ(isExpanded ? null : q.question_number)}
                 className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
-                  isMissing ? 'bg-red-50/30 hover:bg-red-50/50' : 'bg-white hover:bg-gray-50/50'
+                  isMissing ? 'bg-red-50 dark:bg-status-d-overdue-soft/30 hover:bg-red-50 dark:bg-status-d-overdue-soft/50' : 'bg-white dark:bg-ink-1 hover:bg-gray-50 dark:bg-ink-2/50'
                 }`}
               >
-                <svg className={`w-3.5 h-3.5 text-brand-navy-70 transition-transform flex-shrink-0 ${isExpanded ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path d="M9 5l7 7-7 7"/></svg>
+                <svg className={`w-3.5 h-3.5 text-brand-navy-70 dark:text-fg-2 transition-transform flex-shrink-0 ${isExpanded ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path d="M9 5l7 7-7 7"/></svg>
                 <span className={`w-5 h-5 rounded-full ${conf.iconBg} flex items-center justify-center flex-shrink-0`}>
                   {q.confidence === 'strong' && (
                     <svg className={`w-3 h-3 ${conf.iconColor}`} viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg>
@@ -447,11 +447,11 @@ export default function DemoPrepTab({ oppId, oppName }: { oppId: number; oppName
                 </span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold text-brand-navy-30">Q{q.question_number}</span>
-                    <h4 className="text-[13px] font-semibold text-brand-navy">{q.question}</h4>
+                    <span className="text-[10px] font-bold text-brand-navy-30 dark:text-fg-4">Q{q.question_number}</span>
+                    <h4 className="text-[13px] font-semibold text-brand-navy dark:text-fg-1">{q.question}</h4>
                   </div>
                   <p className={`text-[11px] mt-0.5 truncate ${
-                    isMissing ? 'text-status-overdue' : isPartial ? 'text-status-warning' : 'text-brand-navy-70'
+                    isMissing ? 'text-status-overdue dark:text-status-d-overdue' : isPartial ? 'text-status-warning dark:text-status-d-warning' : 'text-brand-navy-70 dark:text-fg-2'
                   }`}>
                     {highlightBold(q.answer.length > 120 ? q.answer.slice(0, 120) + '...' : q.answer)}
                   </p>
@@ -464,28 +464,28 @@ export default function DemoPrepTab({ oppId, oppName }: { oppId: number; oppName
               {/* Expanded detail */}
               {isExpanded && (
                 <div className={`px-4 pb-4 pt-1 border-t ${
-                  isMissing ? 'border-status-overdue/20 bg-red-50/20' : 'border-brand-navy-30/20 bg-gray-50/30'
+                  isMissing ? 'border-status-overdue/20 bg-red-50 dark:bg-status-d-overdue-soft/20' : 'border-brand-navy-30/20 dark:border-ink-border-soft bg-gray-50 dark:bg-ink-2/30'
                 }`}>
                   {/* Answer */}
                   <div className="mb-3">
-                    <span className="text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wider">
+                    <span className="text-[10px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wider">
                       {isMissing ? 'Assessment' : 'Answer'}
                     </span>
-                    <p className="text-[12px] text-brand-navy mt-1 leading-relaxed">{highlightBoldCited(q.answer, q.citations, citeJumper)}</p>
+                    <p className="text-[12px] text-brand-navy dark:text-fg-1 mt-1 leading-relaxed">{highlightBoldCited(q.answer, q.citations, citeJumper)}</p>
                   </div>
 
                   {/* Evidence */}
                   {q.evidence.length > 0 && (
                     <div className="mb-3">
-                      <span className="text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wider">
+                      <span className="text-[10px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wider">
                         {isPartial ? 'What we know' : 'Evidence'}
                       </span>
                       <div className="mt-1 space-y-1">
                         {q.evidence.map((e, i) => (
                           <div key={i} className="flex items-start gap-2 text-[11px]">
-                            <span className={`mt-0.5 ${q.confidence === 'strong' ? 'text-brand-purple' : 'text-status-success'}`}>&#9679;</span>
-                            <span className="text-brand-navy-70">
-                              <strong className="text-brand-navy">{e.source}:</strong> {highlightBold(e.text)}
+                            <span className={`mt-0.5 ${q.confidence === 'strong' ? 'text-brand-purple' : 'text-status-success dark:text-status-d-success'}`}>&#9679;</span>
+                            <span className="text-brand-navy-70 dark:text-fg-2">
+                              <strong className="text-brand-navy dark:text-fg-1">{e.source}:</strong> {highlightBold(e.text)}
                             </span>
                           </div>
                         ))}
@@ -496,13 +496,13 @@ export default function DemoPrepTab({ oppId, oppName }: { oppId: number; oppName
                   {/* Missing items */}
                   {q.missing && q.missing.length > 0 && (
                     <div className="mb-3">
-                      <span className="text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wider">What&apos;s missing</span>
+                      <span className="text-[10px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wider">What&apos;s missing</span>
                       <div className="mt-1 space-y-1">
                         {q.missing.map((m, i) => (
                           <div key={i} className="flex items-start gap-2 text-[11px]">
-                            <span className="text-status-overdue mt-0.5">&#9679;</span>
-                            <span className="text-brand-navy-70">
-                              <strong className="text-brand-navy">{m.category}:</strong> {highlightBold(m.detail)}
+                            <span className="text-status-overdue dark:text-status-d-overdue mt-0.5">&#9679;</span>
+                            <span className="text-brand-navy-70 dark:text-fg-2">
+                              <strong className="text-brand-navy dark:text-fg-1">{m.category}:</strong> {highlightBold(m.detail)}
                             </span>
                           </div>
                         ))}
@@ -513,11 +513,11 @@ export default function DemoPrepTab({ oppId, oppName }: { oppId: number; oppName
                   {/* Suggested commitments (Q6 only) */}
                   {q.suggested_commitments && q.suggested_commitments.length > 0 && (
                     <div className="mb-3">
-                      <span className="text-[10px] font-semibold text-brand-navy-70 uppercase tracking-wider">Suggested commitments for this stage</span>
+                      <span className="text-[10px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wider">Suggested commitments for this stage</span>
                       <div className="mt-1.5 grid grid-cols-2 gap-2">
                         {q.suggested_commitments.map((c, i) => (
-                          <div key={i} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-white border border-brand-navy-30/40 text-[11px] text-brand-navy">
-                            <span className="w-1.5 h-1.5 rounded-full bg-brand-purple flex-shrink-0"></span>
+                          <div key={i} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-white dark:bg-ink-1 border border-brand-navy-30/40 dark:border-ink-border-soft text-[11px] text-brand-navy dark:text-fg-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-brand-purple dark:bg-accent-purple flex-shrink-0"></span>
                             {c}
                           </div>
                         ))}
@@ -527,13 +527,13 @@ export default function DemoPrepTab({ oppId, oppName }: { oppId: number; oppName
 
                   {/* Coaching tip */}
                   <div className={`rounded-lg px-3 py-2.5 ${
-                    isMissing ? 'bg-red-50 border border-status-overdue/20' :
-                    isPartial ? 'bg-amber-50 border border-amber-200/60' :
+                    isMissing ? 'bg-red-50 dark:bg-status-d-overdue-soft border border-status-overdue/20' :
+                    isPartial ? 'bg-amber-50 dark:bg-status-d-warning-soft border border-amber-200/60' :
                     'bg-brand-purple-30/20 border border-brand-purple/10'
                   }`}>
                     <div className="flex items-start gap-2">
                       <svg className={`w-3.5 h-3.5 mt-0.5 flex-shrink-0 ${
-                        isMissing ? 'text-status-overdue' : isPartial ? 'text-amber-600' : 'text-brand-purple'
+                        isMissing ? 'text-status-overdue dark:text-status-d-overdue' : isPartial ? 'text-amber-600' : 'text-brand-purple'
                       }`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                         <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
                       </svg>
@@ -561,22 +561,22 @@ export default function DemoPrepTab({ oppId, oppName }: { oppId: number; oppName
       {/* ── Overall Assessment ── */}
       <details open className="group">
         <summary className="flex items-center gap-2 cursor-pointer select-none mb-2 list-none [&::-webkit-details-marker]:hidden">
-          <svg className="w-3.5 h-3.5 text-brand-navy-70 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path d="M9 5l7 7-7 7"/></svg>
-          <h3 className="text-[12px] font-semibold text-brand-navy uppercase tracking-wider">Overall Assessment</h3>
+          <svg className="w-3.5 h-3.5 text-brand-navy-70 dark:text-fg-2 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path d="M9 5l7 7-7 7"/></svg>
+          <h3 className="text-[12px] font-semibold text-brand-navy dark:text-fg-1 uppercase tracking-wider">Overall Assessment</h3>
         </summary>
-        <div className="rounded-xl border border-brand-navy-30/40 bg-gradient-to-br from-white to-gray-50/50 p-4">
-          <p className="text-[12px] text-brand-navy leading-relaxed mb-4">{highlightBoldCited(dp.overall_assessment, dp.overall_assessment_citations, citeJumper)}</p>
+        <div className="rounded-xl border border-brand-navy-30/40 dark:border-ink-border-soft bg-gradient-to-br from-white to-gray-50/50 p-4">
+          <p className="text-[12px] text-brand-navy dark:text-fg-1 leading-relaxed mb-4">{highlightBoldCited(dp.overall_assessment, dp.overall_assessment_citations, citeJumper)}</p>
 
           {/* Before You Demo checklist */}
           <div className="rounded-lg bg-brand-purple-30/20 border border-brand-purple/10 p-3">
-            <h4 className="text-[11px] font-semibold text-brand-purple uppercase tracking-wider mb-2">Before You Demo</h4>
+            <h4 className="text-[11px] font-semibold text-brand-purple dark:text-accent-purple uppercase tracking-wider mb-2">Before You Demo</h4>
             <div className="space-y-1.5">
               {dp.before_you_demo.map((item, i) => (
-                <label key={i} className="flex items-center gap-2 text-[11px] text-brand-navy cursor-pointer">
+                <label key={i} className="flex items-center gap-2 text-[11px] text-brand-navy dark:text-fg-1 cursor-pointer">
                   <input
                     type="checkbox"
                     defaultChecked={item.done}
-                    className="rounded border-brand-navy-30 text-brand-purple focus:ring-brand-purple"
+                    className="rounded border-brand-navy-30 text-brand-purple dark:text-accent-purple focus:ring-brand-purple"
                   />
                   {highlightBold(item.text)}
                 </label>

@@ -32,7 +32,7 @@ export default function ChangePasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#F5F5F7] px-4">
+    <div className="min-h-screen flex items-center justify-center bg-[#F5F5F7] dark:bg-ink-0 px-4">
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="flex items-center justify-center gap-2.5 mb-8">
@@ -41,20 +41,20 @@ export default function ChangePasswordPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
             </svg>
           </div>
-          <span className="font-semibold text-brand-navy text-lg">Pipeline Tracker</span>
+          <span className="font-semibold text-brand-navy dark:text-fg-1 text-lg">Pipeline Tracker</span>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-brand-navy-30/40 p-8">
+        <div className="bg-white dark:bg-ink-1 rounded-2xl shadow-sm border border-brand-navy-30/40 dark:border-ink-border-soft p-8">
           <div className="mb-6">
-            <h1 className="text-lg font-semibold text-brand-navy">Set a new password</h1>
-            <p className="text-sm text-brand-navy-70 mt-1">
+            <h1 className="text-lg font-semibold text-brand-navy dark:text-fg-1">Set a new password</h1>
+            <p className="text-sm text-brand-navy-70 dark:text-fg-2 mt-1">
               Hi {user?.name?.split(' ')[0]}! A temporary password was set for your account. Please choose a new one to continue.
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide mb-1">
+              <label className="block text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide mb-1">
                 New password
               </label>
               <input
@@ -63,11 +63,11 @@ export default function ChangePasswordPage() {
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 placeholder="Min. 6 characters"
-                className="w-full px-3 py-2.5 rounded-lg border border-brand-navy-30 text-sm text-brand-navy placeholder:text-brand-navy-30 focus:outline-none focus:ring-[3px] focus:ring-brand-purple/15 focus:border-brand-purple"
+                className="w-full px-3 py-2.5 rounded-lg border border-brand-navy-30 text-sm text-brand-navy dark:text-fg-1 placeholder:text-brand-navy-30 dark:text-fg-4 focus:outline-none focus:ring-[3px] focus:ring-brand-purple/15 focus:border-brand-purple"
               />
             </div>
             <div>
-              <label className="block text-[11px] font-semibold text-brand-navy-70 uppercase tracking-wide mb-1">
+              <label className="block text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide mb-1">
                 Confirm password
               </label>
               <input
@@ -75,18 +75,18 @@ export default function ChangePasswordPage() {
                 value={confirm}
                 onChange={e => setConfirm(e.target.value)}
                 placeholder="Repeat your new password"
-                className="w-full px-3 py-2.5 rounded-lg border border-brand-navy-30 text-sm text-brand-navy placeholder:text-brand-navy-30 focus:outline-none focus:ring-[3px] focus:ring-brand-purple/15 focus:border-brand-purple"
+                className="w-full px-3 py-2.5 rounded-lg border border-brand-navy-30 text-sm text-brand-navy dark:text-fg-1 placeholder:text-brand-navy-30 dark:text-fg-4 focus:outline-none focus:ring-[3px] focus:ring-brand-purple/15 focus:border-brand-purple"
               />
             </div>
 
             {error && (
-              <p className="text-xs text-status-overdue">{error}</p>
+              <p className="text-xs text-status-overdue dark:text-status-d-overdue">{error}</p>
             )}
 
             <button
               type="submit"
               disabled={saving}
-              className="w-full py-2.5 bg-brand-purple text-white text-sm font-semibold rounded-xl hover:bg-brand-purple-70 disabled:opacity-50 transition-colors"
+              className="w-full py-2.5 bg-brand-purple dark:bg-accent-purple text-white text-sm font-semibold rounded-xl hover:bg-brand-purple-70 dark:hover:opacity-90 disabled:opacity-50 transition-colors"
             >
               {saving ? 'Saving…' : 'Set password & continue'}
             </button>
@@ -95,7 +95,7 @@ export default function ChangePasswordPage() {
           <div className="mt-4 text-center">
             <button
               onClick={logout}
-              className="text-xs text-brand-navy-70 hover:text-brand-navy transition-colors"
+              className="text-xs text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:text-fg-1 transition-colors"
             >
               Sign in as a different user
             </button>
