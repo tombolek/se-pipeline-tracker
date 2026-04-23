@@ -84,7 +84,23 @@ All 55 columns must be ingested. Map them to the `opportunities` table as define
 
 When Salesforce adds new fields to the report, they automatically land in `sf_raw_fields`. To promote a new field to a dedicated column later: add a migration, backfill from `sf_raw_fields`, update the import mapper. No data is ever lost.
 
-**Import endpoint:** `POST /api/v1/opportunities/import` — accepts both manual file upload (multipart/form-data) AND programmatic POST, so future automation (Cowork/scheduled script) can trigger it directly.
+**Import endpoint:** `POST /api/v1/opportunities/import` — accepts both manual file upload (multipart/form-data) AND programmatic POST, so future automation (Cowork/scheduled script) can trigger it directly. Returns `{ importId }` immediately; the pipeline runs asynchronously (see below).
+
+## Staged Pipeline
+
+`POST /opportunities/import` runs asynchronously as 5 sequential stages. The route creates the `imports` row with `status='in_progress'` and returns the id; the server then runs `runStagedImport(importId, buffer, filename)` in the background, writing per-stage status / counts / duration to `imports.stage_log` (JSONB) as each stage completes. If a stage fails, remaining stages are marked `'skipped'` and the import is marked `'failed'`.
+
+| # | Stage | What runs | Counts emitted |
+|---|-------|-----------|----------------|
+| 1 | `parse`     | `readRawMatrix(buffer)` — detect format (xlsx/csv/html) and decode to a 2-D string matrix. | `rows`, `format` |
+| 2 | `validate`  | `buildParsedRows(matrix)` — check required columns, apply `COLUMN_MAP`, coerce types, drop rows without an `sf_opportunity_id`. | `mapped`, `dropped` |
+| 3 | `reconcile` | `doReconcile(rows)` — snapshot active opps, run the row-by-row UPDATE/INSERT loop, soft-hide stale opps. | `added`, `updated`, `stale`, `closedWon`, `closedLost`, `rowErrors` |
+| 4 | `enrich`    | `doEnrich(...)` — `deriveProductsForAllOpps()`, write field-history entries, create auto-notes for changed SE Comments. | `productsDerived`, `autoTasksCreated`, `historyEntries`, `notesCreated` |
+| 5 | `finalize`  | `doFinalize(...)` — clear MEDDPICC AI caches, write final counts + rollback snapshot to the imports row, set `finished_at`. | `cacheCleared` |
+
+**Admin UI (`/settings/import-history`)** reads `stage_log` and renders a 5-node pipeline diagram per import. While any import is `status='in_progress'`, the page polls `/opportunities/import/history` every 5s until everything has finished.
+
+**Rollback** — `DELETE /opportunities/import/:id` still only applies to the most recent non-in-progress import; rollback_data is written in the `finalize` stage, so a failed import (any stage) cannot be rolled back (nothing to restore to).
 
 ## First Import (Bootstrapping)
 

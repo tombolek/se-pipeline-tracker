@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../../api/client';
 import type { ApiResponse } from '../../types';
 import { formatDate } from '../../utils/formatters';
@@ -11,6 +12,8 @@ interface ImportStats {
   errors: string[];
 }
 
+interface ImportKickoffResponse { importId: number }
+
 interface LatestImportRow {
   id: number;
   filename: string | null;
@@ -18,7 +21,9 @@ interface LatestImportRow {
   has_rollback: boolean;
 }
 
-type Step = 'pick' | 'preview' | 'result';
+// Reduced to two steps — the former "result" step is now the live pipeline
+// view on /settings/import-history (we redirect there after kickoff).
+type Step = 'pick' | 'preview';
 
 function StatCard({ label, value, color }: { label: string; value: number; color: string }) {
   return (
@@ -30,6 +35,7 @@ function StatCard({ label, value, color }: { label: string; value: number; color
 }
 
 export default function ImportPage() {
+  const navigate = useNavigate();
   const [step, setStep] = useState<Step>('pick');
   const [file, setFile] = useState<File | null>(null);
   const [dragging, setDragging] = useState(false);
@@ -40,7 +46,6 @@ export default function ImportPage() {
 
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
-  const [result, setResult] = useState<ImportStats | null>(null);
 
   const [latest, setLatest] = useState<LatestImportRow | null>(null);
   const [rollingBack, setRollingBack] = useState(false);
@@ -69,7 +74,6 @@ export default function ImportPage() {
     setPreview(null);
     setPreviewError(null);
     setImportError(null);
-    setResult(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   }
 
@@ -98,17 +102,18 @@ export default function ImportPage() {
     try {
       const form = new FormData();
       form.append('file', file);
-      const r = await api.post<ApiResponse<ImportStats>>('/opportunities/import', form);
-      setResult(r.data.data);
-      setStep('result');
-      await loadLatest();
-      // Tell the header's DataFreshnessIndicator to refetch immediately instead
-      // of waiting for the next poll / tab-focus event.
+      // Server kicks off the 5-stage pipeline in the background and returns
+      // the import id immediately. Redirect straight to the history page
+      // which auto-expands the new row and polls every 5s until it finishes.
+      const r = await api.post<ApiResponse<ImportKickoffResponse>>('/opportunities/import', form);
+      const importId = r.data.data.importId;
+      // Tell the header's DataFreshnessIndicator to refetch once the import
+      // completes. The history page will show when that happens.
       window.dispatchEvent(new CustomEvent('sf-import-completed'));
+      navigate(`/settings/import-history?highlight=${importId}`);
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
       setImportError(msg ?? 'Import failed. Please try again.');
-    } finally {
       setImporting(false);
     }
   }
@@ -280,36 +285,6 @@ export default function ImportPage() {
         </>
       )}
 
-      {/* ── STEP 3: Result ── */}
-      {step === 'result' && result && (
-        <div className="bg-status-success/8 border border-status-success/20 rounded-2xl p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-8 h-8 rounded-full bg-status-success/20 flex items-center justify-center flex-shrink-0">
-              <svg className="w-4 h-4 text-status-success dark:text-status-d-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <p className="text-sm font-semibold text-brand-navy dark:text-fg-1">Import complete</p>
-          </div>
-          <div className="grid grid-cols-4 gap-3 mb-5">
-            <StatCard label="Total rows" value={result.rowCount} color="text-brand-navy dark:text-fg-1" />
-            <StatCard label="New deals" value={result.added} color="text-status-success dark:text-status-d-success" />
-            <StatCard label="Updated" value={result.updated} color="text-brand-navy-70 dark:text-fg-2" />
-            <StatCard label="Removed from open pipeline" value={result.closedLost} color="text-status-overdue dark:text-status-d-overdue" />
-          </div>
-          {result.errors.length > 0 && (
-            <p className="text-xs text-status-warning dark:text-status-d-warning mb-4">
-              {result.errors.length} row{result.errors.length > 1 ? 's' : ''} had errors and were skipped.
-            </p>
-          )}
-          <button
-            onClick={resetToStep1}
-            className="text-sm text-brand-purple dark:text-accent-purple hover:text-brand-purple-70 dark:text-accent-purple font-medium transition-colors"
-          >
-            Import another file →
-          </button>
-        </div>
-      )}
     </div>
   );
 }

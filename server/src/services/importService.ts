@@ -226,31 +226,34 @@ function buildParsedRows(matrix: string[][]): ParsedRow[] {
   return parsed;
 }
 
-// ── HTML-in-XLS parser (Salesforce default browser export) ────────────────
-function parseHtml(html: string): ParsedRow[] {
+// ── File-decode stage: raw buffer → 2-D string matrix ─────────────────────
+// Split out of the old single-step parser so the staged pipeline can treat
+// file decode and row-level validation as separate stages with their own
+// stage_log entries. parseImportFile() below is kept for the /import/preview
+// path and wraps the two halves.
+
+export type ImportFormat = 'xlsx' | 'csv' | 'html';
+
+function decodeHtml(html: string): string[][] {
   const $ = cheerio.load(html);
   const table = $('table').first();
   if (!table.length) {
     throw new Error('No table found in file. Expected HTML-in-XLS, .xlsx, or .csv format.');
   }
   const rows = table.find('tr').toArray();
-  const matrix: string[][] = rows.map(row =>
+  return rows.map(row =>
     $(row).find('th, td').toArray().map(el => $(el).text().trim())
   );
-  return buildParsedRows(matrix);
 }
 
-// ── OOXML .xlsx parser ────────────────────────────────────────────────────
-function parseXlsx(buffer: Buffer): ParsedRow[] {
+function decodeXlsx(buffer: Buffer): string[][] {
   const wb = XLSX.read(buffer, { type: 'buffer', raw: false });
   const ws = wb.Sheets[wb.SheetNames[0]];
   if (!ws) throw new Error('No worksheet found in Excel file.');
-  const matrix = XLSX.utils.sheet_to_json<string[]>(ws, { header: 1, defval: '', raw: false });
-  return buildParsedRows(matrix as string[][]);
+  return XLSX.utils.sheet_to_json<string[]>(ws, { header: 1, defval: '', raw: false }) as string[][];
 }
 
-// ── CSV parser (UTF-8, UTF-8 BOM, UTF-16 LE/BE, double-BOM) ─────────────
-function parseCsv(buffer: Buffer): ParsedRow[] {
+function decodeCsv(buffer: Buffer): string[][] {
   let text: string;
   // UTF-16 LE BOM: FF FE
   if (buffer[0] === 0xFF && buffer[1] === 0xFE) {
@@ -269,41 +272,56 @@ function parseCsv(buffer: Buffer): ParsedRow[] {
   const wb = XLSX.read(text, { type: 'string' });
   const ws = wb.Sheets[wb.SheetNames[0]];
   if (!ws) throw new Error('No worksheet found in CSV.');
-  const matrix = XLSX.utils.sheet_to_json<string[]>(ws, { header: 1, defval: '', raw: false });
-  return buildParsedRows(matrix as string[][]);
+  return XLSX.utils.sheet_to_json<string[]>(ws, { header: 1, defval: '', raw: false }) as string[][];
 }
 
-// ── Main entry point — detects format from magic bytes ────────────────────
-export function parseImportFile(buffer: Buffer): ParsedRow[] {
+/** Decode the uploaded buffer into a 2-D string matrix (no row-level
+ *  validation yet). Detects format from magic bytes. Used by the staged
+ *  pipeline's `parse` stage. */
+export function readRawMatrix(buffer: Buffer): { matrix: string[][]; format: ImportFormat } {
   // OOXML .xlsx — ZIP magic: PK (50 4B 03 04)
   if (buffer[0] === 0x50 && buffer[1] === 0x4B) {
-    return parseXlsx(buffer);
+    return { matrix: decodeXlsx(buffer), format: 'xlsx' };
   }
   // UTF-16 LE or BE BOM → CSV
   if ((buffer[0] === 0xFF && buffer[1] === 0xFE) ||
       (buffer[0] === 0xFE && buffer[1] === 0xFF)) {
-    return parseCsv(buffer);
+    return { matrix: decodeCsv(buffer), format: 'csv' };
   }
   // UTF-8 BOM → could be CSV or HTML; check for table tag
   if (buffer[0] === 0xEF && buffer[1] === 0xBB && buffer[2] === 0xBF) {
     const text = buffer.slice(3).toString('utf8');
-    return text.includes('<table') ? parseHtml(text) : parseCsv(buffer);
+    return text.includes('<table')
+      ? { matrix: decodeHtml(text), format: 'html' }
+      : { matrix: decodeCsv(buffer), format: 'csv' };
   }
   // Plain text — HTML-in-XLS or plain UTF-8 CSV
   const text = buffer.toString('utf8');
   if (text.includes('<table')) {
-    return parseHtml(text);
+    return { matrix: decodeHtml(text), format: 'html' };
   }
-  return parseCsv(buffer);
+  return { matrix: decodeCsv(buffer), format: 'csv' };
+}
+
+// ── Main entry point — back-compat wrapper used by /import/preview ────────
+export function parseImportFile(buffer: Buffer): ParsedRow[] {
+  const { matrix } = readRawMatrix(buffer);
+  return buildParsedRows(matrix);
 }
 
 // ── Product derivation for all opportunities ─────────────────────────────────
-async function deriveProductsForAllOpps(): Promise<void> {
-  // Get all active opps where products haven't been manually set (empty array)
+/** Scan every active opp's name for product keywords and (a) populate the
+ *  `products` array if empty, and (b) create a product-tagging task when the
+ *  deal has advanced past Build Value without tags. Returns counts for the
+ *  staged import's `enrich` stage log. */
+async function deriveProductsForAllOpps(): Promise<{ productsDerived: number; autoTasksCreated: number }> {
   const opps = await query<{ id: number; name: string; stage: string; se_owner_id: number | null; products: string[] }>(
     `SELECT id, name, stage, se_owner_id, products FROM opportunities WHERE is_active = true`,
     []
   );
+
+  let productsDerived = 0;
+  let autoTasksCreated = 0;
 
   for (const opp of opps) {
     const derived = deriveProducts(opp.name);
@@ -311,12 +329,12 @@ async function deriveProductsForAllOpps(): Promise<void> {
     // Only update if products is currently empty (don't overwrite manual edits)
     if (opp.products.length === 0 && derived.length > 0) {
       await query('UPDATE opportunities SET products = $1 WHERE id = $2', [derived, opp.id]);
+      productsDerived++;
     }
 
     // Auto-create task if products still empty and deal is Build Value+
     const currentProducts = opp.products.length > 0 ? opp.products : derived;
     if (needsProductTaggingTask(currentProducts, opp.stage) && opp.se_owner_id) {
-      // Check if a tagging task already exists
       const existing = await queryOne(
         `SELECT id FROM tasks WHERE opportunity_id = $1 AND title LIKE '%Add product tags%' AND is_deleted = false AND status != 'done'`,
         [opp.id]
@@ -327,16 +345,33 @@ async function deriveProductsForAllOpps(): Promise<void> {
            VALUES ($1, $2, 'open', false, $3, $3)`,
           [opp.id, `Add product tags to "${opp.name}"`, opp.se_owner_id]
         );
+        autoTasksCreated++;
       }
     }
   }
+
+  return { productsDerived, autoTasksCreated };
 }
 
-// ── Run reconciliation ─────────────────────────────────────────────────────
-export async function reconcileImport(
-  rows: ParsedRow[],
-  filename: string
-): Promise<ImportStats> {
+// ── Shared types used by the staged pipeline ──────────────────────────────
+interface FieldHistoryEntry { opportunity_id: number; field_name: string; old_value: string | null; new_value: string | null; }
+interface ImportNoteEntry    { opportunity_id: number; content: string; created_at: Date | null; }
+
+interface ReconcileResult {
+  stats: ImportStats;
+  snapshot: Record<string, unknown>[];
+  addedIds: number[];
+  fieldHistoryEntries: FieldHistoryEntry[];
+  importNotes: ImportNoteEntry[];
+  sfImportUserId: number | null;
+}
+
+// ── Reconcile phase: main insert/update/stale loop ────────────────────────
+/** Runs the row-by-row reconcile loop plus stale-marking. Does NOT write the
+ *  imports log, field history, notes, or product derivations — those happen
+ *  in the enrich/finalize stages so the staged pipeline can attribute timings
+ *  and counts to the right stage. */
+async function doReconcile(rows: ParsedRow[]): Promise<ReconcileResult> {
   const stats: ImportStats = {
     rowCount: rows.length, added: 0, updated: 0,
     closedLost: 0, closedWon: 0, stale: 0, errors: [],
@@ -350,15 +385,7 @@ export async function reconcileImport(
       WHERE is_active = true AND is_closed_lost = false AND is_closed_won = false`
   );
   const addedIds: number[] = [];
-
-  interface FieldHistoryEntry { opportunity_id: number; field_name: string; old_value: string | null; new_value: string | null; }
   const fieldHistoryEntries: FieldHistoryEntry[] = [];
-
-  // Notes auto-created when SE Comments changes between imports. The author is
-  // the synthetic "SF Import" user (migration 030); created_at is taken from
-  // the date stamp parsed out of the comment text when available, otherwise
-  // now(). Inserted in a single batch after the main reconciliation loop.
-  interface ImportNoteEntry { opportunity_id: number; content: string; created_at: Date | null; }
   const importNotes: ImportNoteEntry[] = [];
 
   // Look up the SF Import user once per import. Falls back to skipping note
@@ -645,79 +672,252 @@ export async function reconcileImport(
     stats.stale++;
   }
 
-  // ── Derive products from opportunity names ─────────────────────────────
-  await deriveProductsForAllOpps();
+  return { stats, snapshot, addedIds, fieldHistoryEntries, importNotes, sfImportUserId };
+}
 
-  // ── Clear stale MEDDPICC coach caches (fields may have changed) ─────────
-  await query(`DELETE FROM ai_summary_cache WHERE key LIKE 'meddpicc-coach-%'`);
+// ── Enrich phase: derive products, persist field history + auto-notes ─────
+interface EnrichCounts {
+  productsDerived: number;
+  autoTasksCreated: number;
+  historyEntries: number;
+  notesCreated: number;
+}
 
-  // ── Log to imports table ────────────────────────────────────────────────
-  const status = stats.errors.length === 0 ? 'success'
-    : stats.errors.length < stats.rowCount ? 'partial'
-    : 'failed';
-
-  const importLog = await queryOne<{ id: number }>(
-    `INSERT INTO imports
-       (filename, row_count, opportunities_added, opportunities_updated,
-        opportunities_closed_lost, opportunities_closed_won, opportunities_stale,
-        status, error_log, rollback_data)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-     RETURNING id`,
-    [
-      filename,
-      stats.rowCount,
-      stats.added,
-      stats.updated,
-      stats.closedLost,
-      stats.closedWon,
-      stats.stale,
-      status,
-      stats.errors.length > 0 ? stats.errors.join('\n') : null,
-      { opps: snapshot, added_ids: addedIds },
-    ]
-  );
+async function doEnrich(importId: number, r: ReconcileResult): Promise<EnrichCounts> {
+  const { productsDerived, autoTasksCreated } = await deriveProductsForAllOpps();
 
   // Insert field history entries linked to this import
-  if (importLog && fieldHistoryEntries.length > 0) {
-    for (const entry of fieldHistoryEntries) {
-      await query(
-        `INSERT INTO opportunity_field_history (opportunity_id, import_id, field_name, old_value, new_value)
-         VALUES ($1, $2, $3, $4, $5)`,
-        [entry.opportunity_id, importLog.id, entry.field_name, entry.old_value, entry.new_value]
-      );
-    }
+  for (const entry of r.fieldHistoryEntries) {
+    await query(
+      `INSERT INTO opportunity_field_history (opportunity_id, import_id, field_name, old_value, new_value)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [entry.opportunity_id, importId, entry.field_name, entry.old_value, entry.new_value]
+    );
   }
 
   // Insert auto-generated SE Comment notes (one per opportunity whose SE
   // Comments value changed in this import).
-  if (sfImportUserId && importNotes.length > 0) {
+  let notesCreated = 0;
+  if (r.sfImportUserId && r.importNotes.length > 0) {
     const touchedOppIds = new Set<number>();
-    for (const note of importNotes) {
+    for (const note of r.importNotes) {
       if (note.created_at) {
         await query(
           `INSERT INTO notes (opportunity_id, author_id, content, created_at)
            VALUES ($1, $2, $3, $4)`,
-          [note.opportunity_id, sfImportUserId, note.content, note.created_at.toISOString()]
+          [note.opportunity_id, r.sfImportUserId, note.content, note.created_at.toISOString()]
         );
       } else {
         await query(
           `INSERT INTO notes (opportunity_id, author_id, content)
            VALUES ($1, $2, $3)`,
-          [note.opportunity_id, sfImportUserId, note.content]
+          [note.opportunity_id, r.sfImportUserId, note.content]
         );
       }
       touchedOppIds.add(note.opportunity_id);
+      notesCreated++;
     }
     // Bump last_note_at on each touched opp so freshness signals stay accurate.
     for (const oppId of touchedOppIds) {
-      await query(
-        `UPDATE opportunities SET last_note_at = now() WHERE id = $1`,
-        [oppId]
-      );
+      await query(`UPDATE opportunities SET last_note_at = now() WHERE id = $1`, [oppId]);
     }
   }
 
-  return stats;
+  return {
+    productsDerived,
+    autoTasksCreated,
+    historyEntries: r.fieldHistoryEntries.length,
+    notesCreated,
+  };
+}
+
+// ── Finalize phase: clear caches + write final status to imports row ─────
+async function doFinalize(importId: number, r: ReconcileResult): Promise<void> {
+  await query(`DELETE FROM ai_summary_cache WHERE key LIKE 'meddpicc-coach-%'`);
+
+  const s = r.stats;
+  const status = s.errors.length === 0 ? 'success'
+    : s.errors.length < s.rowCount ? 'partial'
+    : 'failed';
+
+  await query(
+    `UPDATE imports SET
+       row_count = $1,
+       opportunities_added = $2,
+       opportunities_updated = $3,
+       opportunities_closed_lost = $4,
+       opportunities_closed_won = $5,
+       opportunities_stale = $6,
+       status = $7,
+       error_log = $8,
+       rollback_data = $9,
+       finished_at = now()
+     WHERE id = $10`,
+    [
+      s.rowCount, s.added, s.updated, s.closedLost, s.closedWon, s.stale,
+      status,
+      s.errors.length > 0 ? s.errors.join('\n') : null,
+      { opps: r.snapshot, added_ids: r.addedIds },
+      importId,
+    ]
+  );
+}
+
+// ── Per-stage tracking helpers ─────────────────────────────────────────────
+
+type StageName = 'parse' | 'validate' | 'reconcile' | 'enrich' | 'finalize';
+type StageStatus = 'pending' | 'running' | 'success' | 'failed' | 'skipped';
+
+interface StageLogEntry {
+  status: StageStatus;
+  startedAt?: string;
+  finishedAt?: string;
+  durationMs?: number;
+  counts?: Record<string, unknown>;
+  error?: string;
+}
+
+async function writeStage(importId: number, stage: StageName, value: StageLogEntry): Promise<void> {
+  await query(
+    `UPDATE imports
+        SET stage_log = jsonb_set(COALESCE(stage_log, '{}'::jsonb), $1::text[], $2::jsonb, true)
+      WHERE id = $3`,
+    [[stage], JSON.stringify(value), importId]
+  );
+}
+
+async function trackStage<T>(
+  importId: number,
+  stage: StageName,
+  fn: () => Promise<{ value: T; counts?: Record<string, unknown> }>
+): Promise<T> {
+  const startedAtMs = Date.now();
+  const startedAt = new Date(startedAtMs).toISOString();
+  await writeStage(importId, stage, { status: 'running', startedAt });
+  try {
+    const { value, counts } = await fn();
+    const finishedAtMs = Date.now();
+    await writeStage(importId, stage, {
+      status: 'success',
+      startedAt,
+      finishedAt: new Date(finishedAtMs).toISOString(),
+      durationMs: finishedAtMs - startedAtMs,
+      counts,
+    });
+    return value;
+  } catch (e) {
+    const finishedAtMs = Date.now();
+    const error = e instanceof Error ? e.message : String(e);
+    await writeStage(importId, stage, {
+      status: 'failed',
+      startedAt,
+      finishedAt: new Date(finishedAtMs).toISOString(),
+      durationMs: finishedAtMs - startedAtMs,
+      error,
+    });
+    throw e;
+  }
+}
+
+/** Mark the import as failed and flag any remaining stages as skipped. */
+async function abortImport(importId: number, skipStages: StageName[]): Promise<void> {
+  for (const s of skipStages) {
+    await writeStage(importId, s, { status: 'skipped' });
+  }
+  await query(
+    `UPDATE imports SET status = 'failed', finished_at = now() WHERE id = $1`,
+    [importId]
+  );
+}
+
+// ── Staged pipeline orchestrator ───────────────────────────────────────────
+/** Run the 5-stage import pipeline asynchronously. The imports row is
+ *  assumed to already exist with status='in_progress' (created by the route
+ *  handler so the client has an ID to poll). Each stage writes its own entry
+ *  to `stage_log`; on any stage failure the remaining stages are marked
+ *  skipped and the import is marked failed. */
+export async function runStagedImport(
+  importId: number,
+  buffer: Buffer,
+  filename: string
+): Promise<void> {
+  void filename; // filename is already on the imports row; pipeline doesn't need it directly
+
+  // ── Stage 1: Parse ────────────────────────────────────────────────────
+  let matrix: string[][];
+  let format: ImportFormat;
+  try {
+    const res = await trackStage(importId, 'parse', async () => {
+      const out = readRawMatrix(buffer);
+      return {
+        value: out,
+        counts: { rows: Math.max(out.matrix.length - 1, 0), format: out.format },
+      };
+    });
+    matrix = res.matrix;
+    format = res.format;
+    void format;
+  } catch {
+    return abortImport(importId, ['validate', 'reconcile', 'enrich', 'finalize']);
+  }
+
+  // ── Stage 2: Validate ─────────────────────────────────────────────────
+  let rows: ParsedRow[];
+  try {
+    rows = await trackStage(importId, 'validate', async () => {
+      const parsed = buildParsedRows(matrix);
+      return {
+        value: parsed,
+        counts: {
+          mapped: parsed.length,
+          dropped: Math.max(matrix.length - 1 - parsed.length, 0),
+        },
+      };
+    });
+  } catch {
+    return abortImport(importId, ['reconcile', 'enrich', 'finalize']);
+  }
+
+  // ── Stage 3: Reconcile ────────────────────────────────────────────────
+  let reconcileResult: ReconcileResult;
+  try {
+    reconcileResult = await trackStage(importId, 'reconcile', async () => {
+      const r = await doReconcile(rows);
+      return {
+        value: r,
+        counts: {
+          added: r.stats.added,
+          updated: r.stats.updated,
+          stale: r.stats.stale,
+          closedWon: r.stats.closedWon,
+          closedLost: r.stats.closedLost,
+          rowErrors: r.stats.errors.length,
+        },
+      };
+    });
+  } catch {
+    return abortImport(importId, ['enrich', 'finalize']);
+  }
+
+  // ── Stage 4: Enrich ───────────────────────────────────────────────────
+  try {
+    await trackStage(importId, 'enrich', async () => {
+      const counts = await doEnrich(importId, reconcileResult);
+      return { value: counts, counts: counts as unknown as Record<string, unknown> };
+    });
+  } catch {
+    return abortImport(importId, ['finalize']);
+  }
+
+  // ── Stage 5: Finalize ─────────────────────────────────────────────────
+  try {
+    await trackStage(importId, 'finalize', async () => {
+      await doFinalize(importId, reconcileResult);
+      return { value: null, counts: { cacheCleared: true } };
+    });
+  } catch {
+    return abortImport(importId, []);
+  }
 }
 
 // ── Dry-run diff (no DB writes) ────────────────────────────────────────────

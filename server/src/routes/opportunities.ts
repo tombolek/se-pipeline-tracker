@@ -1,9 +1,10 @@
 import { Router, Request, Response } from 'express';
 import multer from 'multer';
 import { callAnthropic } from '../services/aiClient.js';
+import { renderAgentPrompt } from '../services/agentRunner.js';
 import { query, queryOne } from '../db/index.js';
 import { requireAuth, requireManager, requireWriteAccess } from '../middleware/auth.js';
-import { parseImportFile, reconcileImport, previewImport } from '../services/importService.js';
+import { parseImportFile, runStagedImport, previewImport } from '../services/importService.js';
 import { AuthenticatedRequest, ok, err } from '../types/index.js';
 import { logAudit } from '../services/auditLog.js';
 import { runAiJob, startJob, completeJob, failJob } from '../services/aiJobs.js';
@@ -24,29 +25,49 @@ const write = requireWriteAccess as unknown as (req: Request, res: Response, nex
 // ── IMPORTANT: static routes MUST come before /:id ─────────────────────────
 
 // POST /opportunities/import  (Manager only)
+// Creates an imports row with status='in_progress' and kicks off the 5-stage
+// pipeline in the background. Returns { importId } immediately so the client
+// can redirect to the history view and poll for stage progress every 5s.
 router.post('/import', auth, mgr, upload.single('file'), async (req: Request, res: Response): Promise<void> => {
   if (!req.file) {
     res.status(400).json(err('No file uploaded. Send a multipart/form-data request with field name "file".'));
     return;
   }
 
-  try {
-    const rows = parseImportFile(req.file.buffer);
-    if (rows.length === 0) {
-      res.status(400).json(err('File parsed successfully but contained no valid data rows.'));
-      return;
-    }
-    const stats = await reconcileImport(rows, req.file.originalname);
-    res.json(ok(stats, { filename: req.file.originalname }));
-    logAudit(req, {
-      action: 'IMPORT', resourceType: 'import',
-      resourceName: req.file.originalname,
-      after: stats,
-    });
-  } catch (e) {
-    const message = e instanceof Error ? e.message : 'Import failed';
-    res.status(422).json(err(message));
+  const filename = req.file.originalname;
+  const buffer = req.file.buffer;
+
+  const initialStageLog = {
+    parse:     { status: 'pending' },
+    validate:  { status: 'pending' },
+    reconcile: { status: 'pending' },
+    enrich:    { status: 'pending' },
+    finalize:  { status: 'pending' },
+  };
+
+  const created = await queryOne<{ id: number }>(
+    `INSERT INTO imports (filename, status, started_at, stage_log)
+     VALUES ($1, 'in_progress', now(), $2::jsonb)
+     RETURNING id`,
+    [filename, JSON.stringify(initialStageLog)]
+  );
+  if (!created) {
+    res.status(500).json(err('Could not create import log row.'));
+    return;
   }
+
+  // Fire-and-forget; runStagedImport writes stage_log + final status itself.
+  runStagedImport(created.id, buffer, filename).catch(e => {
+    console.error('[opportunities] runStagedImport crashed for import', created.id, e);
+  });
+
+  res.json(ok({ importId: created.id }, { filename }));
+
+  logAudit(req, {
+    action: 'IMPORT', resourceType: 'import',
+    resourceName: filename,
+    after: { importId: created.id },
+  });
 });
 
 // POST /opportunities/import/preview  (Manager only — dry run, no DB writes)
@@ -92,14 +113,38 @@ router.get('/import/latest', auth, async (_req: Request, res: Response): Promise
 });
 
 // GET /opportunities/import/history  (Manager only)
+// Includes stage_log so the admin UI can render the per-stage pipeline
+// diagram for each import. Clients poll this every 5s while any row has
+// status='in_progress'.
 router.get('/import/history', auth, mgr, async (_req: Request, res: Response): Promise<void> => {
   const rows = await query(
-    `SELECT id, imported_at, filename, row_count, opportunities_added, opportunities_updated,
-            opportunities_closed_lost, status, error_log,
+    `SELECT id, imported_at, filename, row_count,
+            opportunities_added, opportunities_updated,
+            opportunities_closed_lost, opportunities_closed_won, opportunities_stale,
+            status, error_log, started_at, finished_at, stage_log,
             (rollback_data IS NOT NULL) AS has_rollback
-     FROM imports ORDER BY imported_at DESC LIMIT 50`
+       FROM imports ORDER BY imported_at DESC LIMIT 50`
   );
   res.json(ok(rows));
+});
+
+// GET /opportunities/import/:id  (Manager only)
+// Single-import detail with stage_log. Used by the admin UI for deep-link
+// polling of a specific import (e.g. right after an upload).
+router.get('/import/:id(\\d+)', auth, mgr, async (req: Request, res: Response): Promise<void> => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) { res.status(400).json(err('Invalid import id')); return; }
+  const row = await queryOne(
+    `SELECT id, imported_at, filename, row_count,
+            opportunities_added, opportunities_updated,
+            opportunities_closed_lost, opportunities_closed_won, opportunities_stale,
+            status, error_log, started_at, finished_at, stage_log,
+            (rollback_data IS NOT NULL) AS has_rollback
+       FROM imports WHERE id = $1`,
+    [id]
+  );
+  if (!row) { res.status(404).json(err('Import not found')); return; }
+  res.json(ok(row));
 });
 
 // DELETE /opportunities/import/:id  (Manager only — rollback)
@@ -115,10 +160,14 @@ router.delete('/import/:id', auth, mgr, async (req: Request, res: Response): Pro
   }
 
   interface RollbackData { opps: Record<string, unknown>[]; added_ids: number[]; }
-  const importRow = await queryOne<{ rollback_data: RollbackData | null }>(
-    `SELECT rollback_data FROM imports WHERE id = $1`, [importId]
+  const importRow = await queryOne<{ rollback_data: RollbackData | null; status: string }>(
+    `SELECT rollback_data, status FROM imports WHERE id = $1`, [importId]
   );
   if (!importRow) { res.status(404).json(err('Import not found')); return; }
+  if (importRow.status === 'in_progress') {
+    res.status(400).json(err('Cannot roll back an import that is still running'));
+    return;
+  }
   if (!importRow.rollback_data) {
     res.status(400).json(err('No rollback data for this import'));
     return;
@@ -795,36 +844,22 @@ router.post('/:id/summary', auth, write, async (req: Request, res: Response): Pr
   const summaryCitationSources = await buildCitationSources(id);
   const summarySourcesBlock = formatSourcesForPrompt(summaryCitationSources);
 
-  const prompt = `You are an SE deal intelligence assistant. Write a concise deal summary in 3 short paragraphs using plain text with **bold** for emphasis on key names, numbers, and actions. Do NOT use markdown headers (#), bullet points, or lists. Keep it conversational and direct.
-
-CITABLE SOURCES (cite factual claims with [N] inline):
-${summarySourcesBlock}
-
-${CITATION_INSTRUCTIONS}
-
-Paragraph 1: Current deal status and momentum (1-2 sentences).
-Paragraph 2: Key risks or blockers (1-2 sentences).
-Paragraph 3: Recommended next action starting with "**Recommended next action:**" (1-2 sentences).
-
-Opportunity: ${opp.name}
-Account: ${opp.account_name ?? 'N/A'}
-Stage: ${opp.stage}
-ARR: ${formatARR(opp.arr)}
-Close Date: ${formatDate(opp.close_date)}
-AE Owner: ${opp.ae_owner_name ?? 'N/A'}
-SE Owner: ${opp.se_owner_name ?? 'Unassigned'}
-
-Next Step (from SF): ${opp.next_step_sf ?? 'N/A'}
-
-SE Comments: ${opp.se_comments ?? 'None'}
-
-Manager Comments: ${opp.manager_comments ?? 'None'}
-
-Open Tasks:
-${taskLines}
-
-Recent Notes (oldest to newest):
-${noteLines}`;
+  const prompt = await renderAgentPrompt('summary', {
+    sources_block: summarySourcesBlock,
+    citation_instructions: CITATION_INSTRUCTIONS,
+    opp_name: opp.name,
+    account_name: opp.account_name ?? 'N/A',
+    stage: opp.stage,
+    arr_fmt: formatARR(opp.arr),
+    close_date_fmt: formatDate(opp.close_date),
+    ae_owner: opp.ae_owner_name ?? 'N/A',
+    se_owner: opp.se_owner_name ?? 'Unassigned',
+    next_step_sf: opp.next_step_sf ?? 'N/A',
+    se_comments: opp.se_comments ?? 'None',
+    manager_comments: opp.manager_comments ?? 'None',
+    task_lines: taskLines,
+    note_lines: noteLines,
+  });
 
   const summary = await runAiJob({
     key: `summary-${id}`,
