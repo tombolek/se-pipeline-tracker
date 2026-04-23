@@ -206,6 +206,77 @@ router.delete('/import/:id', auth, mgr, async (req: Request, res: Response): Pro
   res.json(ok({ rolled_back: importId, restored: opps.length, removed: added_ids.length }));
 });
 
+// ── Quick Switcher search ─────────────────────────────────────────────────
+//
+// GET /opportunities/search?q=<term>
+//
+// Powers the Ctrl+K global opportunity switcher. Returns results bucketed
+// into three tiers so the UI can surface the user's own deals first:
+//   1. favorites — opps in user_favorites for this user
+//   2. territory — opps the user owns (se_owner_id) OR whose team is in the
+//      user's `teams` array
+//   3. other     — everything else that matches
+//
+// Matches on name, account_name, and sf_opportunity_id (case-insensitive
+// substring). Each tier is capped at 5 and ordered active-first so live
+// pipeline beats Closed Won/Lost. A result already surfaced in an earlier
+// tier is excluded from later ones so the same opp never shows twice.
+router.get('/search', auth, async (req: Request, res: Response): Promise<void> => {
+  const actor = (req as AuthenticatedRequest).user;
+  const q = String(req.query.q ?? '').trim();
+  if (!q) { res.json(ok({ favorites: [], territory: [], other: [] })); return; }
+
+  const pattern = `%${q}%`;
+  const SELECT = `
+    SELECT o.id, o.sf_opportunity_id, o.name, o.account_name, o.stage,
+           o.arr, o.close_date, o.team, o.is_active,
+           o.is_closed_won, o.is_closed_lost,
+           u.name AS se_owner_name
+      FROM opportunities o
+      LEFT JOIN users u ON u.id = o.se_owner_id
+  `;
+  const MATCH = `(o.name ILIKE $1 OR o.account_name ILIKE $1 OR o.sf_opportunity_id ILIKE $1)`;
+  const ORDER = `ORDER BY o.is_active DESC, o.updated_at DESC NULLS LAST`;
+
+  // Resolve user's territory teams for tier 2
+  const userRow = await queryOne<{ teams: string[] | null }>(
+    `SELECT teams FROM users WHERE id = $1`, [actor.userId]
+  );
+  const teams = userRow?.teams ?? [];
+
+  // Tier 1: favorites
+  const favorites = await query(`
+    ${SELECT}
+    INNER JOIN user_favorites f ON f.opportunity_id = o.id AND f.user_id = $2
+    WHERE ${MATCH}
+    ${ORDER}
+    LIMIT 5
+  `, [pattern, actor.userId]);
+  const favIds = favorites.map((r: Record<string, unknown>) => r.id as number);
+
+  // Tier 2: territory (own deals OR team match), excluding favorites already shown
+  const territory = await query(`
+    ${SELECT}
+    WHERE ${MATCH}
+      AND (o.se_owner_id = $2 OR o.team = ANY($3::text[]))
+      AND NOT (o.id = ANY($4::int[]))
+    ${ORDER}
+    LIMIT 5
+  `, [pattern, actor.userId, teams, favIds]);
+  const exclude = [...favIds, ...territory.map((r: Record<string, unknown>) => r.id as number)];
+
+  // Tier 3: everything else
+  const other = await query(`
+    ${SELECT}
+    WHERE ${MATCH}
+      AND NOT (o.id = ANY($2::int[]))
+    ${ORDER}
+    LIMIT 5
+  `, [pattern, exclude]);
+
+  res.json(ok({ favorites, territory, other }));
+});
+
 // ── Favorites ──────────────────────────────────────────────────────────────
 
 // GET /opportunities/favorites — list current user's favorited opportunities

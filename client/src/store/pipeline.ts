@@ -8,6 +8,9 @@ interface PipelineState {
   quickCaptureOpen: boolean;
   openQuickCapture: () => void;
   closeQuickCapture: () => void;
+  quickSwitcherOpen: boolean;
+  openQuickSwitcher: () => void;
+  closeQuickSwitcher: () => void;
   // Team scope: null = Full View; number = show only SEs whose manager_id matches
   teamScopeManagerId: number | null;
   teamScopeInitialized: boolean;
@@ -23,6 +26,9 @@ export const usePipelineStore = create<PipelineState>((set) => ({
   quickCaptureOpen: false,
   openQuickCapture: () => set({ quickCaptureOpen: true }),
   closeQuickCapture: () => set({ quickCaptureOpen: false }),
+  quickSwitcherOpen: false,
+  openQuickSwitcher: () => set({ quickSwitcherOpen: true }),
+  closeQuickSwitcher: () => set({ quickSwitcherOpen: false }),
   teamScopeManagerId: null,
   teamScopeInitialized: false,
   setTeamScopeManagerId: (id) => set({ teamScopeManagerId: id }),

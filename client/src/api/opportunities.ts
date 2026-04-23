@@ -21,6 +21,38 @@ export async function listOpportunities(params: OpportunityListParams = {}): Pro
   return data.data;
 }
 
+// ── Quick Switcher (Ctrl+K) ─────────────────────────────────────────────────
+// Three-tier global opp search. Matches name / account_name / sf_opportunity_id.
+// Server applies the tiering + caps; client just renders.
+
+export interface QuickSwitcherOpp {
+  id: number;
+  sf_opportunity_id: string;
+  name: string;
+  account_name: string | null;
+  stage: string | null;
+  arr: number | null;
+  close_date: string | null;
+  team: string | null;
+  is_active: boolean;
+  is_closed_won: boolean;
+  is_closed_lost: boolean;
+  se_owner_name: string | null;
+}
+
+export interface QuickSwitcherResult {
+  favorites: QuickSwitcherOpp[];
+  territory: QuickSwitcherOpp[];
+  other: QuickSwitcherOpp[];
+}
+
+export async function quickSearchOpportunities(q: string): Promise<QuickSwitcherResult> {
+  const { data } = await api.get<ApiResponse<QuickSwitcherResult>>('/opportunities/search', {
+    params: { q },
+  });
+  return data.data;
+}
+
 // ── Paginated list (Issue #102 phase 3) ─────────────────────────────────────
 // Used by the Pipeline page. All filtering + sorting happens server-side so
 // "Load more" stays consistent across pages.

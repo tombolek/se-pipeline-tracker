@@ -11,6 +11,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Sidebar from './components/Sidebar';
 import AppHeader from './components/AppHeader';
 import QuickCapture from './components/QuickCapture';
+import QuickSwitcher from './components/QuickSwitcher';
 import HomePage from './pages/HomePage';
 import SettingsPage from './pages/SettingsPage';
 import ReviewOfflineChangesPage from './pages/ReviewOfflineChangesPage';
@@ -27,24 +28,32 @@ import { startHeartbeat } from './offline/heartbeat';
 import { useTheme } from './hooks/useTheme';
 
 function AppShell({ children }: { children: React.ReactNode }) {
-  const openQuickCapture = usePipelineStore((s) => s.openQuickCapture);
+  const openQuickCapture  = usePipelineStore((s) => s.openQuickCapture);
+  const openQuickSwitcher = usePipelineStore((s) => s.openQuickSwitcher);
   const user = useAuthStore((s) => s.user);
   usePageTracking();
   // Reconcile the .dark class with the user's theme preference on every
   // auth change + system prefers-color-scheme flip. (#138 Chunk A)
   useTheme();
 
+  // Ctrl/Cmd+K         → Quick Switcher (global opportunity search)
+  // Ctrl/Cmd+Shift+K   → Quick Capture  (new note/task — viewers skip)
+  // We check `shiftKey` first so the switcher never hijacks the capture chord.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+      if (!(e.metaKey || e.ctrlKey)) return;
+      if (e.key.toLowerCase() !== 'k') return;
+      e.preventDefault();
+      if (e.shiftKey) {
         if (user?.role === 'viewer') return;
-        e.preventDefault();
         openQuickCapture();
+      } else {
+        openQuickSwitcher();
       }
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [openQuickCapture, user]);
+  }, [openQuickCapture, openQuickSwitcher, user]);
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
@@ -57,6 +66,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
         </main>
       </div>
       <QuickCapture />
+      <QuickSwitcher />
       <ReconnectToast />
     </div>
   );
