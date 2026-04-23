@@ -18,6 +18,7 @@ import {
   updateAgentSettings,
   listVersionsForAgent,
 } from '../services/agents.js';
+import { renderTemplateStandalone } from '../services/agentRunner.js';
 
 const router = Router();
 const auth = requireAuth as unknown as (req: Request, res: Response, next: () => void) => void;
@@ -143,6 +144,34 @@ router.get('/:id/jobs', async (req: Request, res: Response): Promise<void> => {
     [id, status, limit, offset],
   );
   res.json(ok(rows));
+});
+
+// POST /agents/:id/preview  — render an unsaved template against supplied vars.
+// Lets an admin sanity-check edits before hitting save. Does NOT call Anthropic
+// — the render happens locally. Accepts the template string (so the editor's
+// current un-saved text can be previewed) + a vars object. Returns either the
+// rendered prompt or a compile/render error string so the client can surface
+// "unknown helper foo" or "expected '}}' …" without a round trip.
+router.post('/:id/preview', async (req: Request, res: Response): Promise<void> => {
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id)) { res.status(400).json(err('Invalid agent id')); return; }
+
+  const body = req.body as { template?: string; vars?: Record<string, unknown> };
+  const template = typeof body.template === 'string' ? body.template : '';
+  const vars = (body.vars && typeof body.vars === 'object') ? body.vars : {};
+
+  if (template.trim() === '') {
+    res.json(ok({ rendered: null, error: 'Template is empty — this agent would throw AgentPromptMissingError at call time.' }));
+    return;
+  }
+
+  try {
+    const rendered = renderTemplateStandalone(template, vars);
+    res.json(ok({ rendered, error: null }));
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    res.json(ok({ rendered: null, error: msg }));
+  }
 });
 
 // GET /agents/:id/usage  — 30-day daily rollup

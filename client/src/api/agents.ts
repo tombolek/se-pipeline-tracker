@@ -108,6 +108,21 @@ export async function getAgentUsage(id: number): Promise<AgentDailyUsage[]> {
   return r.data.data;
 }
 
+export interface AgentPreviewResult {
+  rendered: string | null;
+  error: string | null;
+}
+
+/** Render an unsaved template against supplied vars — for the admin's "preview" button. */
+export async function previewAgentTemplate(
+  id: number,
+  template: string,
+  vars: Record<string, unknown>,
+): Promise<AgentPreviewResult> {
+  const r = await api.post<ApiResponse<AgentPreviewResult>>(`/agents/${id}/preview`, { template, vars });
+  return r.data.data;
+}
+
 // ── Global AI jobs ─────────────────────────────────────────────────────────
 
 export interface AiJobRow {

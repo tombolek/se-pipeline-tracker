@@ -14,7 +14,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
-  getAgent, updateAgent, listAgentVersions, getAgentUsage, killAiJob,
+  getAgent, updateAgent, listAgentVersions, getAgentUsage, killAiJob, previewAgentTemplate,
   type Agent, type AgentJob, type AgentPromptVersion, type AgentDailyUsage,
 } from '../../api/agents';
 import { formatDateTime } from '../../utils/formatters';
@@ -54,6 +54,7 @@ export default function AgentDetailPage() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [tab, setTab] = useState<'jobs' | 'versions' | 'usage'>('jobs');
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   async function refresh() {
     const [{ agent, recent_jobs }, vs, us] = await Promise.all([
@@ -95,6 +96,15 @@ export default function AgentDetailPage() {
 
   async function save() {
     if (!agent) return;
+    // Explicit confirm before saving an empty template — the agent's next call
+    // will throw AgentPromptMissingError. Accidentally blanking the editor is a
+    // very easy mistake (Ctrl-A, Delete) and silent at save time otherwise.
+    if (editedTemplate.trim() === '') {
+      const ok = confirm(
+        `The prompt template is empty. Saving will break this agent: the next call to "${agent.feature}" will throw AgentPromptMissingError until a template is restored.\n\nContinue anyway?`
+      );
+      if (!ok) return;
+    }
     setSaving(true); setSaveError(null);
     try {
       await updateAgent(agent.id, {
@@ -208,9 +218,19 @@ export default function AgentDetailPage() {
             placeholder="Blank means this agent has no template — its route will throw AgentPromptMissingError. Seed it from agentTemplates.ts via a restart."
             className="mt-1 w-full rounded border border-brand-navy-30/60 dark:border-ink-border-soft bg-white dark:bg-ink-0 px-2 py-2 text-[12px] font-mono leading-relaxed text-brand-navy dark:text-fg-1"
           />
-          <p className="mt-1 text-[11px] text-brand-navy-70 dark:text-fg-2">
-            Length: {editedTemplate.length.toLocaleString()} chars. Changes save as a new version — revert via the Version history tab.
-          </p>
+          <div className="mt-1 flex items-center gap-3">
+            <p className="text-[11px] text-brand-navy-70 dark:text-fg-2">
+              Length: {editedTemplate.length.toLocaleString()} chars. Changes save as a new version — revert via the Version history tab.
+            </p>
+            <button
+              type="button"
+              onClick={() => setPreviewOpen(true)}
+              className="ml-auto text-[12px] px-2 py-1 rounded border border-brand-navy-30/60 dark:border-ink-border-soft text-brand-navy dark:text-fg-1 hover:bg-brand-navy-30/20 dark:hover:bg-ink-2"
+              title="Render this template against sample vars without calling Anthropic"
+            >
+              Preview rendered output
+            </button>
+          </div>
         </div>
 
         <div className="flex items-center gap-3">
@@ -337,6 +357,14 @@ export default function AgentDetailPage() {
         </div>
       )}
 
+      {previewOpen && (
+        <TemplatePreviewModal
+          agentId={agent.id}
+          template={editedTemplate}
+          onClose={() => setPreviewOpen(false)}
+        />
+      )}
+
       {tab === 'usage' && (
         <div className="bg-white dark:bg-ink-1 rounded-xl shadow-sm border border-brand-navy-30/40 dark:border-ink-border-soft overflow-hidden">
           <table className="w-full text-sm">
@@ -366,6 +394,121 @@ export default function AgentDetailPage() {
           </table>
         </div>
       )}
+    </div>
+  );
+}
+
+/** Extract `{{var}}` placeholder names from a Handlebars template for prefilling
+ *  the vars editor. Captures simple mustache interpolations; skips block helpers
+ *  (`{{#if}}` / `{{#each}}` / `{{else}}` / `{{/…}}`) since those aren't vars. */
+function extractTemplateVars(template: string): string[] {
+  const re = /\{\{\{?\s*([#/]?)([\w.-]+)[^}]*\}?\}\}/g;
+  const vars = new Set<string>();
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(template)) !== null) {
+    const kind = m[1];
+    const name = m[2];
+    if (kind === '#' || kind === '/') continue; // block helpers
+    if (name === 'else' || name === 'this') continue;
+    vars.add(name);
+  }
+  return Array.from(vars).sort();
+}
+
+interface TemplatePreviewModalProps {
+  agentId: number;
+  template: string;
+  onClose: () => void;
+}
+
+function TemplatePreviewModal({ agentId, template, onClose }: TemplatePreviewModalProps) {
+  const initialVars = (() => {
+    const names = extractTemplateVars(template);
+    const obj: Record<string, string> = {};
+    for (const n of names) obj[n] = `[${n}]`;
+    return obj;
+  })();
+
+  const [varsJson, setVarsJson] = useState<string>(JSON.stringify(initialVars, null, 2));
+  const [rendered, setRendered] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function render() {
+    setLoading(true); setError(null); setRendered(null);
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(varsJson);
+      if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+        throw new Error('Vars must be a JSON object.');
+      }
+    } catch (e) {
+      setError(`Invalid vars JSON: ${(e as Error).message}`);
+      setLoading(false);
+      return;
+    }
+    try {
+      const r = await previewAgentTemplate(agentId, template, parsed);
+      if (r.error) setError(r.error);
+      else setRendered(r.rendered);
+    } catch (e) {
+      setError((e as Error).message || 'Preview failed');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-brand-navy/40 dark:bg-black/60 backdrop-blur-[2px] z-50 flex items-center justify-center p-6" onClick={onClose}>
+      <div
+        className="bg-white dark:bg-ink-1 rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="px-5 py-3 border-b border-brand-navy-30/40 dark:border-ink-border-soft flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-brand-navy dark:text-fg-1">Preview rendered output</h3>
+          <button onClick={onClose} className="text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:hover:text-fg-1 text-lg leading-none">×</button>
+        </div>
+
+        <div className="px-5 py-4 grid grid-cols-2 gap-4 flex-1 min-h-0 overflow-hidden">
+          <div className="flex flex-col min-h-0">
+            <label className="text-xs text-brand-navy-70 dark:text-fg-2 mb-1">
+              Sample vars (JSON) — prefilled from <code className="text-[11px]">{'{{var}}'}</code> placeholders in the template.
+            </label>
+            <textarea
+              value={varsJson}
+              onChange={e => setVarsJson(e.target.value)}
+              spellCheck={false}
+              className="flex-1 rounded border border-brand-navy-30/60 dark:border-ink-border-soft bg-white dark:bg-ink-0 px-2 py-2 text-[12px] font-mono text-brand-navy dark:text-fg-1 resize-none"
+            />
+            <div className="mt-2">
+              <button
+                onClick={render}
+                disabled={loading}
+                className="px-3 py-1.5 rounded bg-brand-purple text-white text-sm font-medium hover:bg-brand-purple-70 disabled:opacity-50"
+              >
+                {loading ? 'Rendering…' : 'Render'}
+              </button>
+              <span className="ml-3 text-[11px] text-brand-navy-70 dark:text-fg-2">Local render only — does not call Anthropic.</span>
+            </div>
+          </div>
+
+          <div className="flex flex-col min-h-0">
+            <label className="text-xs text-brand-navy-70 dark:text-fg-2 mb-1">Rendered prompt</label>
+            <div className="flex-1 rounded border border-brand-navy-30/60 dark:border-ink-border-soft bg-brand-navy-30/20 dark:bg-ink-0 p-2 overflow-auto text-[12px] font-mono text-brand-navy dark:text-fg-1 whitespace-pre-wrap">
+              {error && <span className="text-status-overdue dark:text-status-d-overdue">{error}</span>}
+              {!error && rendered !== null && rendered}
+              {!error && rendered === null && !loading && (
+                <span className="text-brand-navy-70 dark:text-fg-2 italic">Click Render to see output.</span>
+              )}
+            </div>
+            {rendered !== null && !error && (
+              <p className="mt-1 text-[11px] text-brand-navy-70 dark:text-fg-2">
+                Rendered: {rendered.length.toLocaleString()} chars.
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
