@@ -7,7 +7,7 @@
  *                                  agent had log_io = true at call time
  */
 import { useEffect, useState, useCallback } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useLocation, Link, useNavigate } from 'react-router-dom';
 import {
   listAiJobs, listRunningAiJobs, getAiJob, killAiJob, listAgents,
   type AiJobRow, type AiJobDetail, type AgentWithUsage,
@@ -27,8 +27,11 @@ function StatusPill({ status }: { status: AiJobRow['status'] }) {
 }
 
 export default function AiJobsPage() {
-  const { id } = useParams();
-  if (id) return <AiJobDetailView id={Number(id)} />;
+  // Same deal as AgentDetailPage — we're under the /settings/* wildcard so
+  // useParams() doesn't see a named :id. Parse from pathname instead.
+  const location = useLocation();
+  const match = /^\/settings\/ai-jobs\/(\d+)/.exec(location.pathname);
+  if (match) return <AiJobDetailView id={Number(match[1])} />;
   return <AiJobsListView />;
 }
 

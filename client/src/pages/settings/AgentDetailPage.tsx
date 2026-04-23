@@ -12,7 +12,7 @@
  * layer on top of that template.
  */
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
 import {
   getAgent, updateAgent, listAgentVersions, getAgentUsage, killAiJob, previewAgentTemplate,
   type Agent, type AgentJob, type AgentPromptVersion, type AgentDailyUsage,
@@ -32,8 +32,12 @@ function StatusPill({ status }: { status: AgentJob['status'] }) {
 }
 
 export default function AgentDetailPage() {
-  const { id } = useParams();
-  const agentId = Number(id);
+  // SettingsPage mounts us under the `/settings/*` wildcard route, so
+  // useParams() doesn't see a named `:id`. Parse it out of the pathname
+  // directly — same regex as the SettingsPage dispatcher uses to route here.
+  const location = useLocation();
+  const match = /^\/settings\/agents\/(\d+)/.exec(location.pathname);
+  const agentId = match ? Number(match[1]) : NaN;
   const navigate = useNavigate();
 
   const [agent, setAgent] = useState<Agent | null>(null);
