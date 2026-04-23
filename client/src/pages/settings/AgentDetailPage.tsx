@@ -36,7 +36,7 @@ export default function AgentDetailPage() {
   // useParams() doesn't see a named `:id`. Parse it out of the pathname
   // directly — same regex as the SettingsPage dispatcher uses to route here.
   const location = useLocation();
-  const match = /^\/settings\/agents\/(\d+)/.exec(location.pathname);
+  const match = /^\/settings\/ai\/agents\/(\d+)/.exec(location.pathname);
   const agentId = match ? Number(match[1]) : NaN;
   const navigate = useNavigate();
 
@@ -80,7 +80,7 @@ export default function AgentDetailPage() {
   }
 
   useEffect(() => {
-    if (!Number.isFinite(agentId)) { navigate('/settings/agents'); return; }
+    if (!Number.isFinite(agentId)) { navigate('/settings/ai/agents'); return; }
     setLoading(true);
     refresh()
       .catch(e => setError((e as Error).message || 'Failed to load agent'))
@@ -149,7 +149,7 @@ export default function AgentDetailPage() {
   return (
     <div className="space-y-6">
       <div>
-        <Link to="/settings/agents" className="text-[12px] text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:hover:text-fg-1">← All agents</Link>
+        <Link to="/settings/ai/agents" className="text-[12px] text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:hover:text-fg-1">← All agents</Link>
         <h1 className="mt-2 text-2xl font-semibold text-brand-navy dark:text-fg-1">{agent.name}</h1>
         <p className="text-sm text-brand-navy-70 dark:text-fg-2">{agent.description}</p>
         <p className="mt-1 text-[11px] font-mono text-brand-navy-70 dark:text-fg-2">feature: {agent.feature}</p>
@@ -295,7 +295,7 @@ export default function AgentDetailPage() {
               {jobs.map(j => (
                 <tr key={j.id} className="hover:bg-brand-navy-30/10 dark:hover:bg-ink-2">
                   <td className="px-4 py-2">
-                    <Link to={`/settings/ai-jobs/${j.id}`} className="text-brand-purple hover:underline font-mono text-[12px]">#{j.id}</Link>
+                    <Link to={`/settings/ai/jobs/${j.id}`} className="text-brand-purple hover:underline font-mono text-[12px]">#{j.id}</Link>
                   </td>
                   <td className="px-4 py-2"><StatusPill status={j.status} /></td>
                   <td className="px-4 py-2 text-[12px] text-brand-navy-70 dark:text-fg-2">{formatDateTime(j.started_at)}</td>

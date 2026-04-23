@@ -8,7 +8,7 @@
  *   - Muted grey                     : no successful import yet
  *
  * Thresholds aligned with ~2× / day import cadence. Managers click through to
- * /settings/import-history; SEs get a read-only hover tooltip.
+ * /settings/imports/history; SEs get a read-only hover tooltip.
  */
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -120,7 +120,7 @@ export default function DataFreshnessIndicator() {
       {canNavigate ? (
         <button
           type="button"
-          onClick={() => navigate('/settings/import-history')}
+          onClick={() => navigate('/settings/imports/history')}
           className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] hover:bg-white/10 cursor-pointer transition-colors"
         >
           {content}

@@ -63,10 +63,26 @@ const PAGE_LABELS: Record<string, string> = {
   '/insights/overdue-tasks':      'Insights · Overdue Tasks',
   '/insights/poc':                'Insights · POC Tracker',
   '/insights/rfx':                'Insights · RFX Tracker',
+  // Legacy URL labels — kept for audit-log rows created before the
+  // Administration restructure. New rows emit the hub-prefixed paths below.
   '/settings/users':              'Settings · Users',
   '/settings/import':             'Settings · Import',
   '/settings/import-history':     'Settings · Import History',
   '/settings/menu-settings':      'Settings · Menu Settings',
+  // New hub paths.
+  '/settings/people/users':             'People · Users',
+  '/settings/people/roles':             'People · Roles',
+  '/settings/people/audit':             'People · Audit',
+  '/settings/imports/run':              'Imports · Run',
+  '/settings/imports/history':          'Imports · History',
+  '/settings/configuration/deal-info':  'Configuration · Deal Info Layout',
+  '/settings/configuration/quotas':     'Configuration · Quotas',
+  '/settings/configuration/templates':  'Configuration · Templates',
+  '/settings/configuration/knowledge-base': 'Configuration · Knowledge Base',
+  '/settings/configuration/menu':       'Configuration · Menu Settings',
+  '/settings/ai/agents':                'AI · Agents',
+  '/settings/ai/jobs':                  'AI · Jobs',
+  '/settings/ai/usage':                 'AI · Usage',
 };
 
 const ACTION_LABELS: Record<string, { label: string; color: string }> = {

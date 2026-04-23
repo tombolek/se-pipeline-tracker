@@ -64,7 +64,7 @@ export default function AgentsPage() {
                 <tr
                   key={a.id}
                   className="hover:bg-brand-navy-30/10 dark:hover:bg-ink-2 cursor-pointer"
-                  onClick={() => navigate(`/settings/agents/${a.id}`)}
+                  onClick={() => navigate(`/settings/ai/agents/${a.id}`)}
                 >
                   <td className="px-4 py-3">
                     <div className="font-medium text-brand-navy dark:text-fg-1">{a.name}</div>

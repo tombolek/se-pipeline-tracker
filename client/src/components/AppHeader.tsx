@@ -197,7 +197,7 @@ export default function AppHeader() {
                   {user?.is_admin && (
                     <li>
                       <button
-                        onClick={() => { setUserMenuOpen(false); navigate('/settings/users'); }}
+                        onClick={() => { setUserMenuOpen(false); navigate('/settings/people/users'); }}
                         className="w-full text-left px-4 py-2 text-xs text-brand-navy dark:text-fg-1 hover:bg-brand-purple-30/40 dark:hover:bg-accent-purple-soft transition-colors"
                       >
                         Settings

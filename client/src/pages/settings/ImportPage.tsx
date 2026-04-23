@@ -110,7 +110,7 @@ export default function ImportPage() {
       // Tell the header's DataFreshnessIndicator to refetch once the import
       // completes. The history page will show when that happens.
       window.dispatchEvent(new CustomEvent('sf-import-completed'));
-      navigate(`/settings/import-history?highlight=${importId}`);
+      navigate(`/settings/imports/history?highlight=${importId}`);
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
       setImportError(msg ?? 'Import failed. Please try again.');

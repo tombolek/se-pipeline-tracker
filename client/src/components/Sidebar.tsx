@@ -7,22 +7,17 @@ import { listInboxItems } from '../api/inbox';
 import { getInsightsNav, type InsightsNavItem } from '../utils/insightsNav';
 import { getMainNav, type MainNavItem } from '../utils/mainNav';
 
+// Administration — one entry per hub + the three solo pages.
+// Matches the active state on any path that starts with `to` (e.g. being on
+// /settings/ai/agents/5 still lights up the AI entry).
 const SETTINGS_NAV = [
-  { to: '/settings/users',        label: 'Users',            icon: UsersIcon   },
-  { to: '/settings/import',       label: 'Import',           icon: ImportIcon  },
-  { to: '/settings/import-history', label: 'Import History', icon: HistoryIcon },
-  { to: '/settings/menu-settings', label: 'Menu Settings',   icon: InsightIcon },
-  { to: '/settings/backup',       label: 'Backup & Restore', icon: BackupIcon  },
-  { to: '/settings/deploy',       label: 'Deploy',           icon: DeployIcon  },
-  { to: '/settings/deal-info-layout', label: 'Deal Info Layout', icon: LayoutIcon },
-  { to: '/settings/quotas',       label: 'Quotas',           icon: QuotasIcon  },
-  { to: '/settings/templates',    label: 'Templates',        icon: TemplatesIcon },
-  { to: '/settings/knowledge-base', label: 'Knowledge Base', icon: KbIcon },
-  { to: '/settings/agents',       label: 'AI Agents',        icon: AiAgentsIcon },
-  { to: '/settings/ai-jobs',      label: 'AI Jobs',          icon: AiJobsIcon },
-  { to: '/settings/ai-usage',     label: 'AI Usage',         icon: AiUsageIcon },
-  { to: '/settings/role-access',  label: 'Role Access',      icon: RoleAccessIcon },
-  { to: '/settings/developer',    label: 'Developer',        icon: InsightIcon },
+  { to: '/settings/people',        label: 'People',         icon: UsersIcon },
+  { to: '/settings/imports',       label: 'Imports',        icon: ImportIcon },
+  { to: '/settings/configuration', label: 'Configuration',  icon: LayoutIcon },
+  { to: '/settings/ai',            label: 'AI',             icon: AiAgentsIcon },
+  { to: '/settings/backup',        label: 'Backup & Restore', icon: BackupIcon },
+  { to: '/settings/deploy',        label: 'Deploy',         icon: DeployIcon },
+  { to: '/settings/developer',     label: 'Developer',      icon: InsightIcon },
 ];
 
 function MainNavIcon({ icon }: { icon: MainNavItem['icon'] }) {
@@ -268,14 +263,6 @@ function RfxIcon() {
   );
 }
 
-function HistoryIcon() {
-  return (
-    <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-  );
-}
-
 function BackupIcon() {
   return (
     <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -316,58 +303,10 @@ function LayoutIcon() {
   );
 }
 
-function RoleAccessIcon() {
-  return (
-    <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-    </svg>
-  );
-}
-
-function TemplatesIcon() {
-  return (
-    <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h10M4 18h16M19 9l3 3-3 3" />
-    </svg>
-  );
-}
-
-function KbIcon() {
-  return (
-    <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-    </svg>
-  );
-}
-
-function QuotasIcon() {
-  return (
-    <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm0-6v4m0 12v4m10-10h-4M6 12H2m15.07-7.07l-2.83 2.83M9.76 14.24l-2.83 2.83m0-12.14l2.83 2.83m4.48 4.48l2.83 2.83" />
-    </svg>
-  );
-}
-
 function AiAgentsIcon() {
   return (
     <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-    </svg>
-  );
-}
-
-function AiJobsIcon() {
-  return (
-    <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 14l2 2 4-4" />
-    </svg>
-  );
-}
-
-function AiUsageIcon() {
-  return (
-    <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
     </svg>
   );
 }

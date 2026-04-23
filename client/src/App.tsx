@@ -13,7 +13,6 @@ import AppHeader from './components/AppHeader';
 import QuickCapture from './components/QuickCapture';
 import HomePage from './pages/HomePage';
 import SettingsPage from './pages/SettingsPage';
-import AuditPage from './pages/AuditPage';
 import ReviewOfflineChangesPage from './pages/ReviewOfflineChangesPage';
 import ProcessCallNotesPage from './pages/ProcessCallNotesPage';
 import { useAuthStore } from './store/auth';
@@ -109,7 +108,8 @@ export default function App() {
             <Route path="/calendar" element={<AppShell><CalendarPage /></AppShell>} />
             <Route path="/insights/*" element={<AppShell><InsightsPage /></AppShell>} />
             <Route path="/settings/*" element={<AppShell><SettingsPage /></AppShell>} />
-            <Route path="/audit"      element={<AppShell><AuditPage /></AppShell>} />
+            {/* /audit lives under People hub now; keep the old URL as a redirect for bookmarks + audit-log back-refs. */}
+            <Route path="/audit" element={<Navigate to="/settings/people/audit" replace />} />
             <Route path="/review-offline-changes" element={<AppShell><ReviewOfflineChangesPage /></AppShell>} />
             <Route path="/opportunities/:sfid/process-notes" element={<AppShell><ProcessCallNotesPage /></AppShell>} />
             <Route path="/" element={<Navigate to="/home" replace />} />

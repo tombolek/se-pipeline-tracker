@@ -411,7 +411,7 @@ export default function PercentToTargetPage() {
           <h1 className="text-xl font-semibold text-brand-navy dark:text-fg-1">% to Target</h1>
           <p className="text-sm text-brand-navy-70 dark:text-fg-2 mt-0.5">
             Closed Won progress toward quota targets — new business only. Configure groups in{' '}
-            <a className="text-brand-purple dark:text-accent-purple underline" href="/settings/quotas">Settings → Quotas</a>.
+            <a className="text-brand-purple dark:text-accent-purple underline" href="/settings/configuration/quotas">Settings → Quotas</a>.
           </p>
         </div>
         <div className="ml-auto flex items-center gap-3 flex-wrap">
@@ -466,7 +466,7 @@ export default function PercentToTargetPage() {
       {loading ? <Loading /> : groups.length === 0 ? (
         <div className="bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft px-6 py-12 text-center">
           <p className="text-sm text-brand-navy-70 dark:text-fg-2">No quota groups configured yet.</p>
-          <a href="/settings/quotas" className="inline-block mt-3 text-sm text-brand-purple dark:text-accent-purple font-medium hover:underline">Configure groups in Settings → Quotas →</a>
+          <a href="/settings/configuration/quotas" className="inline-block mt-3 text-sm text-brand-purple dark:text-accent-purple font-medium hover:underline">Configure groups in Settings → Quotas →</a>
         </div>
       ) : (
         <>

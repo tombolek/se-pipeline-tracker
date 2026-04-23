@@ -45,22 +45,24 @@ const PAGE_REGISTRY: PageDef[] = [
   { key: 'insights/tech-blockers', label: 'Tech Blockers', section: 'Insights' },
   { key: 'insights/agentic-qual', label: 'Agentic Qual', section: 'Insights' },
   { key: 'insights/analytics', label: 'Pipeline Analytics', section: 'Insights' },
-  // Administration
-  { key: 'audit', label: 'Audit', section: 'Administration' },
-  { key: 'settings/users', label: 'Users', section: 'Administration' },
-  { key: 'settings/import', label: 'Import', section: 'Administration' },
-  { key: 'settings/import-history', label: 'Import History', section: 'Administration' },
-  { key: 'settings/menu-settings', label: 'Menu Settings', section: 'Administration' },
-  { key: 'settings/backup', label: 'Backup & Restore', section: 'Administration' },
-  { key: 'settings/deploy', label: 'Deploy', section: 'Administration' },
-  { key: 'settings/deal-info-layout', label: 'Deal Info Layout', section: 'Administration' },
-  { key: 'settings/quotas', label: 'Quotas', section: 'Administration' },
-  { key: 'settings/templates', label: 'Templates', section: 'Administration' },
-  { key: 'settings/knowledge-base', label: 'Knowledge Base', section: 'Administration' },
-  { key: 'settings/agents', label: 'AI Agents', section: 'Administration' },
-  { key: 'settings/ai-jobs', label: 'AI Jobs', section: 'Administration' },
-  { key: 'settings/ai-usage', label: 'AI Usage', section: 'Administration' },
-  { key: 'settings/role-access', label: 'Role Access', section: 'Administration' },
+  // Administration — labelled by hub so the matrix mirrors the sidebar.
+  // `page_key` values stay unchanged so existing role_page_access rows keep
+  // applying; only the display labels were regrouped.
+  { key: 'settings/users',            label: 'People → Users',                section: 'Administration' },
+  { key: 'settings/role-access',      label: 'People → Roles',                section: 'Administration' },
+  { key: 'audit',                     label: 'People → Audit',                section: 'Administration' },
+  { key: 'settings/import',           label: 'Imports → Run Import',          section: 'Administration' },
+  { key: 'settings/import-history',   label: 'Imports → History',             section: 'Administration' },
+  { key: 'settings/deal-info-layout', label: 'Configuration → Deal Info Layout', section: 'Administration' },
+  { key: 'settings/quotas',           label: 'Configuration → Quotas',        section: 'Administration' },
+  { key: 'settings/templates',        label: 'Configuration → Templates',     section: 'Administration' },
+  { key: 'settings/knowledge-base',   label: 'Configuration → Knowledge Base', section: 'Administration' },
+  { key: 'settings/menu-settings',    label: 'Configuration → Menu Settings', section: 'Administration' },
+  { key: 'settings/agents',           label: 'AI → Agents',                   section: 'Administration' },
+  { key: 'settings/ai-jobs',          label: 'AI → Jobs',                     section: 'Administration' },
+  { key: 'settings/ai-usage',         label: 'AI → Usage',                    section: 'Administration' },
+  { key: 'settings/backup',           label: 'Backup & Restore',              section: 'Administration' },
+  { key: 'settings/deploy',           label: 'Deploy',                        section: 'Administration' },
 ];
 
 const SECTIONS = ['Main Navigation', 'Insights', 'Administration'] as const;

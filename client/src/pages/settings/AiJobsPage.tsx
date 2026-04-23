@@ -2,8 +2,8 @@
  * AI Jobs — admin view across every agent.
  *
  * Two modes:
- *  • /settings/ai-jobs           → split view: currently-running (auto-refresh) + filterable history
- *  • /settings/ai-jobs/:id       → detail for one job, including prompt+response when the owning
+ *  • /settings/ai/jobs           → split view: currently-running (auto-refresh) + filterable history
+ *  • /settings/ai/jobs/:id       → detail for one job, including prompt+response when the owning
  *                                  agent had log_io = true at call time
  */
 import { useEffect, useState, useCallback } from 'react';
@@ -30,7 +30,7 @@ export default function AiJobsPage() {
   // Same deal as AgentDetailPage — we're under the /settings/* wildcard so
   // useParams() doesn't see a named :id. Parse from pathname instead.
   const location = useLocation();
-  const match = /^\/settings\/ai-jobs\/(\d+)/.exec(location.pathname);
+  const match = /^\/settings\/ai\/jobs\/(\d+)/.exec(location.pathname);
   if (match) return <AiJobDetailView id={Number(match[1])} />;
   return <AiJobsListView />;
 }
@@ -117,7 +117,7 @@ function AiJobsListView() {
               {running.map(j => (
                 <tr key={j.id}>
                   <td className="px-4 py-2">
-                    <Link to={`/settings/ai-jobs/${j.id}`} className="text-brand-purple hover:underline font-mono text-[12px]">#{j.id}</Link>
+                    <Link to={`/settings/ai/jobs/${j.id}`} className="text-brand-purple hover:underline font-mono text-[12px]">#{j.id}</Link>
                   </td>
                   <td className="px-4 py-2 text-[12px] text-brand-navy dark:text-fg-1">{j.agent_name ?? j.feature}</td>
                   <td className="px-4 py-2 text-[12px] text-brand-navy-70 dark:text-fg-2">{formatDateTime(j.started_at)}</td>
@@ -181,7 +181,7 @@ function AiJobsListView() {
               {history.map(j => (
                 <tr key={j.id} className="hover:bg-brand-navy-30/10 dark:hover:bg-ink-2">
                   <td className="px-4 py-2">
-                    <Link to={`/settings/ai-jobs/${j.id}`} className="text-brand-purple hover:underline font-mono text-[12px]">#{j.id}</Link>
+                    <Link to={`/settings/ai/jobs/${j.id}`} className="text-brand-purple hover:underline font-mono text-[12px]">#{j.id}</Link>
                   </td>
                   <td className="px-4 py-2 text-[12px] text-brand-navy dark:text-fg-1">{j.agent_name ?? j.feature}</td>
                   <td className="px-4 py-2"><StatusPill status={j.status} /></td>
@@ -213,7 +213,7 @@ function AiJobDetailView({ id }: { id: number }) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!Number.isFinite(id)) { navigate('/settings/ai-jobs'); return; }
+    if (!Number.isFinite(id)) { navigate('/settings/ai/jobs'); return; }
     setLoading(true);
     getAiJob(id)
       .then(setJob)
@@ -227,7 +227,7 @@ function AiJobDetailView({ id }: { id: number }) {
   return (
     <div className="space-y-5">
       <div>
-        <Link to="/settings/ai-jobs" className="text-[12px] text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:hover:text-fg-1">← All jobs</Link>
+        <Link to="/settings/ai/jobs" className="text-[12px] text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:hover:text-fg-1">← All jobs</Link>
         <div className="mt-2 flex items-center gap-3">
           <h1 className="text-xl font-semibold text-brand-navy dark:text-fg-1 font-mono">Job #{job.id}</h1>
           <StatusPill status={job.status} />
@@ -237,7 +237,7 @@ function AiJobDetailView({ id }: { id: number }) {
       <div className="grid grid-cols-4 gap-4 bg-white dark:bg-ink-1 rounded-xl shadow-sm border border-brand-navy-30/40 dark:border-ink-border-soft p-4">
         <Metric label="Agent" value={
           job.agent_id
-            ? <Link to={`/settings/agents/${job.agent_id}`} className="text-brand-purple hover:underline">{job.agent_name ?? job.feature}</Link>
+            ? <Link to={`/settings/ai/agents/${job.agent_id}`} className="text-brand-purple hover:underline">{job.agent_name ?? job.feature}</Link>
             : job.feature
         } />
         <Metric label="Model" value={<span className="font-mono">{job.model ?? '—'}</span>} />

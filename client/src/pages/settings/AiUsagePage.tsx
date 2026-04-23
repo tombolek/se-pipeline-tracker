@@ -79,7 +79,7 @@ export default function AiUsagePage() {
                   {summary.by_agent.map(a => (
                     <tr key={a.agent_id}>
                       <td className="px-4 py-2">
-                        <Link to={`/settings/agents/${a.agent_id}`} className="text-brand-navy dark:text-fg-1 hover:text-brand-purple">{a.agent_name}</Link>
+                        <Link to={`/settings/ai/agents/${a.agent_id}`} className="text-brand-navy dark:text-fg-1 hover:text-brand-purple">{a.agent_name}</Link>
                         <span className="ml-2 font-mono text-[11px] text-brand-navy-70 dark:text-fg-2">{a.feature}</span>
                       </td>
                       <td className="px-4 py-2 text-right tabular-nums">{fmt(a.calls)}</td>
