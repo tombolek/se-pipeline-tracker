@@ -1,4 +1,5 @@
 import { callAnthropic } from '../services/aiClient.js';
+import { renderAgentPrompt } from '../services/agentRunner.js';
 import { Router, Request, Response } from 'express';
 import { query, queryOne } from '../db/index.js';
 import { requireAuth, requireManager } from '../middleware/auth.js';
@@ -272,26 +273,13 @@ router.post('/narrative/generate', auth, mgr, async (req: Request, res: Response
                     : region === 'INTL' ? 'INTL (EMEA + ANZ)'
                     : 'All regions';
 
-  const prompt = `You are an SE Manager preparing a forecasting brief for your leadership call.
-
-Fiscal Quarter: ${fq}
-Region scope: ${regionLabel}
-Pipeline: $${Math.round(totalArr / 1000)}K total | $${Math.round(commitArr / 1000)}K Commit | $${Math.round(mlArr / 1000)}K Most Likely | ${rows.length} deals
-
-Deals (cite by [N] when you reference one):
-${dealLines}
-
-${CITATION_INSTRUCTIONS}
-
-Write a concise SE-perspective forecast narrative with exactly these 3 sections:
-
-**On Track** — Deals progressing well from SE perspective. Mention specific deal names, ARR, and why they're on track (tech validated, PoC complete, fresh SE engagement, etc.)
-
-**At Risk** — Deals with SE concerns: stale comments (>7d), technical blockers, low MEDDPICC scores, PoC delays, competitive threats. Be specific about the risk and what needs to happen.
-
-**Needs Attention** — Deals requiring manager action: no SE assigned, critical gaps, escalation needed.
-
-BE CONCISE. Each section should be 2-4 sentences. Use deal names and dollar amounts. Focus on actionable SE insights, not generic observations. Total response should be under 300 words.`;
+  const prompt = await renderAgentPrompt('forecast-narrative', {
+    fiscal_quarter: fq,
+    region_label: regionLabel,
+    pipeline_summary: `$${Math.round(totalArr / 1000)}K total | $${Math.round(commitArr / 1000)}K Commit | $${Math.round(mlArr / 1000)}K Most Likely | ${rows.length} deals`,
+    deal_lines: dealLines,
+    citation_instructions: CITATION_INSTRUCTIONS,
+  });
 
   const cacheKey = narrativeCacheKey(fq, region);
   const job = await startJob({ key: cacheKey, feature: 'forecast-narrative', userId });
@@ -383,31 +371,20 @@ router.post('/summaries/bulk-generate', auth, mgr, async (req: Request, res: Res
           ).join('\n')
         : 'No notes yet.';
 
-      const prompt = `You are an SE deal intelligence assistant. Write a concise deal summary in 3 short paragraphs using plain text with **bold** for emphasis on key names, numbers, and actions. Do NOT use markdown headers (#), bullet points, or lists. Keep it conversational and direct.
-
-Paragraph 1: Current deal status and momentum (1-2 sentences).
-Paragraph 2: Key risks or blockers (1-2 sentences).
-Paragraph 3: Recommended next action starting with "**Recommended next action:**" (1-2 sentences).
-
-Opportunity: ${opp.name}
-Account: ${opp.account_name ?? 'N/A'}
-Stage: ${opp.stage}
-ARR: ${fmtARR(opp.arr)}
-Close Date: ${fmtDate(opp.close_date)}
-AE Owner: ${opp.ae_owner_name ?? 'N/A'}
-SE Owner: ${opp.se_owner_name ?? 'Unassigned'}
-
-Next Step (from SF): ${opp.next_step_sf ?? 'N/A'}
-
-SE Comments: ${opp.se_comments ?? 'None'}
-
-Manager Comments: ${opp.manager_comments ?? 'None'}
-
-Open Tasks:
-${taskLines}
-
-Recent Notes (oldest to newest):
-${noteLines}`;
+      const prompt = await renderAgentPrompt('forecast-bulk-summary', {
+        opp_name: opp.name,
+        account_name: opp.account_name ?? 'N/A',
+        stage: opp.stage,
+        arr_fmt: fmtARR(opp.arr),
+        close_date_fmt: fmtDate(opp.close_date),
+        ae_owner: opp.ae_owner_name ?? 'N/A',
+        se_owner: opp.se_owner_name ?? 'Unassigned',
+        next_step_sf: opp.next_step_sf ?? 'N/A',
+        se_comments: opp.se_comments ?? 'None',
+        manager_comments: opp.manager_comments ?? 'None',
+        task_lines: taskLines,
+        note_lines: noteLines,
+      });
 
       const { text: summary } = await callAnthropic({
         feature: 'forecast-bulk-summary',

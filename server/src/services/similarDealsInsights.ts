@@ -1,4 +1,5 @@
 import { callAnthropic } from './aiClient.js';
+import { renderAgentPrompt } from './agentRunner.js';
 import { query, queryOne } from '../db/index.js';
 import { findSimilarDeals, type SimilarDealResult } from './similarDeals.js';
 
@@ -46,7 +47,7 @@ function normalizeInsights(raw: unknown): Insight[] {
   return out;
 }
 
-function buildPrompt(active: {
+async function buildPrompt(active: {
   name: string;
   account_name: string | null;
   account_industry: string | null;
@@ -55,7 +56,7 @@ function buildPrompt(active: {
   need: string | null;
   technical_blockers: string | null;
   se_comments: string | null;
-}, candidates: SimilarDealResult[]): string {
+}, candidates: SimilarDealResult[]): Promise<string> {
   const activeBlock = [
     `Name: ${active.name}`,
     `Account: ${active.account_name ?? '(unknown)'}`,
@@ -79,26 +80,10 @@ Match chips: ${c.match_chips.map(ch => ch.label).join(' · ') || '(none)'}
 Notes: ${(c.why_text ?? '').slice(0, 400)}`;
   }).join('\n\n');
 
-  return `You are a sales engineer assistant. An SE is looking at the active opportunity below and a shortlist of historically similar deals (or KB proof points). For each candidate, write ONE SENTENCE explaining why this specific candidate is relevant to the active deal — what pattern, risk, or playbook to take from it.
-
-Ground every insight in the provided text. Do not invent specifics (numbers, names, blockers) that aren't in the notes. If the candidate looks weakly matched, say so briefly ("limited relevance — only shared the industry").
-
-## Active opportunity
-
-${activeBlock}
-
-## Candidates
-
-${candidateBlocks}
-
-## Output
-
-Respond with a JSON array, no preamble, no markdown fences. Preserve the ref_type and id from each candidate heading exactly.
-
-[
-  { "ref_type": "opportunity", "id": 123, "insight": "one-sentence insight here" },
-  { "ref_type": "kb", "id": 7, "insight": "..." }
-]`;
+  return renderAgentPrompt('similar-deals-insights', {
+    active_block: activeBlock,
+    candidate_blocks: candidateBlocks,
+  });
 }
 
 // ── Public API ──────────────────────────────────────────────────────────────
@@ -166,7 +151,7 @@ export async function generateInsights(oppId: number): Promise<InsightsResponse>
     return { insights: [], generated_at: null, is_stale: true, candidates_considered: 0 };
   }
 
-  const prompt = buildPrompt({
+  const prompt = await buildPrompt({
     ...active,
     engaged_competitors: active.engaged_competitors
       ? active.engaged_competitors.split(/[,;|]/).map(s => s.trim()).filter(Boolean)

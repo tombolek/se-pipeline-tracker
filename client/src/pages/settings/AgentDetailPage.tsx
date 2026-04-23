@@ -44,6 +44,7 @@ export default function AgentDetailPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [editedExtra, setEditedExtra] = useState('');
+  const [editedTemplate, setEditedTemplate] = useState('');
   const [editedModel, setEditedModel] = useState('');
   const [editedMaxTokens, setEditedMaxTokens] = useState<number>(800);
   const [editedEnabled, setEditedEnabled] = useState(true);
@@ -66,6 +67,7 @@ export default function AgentDetailPage() {
     setUsage(us);
     // Seed the editor from the freshly-loaded agent
     setEditedExtra(agent.system_prompt_extra);
+    setEditedTemplate(agent.prompt_template ?? '');
     setEditedModel(agent.default_model);
     setEditedMaxTokens(agent.default_max_tokens);
     setEditedEnabled(agent.is_enabled);
@@ -84,6 +86,7 @@ export default function AgentDetailPage() {
   const dirty =
     !!agent && (
       editedExtra       !== agent.system_prompt_extra ||
+      editedTemplate    !== (agent.prompt_template ?? '') ||
       editedModel       !== agent.default_model ||
       editedMaxTokens   !== agent.default_max_tokens ||
       editedEnabled     !== agent.is_enabled ||
@@ -100,6 +103,7 @@ export default function AgentDetailPage() {
         is_enabled: editedEnabled,
         log_io: editedLogIO,
         system_prompt_extra: editedExtra,
+        prompt_template: editedTemplate,
         note: note.trim() || null,
       });
       setNote('');
@@ -187,6 +191,26 @@ export default function AgentDetailPage() {
             placeholder="e.g. Prefer bullet points. Only mention competitive intel if explicitly present in the sources."
             className="mt-1 w-full rounded border border-brand-navy-30/60 dark:border-ink-border-soft bg-white dark:bg-ink-0 px-2 py-2 text-sm font-mono text-brand-navy dark:text-fg-1"
           />
+        </div>
+
+        <div>
+          <label className="text-xs text-brand-navy-70 dark:text-fg-2">
+            Prompt template
+            <span className="ml-2 font-normal text-brand-navy-70/80 dark:text-fg-3">
+              — Handlebars template. <code className="text-[11px]">{'{{var}}'}</code> pulls from the vars built by the feature's route handler; <code className="text-[11px]">{'{{#if}}'}</code>/<code className="text-[11px]">{'{{#each}}'}</code> work too. Renames a var and the call breaks — check version history before shipping.
+            </span>
+          </label>
+          <textarea
+            value={editedTemplate}
+            onChange={e => setEditedTemplate(e.target.value)}
+            rows={18}
+            spellCheck={false}
+            placeholder="Blank means this agent has no template — its route will throw AgentPromptMissingError. Seed it from agentTemplates.ts via a restart."
+            className="mt-1 w-full rounded border border-brand-navy-30/60 dark:border-ink-border-soft bg-white dark:bg-ink-0 px-2 py-2 text-[12px] font-mono leading-relaxed text-brand-navy dark:text-fg-1"
+          />
+          <p className="mt-1 text-[11px] text-brand-navy-70 dark:text-fg-2">
+            Length: {editedTemplate.length.toLocaleString()} chars. Changes save as a new version — revert via the Version history tab.
+          </p>
         </div>
 
         <div className="flex items-center gap-3">
@@ -292,9 +316,20 @@ export default function AgentDetailPage() {
                 <span>log_io: <span className="font-mono">{String(v.log_io)}</span></span>
               </div>
               {v.system_prompt_extra && (
-                <pre className="mt-2 text-[12px] font-mono bg-brand-navy-30/20 dark:bg-ink-0 rounded p-2 whitespace-pre-wrap text-brand-navy dark:text-fg-1">
-                  {v.system_prompt_extra}
-                </pre>
+                <details className="mt-2">
+                  <summary className="text-[11px] text-brand-navy-70 dark:text-fg-2 cursor-pointer">system_prompt_extra</summary>
+                  <pre className="mt-1 text-[12px] font-mono bg-brand-navy-30/20 dark:bg-ink-0 rounded p-2 whitespace-pre-wrap text-brand-navy dark:text-fg-1">
+                    {v.system_prompt_extra}
+                  </pre>
+                </details>
+              )}
+              {v.prompt_template && (
+                <details className="mt-2">
+                  <summary className="text-[11px] text-brand-navy-70 dark:text-fg-2 cursor-pointer">prompt_template ({v.prompt_template.length.toLocaleString()} chars)</summary>
+                  <pre className="mt-1 text-[12px] font-mono bg-brand-navy-30/20 dark:bg-ink-0 rounded p-2 whitespace-pre-wrap text-brand-navy dark:text-fg-1">
+                    {v.prompt_template}
+                  </pre>
+                </details>
               )}
             </div>
           ))}

@@ -12,6 +12,7 @@
  */
 
 import { query, queryOne } from '../db/index.js';
+import { AGENT_TEMPLATES } from './agentTemplates.js';
 
 export interface Agent {
   id: number;
@@ -23,6 +24,7 @@ export interface Agent {
   is_enabled: boolean;
   log_io: boolean;
   system_prompt_extra: string;
+  prompt_template: string | null;
   active_version_id: number | null;
   created_at: string;
   updated_at: string;
@@ -32,6 +34,7 @@ export interface AgentPromptVersion {
   id: number;
   agent_id: number;
   system_prompt_extra: string;
+  prompt_template: string | null;
   default_model: string;
   default_max_tokens: number;
   is_enabled: boolean;
@@ -87,6 +90,7 @@ export interface AgentSettingsInput {
   is_enabled?: boolean;
   log_io?: boolean;
   system_prompt_extra?: string;
+  prompt_template?: string;
   note?: string | null;
 }
 
@@ -110,6 +114,7 @@ export async function updateAgentSettings(
     is_enabled: input.is_enabled ?? current.is_enabled,
     log_io: input.log_io ?? current.log_io,
     system_prompt_extra: input.system_prompt_extra ?? current.system_prompt_extra,
+    prompt_template: input.prompt_template ?? current.prompt_template,
   };
 
   // Guard: max_tokens must be sane. Anthropic caps are well above this, but an
@@ -121,12 +126,13 @@ export async function updateAgentSettings(
 
   const version = await queryOne<AgentPromptVersion>(
     `INSERT INTO agent_prompt_versions
-       (agent_id, system_prompt_extra, default_model, default_max_tokens, is_enabled, log_io, note, created_by_user_id)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       (agent_id, system_prompt_extra, prompt_template, default_model, default_max_tokens, is_enabled, log_io, note, created_by_user_id)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
      RETURNING *`,
     [
       id,
       next.system_prompt_extra,
+      next.prompt_template,
       next.default_model,
       next.default_max_tokens,
       next.is_enabled,
@@ -143,11 +149,12 @@ export async function updateAgentSettings(
          is_enabled          = $4,
          log_io              = $5,
          system_prompt_extra = $6,
-         active_version_id   = $7,
+         prompt_template     = $7,
+         active_version_id   = $8,
          updated_at          = now()
      WHERE id = $1
      RETURNING *`,
-    [id, next.default_model, next.default_max_tokens, next.is_enabled, next.log_io, next.system_prompt_extra, version!.id],
+    [id, next.default_model, next.default_max_tokens, next.is_enabled, next.log_io, next.system_prompt_extra, next.prompt_template, version!.id],
   );
 
   invalidateAgentsCache();
@@ -164,4 +171,47 @@ export async function listVersionsForAgent(agentId: number, limit = 50): Promise
      LIMIT $2`,
     [agentId, limit],
   );
+}
+
+/**
+ * On boot, fill in `agents.prompt_template` from the AGENT_TEMPLATES golden
+ * baseline for any row that's still NULL. Also backfills the active
+ * `agent_prompt_versions` row so the first "seeded" version has the template
+ * text embedded — a future revert to that version is then fully specified.
+ *
+ * This intentionally only touches NULL rows. Once an admin edits a template
+ * (even to an empty string ''), this will never overwrite it.
+ *
+ * Returns the number of agents that got seeded, for a boot log line.
+ */
+export async function seedMissingPromptTemplates(): Promise<number> {
+  const rows = await query<{ id: number; feature: string; active_version_id: number | null }>(
+    `SELECT id, feature, active_version_id FROM agents WHERE prompt_template IS NULL`,
+  );
+  if (rows.length === 0) return 0;
+
+  let seeded = 0;
+  for (const r of rows) {
+    const tpl = AGENT_TEMPLATES[r.feature];
+    if (!tpl) continue; // unknown feature — leave it NULL, will surface as AgentPromptMissingError
+
+    await query(
+      `UPDATE agents SET prompt_template = $2, updated_at = now() WHERE id = $1`,
+      [r.id, tpl],
+    );
+
+    // Also backfill the initial "seeded" version row so version history
+    // shows the template we just dropped in rather than NULL for v1.
+    if (r.active_version_id != null) {
+      await query(
+        `UPDATE agent_prompt_versions SET prompt_template = $2 WHERE id = $1 AND prompt_template IS NULL`,
+        [r.active_version_id, tpl],
+      );
+    }
+
+    seeded++;
+  }
+
+  invalidateAgentsCache();
+  return seeded;
 }

@@ -992,77 +992,28 @@ router.post('/:id/meddpicc-coach', auth, write, async (req: Request, res: Respon
     const citationSources = await buildCitationSources(id);
     const sourcesBlock = formatSourcesForPrompt(citationSources);
 
-    const prompt = `You are an expert MEDDPICC sales methodology coach analyzing a software deal for an SE (Sales Engineer). Your job is NOT to score completeness — a separate tool does that. Your job is to read all available deal context (notes, tasks, comments, field values) and identify what the SE still needs to discover or validate.
-
-For each of the 9 MEDDPICC elements below, produce a verdict:
-- GREEN: Meaningful evidence found in the deal context. State what evidence you found.
-- AMBER: Partially covered — some signal exists but there are specific gaps. State what's missing and suggest a discovery question.
-- RED: No evidence found. Explain why this matters at the current deal stage and suggest a specific discovery question.
-
-Important rules:
-- Weight your assessment by deal stage. A "Qualify" stage deal with empty Paper Process is less alarming than a "Proposal Sent" deal with the same gap.
-- Look across ALL sources — a champion might be mentioned in notes even if the Champion field is empty.
-- A filled MEDDPICC field doesn't automatically mean GREEN — if the content is vague or unsupported by notes, mark it AMBER.
-- Be specific and actionable. Generic advice like "identify the champion" is useless. Reference the actual account name, people, and context from the deal.
-- Suggested questions should be phrased as the SE would actually ask them in a call — natural, not robotic.
-
-CITABLE SOURCES (cite evidence/gap statements with [N] inline):
-${sourcesBlock}
-
-${CITATION_INSTRUCTIONS}
-
-DEAL CONTEXT:
-Opportunity: ${opp.name}
-Account: ${opp.account_name ?? 'N/A'}
-Stage: ${opp.stage}
-ARR: ${formatARR(opp.arr)}
-Close Date: ${formatDate(opp.close_date)}
-Deploy Mode: ${opp.deploy_mode ?? 'N/A'}
-PoC Status: ${opp.poc_status ?? 'N/A'}
-AE Owner: ${opp.ae_owner_name ?? 'N/A'}
-SE Owner: ${opp.se_owner_name ?? 'Unassigned'}
-Engaged Competitors: ${opp.engaged_competitors ?? 'None listed'}
-
-MEDDPICC FIELD VALUES:
-${meddpiccContext}
-
-Next Step (from SF): ${opp.next_step_sf ?? 'N/A'}
-SE Comments: ${opp.se_comments ?? 'None'}
-Manager Comments: ${opp.manager_comments ?? 'None'}
-PSM Comments: ${opp.psm_comments ?? 'None'}
-Technical Blockers: ${opp.technical_blockers ?? 'None'}
-
-TASKS:
-${taskLines}
-
-NOTES (oldest to newest):
-${noteLines}
-
-Respond in this exact JSON format (no markdown fences, just raw JSON):
-{
-  "elements": [
-    {
-      "key": "metrics",
-      "label": "Metrics",
-      "status": "green",
-      "evidence": "What you found supporting this element",
-      "gap": null,
-      "suggested_question": null
-    },
-    {
-      "key": "economic_buyer",
-      "label": "Economic Buyer",
-      "status": "amber",
-      "evidence": "Partial evidence found",
-      "gap": "What's missing",
-      "suggested_question": "A natural discovery question the SE can ask"
-    }
-  ],
-  "overall_assessment": "2-3 sentence summary of the deal's qualification posture and the single highest-priority gap to close next.",
-  "counts": { "green": 0, "amber": 0, "red": 0 }
-}
-
-Include all 9 MEDDPICC elements in the elements array, in this order: metrics, economic_buyer, decision_criteria, decision_process, paper_process, implicate_pain, champion, authority, need.`;
+    const prompt = await renderAgentPrompt('meddpicc-coach', {
+      sources_block: sourcesBlock,
+      citation_instructions: CITATION_INSTRUCTIONS,
+      opp_name: opp.name,
+      account_name: opp.account_name ?? 'N/A',
+      stage: opp.stage,
+      arr_fmt: formatARR(opp.arr),
+      close_date_fmt: formatDate(opp.close_date),
+      deploy_mode: opp.deploy_mode ?? 'N/A',
+      poc_status: opp.poc_status ?? 'N/A',
+      ae_owner: opp.ae_owner_name ?? 'N/A',
+      se_owner: opp.se_owner_name ?? 'Unassigned',
+      competitors: opp.engaged_competitors ?? 'None listed',
+      meddpicc_context: meddpiccContext,
+      next_step_sf: opp.next_step_sf ?? 'N/A',
+      se_comments: opp.se_comments ?? 'None',
+      manager_comments: opp.manager_comments ?? 'None',
+      psm_comments: opp.psm_comments ?? 'None',
+      technical_blockers: opp.technical_blockers ?? 'None',
+      task_lines: taskLines,
+      note_lines: noteLines,
+    });
 
     console.log(`[meddpicc-coach] Calling Anthropic API for opp ${id}...`);
     const { text: raw } = await callAnthropic({
@@ -2318,21 +2269,12 @@ Discovery Notes prose fields (current content):
 ${proseFieldsCtx}` : '',
   ].filter(Boolean);
 
-  const prompt = `You are an SE (Sales Engineer) assistant. Analyse the call notes below and return a JSON object. Return ONLY valid JSON — no explanation, no markdown, no code fences.
-
-${contextBlocks.join('\n\n')}
-
-RAW CALL NOTES
-${raw_notes.trim()}
-
-INSTRUCTIONS — return a JSON object with exactly these keys (and ONLY these keys):
-
-{
-${schemaLines.join(',\n')}
-}
-
-Rules:
-${ruleLines.join('\n')}`;
+  const prompt = await renderAgentPrompt('process-notes', {
+    context_blocks: contextBlocks.join('\n\n'),
+    raw_notes: raw_notes.trim(),
+    schema_lines: schemaLines.join(',\n'),
+    rule_lines: ruleLines.join('\n'),
+  });
 
   console.log(`[process-notes] calling Claude API, prompt length=${prompt.length} chars`);
   const { text } = await callAnthropic({
@@ -2614,104 +2556,43 @@ ${embeddedPPs}`;
     const citationSources = await buildCitationSources(id);
     const sourcesBlock = formatSourcesForPrompt(citationSources);
 
-    const prompt = `You are an expert Sales Engineering assistant preparing an SE for a customer call. Generate a Pre-Call Brief that TIGHTLY INTEGRATES customer proof points into actionable guidance.
-
-CITABLE SOURCES (cite with [N] inline; used for talking_points, risks, discovery_questions, deal_context):
-${sourcesBlock}
-
-${CITATION_INSTRUCTIONS}
-
-DEAL CONTEXT:
-- Opportunity: ${opp.name}
-- Account: ${opp.account_name || 'Unknown'}
-- Industry: ${industry || 'Unknown'}
-- Stage: ${opp.stage}
-- ARR: ${opp.arr ? `$${Number(opp.arr).toLocaleString()}` : 'Unknown'}
-- Close Date: ${opp.close_date || 'Unknown'}
-- AE Owner: ${opp.ae_owner_name || 'Unknown'}
-- SE Owner: ${opp.se_owner_name || 'Unassigned'}
-- Products: ${products.length > 0 ? products.join(', ') : 'None tagged'}
-- Competitors: ${competitors || 'None listed'}
-- Deploy Mode: ${opp.deploy_mode || 'Unknown'}
-- PoC Status: ${opp.poc_status || 'None'}
-- Record Type: ${opp.record_type || 'Unknown'}
-
-MEDDPICC STATUS:
-- Metrics: ${opp.metrics || '—'}
-- Economic Buyer: ${opp.economic_buyer || '—'}
-- Decision Criteria: ${opp.decision_criteria || '—'}
-- Decision Process: ${opp.decision_process || '—'}
-- Paper Process: ${opp.paper_process || '—'}
-- Implicate Pain: ${opp.implicate_pain || '—'}
-- Champion: ${opp.champion || '—'}
-- Authority: ${opp.authority || '—'}
-- Need: ${opp.need || '—'}
-
-SF NEXT STEP: ${opp.next_step_sf || '—'}
-SE COMMENTS: ${opp.se_comments || '—'}
-SE COMMENTS LAST UPDATED: ${opp.se_comments_updated_at || 'Never'}
-
-OPEN TASKS (${openTasks.length}):
-${openTasks.map(t => `- [${t.status}] ${t.title}${t.due_date ? ` (due: ${t.due_date})` : ''}${t.is_next_step ? ' [NEXT STEP]' : ''}`).join('\n') || 'None'}
-
-OVERDUE TASKS: ${overdueTasks.length > 0 ? overdueTasks.map(t => t.title).join(', ') : 'None'}
-
-RECENT NOTES (last 10):
-${notes.map(n => `[${n.created_at}] ${n.author_name}: ${n.content.slice(0, 500)}`).join('\n') || 'None'}
-
-===== TECH DISCOVERY (the prospect's technical environment — use to tailor talking points, proof points, and discovery questions) =====
-${techDiscoveryCtx}
-
-===== CUSTOMER VALUE STORIES (use these in talking points!) =====
-${ppContext}
-
-===== PLATFORM DIFFERENTIATORS (tie to proof points above!) =====
-${diffContext}
-
-Today's date: ${today}
-
-Generate a JSON response with this EXACT structure:
-{
-  "deal_context": "2-3 sentences summarizing the deal, what's at stake, and what's happening right now.",
-  "talking_points": [
-    "Each talking point MUST reference a specific customer name and concrete outcome from the stories above when relevant. Example: 'Lead with Scout Motors — same manufacturing vertical, replaced Informatica, 40% fewer DQ incidents in 4 months.' Tie differentiators to the proof point that backs them up.",
-    "Another specific, customer-backed talking point.",
-    "A MEDDPICC-gap talking point with a suggested question."
-  ],
-  "proof_point_highlights": [
-    {
-      "customer": "Customer name from the stories above",
-      "role": "primary|scale|backup",
-      "why_relevant": "Why this story matters for THIS specific deal (shared products, industry, competitor, SI, etc.)",
-      "key_stat": "The single most compelling metric or outcome from their proof point",
-      "when_to_use": "Specific moment in the call when the SE should drop this reference"
-    }
-  ],
-  "differentiator_plays": [
-    {
-      "name": "Differentiator name",
-      "positioning": "1 sentence on how to position this against the specific competitor in this deal",
-      "backed_by": "Customer name whose proof point validates this differentiator"
-    }
-  ],
-  "risks": [
-    { "severity": "high|medium", "text": "Description of risk or gap." }
-  ],
-  "discovery_questions": [
-    "Conversational question tied to an identified gap."
-  ]
-}
-
-CRITICAL RULES:
-- talking_points: 3-5 items. Every point that can reference a customer story MUST do so by name with a specific metric. No generic statements like "emphasize the unified engine" — instead say "reference Volvo Group — 15 facilities, 2M records/day with cross-plant DQ rules." When Tech Discovery reveals the prospect's stack (e.g. Snowflake + dbt, Salesforce + SAP, existing Collibra catalog), anchor at least one talking point to that reality — match proof points whose customers share stack elements, and reference incumbent solutions or constraints captured in Discovery Notes.
-- discovery_questions: prefer questions that CLOSE gaps visible in Tech Discovery (empty prose fields, unspecified enterprise systems, unnamed incumbent DMG tools). Avoid asking about anything already captured there.
-- proof_point_highlights: Pick the 2-3 BEST stories for this deal. "role" = "primary" (lead story), "scale" (impressive at-scale reference), "backup" (different angle). Only include stories from the CUSTOMER VALUE STORIES section above.
-- differentiator_plays: 1-3 items. Each MUST link back to a proof point customer in "backed_by". If a differentiator has no relevant proof point, omit it.
-- risks: 2-4 items. Include overdue tasks, stale SE comments, MEDDPICC gaps, timeline concerns.
-- discovery_questions: 2-4 natural questions tied to gaps.
-- FORMATTING: In all text fields (deal_context, talking_points, risks.text, discovery_questions), wrap customer names, concrete metrics/stats, differentiator names, and MEDDPICC field names in **double asterisks** for emphasis. Example: "Lead with **Scout Motors** — **40% fewer DQ incidents** in **4 months** with **Capgemini**."
-- Be concise. No filler. Every sentence actionable.
-- Return ONLY valid JSON, no markdown fences.`;
+    const prompt = await renderAgentPrompt('call-prep', {
+      sources_block: sourcesBlock,
+      citation_instructions: CITATION_INSTRUCTIONS,
+      opp_name: opp.name,
+      account_name: opp.account_name || 'Unknown',
+      industry: industry || 'Unknown',
+      stage: opp.stage,
+      arr_fmt: opp.arr ? `$${Number(opp.arr).toLocaleString()}` : 'Unknown',
+      close_date: opp.close_date || 'Unknown',
+      ae_owner: opp.ae_owner_name || 'Unknown',
+      se_owner: opp.se_owner_name || 'Unassigned',
+      products_list: products.length > 0 ? products.join(', ') : 'None tagged',
+      competitors: competitors || 'None listed',
+      deploy_mode: opp.deploy_mode || 'Unknown',
+      poc_status: opp.poc_status || 'None',
+      record_type: opp.record_type || 'Unknown',
+      meddpicc_metrics: opp.metrics || '—',
+      meddpicc_economic_buyer: opp.economic_buyer || '—',
+      meddpicc_decision_criteria: opp.decision_criteria || '—',
+      meddpicc_decision_process: opp.decision_process || '—',
+      meddpicc_paper_process: opp.paper_process || '—',
+      meddpicc_implicate_pain: opp.implicate_pain || '—',
+      meddpicc_champion: opp.champion || '—',
+      meddpicc_authority: opp.authority || '—',
+      meddpicc_need: opp.need || '—',
+      next_step_sf: opp.next_step_sf || '—',
+      se_comments: opp.se_comments || '—',
+      se_comments_updated_at: opp.se_comments_updated_at || 'Never',
+      open_tasks_count: openTasks.length,
+      open_task_lines: openTasks.map(t => `- [${t.status}] ${t.title}${t.due_date ? ` (due: ${t.due_date})` : ''}${t.is_next_step ? ' [NEXT STEP]' : ''}`).join('\n') || 'None',
+      overdue_tasks_str: overdueTasks.length > 0 ? overdueTasks.map(t => t.title).join(', ') : 'None',
+      note_lines: notes.map(n => `[${n.created_at}] ${n.author_name}: ${n.content.slice(0, 500)}`).join('\n') || 'None',
+      tech_discovery_ctx: techDiscoveryCtx,
+      proof_points_ctx: ppContext,
+      differentiators_ctx: diffContext,
+      today,
+    });
 
     const { text } = await callAnthropic({
       feature: 'call-prep',
@@ -2860,109 +2741,32 @@ router.post('/:id/demo-prep/generate', auth, write, async (req: Request, res: Re
     const demoCitationSources = await buildCitationSources(id);
     const demoSourcesBlock = formatSourcesForPrompt(demoCitationSources);
 
-    const prompt = `You are an expert presales demo coach for an enterprise B2B data management software company (Ataccama). You are evaluating how prepared a Sales Engineer (SE) is to deliver a high-impact demo.
-
-CITABLE SOURCES (cite factual claims in "answer", "coaching_tip", and "overall_assessment" with [N] inline; don't add [N] markers inside "evidence[].text" — that array has its own "source" labels):
-${demoSourcesBlock}
-
-${CITATION_INSTRUCTIONS}
-
-Your framework is the "Golden Standard Informed Demo (L2)" — the 6-Question Demo Check. For each question, analyze ALL available deal data (MEDDPICC fields, notes, tasks, SF comments) and extract the best possible answer, or identify what's missing.
-
-THE 6-QUESTION DEMO CHECK:
-1. "What initiative are we anchoring to?" — Not "data quality." The actual program or business driver. Clearly restate why they are evaluating us, name the specific pains we agreed on, define what "good" looks like before touching the UI. If we can't say this clearly, we're not ready to demo.
-2. "What is the primary pain we are addressing?" — Be specific. If we can't say it in one sentence, it's not clear enough. Show the current risk or inefficiency. Let them recognize their own situation. No tension, no impact.
-3. "What is the single objective of this demo?" — What must they walk away understanding? One primary objective, one end-to-end flow, no side tracks. Clarity beats coverage.
-4. "What job are we solving?" — Name the job first, then show how we solve it. Explain cause and effect. We demo outcomes, not screens.
-5. "What is the impact if this works?" — Risk reduced? Cost avoided? Revenue enabled? Make it explicit. Do not assume they connect the dots. If we don't translate, we compete on features.
-6. "What commitment are we asking for?" — Shortlist confirmation, validation workshop, executive alignment, defined success criteria, PoC scope agreement. A good demo moves the deal forward.
-
-DEMO LEVEL CALIBRATION:
-- D1 Exploratory: Early engagement, limited discovery. Goal: shape initiative, elevate pain, qualify.
-- D2 Informed: Confirmed initiative and defined pains. Goal: prove alignment and advance.
-- D3 Prescriptive: Shortlist, competitive eval, decision criteria known. Goal: differentiate, reduce decision risk.
-- D4 Executive: Investment justification, economic buyer engaged. Goal: secure leadership confidence.
-
-WHAT A HIGH-IMPACT DEMO LOOKS LIKE:
-- We demonstrate clear understanding of their business driver from the start
-- We show the broken state clearly before introducing the fix
-- One primary storyline runs from problem to resolution (avoid feature detours)
-- Capability is always tied to impact
-- The audience knows what changes if they move forward
-- Spend 50% of prep time on the first 20% of the demo flow (the opening and problem framing)
-
-DEAL CONTEXT:
-Opportunity: ${opp.name}
-Account: ${opp.account_name ?? 'N/A'}
-Industry: ${opp.account_industry ?? 'N/A'}
-Stage: ${opp.stage ?? 'N/A'}
-ARR: ${formatARR(opp.arr)}
-Close Date: ${formatDate(opp.close_date)}
-Deploy Mode: ${opp.deploy_mode ?? 'N/A'}
-Products: ${(opp.products as string[] ?? []).join(', ') || 'N/A'}
-Competitors: ${opp.engaged_competitors ?? 'N/A'}
-PoC Status: ${opp.poc_status ?? 'N/A'}
-Record Type: ${opp.record_type ?? 'N/A'}
-SE Owner: ${opp.se_owner_name ?? 'N/A'}
-AE Owner: ${opp.ae_owner_name ?? 'N/A'}
-
-SF Next Step: ${opp.next_step_sf ?? '(empty)'}
-SE Comments: ${opp.se_comments ?? '(empty)'}
-Manager Comments: ${opp.manager_comments ?? '(empty)'}
-PSM Comments: ${opp.psm_comments ?? '(empty)'}
-Technical Blockers: ${opp.technical_blockers ?? '(empty)'}
-
-MEDDPICC STATUS:
-${meddpiccContext}
-
-TECH DISCOVERY (the prospect's technical environment — stack, enterprise systems, existing DMG tools, and discovery-notes prose):
-${techDiscoveryCtx}
-
-TASKS:
-${taskLines}
-
-NOTES (oldest to newest):
-${noteLines}
-
-INSTRUCTIONS:
-1. For each of the 6 questions, assess confidence as "strong" (clear evidence from multiple or authoritative sources), "partial" (some signal but gaps), or "missing" (no evidence).
-2. Extract the best answer you can from the data. For "partial" or "missing", explain what IS known and what's NOT.
-3. Provide specific evidence citations with source labels like "Note (Apr 5)", "MEDDPICC Pain", "SE Comments", "Next Step SF", "Tech Discovery", etc. When Tech Discovery captures something relevant (incumbent solution, specific stack, integration priority, deployment preference, technical constraint), cite it — it's first-class evidence, not decoration.
-4. For gaps, provide actionable coaching: who to ask, what specific question to ask, phrased naturally as an SE would say it. Do NOT suggest asking about anything already captured in Tech Discovery; instead point at the genuine empty fields there (e.g. "Tech Discovery has no incumbent DMG tools listed — confirm whether they have Collibra or Informatica in place").
-5. For Q6 (commitment), suggest appropriate commitments for the current deal stage.
-6. Determine the demo level (D1-D4) based on HOW MUCH IS ACTUALLY KNOWN, not just the pipeline stage. Tech Discovery coverage is a strong signal here — a deal with stack, integrations, and incumbent solutions captured can support D2+ framing; sparse Tech Discovery points to D1.
-7. Generate a "Before You Demo" checklist of 6 items based on the Golden Standard principles, marking each as done (true) or not done (false) based on evidence.
-8. Use **double asterisks** for emphasis on key terms, names, numbers, and findings.
-9. BE CONCISE. Each answer should be 1-3 sentences max. Evidence items should be short (under 20 words each). Coaching tips should be 1-2 sentences. The overall_assessment should be 2-3 sentences. Do NOT write paragraphs — this is a dashboard, not an essay.
-
-Respond in this exact JSON format (no markdown fences, just raw JSON):
-{
-  "demo_level": "D1"|"D2"|"D3"|"D4",
-  "demo_level_label": "Exploratory"|"Informed"|"Prescriptive"|"Executive",
-  "demo_level_reasoning": "One sentence explaining why this level was chosen",
-  "questions_answered": <number of questions with confidence "strong">,
-  "total_questions": 6,
-  "questions": [
-    {
-      "question_number": 1,
-      "question": "What initiative are we anchoring to?",
-      "confidence": "strong"|"partial"|"missing",
-      "answer": "Full answer text with **bold** emphasis",
-      "evidence": [
-        { "source": "Note (Apr 5)", "text": "relevant quote or paraphrase" }
-      ],
-      "missing": [
-        { "category": "Cost avoided", "detail": "No estimate of manual effort cost" }
-      ],
-      "coaching_tip": "Specific actionable advice",
-      "suggested_commitments": ["only for Q6"]
-    }
-  ],
-  "overall_assessment": "2-3 sentence narrative summary",
-  "before_you_demo": [
-    { "text": "Checklist item text", "done": true|false }
-  ]
-}`;
+    const prompt = await renderAgentPrompt('demo-prep', {
+      sources_block: demoSourcesBlock,
+      citation_instructions: CITATION_INSTRUCTIONS,
+      opp_name: opp.name,
+      account_name: opp.account_name ?? 'N/A',
+      industry: opp.account_industry ?? 'N/A',
+      stage: opp.stage ?? 'N/A',
+      arr_fmt: formatARR(opp.arr),
+      close_date_fmt: formatDate(opp.close_date),
+      deploy_mode: opp.deploy_mode ?? 'N/A',
+      products_list: (opp.products as string[] ?? []).join(', ') || 'N/A',
+      competitors: opp.engaged_competitors ?? 'N/A',
+      poc_status: opp.poc_status ?? 'N/A',
+      record_type: opp.record_type ?? 'N/A',
+      se_owner: opp.se_owner_name ?? 'N/A',
+      ae_owner: opp.ae_owner_name ?? 'N/A',
+      next_step_sf: opp.next_step_sf ?? '(empty)',
+      se_comments: opp.se_comments ?? '(empty)',
+      manager_comments: opp.manager_comments ?? '(empty)',
+      psm_comments: opp.psm_comments ?? '(empty)',
+      technical_blockers: opp.technical_blockers ?? '(empty)',
+      meddpicc_context: meddpiccContext,
+      tech_discovery_ctx: techDiscoveryCtx,
+      task_lines: taskLines,
+      note_lines: noteLines,
+    });
 
     console.log(`[demo-prep] Calling Anthropic API for opp ${id}...`);
     const { text: raw } = await callAnthropic({

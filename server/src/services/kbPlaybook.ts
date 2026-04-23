@@ -1,4 +1,5 @@
 import { callAnthropic } from './aiClient.js';
+import { renderAgentPrompt } from './agentRunner.js';
 import { query, queryOne } from '../db/index.js';
 import type { CitationSource, ResolvedCitation } from '../types/citations.js';
 import { CITATION_INSTRUCTIONS, resolveCitations } from './citations.js';
@@ -117,7 +118,7 @@ async function loadSources(active: ActiveDeal): Promise<KbProofPoint[]> {
 
 // ── Prompt + Claude call ────────────────────────────────────────────────────
 
-function buildPrompt(active: ActiveDeal, sources: KbProofPoint[]): string {
+async function buildPrompt(active: ActiveDeal, sources: KbProofPoint[]): Promise<string> {
   const activeBlock = [
     `Account: ${active.account_name ?? '(unknown)'}`,
     `Industry: ${active.account_industry ?? '(unknown)'}`,
@@ -144,31 +145,11 @@ Initiatives: ${s.initiatives.join(', ') || '(none)'}
 ${trimmed}`;
   }).join('\n\n---\n\n');
 
-  return `You are a sales engineer assistant. We have no direct historical deal matches for the active opportunity below, so instead we're mining our curated knowledge base of past customer wins in the same vertical to synthesize a short playbook.
-
-## Active opportunity
-
-${activeBlock}
-
-## Relevant past customer wins (from our knowledge base) — CITE THESE BY [N]
-
-${sourceBlocks}
-
-${CITATION_INSTRUCTIONS}
-
-## Task
-
-Based ONLY on the proof points above, produce a compact playbook. Do not invent details that aren't in the sources. Cite every factual claim with [N] matching a source id above.
-
-Respond with a JSON object, no preamble, no markdown fences:
-
-{
-  "win_pattern": "1-2 sentences on what typically wins us deals in this vertical with these products, drawn from the sources — each claim cited with [N]",
-  "positioning": "1-2 sentences on how to position against likely competitors or incumbent tooling, drawn from the sources — each claim cited with [N]",
-  "anticipate": ["2-4 short bullets, each naming a blocker/constraint/objection the sources describe, cited with [N]"],
-  "lead_with": ["2-4 short bullets, each naming a capability/message that resonated in the sources, cited with [N]"],
-  "based_on": ["customer name 1", "customer name 2", ...]  // echo the exact customer names you drew from
-}`;
+  return renderAgentPrompt('kb-playbook', {
+    active_block: activeBlock,
+    source_blocks: sourceBlocks,
+    citation_instructions: CITATION_INSTRUCTIONS,
+  });
 }
 
 function parseResponse(raw: string): KbPlaybook | null {
@@ -243,7 +224,7 @@ export async function generatePlaybook(oppId: number): Promise<KbPlaybookRespons
     return { playbook: null, generated_at: null, is_stale: true, sources_available: 0 };
   }
 
-  const prompt = buildPrompt(active, sources);
+  const prompt = await buildPrompt(active, sources);
   const { text: raw } = await callAnthropic({
     feature: 'kb-playbook',
     prompt,

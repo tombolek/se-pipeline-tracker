@@ -11,6 +11,7 @@ export interface Agent {
   is_enabled: boolean;
   log_io: boolean;
   system_prompt_extra: string;
+  prompt_template: string | null;
   active_version_id: number | null;
   created_at: string;
   updated_at: string;
@@ -30,6 +31,7 @@ export interface AgentPromptVersion {
   id: number;
   agent_id: number;
   system_prompt_extra: string;
+  prompt_template: string | null;
   default_model: string;
   default_max_tokens: number;
   is_enabled: boolean;
@@ -79,6 +81,7 @@ export interface AgentSettingsPatch {
   is_enabled?: boolean;
   log_io?: boolean;
   system_prompt_extra?: string;
+  prompt_template?: string;
   note?: string | null;
 }
 

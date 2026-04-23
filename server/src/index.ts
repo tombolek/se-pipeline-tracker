@@ -28,6 +28,7 @@ import agentsRoutes from './routes/agents.js';
 import { query } from './db/index.js';
 import { startBackupScheduler } from './services/backupScheduler.js';
 import { sweepStaleRunningJobs } from './services/aiJobs.js';
+import { seedMissingPromptTemplates } from './services/agents.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -120,6 +121,12 @@ query(`DELETE FROM inbox_items  WHERE is_deleted = true AND deleted_at < now() -
 sweepStaleRunningJobs().then(n => {
   if (n > 0) console.log(`[ai] swept ${n} stale running job(s) on startup`);
 }).catch(err => console.error(`[ai] stale-job sweep failed: ${err?.message ?? err}`));
+
+// Fill agents.prompt_template from the golden baseline in agentTemplates.ts
+// for any row that's still NULL. Admin edits (non-NULL) are never overwritten.
+seedMissingPromptTemplates().then(n => {
+  if (n > 0) console.log(`[ai] seeded prompt_template for ${n} agent(s) from baseline`);
+}).catch(err => console.error(`[ai] prompt template seed failed: ${err?.message ?? err}`));
 
 // Nightly backup — 02:00 UTC (9 PM EST / 10 PM EDT)
 startBackupScheduler();

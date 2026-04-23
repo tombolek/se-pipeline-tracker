@@ -66,6 +66,18 @@ If/when retention becomes a concern, a daily purge of `ai_jobs.prompt_text/respo
 
 ## Editing prompts — what's actually editable
 
-The feature's main user-prompt template still lives inline in the feature route (e.g. the summary template in `routes/opportunities.ts`). What's admin-editable today is the **`system_prompt_extra`** — an additional block appended to the shared ground-rules system prompt for every call this agent makes. That gives admins fine-tuning leverage ("always cite sources even in bullet lists", "for this SE team, prefer technical framing") without needing to move every feature's template into the DB.
+Two layers, both stored on `agents` and versioned:
 
-A future migration can externalize the user-prompt templates into `agents` (a `prompt_template` column + a `{{var}}` render step) — the registry and audit trail are already in place to make that a local change.
+1. **`prompt_template`** — the full user-prompt body for this agent, as a **Handlebars template**. Route handlers build a plain `vars` object and hand it to `renderAgentPrompt(feature, vars)`; Handlebars (with `noEscape: true`) substitutes `{{var}}` / `{{#if}}` / `{{#each}}` and returns the final string that's sent to Anthropic. Golden baselines for all 12 agents live in [server/src/services/agentTemplates.ts](../server/src/services/agentTemplates.ts) — that file is the git-reviewable source of truth. On first boot after migration 053, `seedMissingPromptTemplates()` copies anything unset in the DB from there. Admin edits via the UI override and are never re-seeded; diff a production edit against the TS baseline to review.
+2. **`system_prompt_extra`** — an extra block appended to the shared ground-rules *system* prompt for every call this agent makes. Use this for cross-cutting guardrails ("always cite sources even in bullet lists") without touching the user prompt body.
+
+Admins edit both via `/settings/agents/:id`. Every save creates a new `agent_prompt_versions` row capturing the full snapshot — `prompt_template` + `system_prompt_extra` + model + max_tokens + toggles — so "revert to this version" restores all five fields at once.
+
+### Template vars contract
+
+Each route builds its own `vars` object shape. Rename a var in the route without updating the template (or vice versa) and the rendered prompt will contain empty strings — the model will still respond, just to a subtly broken prompt. Mitigations:
+- Check the admin UI's "prompt_template" tooltip for the list of vars the route passes in.
+- Keep pre-formatting (date formats, fallbacks, array joining) in the route. Templates only see plain strings so the admin surface stays readable.
+- Rely on version history + "revert" before shipping an edit that changes var names.
+
+`renderAgentPrompt()` throws `AgentPromptMissingError` if the agent row has no template set (either never seeded, or an admin saved an empty string). The feature call falls through and the request 500s — deliberately loud, not silent.

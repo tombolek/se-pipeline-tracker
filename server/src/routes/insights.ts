@@ -1,4 +1,5 @@
 import { callAnthropic } from '../services/aiClient.js';
+import { renderAgentPrompt } from '../services/agentRunner.js';
 import { Router, Request, Response } from 'express';
 import { query, queryOne } from '../db/index.js';
 import { requireAuth, requireManager } from '../middleware/auth.js';
@@ -786,27 +787,17 @@ router.post('/tech-blockers/ai-summary', auth, mgr, async (req: Request, res: Re
   const redCount = rows.filter(r => r.blocker_status === 'red').length;
   const orangeCount = rows.filter(r => r.blocker_status === 'orange').length;
 
+  const techBlockersPrompt = await renderAgentPrompt('tech-blockers', {
+    total_count: rows.length,
+    red_count: redCount,
+    orange_count: orangeCount,
+    context,
+    citation_instructions: CITATION_INSTRUCTIONS,
+  });
   const { text: summary } = await callAnthropic({
     feature: 'tech-blockers',
     maxTokens: 1500,
-    prompt: `You are analyzing technical blockers across a software sales engineering pipeline (${rows.length} opportunities total: ${redCount} critical 🔴, ${orangeCount} high 🟠, rest medium/low/unrated).
-
-Each entry is prefixed with its severity: [CRITICAL], [HIGH], [MEDIUM], [LOW/NONE], or [UNRATED]. Weight your analysis accordingly — critical and high blockers should drive the conclusions.
-
-${context}
-
-${CITATION_INSTRUCTIONS}
-
-Write a structured analysis for the SE Manager. Use this exact format with markdown:
-
-## Most Common Blocker Themes
-Identify the 3-5 dominant patterns. For each theme, open with a short bold header on its own line, then a paragraph, then a short bullet list of the specific affected accounts. Weight your ordering by severity — themes that have more critical/high entries should rank higher even if they appear in fewer deals. Cite the specific affected deals inline using their [N] markers.
-
-## Most Affected Deployment Modes & Stages
-Paragraph analysis of which deployment modes (Agentic, SaaS, Self-managed, etc.) and pipeline stages carry the most blocker density and severity. Cite specific deals [N] as examples where relevant.
-
-## Top Priorities for SE Manager
-A numbered list of the 2-3 highest-leverage actions the SE manager should take, with brief rationale. Focus on systemic issues rather than account-by-account firefighting. Cite the specific deals [N] driving each priority.`,
+    prompt: techBlockersPrompt,
   });
   const { citations } = resolveCitations(summary, oppCitationSources);
 
@@ -902,23 +893,14 @@ router.post('/agentic-qual/ai-summary', auth, mgr, async (req: Request, res: Res
     `${r.name} (${r.account_name}) — SE: ${r.se_owner_name ?? 'Unassigned'}, Stage: ${r.stage}, Deploy: ${r.deploy_mode ?? 'N/A'}\n  ${r.agentic_qual}`
   ).join('\n\n');
 
+  const agenticQualPrompt = await renderAgentPrompt('agentic-qual', {
+    total_count: rows.length,
+    context,
+  });
   const { text: summary } = await callAnthropic({
     feature: 'agentic-qual',
     maxTokens: 1500,
-    prompt: `You are analyzing Agentic Qualification data across a software sales engineering pipeline (${rows.length} opportunities). The "Agentic Qual" field explains why a deal is NOT an Agentic opportunity — i.e., why the customer would use the Core platform (PaaS/PaaS+/Self-managed) instead of the Agentic (cloud-only, AI-native) product.
-
-${context}
-
-Write a structured analysis for the SE Manager. Use this exact format with markdown:
-
-## Common Reasons Deals Aren't Agentic
-Identify the 3-5 dominant patterns explaining why deals can't be Agentic. For each theme, open with a short bold header on its own line, then a paragraph explaining the pattern, then a short bullet list of the specific affected accounts.
-
-## Deployment Mode & Stage Distribution
-Paragraph analysis of which deployment modes and pipeline stages have the most non-Agentic deals, and what this signals about the pipeline.
-
-## Opportunities to Revisit
-A numbered list of 2-3 accounts or situations where the Agentic qualification might be re-evaluated, with brief rationale based on their current stage and notes.`,
+    prompt: agenticQualPrompt,
   });
 
   await query(
@@ -1474,27 +1456,12 @@ router.post('/one-on-one/:se_id/narrative', auth, mgr, async (req: Request, res:
     return days > 21;
   }).length;
 
-  const prompt = `You are an SE Manager preparing for a 1:1 with ${seUser.name}. Write a concise coaching brief to guide the conversation.
-
-SE: ${seUser.name}
-Open pipeline: $${Math.round(totalArr/1000)}K across ${opps.length} deals | ${overdueCount} overdue tasks | ${staleCount} deals with stale/missing SE comments
-
-Deals (cite by [N] when you reference one):
-${dealLines}
-
-${CITATION_INSTRUCTIONS}
-
-Write a brief with exactly these 4 sections, each 2–4 sentences:
-
-**Wins & momentum** — deals progressing well, recent positive signals. Reference specific deal names and what's going right.
-
-**Coaching focus** — deals where the SE needs help (stale comments, low MEDDPICC, missing next steps, stuck in stage). Be specific: "On X deal, MEDDPICC is weak on Economic Buyer — dig into who signs."
-
-**Risks to flag** — technical blockers, competitive threats, slipping PoCs, deals at risk of going dark. Name the deals.
-
-**Suggested 1:1 agenda** — 3-5 concrete discussion prompts for the call, using deal names. Example: "Walk through plan for [Deal Name] — what's blocking stage progression?"
-
-Keep it under 350 words total. Use deal names and ARR figures. Be direct and actionable, not generic.`;
+  const prompt = await renderAgentPrompt('one-on-one-narrative', {
+    se_name: seUser.name,
+    pipeline_summary: `$${Math.round(totalArr/1000)}K across ${opps.length} deals | ${overdueCount} overdue tasks | ${staleCount} deals with stale/missing SE comments`,
+    deal_lines: dealLines,
+    citation_instructions: CITATION_INSTRUCTIONS,
+  });
 
   const job = await startJob({ key: jobKey, feature: 'one-on-one-narrative', userId });
   try {
