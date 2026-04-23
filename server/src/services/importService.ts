@@ -375,11 +375,13 @@ export async function reconcileImport(
     id: number; sf_opportunity_id: string; stage: string;
     is_active: boolean; is_closed_lost: boolean; is_closed_won: boolean;
     se_comments: string | null; manager_comments: string | null;
-    next_step_sf: string | null; technical_blockers: string | null;
+    next_step_sf: string | null; next_step_updated_at: string | null;
+    technical_blockers: string | null;
     agentic_qual: string | null; close_date: string | null; poc_status: string | null;
   }>(
     `SELECT id, sf_opportunity_id, stage, is_active, is_closed_lost, is_closed_won,
-            se_comments, manager_comments, next_step_sf, technical_blockers,
+            se_comments, manager_comments, next_step_sf, next_step_updated_at,
+            technical_blockers,
             agentic_qual, close_date, poc_status
        FROM opportunities`
   );
@@ -491,6 +493,17 @@ export async function reconcileImport(
             setClauses.push(`next_step_updated_at = now()`);
           }
           fieldHistoryEntries.push({ opportunity_id: existing.id, field_name: 'next_step_sf', old_value: existing.next_step_sf, new_value: newNextStep });
+        } else if (!existing.next_step_updated_at && newNextStep) {
+          // Self-heal: value didn't change in this import, but the timestamp is
+          // NULL (deal was created before migration 051 and Next Step never
+          // changed since). Try to recover a timestamp from the embedded date
+          // prefix. Silent no-op if the text has no parseable date — we just
+          // leave it for the next import.
+          const parsedNextStep = parseSeCommentDate(newNextStep);
+          if (parsedNextStep) {
+            params.push(parsedNextStep.date.toISOString());
+            setClauses.push(`next_step_updated_at = $${params.length}`);
+          }
         }
 
         // Track technical_blockers history
