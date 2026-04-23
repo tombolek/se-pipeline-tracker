@@ -93,7 +93,7 @@ function DealRow({ deal, selected, onClick }: {
     <tr
       onClick={onClick}
       className={`group border-b border-brand-navy-30/20 dark:border-ink-border-soft last:border-0 cursor-pointer transition-colors ${
-        selected ? 'bg-brand-purple-30/20 border-l-2 border-l-brand-purple' : 'hover:bg-brand-purple-30/10'
+        selected ? 'bg-brand-purple-30/20 dark:bg-accent-purple-soft border-l-2 border-l-brand-purple dark:border-l-accent-purple' : 'hover:bg-brand-purple-30/10 dark:hover:bg-accent-purple-soft'
       }`}
     >
       {/* Name + account */}

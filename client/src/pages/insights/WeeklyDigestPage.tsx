@@ -285,7 +285,7 @@ export default function WeeklyDigestPage() {
           { label: 'ARR Closed Lost',   value: formatARRNum(-arrClosedLost),  sub: `${closedLost.length} deals`,             color: 'text-status-overdue dark:text-status-d-overdue' },
           { label: 'Net Pipeline',      value: formatARRNum(netChange),       sub: 'new minus closed lost',                  color: netChange >= 0 ? 'text-brand-purple' : 'text-status-overdue dark:text-status-d-overdue' },
           { label: 'New Qualified',      value: String(newOpps.length),        sub: 'entered Build Value',                    color: 'text-brand-navy' },
-          { label: 'Stale Deals',       value: String(staleDeals.length),     sub: `no notes, tasks or SE comments in ${days}d+`, color: 'text-status-warning dark:text-status-d-warning' },
+          { label: 'Stale Deals',       value: String(staleDeals.length),     sub: `no notes, tasks, SE comments or Next Step in ${days}d+`, color: 'text-status-warning dark:text-status-d-warning' },
         ].map(s => (
           <div key={s.label} className="bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft px-4 py-4">
             <p className="text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide mb-1.5">{s.label}</p>
@@ -375,7 +375,7 @@ export default function WeeklyDigestPage() {
         header={<>
           <span className="text-sm font-semibold text-brand-navy dark:text-fg-1">Stale Deals</span>
           <Badge count={staleDeals.length} variant="amber" />
-          <span className="text-xs text-brand-navy-70 dark:text-fg-2 font-light">No notes, tasks, or SE comments update in {days}+ days</span>
+          <span className="text-xs text-brand-navy-70 dark:text-fg-2 font-light">No notes, tasks, SE comments, or Next Step update in {days}+ days</span>
         </>}
         renderItems={rows => (
           <table className="w-full">

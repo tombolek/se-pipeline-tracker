@@ -200,7 +200,7 @@ export default function KnowledgeBasePage() {
                 const kind = kindLabel(f.kind);
                 const isBusy = uploading === f.file_name;
                 return (
-                  <tr key={f.file_name} className="hover:bg-brand-purple-30/10 transition-colors">
+                  <tr key={f.file_name} className="hover:bg-brand-purple-30/10 dark:hover:bg-accent-purple-soft transition-colors">
                     <td className="px-4 py-2.5 font-mono text-[11px] text-brand-navy dark:text-fg-1">{f.file_name}</td>
                     <td className="px-4 py-2.5">
                       <span className={`text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded ${kind.class}`}>

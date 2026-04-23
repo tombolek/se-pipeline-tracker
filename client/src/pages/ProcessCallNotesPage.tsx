@@ -521,7 +521,7 @@ export default function ProcessCallNotesPage() {
         </div>
         <div className="px-5 py-4 space-y-1">
           {ALL_SECTIONS.map(s => (
-            <label key={s} className="flex items-start gap-3 py-2 px-2 rounded-lg cursor-pointer hover:bg-brand-purple-30/10 transition-colors">
+            <label key={s} className="flex items-start gap-3 py-2 px-2 rounded-lg cursor-pointer hover:bg-brand-purple-30/10 dark:hover:bg-accent-purple-soft transition-colors">
               <input
                 type="checkbox"
                 checked={sections.includes(s)}
@@ -538,7 +538,7 @@ export default function ProcessCallNotesPage() {
             </label>
           ))}
           <div className="h-px bg-brand-navy-30/50 my-3"></div>
-          <label className="flex items-start gap-3 py-2 px-2 rounded-lg cursor-pointer hover:bg-brand-purple-30/10 transition-colors">
+          <label className="flex items-start gap-3 py-2 px-2 rounded-lg cursor-pointer hover:bg-brand-purple-30/10 dark:hover:bg-accent-purple-soft transition-colors">
             <input
               type="checkbox"
               checked={saveRawNotes}
@@ -955,7 +955,7 @@ export default function ProcessCallNotesPage() {
                 active
                   ? 'bg-white dark:bg-ink-1 text-brand-purple dark:text-accent-purple border border-brand-navy-30/50 border-b-0 -mb-px'
                   : unlocked
-                    ? 'text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:text-fg-1 hover:bg-brand-purple-30/10'
+                    ? 'text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:text-fg-1 hover:bg-brand-purple-30/10 dark:hover:bg-accent-purple-soft'
                     : 'text-brand-navy-30 dark:text-fg-4 cursor-not-allowed'
               }`}
               title={unlocked ? undefined : 'Complete the current section first'}

@@ -624,7 +624,7 @@ export default function ForecastingBriefPage() {
         <div className="pt-5">
           {/* AI Forecast Narrative (collapsible, above pipeline) */}
           <details open className="mb-5 bg-white dark:bg-ink-1 rounded-xl border border-brand-navy-30/40 dark:border-ink-border-soft shadow-sm overflow-hidden group">
-            <summary className="px-4 py-3 border-b border-brand-navy-30/20 dark:border-ink-border-soft bg-gradient-to-r from-brand-pink/[0.03] to-brand-purple/[0.03] flex items-center justify-between cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden">
+            <summary className="px-4 py-3 border-b border-brand-navy-30/20 dark:border-ink-border-soft bg-gradient-to-r from-brand-pink/[0.03] to-brand-purple/[0.03] dark:from-accent-purple-soft dark:to-accent-purple-soft flex items-center justify-between cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden">
               <div className="flex items-center gap-2">
                 <svg className="w-3 h-3 text-brand-navy-30 dark:text-fg-4 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path d="M9 5l7 7-7 7"/></svg>
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
@@ -999,7 +999,7 @@ function OppRow({ opp, isExpanded, rowBg, freshness, hasBlocker, onToggle, onOpe
     <>
       <tr
         onClick={onToggle}
-        className={`hover:bg-brand-purple-30/10 cursor-pointer transition-colors ${rowBg} ${isExpanded ? 'bg-brand-purple-30/10' : ''}`}
+        className={`hover:bg-brand-purple-30/10 dark:hover:bg-accent-purple-soft cursor-pointer transition-colors ${rowBg} ${isExpanded ? 'bg-brand-purple-30/10 dark:bg-accent-purple-soft' : ''}`}
       >
         <td className="px-3 py-2.5">
           <div className="flex items-center gap-1.5">

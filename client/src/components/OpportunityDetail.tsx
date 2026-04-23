@@ -578,7 +578,7 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
         {/* Summary callout (below header, above tabs) */}
         <div className="px-5 flex-shrink-0">
           {summary && (
-            <div className="mt-3 bg-brand-purple-30 border border-brand-purple/20 rounded-xl overflow-visible">
+            <div className="mt-3 bg-brand-purple-30 dark:bg-ink-1 border border-brand-purple/20 dark:border-ink-border-soft dark:border-l-2 dark:border-l-accent-purple rounded-xl overflow-visible">
               {/* Header — always visible, clickable to collapse */}
               <button
                 onClick={() => setSummaryCollapsed(c => !c)}
@@ -647,7 +647,7 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
           )}
           {/* MEDDPICC Gap Coach panel — collapsed by default, above tabs */}
           {coachResult && (
-            <div ref={coachPanelRef} className="mt-3 bg-gradient-to-br from-brand-purple-30/80 to-brand-purple-30/40 border border-brand-purple/20 rounded-xl overflow-visible">
+            <div ref={coachPanelRef} className="mt-3 bg-gradient-to-br from-brand-purple-30/80 to-brand-purple-30/40 dark:from-ink-1 dark:to-ink-1 border border-brand-purple/20 dark:border-ink-border-soft dark:border-l-2 dark:border-l-accent-purple rounded-xl overflow-visible">
               {/* Header — always visible, clickable to collapse */}
               <button
                 onClick={() => setCoachCollapsed(c => !c)}
@@ -762,12 +762,12 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
         <div className="flex px-5 bg-[#F5F5F7] dark:bg-ink-0 pt-1 flex-shrink-0">
           {([
             { key: 'work' as const, label: 'Work' },
-            { key: 'timeline' as const, label: 'Timeline' },
-            { key: 'call-prep' as const, label: 'Call Prep', icon: true },
-            { key: 'demo-prep' as const, label: 'Demo Prep', icon: 'demo' as const },
-            { key: 'similar-deals' as const, label: 'Similar Deals', icon: 'similar' as const },
             { key: 'tech-discovery' as const, label: 'Tech Discovery', icon: 'tech' as const },
+            { key: 'timeline' as const, label: 'Timeline' },
             { key: 'deal-info' as const, label: 'Deal Info' },
+            { key: 'similar-deals' as const, label: 'Similar Deals', icon: 'similar' as const },
+            { key: 'demo-prep' as const, label: 'Demo Prep', icon: 'demo' as const },
+            { key: 'call-prep' as const, label: 'Call Prep', icon: true },
           ]).map(tab => {
             const isActive = activeTab === tab.key;
             return (

@@ -567,7 +567,7 @@ export default function SeDealMappingPage() {
                         className={`border-b border-brand-navy-30/20 dark:border-ink-border-soft last:border-0 cursor-pointer transition-colors ${
                           isUnassigned
                             ? 'bg-status-warning/5 hover:bg-status-warning/10 dark:bg-status-d-warning-soft border-l-2 border-l-status-warning'
-                            : 'hover:bg-brand-purple-30/10'
+                            : 'hover:bg-brand-purple-30/10 dark:hover:bg-accent-purple-soft'
                         }`}
                       >
                         <td className="px-4 py-3" onClick={e => e.stopPropagation()}>

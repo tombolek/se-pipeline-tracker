@@ -77,7 +77,7 @@ function chipClass(kind: MatchChip['kind']): string {
     case 'match':      return 'bg-emerald-50 dark:bg-status-d-success-soft text-emerald-700';
     case 'competitor': return 'bg-red-50 dark:bg-status-d-overdue-soft text-red-700';
     case 'warn':       return 'bg-amber-50 dark:bg-status-d-warning-soft text-amber-700';
-    case 'product':    return 'bg-brand-purple-30/70 text-brand-purple';
+    case 'product':    return 'bg-brand-purple-30/70 dark:bg-accent-purple-soft text-brand-purple dark:text-accent-purple';
   }
 }
 
@@ -335,7 +335,7 @@ export default function SimilarDealsTab({ oppId }: { oppId: number; oppName?: st
 
     if (playbookGenerating || (playbook.playbook === null && playbook.sources_available > 0 && !playbookError)) {
       return (
-        <div className="bg-gradient-to-br from-brand-purple-30/40 to-brand-pink-30/30 border border-brand-purple/20 rounded-xl px-4 py-3">
+        <div className="bg-gradient-to-br from-brand-purple-30/40 to-brand-pink-30/30 dark:from-ink-1 dark:to-ink-1 border border-brand-purple/20 dark:border-ink-border-soft dark:border-l-2 dark:border-l-accent-purple rounded-xl px-4 py-3">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 border-2 border-brand-purple border-t-transparent rounded-full animate-spin" />
             <span className="text-[11px] text-brand-navy-70 dark:text-fg-2">Synthesizing a playbook from {playbook.sources_available} matching KB proof point{playbook.sources_available === 1 ? '' : 's'}…</span>
@@ -361,7 +361,7 @@ export default function SimilarDealsTab({ oppId }: { oppId: number; oppName?: st
     if (!p) return null;
 
     return (
-      <div className="bg-gradient-to-br from-brand-purple-30/40 to-brand-pink-30/30 border border-brand-purple/20 rounded-xl overflow-hidden">
+      <div className="bg-gradient-to-br from-brand-purple-30/40 to-brand-pink-30/30 dark:from-ink-1 dark:to-ink-1 border border-brand-purple/20 dark:border-ink-border-soft dark:border-l-2 dark:border-l-accent-purple rounded-xl overflow-hidden">
         <div className="flex items-center gap-2 px-4 py-2.5 border-b border-brand-purple/10 bg-white/30">
           <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none">
             <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="url(#pbg)" />
@@ -537,7 +537,7 @@ export default function SimilarDealsTab({ oppId }: { oppId: number; oppName?: st
 
       {/* Playbook summary */}
       {hasCompetitorPlaybook && (
-        <div className="bg-gradient-to-br from-brand-purple-30/40 to-brand-pink-30/30 border border-brand-purple/20 rounded-xl px-4 py-3">
+        <div className="bg-gradient-to-br from-brand-purple-30/40 to-brand-pink-30/30 dark:from-ink-1 dark:to-ink-1 border border-brand-purple/20 dark:border-ink-border-soft dark:border-l-2 dark:border-l-accent-purple rounded-xl px-4 py-3">
           <div className="flex items-center gap-1.5 mb-1.5">
             <svg className="w-3.5 h-3.5 text-brand-purple dark:text-accent-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -558,7 +558,7 @@ export default function SimilarDealsTab({ oppId }: { oppId: number; oppName?: st
         ) : filtered.map(r => {
           const badge = outcomeBadge(r);
           return (
-            <div key={`${r.ref_type}-${r.id}`} className="px-4 py-3 hover:bg-brand-purple-30/10 transition-colors">
+            <div key={`${r.ref_type}-${r.id}`} className="px-4 py-3 hover:bg-brand-purple-30/10 dark:hover:bg-accent-purple-soft transition-colors">
               <div className="flex items-start gap-3">
                 <ScoreRing score={r.score} />
                 <div className="flex-1 min-w-0">
@@ -588,7 +588,7 @@ export default function SimilarDealsTab({ oppId }: { oppId: number; oppName?: st
                       : undefined;
                     if (aiInsight) {
                       return (
-                        <div className="mt-2 bg-brand-purple-30/20 rounded-lg px-3 py-2 border border-brand-purple/10">
+                        <div className="mt-2 bg-brand-purple-30/20 dark:bg-accent-purple-soft rounded-lg px-3 py-2 border border-brand-purple/10 dark:border-accent-purple/20">
                           <div className="flex items-center gap-1 mb-0.5">
                             <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none">
                               <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="url(#iig)" />

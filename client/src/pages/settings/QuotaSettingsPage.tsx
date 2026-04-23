@@ -135,7 +135,7 @@ function GroupModal({ initial, onClose, onSaved, teams, aeOwners }: ModalProps) 
                 <div className="flex items-center gap-1.5 flex-wrap border border-brand-navy-30 rounded-lg p-2 min-h-[44px]">
                   {ruleValue.map(v => (
                     <span key={v} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${
-                      ruleType === 'teams' ? 'bg-brand-purple-30 text-brand-navy' : 'bg-brand-pink-30 text-[#33012A]'
+                      ruleType === 'teams' ? 'bg-brand-purple-30 dark:bg-accent-purple-soft text-brand-navy dark:text-fg-1' : 'bg-brand-pink-30 text-[#33012A]'
                     }`}>
                       {v}
                       <button type="button" className="opacity-60 hover:opacity-100" onClick={() => removeChip(v)}>×</button>

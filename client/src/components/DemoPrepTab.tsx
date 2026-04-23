@@ -411,6 +411,36 @@ export default function DemoPrepTab({ oppId, oppName }: { oppId: number; oppName
         </div>
       </div>
 
+      {/* ── Overall Assessment — shown above the questions so managers see
+           the headline read + "Before You Demo" checklist before diving into
+           the per-question detail. ── */}
+      <details open className="group">
+        <summary className="flex items-center gap-2 cursor-pointer select-none mb-2 list-none [&::-webkit-details-marker]:hidden">
+          <svg className="w-3.5 h-3.5 text-brand-navy-70 dark:text-fg-2 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path d="M9 5l7 7-7 7"/></svg>
+          <h3 className="text-[12px] font-semibold text-brand-navy dark:text-fg-1 uppercase tracking-wider">Overall Assessment</h3>
+        </summary>
+        <div className="rounded-xl border border-brand-navy-30/40 dark:border-ink-border-soft bg-gradient-to-br from-white to-gray-50/50 dark:from-ink-1 dark:to-ink-1 p-4">
+          <p className="text-[12px] text-brand-navy dark:text-fg-1 leading-relaxed mb-4">{highlightBoldCited(dp.overall_assessment, dp.overall_assessment_citations, citeJumper)}</p>
+
+          {/* Before You Demo checklist */}
+          <div className="rounded-lg bg-brand-purple-30/20 dark:bg-accent-purple-soft border border-brand-purple/10 dark:border-accent-purple/20 p-3">
+            <h4 className="text-[11px] font-semibold text-brand-purple dark:text-accent-purple uppercase tracking-wider mb-2">Before You Demo</h4>
+            <div className="space-y-1.5">
+              {dp.before_you_demo.map((item, i) => (
+                <label key={i} className="flex items-center gap-2 text-[11px] text-brand-navy dark:text-fg-1 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    defaultChecked={item.done}
+                    className="rounded border-brand-navy-30 text-brand-purple dark:text-accent-purple focus:ring-brand-purple"
+                  />
+                  {highlightBold(item.text)}
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+      </details>
+
       {/* ── 6-Question Demo Check ── */}
       <div className="space-y-3">
         {dp.questions.map((q) => {
@@ -527,24 +557,24 @@ export default function DemoPrepTab({ oppId, oppName }: { oppId: number; oppName
 
                   {/* Coaching tip */}
                   <div className={`rounded-lg px-3 py-2.5 ${
-                    isMissing ? 'bg-red-50 dark:bg-status-d-overdue-soft border border-status-overdue/20' :
-                    isPartial ? 'bg-amber-50 dark:bg-status-d-warning-soft border border-amber-200/60' :
-                    'bg-brand-purple-30/20 border border-brand-purple/10'
+                    isMissing ? 'bg-red-50 dark:bg-status-d-overdue-soft border border-status-overdue/20 dark:border-status-d-overdue/30' :
+                    isPartial ? 'bg-amber-50 dark:bg-status-d-warning-soft border border-amber-200/60 dark:border-status-d-warning/30' :
+                    'bg-brand-purple-30/20 dark:bg-accent-purple-soft border border-brand-purple/10 dark:border-accent-purple/20'
                   }`}>
                     <div className="flex items-start gap-2">
                       <svg className={`w-3.5 h-3.5 mt-0.5 flex-shrink-0 ${
-                        isMissing ? 'text-status-overdue dark:text-status-d-overdue' : isPartial ? 'text-amber-600' : 'text-brand-purple'
+                        isMissing ? 'text-status-overdue dark:text-status-d-overdue' : isPartial ? 'text-amber-600 dark:text-status-d-warning' : 'text-brand-purple dark:text-accent-purple'
                       }`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                         <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
                       </svg>
                       <div>
                         {(isMissing || isPartial) && (
-                          <p className={`text-[11px] font-semibold mb-1 ${isMissing ? 'text-red-800' : 'text-amber-900'}`}>
+                          <p className={`text-[11px] font-semibold mb-1 ${isMissing ? 'text-red-800 dark:text-status-d-overdue' : 'text-amber-900 dark:text-status-d-warning'}`}>
                             {isMissing ? 'Critical gap — address before the demo' : 'Action needed'}
                           </p>
                         )}
                         <p className={`text-[11px] leading-relaxed ${
-                          isMissing ? 'text-red-700' : isPartial ? 'text-amber-800' : 'text-brand-navy'
+                          isMissing ? 'text-red-700 dark:text-status-d-overdue' : isPartial ? 'text-amber-800 dark:text-status-d-warning' : 'text-brand-navy dark:text-fg-1'
                         }`}>
                           {isMissing || isPartial ? highlightBoldCited(q.coaching_tip, q.citations, citeJumper) : <><strong>Demo tip:</strong> {highlightBoldCited(q.coaching_tip, q.citations, citeJumper)}</>}
                         </p>
@@ -557,34 +587,6 @@ export default function DemoPrepTab({ oppId, oppName }: { oppId: number; oppName
           );
         })}
       </div>
-
-      {/* ── Overall Assessment ── */}
-      <details open className="group">
-        <summary className="flex items-center gap-2 cursor-pointer select-none mb-2 list-none [&::-webkit-details-marker]:hidden">
-          <svg className="w-3.5 h-3.5 text-brand-navy-70 dark:text-fg-2 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path d="M9 5l7 7-7 7"/></svg>
-          <h3 className="text-[12px] font-semibold text-brand-navy dark:text-fg-1 uppercase tracking-wider">Overall Assessment</h3>
-        </summary>
-        <div className="rounded-xl border border-brand-navy-30/40 dark:border-ink-border-soft bg-gradient-to-br from-white to-gray-50/50 p-4">
-          <p className="text-[12px] text-brand-navy dark:text-fg-1 leading-relaxed mb-4">{highlightBoldCited(dp.overall_assessment, dp.overall_assessment_citations, citeJumper)}</p>
-
-          {/* Before You Demo checklist */}
-          <div className="rounded-lg bg-brand-purple-30/20 border border-brand-purple/10 p-3">
-            <h4 className="text-[11px] font-semibold text-brand-purple dark:text-accent-purple uppercase tracking-wider mb-2">Before You Demo</h4>
-            <div className="space-y-1.5">
-              {dp.before_you_demo.map((item, i) => (
-                <label key={i} className="flex items-center gap-2 text-[11px] text-brand-navy dark:text-fg-1 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    defaultChecked={item.done}
-                    className="rounded border-brand-navy-30 text-brand-purple dark:text-accent-purple focus:ring-brand-purple"
-                  />
-                  {highlightBold(item.text)}
-                </label>
-              ))}
-            </div>
-          </div>
-        </div>
-      </details>
 
     </div>
   );

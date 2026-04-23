@@ -37,7 +37,7 @@ function CitationPill({
         className={`inline-flex items-center justify-center min-w-[16px] h-[16px] px-1 rounded font-mono text-[9px] font-bold transition-colors cursor-pointer ${
           open
             ? 'bg-brand-purple text-white'
-            : 'bg-brand-purple-30 text-brand-purple hover:bg-brand-purple hover:text-white'
+            : 'bg-brand-purple-30 dark:bg-accent-purple-soft text-brand-purple dark:text-accent-purple hover:bg-brand-purple hover:text-white'
         }`}
         title="Click to jump to source"
       >
@@ -53,19 +53,19 @@ function CitationPill({
         >
           <span
             onClick={onJump ? (e) => { e.stopPropagation(); onJump(citation); } : undefined}
-            className={`block min-w-[240px] max-w-[320px] bg-white border border-brand-navy-30 rounded-lg px-3 py-2 shadow-[0_8px_24px_rgba(26,12,66,0.15)] text-left ${onJump ? 'cursor-pointer hover:border-brand-purple hover:shadow-[0_8px_24px_rgba(106,44,245,0.25)] transition-[border-color,box-shadow]' : ''}`}
+            className={`block min-w-[240px] max-w-[320px] bg-white dark:bg-ink-2 border border-brand-navy-30 dark:border-ink-border rounded-lg px-3 py-2 shadow-[0_8px_24px_rgba(26,12,66,0.15)] text-left ${onJump ? 'cursor-pointer hover:border-brand-purple dark:hover:border-accent-purple hover:shadow-[0_8px_24px_rgba(106,44,245,0.25)] transition-[border-color,box-shadow]' : ''}`}
           >
-            <span className="block text-[9px] font-semibold uppercase tracking-widest text-brand-purple">
+            <span className="block text-[9px] font-semibold uppercase tracking-widest text-brand-purple dark:text-accent-purple">
               {citation.label}
             </span>
             {citation.meta && (
-              <span className="block text-[10px] text-brand-navy-70 mt-0.5">{citation.meta}</span>
+              <span className="block text-[10px] text-brand-navy-70 dark:text-fg-3 mt-0.5">{citation.meta}</span>
             )}
-            <span className="block text-[11px] text-brand-navy italic mt-1 leading-snug">
+            <span className="block text-[11px] text-brand-navy dark:text-fg-1 italic mt-1 leading-snug">
               "{truncate(citation.preview, 160)}"
             </span>
             {onJump && (
-              <span className="block text-[10px] text-brand-purple font-semibold mt-1.5 no-underline">
+              <span className="block text-[10px] text-brand-purple dark:text-accent-purple font-semibold mt-1.5 no-underline">
                 Click to jump →
               </span>
             )}

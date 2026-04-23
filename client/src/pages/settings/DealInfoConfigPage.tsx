@@ -484,7 +484,7 @@ export default function DealInfoConfigPage() {
                   key={o.id}
                   onClick={() => { selectOpp(o.id); setSearchQuery(''); setSearchOpen(false); }}
                   className={`w-full text-left px-3 py-2.5 text-xs hover:bg-brand-purple-30/30 dark:hover:bg-accent-purple-soft transition-colors border-b border-brand-navy-30/10 dark:border-ink-border-soft last:border-0 flex items-center gap-3 ${
-                    selectedOpp?.id === o.id ? 'bg-brand-purple-30/20' : ''
+                    selectedOpp?.id === o.id ? 'bg-brand-purple-30/20 dark:bg-accent-purple-soft' : ''
                   }`}
                 >
                   <div className="flex-1 min-w-0">

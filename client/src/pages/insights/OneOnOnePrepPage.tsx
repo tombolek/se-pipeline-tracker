@@ -387,7 +387,7 @@ export default function OneOnOnePrepPage() {
           </div>
 
           {/* AI Coaching Brief — collapsible, collapsed by default, with freshness indicator */}
-          <div className="mb-4 bg-brand-purple-30 border border-brand-purple/20 rounded-xl overflow-hidden">
+          <div className="mb-4 bg-brand-purple-30 dark:bg-ink-1 border border-brand-purple/20 dark:border-ink-border-soft dark:border-l-2 dark:border-l-accent-purple rounded-xl overflow-hidden">
             {/* Header — always visible, clickable to collapse */}
             <button
               onClick={() => setNarrativeCollapsed(c => !c)}

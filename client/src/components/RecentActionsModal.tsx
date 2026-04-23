@@ -10,7 +10,7 @@ interface Props {
 
 function KindBadge({ kind }: { kind: RecentAction['kind'] }) {
   const styles: Record<RecentAction['kind'], string> = {
-    task:       'bg-brand-purple-30 text-brand-navy',
+    task:       'bg-brand-purple-30 dark:bg-accent-purple-soft text-brand-navy dark:text-fg-1',
     inbox:      'bg-amber-50 dark:bg-status-d-warning-soft text-status-warning dark:text-status-d-warning',
     assignment: 'bg-sky-50 dark:bg-status-d-info-soft text-status-info dark:text-status-d-info',
   };
