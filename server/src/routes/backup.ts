@@ -118,18 +118,28 @@ router.post('/restore', auth, mgr, async (req: Request, res: Response): Promise<
     res.status(400).json(err('Provide s3_key or backup object')); return;
   }
 
-  // Validate structure
-  const backupUsers  = (backup.users   as unknown[]) ?? [];
-  const backupTasks  = (backup.tasks   as unknown[]) ?? [];
-  const backupNotes  = (backup.notes   as unknown[]) ?? [];
-  const backupAssign = (backup.se_assignments as unknown[]) ?? [];
+  // Validate structure. Any missing key is defaulted to [] so a v1 backup
+  // (pre-agents/templates/etc.) still restores cleanly on a v2 server.
+  const backupUsers         = (backup.users                       as unknown[]) ?? [];
+  const backupTasks         = (backup.tasks                       as unknown[]) ?? [];
+  const backupNotes         = (backup.notes                       as unknown[]) ?? [];
+  const backupAssign        = (backup.se_assignments              as unknown[]) ?? [];
+  const backupAgents        = (backup.agents                      as unknown[]) ?? [];
+  const backupTemplates     = (backup.templates                   as unknown[]) ?? [];
+  const backupDealInfo      = (backup.deal_info_config            as unknown[]) ?? [];
+  const backupQuotaGroups   = (backup.quota_groups                as unknown[]) ?? [];
+  const backupRoleAccess    = (backup.role_page_access            as unknown[]) ?? [];
+  const backupTechDiscovery = (backup.opportunity_tech_discovery  as unknown[]) ?? [];
 
   // Run restore in a transaction
   const client = new Client({ connectionString: process.env.DATABASE_URL });
   await client.connect();
 
   let usersProcessed = 0, tasksRestored = 0, tasksSkipped = 0,
-      notesRestored = 0, assignmentsProcessed = 0;
+      notesRestored = 0, assignmentsProcessed = 0,
+      agentsRestored = 0, templatesRestored = 0, dealInfoConfigRestored = 0,
+      quotaGroupsRestored = 0, rolePageAccessRestored = 0,
+      techDiscoveryRestored = 0, techDiscoverySkipped = 0;
 
   try {
     await client.query('BEGIN');
@@ -245,6 +255,197 @@ router.post('/restore', auth, mgr, async (req: Request, res: Response): Promise<
     }
     await client.query(`SELECT setval('notes_id_seq', COALESCE((SELECT MAX(id) FROM notes), 1))`);
 
+    // ── Step 5: deal_info_config (singleton, upsert by id) ────────────────
+    for (const c of backupDealInfo) {
+      const cfg = c as Record<string, unknown>;
+      await client.query(`
+        INSERT INTO deal_info_config (id, config, updated_by, updated_at)
+        VALUES (1, $1, $2, $3)
+        ON CONFLICT (id) DO UPDATE SET
+          config     = EXCLUDED.config,
+          updated_by = EXCLUDED.updated_by,
+          updated_at = EXCLUDED.updated_at
+      `, [cfg.config, cfg.updated_by ?? null, cfg.updated_at ?? new Date().toISOString()]);
+      dealInfoConfigRestored++;
+    }
+
+    // ── Step 6: quota_groups (upsert by name; name is the stable natural key)
+    for (const q of backupQuotaGroups) {
+      const qg = q as Record<string, unknown>;
+      await client.query(`
+        INSERT INTO quota_groups
+          (id, name, rule_type, rule_value, target_amount, sort_order, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        ON CONFLICT (name) DO UPDATE SET
+          rule_type     = EXCLUDED.rule_type,
+          rule_value    = EXCLUDED.rule_value,
+          target_amount = EXCLUDED.target_amount,
+          sort_order    = EXCLUDED.sort_order,
+          updated_at    = EXCLUDED.updated_at
+      `, [
+        qg.id, qg.name, qg.rule_type, qg.rule_value ?? [],
+        qg.target_amount, qg.sort_order ?? 0,
+        qg.created_at ?? new Date().toISOString(),
+        qg.updated_at ?? new Date().toISOString(),
+      ]);
+      quotaGroupsRestored++;
+    }
+    await client.query(`SELECT setval('quota_groups_id_seq', COALESCE((SELECT MAX(id) FROM quota_groups), 1))`);
+
+    // ── Step 7: role_page_access (composite PK; DO NOTHING on existing rows)
+    for (const r of backupRoleAccess) {
+      const rpa = r as Record<string, unknown>;
+      await client.query(`
+        INSERT INTO role_page_access (page_key, role)
+        VALUES ($1, $2)
+        ON CONFLICT (page_key, role) DO NOTHING
+      `, [rpa.page_key, rpa.role]);
+      rolePageAccessRestored++;
+    }
+
+    // ── Step 8: templates (upsert by id; preserves is_deleted) ────────────
+    for (const t of backupTemplates) {
+      const tpl = t as Record<string, unknown>;
+      await client.query(`
+        INSERT INTO templates
+          (id, kind, name, description, body, items, stage, is_deleted,
+           created_by_id, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        ON CONFLICT (id) DO UPDATE SET
+          kind        = EXCLUDED.kind,
+          name        = EXCLUDED.name,
+          description = EXCLUDED.description,
+          body        = EXCLUDED.body,
+          items       = EXCLUDED.items,
+          stage       = EXCLUDED.stage,
+          is_deleted  = EXCLUDED.is_deleted,
+          updated_at  = EXCLUDED.updated_at
+      `, [
+        tpl.id, tpl.kind, tpl.name, tpl.description ?? null,
+        tpl.body ?? null, tpl.items ?? null, tpl.stage ?? null,
+        tpl.is_deleted ?? false, tpl.created_by_id ?? null,
+        tpl.created_at, tpl.updated_at,
+      ]);
+      templatesRestored++;
+    }
+    await client.query(`SELECT setval('templates_id_seq', COALESCE((SELECT MAX(id) FROM templates), 1))`);
+
+    // ── Step 9: opportunity_tech_discovery (upsert by opportunity_id) ─────
+    // Skip rows whose opportunity is missing — the SF import decides what
+    // exists in `opportunities`; don't resurrect deals via a restore.
+    for (const td of backupTechDiscovery) {
+      const rec = td as Record<string, unknown>;
+      if (!oppIds.has(rec.opportunity_id as number)) { techDiscoverySkipped++; continue; }
+      await client.query(`
+        INSERT INTO opportunity_tech_discovery
+          (opportunity_id, current_incumbent_solutions, tier1_integrations,
+           data_details_and_users, ingestion_sources, planned_ingestion_sources,
+           data_cleansing_remediation, deployment_preference, technical_constraints,
+           open_technical_requirements, tech_stack, enterprise_systems, existing_dmg,
+           updated_by_id, created_at, updated_at)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+        ON CONFLICT (opportunity_id) DO UPDATE SET
+          current_incumbent_solutions = EXCLUDED.current_incumbent_solutions,
+          tier1_integrations          = EXCLUDED.tier1_integrations,
+          data_details_and_users      = EXCLUDED.data_details_and_users,
+          ingestion_sources           = EXCLUDED.ingestion_sources,
+          planned_ingestion_sources   = EXCLUDED.planned_ingestion_sources,
+          data_cleansing_remediation  = EXCLUDED.data_cleansing_remediation,
+          deployment_preference       = EXCLUDED.deployment_preference,
+          technical_constraints       = EXCLUDED.technical_constraints,
+          open_technical_requirements = EXCLUDED.open_technical_requirements,
+          tech_stack                  = EXCLUDED.tech_stack,
+          enterprise_systems          = EXCLUDED.enterprise_systems,
+          existing_dmg                = EXCLUDED.existing_dmg,
+          updated_by_id               = EXCLUDED.updated_by_id,
+          updated_at                  = EXCLUDED.updated_at
+      `, [
+        rec.opportunity_id,
+        rec.current_incumbent_solutions ?? null,
+        rec.tier1_integrations ?? null,
+        rec.data_details_and_users ?? null,
+        rec.ingestion_sources ?? null,
+        rec.planned_ingestion_sources ?? null,
+        rec.data_cleansing_remediation ?? null,
+        rec.deployment_preference ?? null,
+        rec.technical_constraints ?? null,
+        rec.open_technical_requirements ?? null,
+        rec.tech_stack ?? {},
+        rec.enterprise_systems ?? {},
+        rec.existing_dmg ?? {},
+        rec.updated_by_id ?? null,
+        rec.created_at,
+        rec.updated_at,
+      ]);
+      techDiscoveryRestored++;
+    }
+
+    // ── Step 10: agents (upsert by feature) + marker version row ──────────
+    // Restore upserts current state and emits a fresh "Restored from backup"
+    // version row per agent (matching the audit pattern — every config change
+    // to an agent creates a new version). Version history itself is kept in
+    // the backup JSON for future portability but not rebuilt here: remapping
+    // backup version ids onto live ones safely would require id-collision
+    // handling that's not worth the complexity for the common restore case.
+    for (const a of backupAgents) {
+      const agent = a as Record<string, unknown>;
+      await client.query(`
+        INSERT INTO agents
+          (feature, name, description, default_model, default_max_tokens,
+           is_enabled, log_io, system_prompt_extra, prompt_template,
+           created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        ON CONFLICT (feature) DO UPDATE SET
+          name                = EXCLUDED.name,
+          description         = EXCLUDED.description,
+          default_model       = EXCLUDED.default_model,
+          default_max_tokens  = EXCLUDED.default_max_tokens,
+          is_enabled          = EXCLUDED.is_enabled,
+          log_io              = EXCLUDED.log_io,
+          system_prompt_extra = EXCLUDED.system_prompt_extra,
+          prompt_template     = EXCLUDED.prompt_template,
+          updated_at          = now()
+      `, [
+        agent.feature, agent.name, agent.description,
+        agent.default_model, agent.default_max_tokens,
+        agent.is_enabled, agent.log_io,
+        agent.system_prompt_extra ?? '',
+        agent.prompt_template ?? null,
+        agent.created_at ?? new Date().toISOString(),
+        agent.updated_at ?? new Date().toISOString(),
+      ]);
+
+      // Look up the live agent id (stable for upsert; fresh for new rows).
+      const liveAgentRows = (await client.query<{ id: number }>(
+        `SELECT id FROM agents WHERE feature = $1`, [agent.feature]
+      )).rows;
+      if (liveAgentRows.length === 0) continue;
+      const liveAgentId = liveAgentRows[0].id;
+
+      const newVersion = (await client.query<{ id: number }>(`
+        INSERT INTO agent_prompt_versions
+          (agent_id, system_prompt_extra, prompt_template, default_model,
+           default_max_tokens, is_enabled, log_io, note, created_by_user_id)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        RETURNING id
+      `, [
+        liveAgentId,
+        agent.system_prompt_extra ?? '',
+        agent.prompt_template ?? null,
+        agent.default_model, agent.default_max_tokens,
+        agent.is_enabled, agent.log_io,
+        'Restored from backup',
+        actor.userId,
+      ])).rows[0];
+      await client.query(
+        `UPDATE agents SET active_version_id = $1 WHERE id = $2`,
+        [newVersion.id, liveAgentId]
+      );
+      agentsRestored++;
+    }
+    await client.query(`SELECT setval('agents_id_seq', COALESCE((SELECT MAX(id) FROM agents), 1))`);
+    await client.query(`SELECT setval('agent_prompt_versions_id_seq', COALESCE((SELECT MAX(id) FROM agent_prompt_versions), 1))`);
+
     await client.query('COMMIT');
   } catch (e) {
     await client.query('ROLLBACK');
@@ -255,15 +456,21 @@ router.post('/restore', auth, mgr, async (req: Request, res: Response): Promise<
   }
   await client.end();
 
+  const result = {
+    usersProcessed, tasksRestored, tasksSkipped, notesRestored, assignmentsProcessed,
+    agentsRestored, templatesRestored, dealInfoConfigRestored, quotaGroupsRestored,
+    rolePageAccessRestored, techDiscoveryRestored, techDiscoverySkipped,
+  };
+
   await logAudit(req, {
     userId: actor.userId, userRole: actor.role,
     action: 'BACKUP_RESTORED', resourceType: 'backup',
     resourceId: req.body.s3_key ?? 'file-upload', resourceName: 'restore',
-    after: { usersProcessed, tasksRestored, tasksSkipped, notesRestored, assignmentsProcessed },
+    after: result,
     success: true,
   });
 
-  res.json(ok({ usersProcessed, tasksRestored, tasksSkipped, notesRestored, assignmentsProcessed }));
+  res.json(ok(result));
 });
 
 export default router;

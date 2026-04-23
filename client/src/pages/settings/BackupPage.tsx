@@ -18,16 +18,31 @@ function fmtDate(iso: string) {
   });
 }
 
-interface BackupCounts { users: number; tasks: number; notes: number; se_assignments: number; }
+interface BackupCounts {
+  users: number; tasks: number; notes: number; se_assignments: number;
+  agents: number; templates: number; deal_info_config: number;
+  quota_groups: number; role_page_access: number; opportunity_tech_discovery: number;
+}
 function countBackup(b: unknown): BackupCounts {
   const backup = b as Record<string, unknown[]>;
   return {
-    users:          backup.users?.length          ?? 0,
-    tasks:          backup.tasks?.length           ?? 0,
-    notes:          backup.notes?.length           ?? 0,
-    se_assignments: backup.se_assignments?.length  ?? 0,
+    users:                      backup.users?.length                      ?? 0,
+    tasks:                      backup.tasks?.length                      ?? 0,
+    notes:                      backup.notes?.length                      ?? 0,
+    se_assignments:             backup.se_assignments?.length             ?? 0,
+    agents:                     backup.agents?.length                     ?? 0,
+    templates:                  backup.templates?.length                  ?? 0,
+    deal_info_config:           backup.deal_info_config?.length           ?? 0,
+    quota_groups:               backup.quota_groups?.length               ?? 0,
+    role_page_access:           backup.role_page_access?.length           ?? 0,
+    opportunity_tech_discovery: backup.opportunity_tech_discovery?.length ?? 0,
   };
 }
+const EMPTY_COUNTS: BackupCounts = {
+  users: 0, tasks: 0, notes: 0, se_assignments: 0,
+  agents: 0, templates: 0, deal_info_config: 0,
+  quota_groups: 0, role_page_access: 0, opportunity_tech_discovery: 0,
+};
 
 // ── confirmation modal ────────────────────────────────────────────────────────
 function ConfirmModal({ counts, onConfirm, onCancel, loading, result }: {
@@ -55,6 +70,18 @@ function ConfirmModal({ counts, onConfirm, onCancel, loading, result }: {
               <li>{result.tasksRestored} tasks restored{result.tasksSkipped > 0 && `, ${result.tasksSkipped} skipped (opportunity not found)`}</li>
               <li>{result.notesRestored} notes restored</li>
               <li>{result.assignmentsProcessed} SE assignments applied</li>
+              {(result.agentsRestored ?? 0) > 0 &&
+                <li>{result.agentsRestored} AI agent configs restored (new version row created per agent)</li>}
+              {(result.templatesRestored ?? 0) > 0 &&
+                <li>{result.templatesRestored} templates restored</li>}
+              {(result.dealInfoConfigRestored ?? 0) > 0 &&
+                <li>Deal Info layout restored</li>}
+              {(result.quotaGroupsRestored ?? 0) > 0 &&
+                <li>{result.quotaGroupsRestored} quota groups restored</li>}
+              {(result.rolePageAccessRestored ?? 0) > 0 &&
+                <li>{result.rolePageAccessRestored} role/page access rules restored</li>}
+              {((result.techDiscoveryRestored ?? 0) + (result.techDiscoverySkipped ?? 0)) > 0 &&
+                <li>{result.techDiscoveryRestored} tech discovery records restored{(result.techDiscoverySkipped ?? 0) > 0 && `, ${result.techDiscoverySkipped} skipped (opportunity not found)`}</li>}
             </ul>
             <button onClick={onCancel}
               className="w-full px-4 py-2 rounded-lg bg-brand-purple dark:bg-accent-purple text-white text-sm font-semibold hover:bg-brand-purple-70 dark:hover:opacity-90 transition-colors">
@@ -73,6 +100,12 @@ function ConfirmModal({ counts, onConfirm, onCancel, loading, result }: {
               <li><span className="font-medium text-brand-navy dark:text-fg-1">{counts.tasks}</span> tasks</li>
               <li><span className="font-medium text-brand-navy dark:text-fg-1">{counts.notes}</span> notes</li>
               <li><span className="font-medium text-brand-navy dark:text-fg-1">{counts.se_assignments}</span> SE → deal assignments</li>
+              {counts.agents > 0 && <li><span className="font-medium text-brand-navy dark:text-fg-1">{counts.agents}</span> AI agents</li>}
+              {counts.templates > 0 && <li><span className="font-medium text-brand-navy dark:text-fg-1">{counts.templates}</span> templates</li>}
+              {counts.quota_groups > 0 && <li><span className="font-medium text-brand-navy dark:text-fg-1">{counts.quota_groups}</span> quota groups</li>}
+              {counts.role_page_access > 0 && <li><span className="font-medium text-brand-navy dark:text-fg-1">{counts.role_page_access}</span> role/page access rules</li>}
+              {counts.deal_info_config > 0 && <li>Deal Info layout config</li>}
+              {counts.opportunity_tech_discovery > 0 && <li><span className="font-medium text-brand-navy dark:text-fg-1">{counts.opportunity_tech_discovery}</span> tech discovery records</li>}
             </ul>
             <div className="flex justify-end gap-2">
               <button onClick={onCancel} disabled={loading}
@@ -189,9 +222,7 @@ export default function BackupPage() {
 
   const pendingCounts = pendingRestore?.backup
     ? countBackup(pendingRestore.backup)
-    : pendingRestore?.key
-      ? { users: 0, tasks: 0, notes: 0, se_assignments: 0 }  // will be loaded server-side
-      : { users: 0, tasks: 0, notes: 0, se_assignments: 0 };
+    : EMPTY_COUNTS; // key-based restores load server-side; no preview counts available
 
   const fileCounts = fileBackup ? countBackup(fileBackup) : null;
 
@@ -211,8 +242,8 @@ export default function BackupPage() {
       <div className="mb-6">
         <h1 className="text-lg font-semibold text-brand-navy dark:text-fg-1">Backup &amp; Restore</h1>
         <p className="text-sm text-brand-navy-70 dark:text-fg-2 mt-0.5">
-          Back up user hierarchy, territories, tasks, notes, and SE assignments.
-          Opportunities are re-imported from Salesforce and are not included.
+          Back up user hierarchy + territories, tasks, notes, SE assignments, AI agent configs &amp; prompt history, templates, quota groups, role/page access, Deal Info layout, and per-opportunity Tech Discovery.
+          Opportunities themselves are re-imported from Salesforce and are not included.
         </p>
       </div>
 
@@ -316,6 +347,11 @@ export default function BackupPage() {
             <p className="text-xs font-medium text-brand-navy dark:text-fg-1 mb-1">File contents:</p>
             <ul className="text-xs text-brand-navy-70 dark:text-fg-2 space-y-0.5">
               <li>{fileCounts.users} users · {fileCounts.tasks} tasks · {fileCounts.notes} notes · {fileCounts.se_assignments} SE assignments</li>
+              {(fileCounts.agents + fileCounts.templates + fileCounts.quota_groups + fileCounts.role_page_access + fileCounts.deal_info_config + fileCounts.opportunity_tech_discovery) > 0 && (
+                <li>
+                  {fileCounts.agents} agents · {fileCounts.templates} templates · {fileCounts.quota_groups} quota groups · {fileCounts.role_page_access} role rules · {fileCounts.opportunity_tech_discovery} tech discovery{fileCounts.deal_info_config > 0 && ' · Deal Info layout'}
+                </li>
+              )}
             </ul>
           </div>
         )}

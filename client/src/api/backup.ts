@@ -14,6 +14,14 @@ export interface RestoreResult {
   tasksSkipped: number;
   notesRestored: number;
   assignmentsProcessed: number;
+  // v2 — admin-editable config tables. Missing on older servers / older backups.
+  agentsRestored?: number;
+  templatesRestored?: number;
+  dealInfoConfigRestored?: number;
+  quotaGroupsRestored?: number;
+  rolePageAccessRestored?: number;
+  techDiscoveryRestored?: number;
+  techDiscoverySkipped?: number;
 }
 
 export async function createBackup(): Promise<{ s3_key: string; backup: unknown }> {
