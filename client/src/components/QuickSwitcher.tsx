@@ -343,8 +343,7 @@ export default function QuickSwitcher() {
           </div>
           <div>
             Quick add: <kbd className="px-1 rounded bg-white dark:bg-ink-1 border border-brand-navy-30/40 dark:border-ink-border-soft">Ctrl</kbd>
-            <kbd className="px-1 rounded bg-white dark:bg-ink-1 border border-brand-navy-30/40 dark:border-ink-border-soft">⇧</kbd>
-            <kbd className="px-1 rounded bg-white dark:bg-ink-1 border border-brand-navy-30/40 dark:border-ink-border-soft">K</kbd>
+            <kbd className="px-1 rounded bg-white dark:bg-ink-1 border border-brand-navy-30/40 dark:border-ink-border-soft">I</kbd>
           </div>
         </div>
       </div>

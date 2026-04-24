@@ -5,6 +5,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ---
 
+## 2026-04-24
+
+### Fixed
+- **Quick Capture shortcut moved from `Ctrl+Shift+K` to `Ctrl+I`** — `Ctrl+Shift+K` (introduced alongside yesterday's Quick Switcher) collides with Notion Desktop, which registers the same chord as a global OS-level hotkey for its Quick Find — so Notion intercepted the keypress before the browser ever saw it. The app has no rich-text editor anywhere that would claim `Ctrl+I` for italic, so it's collision-free for our surface. `Ctrl+K` → Quick Switcher is unchanged. Footer hint inside the switcher updated to match.
+
+---
+
 ## 2026-04-23
 
 ### Added

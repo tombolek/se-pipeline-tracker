@@ -36,19 +36,25 @@ function AppShell({ children }: { children: React.ReactNode }) {
   // auth change + system prefers-color-scheme flip. (#138 Chunk A)
   useTheme();
 
-  // Ctrl/Cmd+K         → Quick Switcher (global opportunity search)
-  // Ctrl/Cmd+Shift+K   → Quick Capture  (new note/task — viewers skip)
-  // We check `shiftKey` first so the switcher never hijacks the capture chord.
+  // Ctrl/Cmd+K  → Quick Switcher (global opportunity search)
+  // Ctrl/Cmd+I  → Quick Capture  (new note/task — viewers skip)
+  //
+  // Ctrl+Shift+K was the original Quick Capture chord but it collided with
+  // Notion Desktop's global "Quick Find" hotkey (registered OS-wide, so the
+  // browser never sees the event). The app has no rich-text editor that would
+  // claim Ctrl+I for italic, so Ctrl+I is safe here.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (!(e.metaKey || e.ctrlKey)) return;
-      if (e.key.toLowerCase() !== 'k') return;
-      e.preventDefault();
-      if (e.shiftKey) {
-        if (user?.role === 'viewer') return;
-        openQuickCapture();
-      } else {
+      if (e.shiftKey) return;
+      const key = e.key.toLowerCase();
+      if (key === 'k') {
+        e.preventDefault();
         openQuickSwitcher();
+      } else if (key === 'i') {
+        if (user?.role === 'viewer') return;
+        e.preventDefault();
+        openQuickCapture();
       }
     }
     window.addEventListener('keydown', onKey);
