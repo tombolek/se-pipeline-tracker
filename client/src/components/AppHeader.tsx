@@ -115,7 +115,7 @@ export default function AppHeader() {
               </svg>
               <TooltipPill>
                 Quick note
-                <span className="ml-1.5 font-mono text-[10px] text-brand-navy-70">{isMac ? '⌘K' : 'Ctrl+K'}</span>
+                <span className="ml-1.5 font-mono text-[10px] text-brand-navy-70">{isMac ? '⌘I' : 'Ctrl+I'}</span>
               </TooltipPill>
             </button>
           )}

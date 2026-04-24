@@ -46,7 +46,8 @@ This tool pulls deal data from Salesforce via a CSV/XLS export and layers a nati
 | Add technical notes to a deal | Opportunity detail — Notes section |
 | See all my tasks across all deals, grouped by urgency | My Tasks page |
 | See upcoming PoC timelines, RFx deadlines, and task due dates | Calendar page |
-| Quickly jot something down without leaving the current view | Quick Capture (Ctrl+K) |
+| Jump to any opportunity from anywhere in the app | Quick Switcher (Ctrl+K) — searches name / account / SF id |
+| Quickly jot something down without leaving the current view | Quick Capture (Ctrl+I) |
 | Link a jot to a deal and convert it to a task or note | Inbox page |
 | See when my SE comments are going stale | Pipeline — freshness indicator on each row |
 | See the health score of my deals and drill into at-risk ones | Pipeline — Health Score column + At-risk filter |
@@ -171,7 +172,14 @@ This tool pulls deal data from Salesforce via a CSV/XLS export and layers a nati
 - Link to an opportunity later → converts to a task or note on that deal and removes from Inbox
 - Unread count badge on sidebar nav item
 
-### Quick Capture (`Ctrl+K` or `+` button)
+### Quick Switcher (`Ctrl+K` / `⌘K`)
+- Global modal for jumping to any opportunity — type and hit Enter
+- Matches on opportunity name, account name, and Salesforce opportunity id (case-insensitive substring)
+- Results grouped into three tiers so your own work surfaces first: **Favorites** → **Your Territory** (deals you own + team-membership matches) → **Everything else**
+- Each tier capped at 5 and ordered active-first (Closed Won/Lost render faded)
+- Arrow keys navigate across sections, Enter opens the drawer, Esc closes
+
+### Quick Capture (`Ctrl+I` / `⌘I` or `+` button)
 - Global modal triggered from anywhere in the app
 - Write a note or todo, optionally search and link to an opportunity
 - If linked: goes directly to that deal's tasks or notes
@@ -398,13 +406,18 @@ Admins can flip **Settings → Developer → Simulate offline mode** to short-ci
 - Dry-run preview before confirming
 
 #### Import History (`/settings/import-history`)
-- Log of all imports with rollback capability (most recent import can be undone)
+- Live 5-stage pipeline view per import (Parse → Validate → Reconcile → Enrich → Finalize)
+- Each stage shows a status dot (success / running / failed / skipped), row counts, and duration
+- When a stage fails, downstream stages render as "skipped" and the error surfaces inline
+- Imports are asynchronous: uploading redirects to this page and polls every 5s while the pipeline runs
+- Most recent import can be undone (rollback)
 
 #### Backup & Restore (`/settings/backup`)
-- **Back Up Now** — creates a full JSON snapshot (users, tasks, notes, SE assignments) and uploads to a private S3 bucket (90-day retention)
+- **Back Up Now** — creates a full JSON snapshot and uploads to a private S3 bucket (90-day retention). Covers: users, tasks, notes, SE assignments, AI agent configs (incl. hand-edited Handlebars prompt templates), agent prompt-version history, reusable templates, Deal Info layout, quota groups, role/page access, and per-opportunity Tech Discovery
 - **S3 backup list** — browse all available backups; download any backup as a JSON file
 - **Restore from file** — upload a local backup, preview what will be restored, confirm to apply
-- Restore handles circular FK dependencies (manager_id) and resets PostgreSQL sequences; SE assignments are matched by email so they survive a wipe-and-restore
+- Restore upserts each table by its natural key: agents by `feature` (emits a "Restored from backup" version row per agent), quota groups by `name`, templates by id (preserves `is_deleted`), Deal Info by singleton id, role/page access as idempotent inserts, Tech Discovery by `opportunity_id` (skipped if the deal is missing). Handles circular FK dependencies (manager_id) and resets PostgreSQL sequences; SE assignments are matched by email so they survive a wipe-and-restore
+- Backup JSON is `version: 2`; older `version: 1` backups still restore cleanly (missing keys default to `[]`)
 
 #### Deploy (`/settings/deploy`)
 - Shows **current deployed SHA** vs **latest GitHub commit** — highlights when an update is available
@@ -555,7 +568,8 @@ se-pipeline-tracker/
 │       │   ├── AccountTimelinePanel.tsx # Account History side panel
 │       │   ├── OpportunityTimeline.tsx  # Unified reverse-chronological event history
 │       │   ├── ProtectedRoute.tsx
-│       │   ├── QuickCapture.tsx     # Ctrl+K global modal
+│       │   ├── QuickCapture.tsx     # Ctrl+I global modal (new note / task)
+│       │   ├── QuickSwitcher.tsx    # Ctrl+K global opportunity switcher
 │       │   ├── RowCapture.tsx       # Inline quick-capture on list rows
 │       │   ├── ColumnPicker.tsx     # Reorderable column selector
 │       │   ├── opportunity/

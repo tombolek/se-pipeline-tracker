@@ -292,12 +292,21 @@ export default function HowToPage() {
       <InfoBox>Use the team scope selector (top-right) to toggle between your own events and the full team view.</InfoBox>
 
       {/* ── 7. Inbox ── */}
-      <SectionTitle id="inbox">7. Inbox & Quick Capture</SectionTitle>
+      <SectionTitle id="inbox">7. Inbox, Quick Switcher & Quick Capture</SectionTitle>
       <RoleTag role="all" />
-      <P>A personal scratch pad for capturing thoughts before they're linked to a deal.</P>
+      <P>A personal scratch pad for capturing thoughts before they're linked to a deal, plus two keyboard shortcuts for jumping between deals and filing notes/tasks from anywhere in the app.</P>
+
+      <SubTitle>Quick Switcher</SubTitle>
+      <P>Press <kbd className="bg-gray-100 dark:bg-ink-3 border border-gray-300 rounded px-1.5 py-0.5 text-xs font-mono">Ctrl+K</kbd> (or <kbd className="bg-gray-100 dark:bg-ink-3 border border-gray-300 rounded px-1.5 py-0.5 text-xs font-mono">⌘K</kbd> on Mac) to open the opportunity switcher. Start typing to search any deal by <strong>opportunity name</strong>, <strong>account name</strong>, or <strong>Salesforce opportunity id</strong>. Results are grouped into three tiers so your own work surfaces first:</P>
+      <Ul>
+        <Li><strong>Favorites</strong> — any deal you've starred.</Li>
+        <Li><strong>Your Territory</strong> — deals you own, plus any deal on a team you belong to (from your <code>teams</code> membership).</Li>
+        <Li><strong>Everything else</strong> — the remaining matches across the whole pipeline.</Li>
+      </Ul>
+      <P>Use <kbd className="bg-gray-100 dark:bg-ink-3 border border-gray-300 rounded px-1.5 py-0.5 text-xs font-mono">↑</kbd>/<kbd className="bg-gray-100 dark:bg-ink-3 border border-gray-300 rounded px-1.5 py-0.5 text-xs font-mono">↓</kbd> to navigate, <kbd className="bg-gray-100 dark:bg-ink-3 border border-gray-300 rounded px-1.5 py-0.5 text-xs font-mono">↵</kbd> to open the deal drawer, <kbd className="bg-gray-100 dark:bg-ink-3 border border-gray-300 rounded px-1.5 py-0.5 text-xs font-mono">Esc</kbd> to close. Each tier is capped at 5 results and ordered active-first (Closed Won/Lost deals appear faded so live pipeline wins visually).</P>
 
       <SubTitle>Quick Capture</SubTitle>
-      <P>Press <kbd className="bg-gray-100 dark:bg-ink-3 border border-gray-300 rounded px-1.5 py-0.5 text-xs font-mono">Ctrl+K</kbd> (or <kbd className="bg-gray-100 dark:bg-ink-3 border border-gray-300 rounded px-1.5 py-0.5 text-xs font-mono">⌘K</kbd> on Mac) from anywhere in the app to open the Quick Capture modal. Type your note or task, optionally link it to an opportunity, then submit.</P>
+      <P>Press <kbd className="bg-gray-100 dark:bg-ink-3 border border-gray-300 rounded px-1.5 py-0.5 text-xs font-mono">Ctrl+I</kbd> (or <kbd className="bg-gray-100 dark:bg-ink-3 border border-gray-300 rounded px-1.5 py-0.5 text-xs font-mono">⌘I</kbd> on Mac) from anywhere in the app to open the Quick Capture modal. Type your note or task, optionally link it to an opportunity, then submit.</P>
       <Ul>
         <Li><strong>Linked + type = Note</strong> → saved directly as a note on that opportunity.</Li>
         <Li><strong>Linked + type = Task</strong> → saved directly as a task on that opportunity.</Li>

@@ -99,11 +99,12 @@ Poppins loaded via Google Fonts in `index.html`:
 - **Pipeline view:** list view with a **slide-out drawer** for opportunity quick-view. Clicking a row opens a drawer from the right; clicking the opportunity name navigates to the full detail page.
 - **Opportunity detail:** **full-width layout with 6 tabs** (Work, Timeline, Call Prep, Demo Prep, Similar Deals, Deal Info). AI Summary and MEDDPICC Gap Coach are in the header area above tabs (both collapsible, state persisted). No right column for SF data — Deal Info is its own tab.
 - **Closed Lost nav item** shows a pink dot badge with unread count (iOS-style).
-- **Quick-capture modal** triggered by `Cmd/Ctrl+K` from anywhere and by `+` button pinned at top of sidebar.
+- **Quick Switcher modal** triggered by `Cmd/Ctrl+K` from anywhere — global opportunity search with three tiers (Favorites → Your Territory → Everything else). Matches name / account_name / sf_opportunity_id.
+- **Quick-capture modal** triggered by `Cmd/Ctrl+I` from anywhere and by `+` button pinned at top of sidebar.
 
 ```
 Sidebar (always visible):
-  [+] Quick capture  (Cmd/Ctrl+K)
+  [+] Quick capture  (Cmd/Ctrl+I)
   ──────────────────
   - Home / Daily Digest
   - Pipeline
