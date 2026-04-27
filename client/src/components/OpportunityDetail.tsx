@@ -765,9 +765,9 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
             { key: 'tech-discovery' as const, label: 'Tech Discovery', icon: 'tech' as const },
             { key: 'timeline' as const, label: 'Timeline' },
             { key: 'deal-info' as const, label: 'Deal Info' },
-            { key: 'similar-deals' as const, label: 'Similar Deals', icon: 'similar' as const },
-            { key: 'demo-prep' as const, label: 'Demo Prep', icon: 'demo' as const },
-            { key: 'call-prep' as const, label: 'Call Prep', icon: true },
+            { key: 'similar-deals' as const, label: 'Similar Deals', icon: 'similar' as const, beta: true },
+            { key: 'demo-prep' as const, label: 'Demo Prep', icon: 'demo' as const, beta: true },
+            { key: 'call-prep' as const, label: 'Call Prep', icon: true, beta: true },
           ]).map(tab => {
             const isActive = activeTab === tab.key;
             return (
@@ -804,6 +804,11 @@ export default function OpportunityDetail({ oppId, onRefreshList, initialTab, in
                   </svg>
                 )}
                 {tab.label}
+                {'beta' in tab && tab.beta && (
+                  <span className="ml-1 text-[8px] font-bold px-1 py-px rounded border border-brand-purple/60 dark:border-accent-purple/60 text-brand-purple dark:text-accent-purple tracking-wider leading-none">
+                    BETA
+                  </span>
+                )}
               </button>
             );
           })}
