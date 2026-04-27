@@ -170,6 +170,33 @@ export class SePipelineStack extends cdk.Stack {
       `.${this.region}.compute.amazonaws.com`,
     ]);
 
+    // SPA fallback via CloudFront Function on the S3 behavior. Rewrites any
+    // extensionless path (e.g. /pipeline, /home) to /index.html before it hits
+    // S3, so React Router handles client-side routing.
+    //
+    // We deliberately do NOT use distribution-level `errorResponses` to map
+    // 403→/index.html: that mapping applies to every behavior including
+    // /api/*, so legitimate API 403s (e.g. a manager-only endpoint hit by an
+    // SE) get rewritten into `200 + index.html`. Axios then parses the HTML
+    // as JSON, every page that consumed the response sees `undefined`, and
+    // the page crashes to a blank screen. Function-on-S3-behavior keeps
+    // the SPA rewrite scoped to the SPA origin only; /api/* responses pass
+    // through untouched.
+    const spaRewriteFunction = new cloudfront.Function(this, 'SpaRewrite', {
+      comment: 'Rewrite extensionless paths to /index.html for SPA routing',
+      code: cloudfront.FunctionCode.fromInline(`
+function handler(event) {
+  var uri = event.request.uri;
+  // Files with extensions pass through (assets, manifest, sw.js, etc.).
+  // Everything else is a client-side route — serve the SPA shell.
+  if (uri.indexOf('.') === -1) {
+    event.request.uri = '/index.html';
+  }
+  return event.request;
+}
+      `),
+    });
+
     // Two origins in one distribution:
     //   /*       → S3  (React SPA, cached)
     //   /api/*   → EC2 (Express API, not cached, all headers forwarded)
@@ -177,28 +204,17 @@ export class SePipelineStack extends cdk.Stack {
       comment: 'SE Pipeline Tracker',
       defaultRootObject: 'index.html',
 
-      // SPA fallback: serve index.html for any 403/404 so React Router handles routing
-      errorResponses: [
-        {
-          httpStatus: 403,
-          responseHttpStatus: 200,
-          responsePagePath: '/index.html',
-          ttl: cdk.Duration.seconds(0),
-        },
-        {
-          httpStatus: 404,
-          responseHttpStatus: 200,
-          responsePagePath: '/index.html',
-          ttl: cdk.Duration.seconds(0),
-        },
-      ],
-
-      // Default: serve from S3 with OAC (Origin Access Control)
+      // Default: serve from S3 with OAC (Origin Access Control). The SPA
+      // rewrite function runs on every viewer-request before S3 is hit.
       defaultBehavior: {
         origin: origins.S3BucketOrigin.withOriginAccessControl(frontendBucket),
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
         cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
         compress: true,
+        functionAssociations: [{
+          function: spaRewriteFunction,
+          eventType: cloudfront.FunctionEventType.VIEWER_REQUEST,
+        }],
       },
 
       // /api/* → EC2 on port 3001, no caching, all headers forwarded (JWT auth)
