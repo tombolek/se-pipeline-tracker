@@ -7,6 +7,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## 2026-04-27
 
+### Added
+- **Quarterly quota targets in Settings → Quotas** — managers can now enter per-quarter targets for each quota group, scoped to a fiscal year. The annual target stays as the primary input and acts as a fallback when a quarter is blank (readers will use `annual ÷ 4`). The group-edit modal gains a Quarterly section with a fiscal-year dropdown (current FY plus any FY that already has data, plus an `+ FY` shortcut to add a new one), four `Q1–Q4` inputs, a live "sum vs annual" reconciliation line, and a `Clear FY overrides` button. The settings table gains a Quarterly overrides column showing per-FY chips like `FY2026: 4/4`. Foundations only — the % to Target report still pulls from the annual target; per-quarter views will hook into this in follow-ups.
+
 ### Changed
 - **App rebranded from "Pipeline Tracker" to "SE Buddy"** — browser tab title is now `SE Buddy`; the app header in the top bar reads `Ataccama SE Buddy`. PWA manifest updated (`name: "Ataccama SE Buddy"`, `short_name: "SE Buddy"`) so the installed-app label and home-screen icon match. Login/change-password screen, Changelog drawer subtitle, and the User Guide intro all updated. Codebase identifiers (repo name, AWS stack, internal module names) are unchanged — this is a labels-only rebrand.
 

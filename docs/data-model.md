@@ -57,7 +57,7 @@ These tables exist and are worth knowing about, but their design lives next to t
 | **Deal Info config** (admin-editable Deal Info tab layout) | `deal_info_config` | `024_create_deal_info_config.sql` |
 | **User favorites** (offline-pinning + quick access) | `user_favorites` | `026_create_user_favorites.sql` |
 | **AI jobs queue** (async AI work) | `ai_jobs` | `031_ai_jobs.sql` |
-| **Quota groups** (manager quota management) | `quota_groups` | `032_quota_groups.sql` |
+| **Quota groups** (manager quota management) | `quota_groups`, `quota_group_quarterly_targets` | `032_quota_groups.sql`, `055_quota_group_quarterly_targets.sql` |
 | **Role access** (page-level permissions per role) | `role_page_access` | `034_role_access.sql`, `041_seed_role_access_for_new_pages.sql` — **see [gotchas.md three-place checklist](gotchas.md#adding-a-new-page-requires-touching-three-places)** |
 | **Changelog seen** (per-user "new features" dot) | `changelog_seen` | `036_add_changelog_seen.sql` |
 | **Templates** (reusable text templates) | `templates` | `037_create_templates.sql` |
