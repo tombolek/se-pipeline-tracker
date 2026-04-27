@@ -58,6 +58,22 @@ interface DigestData {
   hygiene: HygieneItem[];
 }
 
+interface QuotaProgressRow {
+  group_name: string;
+  closed: number;
+  target: number;
+  pace_target: number;
+  pct: number;
+  gap: number;
+}
+interface QuotaProgressData {
+  quarter: 'Q1' | 'Q2' | 'Q3' | 'Q4';
+  fiscal_year: string;
+  months_elapsed_in_q: number;
+  global: QuotaProgressRow | null;
+  personal: QuotaProgressRow | null;
+}
+
 function dueLabel(d: string | null): { text: string; cls: string } {
   if (!d) return { text: 'No date', cls: 'text-brand-navy-30 dark:text-fg-4' };
   const today = new Date(new Date().toDateString());
@@ -91,6 +107,44 @@ function greeting(): string {
 
 function dayOfWeek(): string {
   return new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+}
+
+// ── Quota Progress Row ──────────────────────────────────────────────────────
+// Single row of the Home-page quota header: label + $closed / $target on the
+// left, gradient progress bar with $0 / pace / target legend on the right.
+// Rendered twice on Home — once for Global, once for the user's quota group.
+// Visual is intentionally identical to the headline card on % to Target so
+// the two views feel like the same widget.
+function QuotaProgressRow({ label, closed, target, paceTarget, pct, gap }: {
+  label: string; closed: number; target: number; paceTarget: number; pct: number; gap: number;
+}) {
+  return (
+    <div className="flex items-center gap-6 flex-wrap">
+      <div className="flex-1 min-w-[240px]">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-brand-navy-70 dark:text-fg-2">{label}</p>
+        <p className="text-2xl font-bold text-brand-navy dark:text-fg-1 mt-0.5">
+          {formatARR(closed)} <span className="text-base font-medium text-brand-navy-70 dark:text-fg-2">/ {formatARR(target)}</span>
+        </p>
+        <p className="text-xs text-brand-navy-70 dark:text-fg-2 mt-1">
+          {Math.round(pct)}% to target ·
+          {gap >= 0
+            ? <span className="text-status-success dark:text-status-d-success font-semibold"> {formatARR(gap)} ahead of pace</span>
+            : <span className="text-status-warning dark:text-status-d-warning font-semibold"> {formatARR(Math.abs(gap))} behind pace</span>
+          }
+        </p>
+      </div>
+      <div className="flex-1 min-w-[400px]">
+        <div className="h-3 w-full bg-brand-navy-30/40 rounded-full overflow-hidden">
+          <div className="h-full bg-gradient-to-r from-brand-purple to-brand-pink rounded-full" style={{ width: `${Math.min(pct, 100)}%` }}></div>
+        </div>
+        <div className="flex justify-between text-[10px] text-brand-navy-70 dark:text-fg-2 mt-1.5 font-medium">
+          <span>$0</span>
+          <span>Pace at as-of: {formatARR(paceTarget)}</span>
+          <span>Target: {formatARR(target)}</span>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ── Summary Card ────────────────────────────────────────────────────────────
@@ -169,6 +223,11 @@ export default function HomePage() {
   const [mentionsUnread, setMentionsUnread] = useState(0);
   const mentionsMarkedRef = useRef(false);
 
+  // Current-quarter quota progress shown above the digest. Loads independently
+  // — a slow target lookup must not delay the rest of the page; if the call
+  // fails (e.g. offline) the section is silently hidden rather than blocking.
+  const [quotaProgress, setQuotaProgress] = useState<QuotaProgressData | null>(null);
+
   useEffect(() => {
     // Digest (Issue #117): write-through cache. The aggregation call is
     // server-only — no per-entity fallback — so we stash the last successful
@@ -185,6 +244,9 @@ export default function HomePage() {
       .catch(() => {});
     listMentions(20)
       .then(r => { setMentions(r.items); setMentionsUnread(r.unread); })
+      .catch(() => {});
+    api.get<ApiResponse<QuotaProgressData>>('/insights/quota-progress')
+      .then(r => setQuotaProgress(r.data.data))
       .catch(() => {});
   }, []);
 
@@ -282,6 +344,36 @@ export default function HomePage() {
           <h1 className="text-2xl font-semibold text-brand-navy dark:text-fg-1">{greeting()}, {firstName}</h1>
           <p className="text-sm text-brand-navy-70 dark:text-fg-2 mt-0.5">{dayOfWeek()} — here's what needs your attention today</p>
         </div>
+
+        {/* Quota progress — current quarter. Hidden when neither a global
+            quota group is configured nor the user has a personal quota. */}
+        {quotaProgress && (quotaProgress.global || quotaProgress.personal) && (
+          <div className="bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft px-6 py-4 mb-6">
+            {quotaProgress.global && (
+              <QuotaProgressRow
+                label={`Global progress · ${quotaProgress.quarter}`}
+                closed={quotaProgress.global.closed}
+                target={quotaProgress.global.target}
+                paceTarget={quotaProgress.global.pace_target}
+                pct={quotaProgress.global.pct}
+                gap={quotaProgress.global.gap}
+              />
+            )}
+            {quotaProgress.global && quotaProgress.personal && (
+              <div className="border-t border-brand-navy-30/30 dark:border-ink-border-soft my-4"></div>
+            )}
+            {quotaProgress.personal && (
+              <QuotaProgressRow
+                label={`My quota · ${quotaProgress.personal.group_name} · ${quotaProgress.quarter}`}
+                closed={quotaProgress.personal.closed}
+                target={quotaProgress.personal.target}
+                paceTarget={quotaProgress.personal.pace_target}
+                pct={quotaProgress.personal.pct}
+                gap={quotaProgress.personal.gap}
+              />
+            )}
+          </div>
+        )}
 
         {/* Summary cards */}
         <div className="grid grid-cols-5 gap-4 mb-6">

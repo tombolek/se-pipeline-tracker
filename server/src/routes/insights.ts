@@ -508,6 +508,140 @@ router.get('/percent-to-target', auth, mgr, async (req: Request, res: Response):
   }));
 });
 
+// ── Home page quota-progress widget ──────────────────────────────────────────
+// GET /insights/quota-progress
+//
+// Lightweight, auth-only counterpart to /percent-to-target for the Home page
+// header. Always returns the **current quarter** of the **current FY** for
+// (a) the Global quota group (if one is configured) and (b) the caller's
+// assigned quota group (if `users.quota_group_id` is set). Trims the payload
+// to just the numbers the widget renders — no per-deal lists, no monthly
+// arrays — so it's safe to expose to non-managers.
+//
+// Quarter target falls back to annual ÷ 4 when `quota_group_quarterly_targets`
+// has no row for the current FY/quarter, matching the % to Target page.
+// Pace target is linear inside the quarter: months_elapsed_in_q / 3 × target.
+router.get('/quota-progress', auth, async (req: Request, res: Response): Promise<void> => {
+  const userId = (req as AuthenticatedRequest).user.userId;
+
+  // 1. Look up the caller's assigned quota group (may be null).
+  const userRow = await queryOne<{ quota_group_id: number | null }>(
+    `SELECT quota_group_id FROM users WHERE id = $1`,
+    [userId]
+  );
+  const userQuotaGroupId = userRow?.quota_group_id ?? null;
+
+  // 2. Compute current quarter (UTC, calendar-year FY).
+  const today = new Date();
+  const currentMonthIdx = today.getUTCMonth(); // 0..11
+  const currentYear = today.getUTCFullYear();
+  const quarterNum = Math.floor(currentMonthIdx / 3) + 1; // 1..4
+  const qStart = (quarterNum - 1) * 3;
+  const qEnd = qStart + 2;
+  const monthsElapsedInQ = Math.min(3, currentMonthIdx - qStart + 1); // 1..3
+  const fiscalYear = `FY${currentYear}`;
+
+  // 3. Load only the groups we need: global + the user's group (if any).
+  type QuotaGroup = {
+    id: number; name: string; rule_type: 'global' | 'teams' | 'ae_owners';
+    rule_value: unknown; target_amount: string;
+  };
+  const groupRows = await query<QuotaGroup>(
+    `SELECT id, name, rule_type, rule_value, target_amount FROM quota_groups
+     WHERE rule_type = 'global' OR id = $1`,
+    [userQuotaGroupId]
+  );
+  const globalGroup = groupRows.find(g => g.rule_type === 'global') ?? null;
+  const personalGroup = userQuotaGroupId !== null
+    ? groupRows.find(g => g.id === userQuotaGroupId) ?? null
+    : null;
+
+  // Short-circuit: nothing to show.
+  if (!globalGroup && !personalGroup) {
+    res.json(ok({
+      quarter: `Q${quarterNum}`,
+      fiscal_year: fiscalYear,
+      months_elapsed_in_q: monthsElapsedInQ,
+      global: null,
+      personal: null,
+    }));
+    return;
+  }
+
+  // 4. Quarter targets for current FY (fall back to annual/4 if no row).
+  const wantedIds = [globalGroup?.id, personalGroup?.id].filter((x): x is number => typeof x === 'number');
+  const qTargetRows = wantedIds.length > 0
+    ? await query<{ quota_group_id: number; target_amount: string }>(
+        `SELECT quota_group_id, target_amount FROM quota_group_quarterly_targets
+         WHERE fiscal_year = $1 AND quarter = $2 AND quota_group_id = ANY($3::int[])`,
+        [fiscalYear, quarterNum, wantedIds]
+      )
+    : [];
+  const qTargetById = new Map<number, number>();
+  for (const r of qTargetRows) {
+    const v = parseFloat(r.target_amount);
+    if (isFinite(v)) qTargetById.set(r.quota_group_id, v);
+  }
+
+  // 5. Closed Won deals for this FY (same record-type filter as % to Target).
+  type Deal = {
+    team: string | null; ae_owner_name: string | null;
+    arr_converted: string | null; close_date: string | null; closed_at: string | null;
+  };
+  const deals = await query<Deal>(
+    `SELECT team, ae_owner_name, arr_converted, close_date, closed_at
+     FROM opportunities
+     WHERE is_closed_won = true
+       AND record_type IN ('New Logo','Upsell','Cross-Sell')
+       AND fiscal_year = $1`,
+    [fiscalYear]
+  );
+
+  function ruleMatches(d: Deal, g: QuotaGroup): boolean {
+    if (g.rule_type === 'global') return true;
+    if (!Array.isArray(g.rule_value)) return false;
+    const list = g.rule_value as string[];
+    if (g.rule_type === 'teams') return d.team !== null && list.includes(d.team);
+    if (g.rule_type === 'ae_owners') return d.ae_owner_name !== null && list.includes(d.ae_owner_name);
+    return false;
+  }
+  function isInCurrentQuarter(d: Deal): boolean {
+    const src = d.closed_at ?? d.close_date;
+    if (!src) return false;
+    const m = new Date(src).getUTCMonth();
+    return m >= qStart && m <= qEnd;
+  }
+  function dealArr(d: Deal): number {
+    const n = parseFloat(d.arr_converted ?? '0');
+    return isFinite(n) ? n : 0;
+  }
+
+  function buildResult(g: QuotaGroup) {
+    const annual = parseFloat(g.target_amount) || 0;
+    const target = qTargetById.get(g.id) ?? (annual / 4);
+    const closed = deals
+      .filter(d => isInCurrentQuarter(d) && ruleMatches(d, g))
+      .reduce((acc, d) => acc + dealArr(d), 0);
+    const paceTarget = target * (monthsElapsedInQ / 3);
+    return {
+      group_name: g.name,
+      closed,
+      target,
+      pace_target: paceTarget,
+      pct: target > 0 ? (closed / target) * 100 : 0,
+      gap: closed - paceTarget,
+    };
+  }
+
+  res.json(ok({
+    quarter: `Q${quarterNum}`,
+    fiscal_year: fiscalYear,
+    months_elapsed_in_q: monthsElapsedInQ,
+    global: globalGroup ? buildResult(globalGroup) : null,
+    personal: personalGroup ? buildResult(personalGroup) : null,
+  }));
+});
+
 // GET /insights/ae-owners — distinct AE owners (for the quota group editor)
 router.get('/ae-owners', auth, mgr, async (_req: Request, res: Response): Promise<void> => {
   const rows = await query<{ ae_owner_name: string }>(
