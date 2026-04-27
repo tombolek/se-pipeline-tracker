@@ -24,6 +24,15 @@ export async function resetDealInfoConfig(): Promise<DealInfoConfig> {
 // ── Quota Groups (Issue #94) ─────────────────────────────────────────────────
 export type QuotaRuleType = 'global' | 'teams' | 'ae_owners';
 
+export interface QuarterlyTargetCell {
+  q1: string | null;
+  q2: string | null;
+  q3: string | null;
+  q4: string | null;
+}
+
+export type QuarterlyTargetsByFY = Record<string, QuarterlyTargetCell>;
+
 export interface QuotaGroup {
   id: number;
   name: string;
@@ -31,6 +40,7 @@ export interface QuotaGroup {
   rule_value: string[];
   target_amount: string; // pg NUMERIC comes back as string
   sort_order: number;
+  quarterly_targets: QuarterlyTargetsByFY;
 }
 
 export interface QuotaGroupInput {
@@ -58,6 +68,26 @@ export async function updateQuotaGroup(id: number, input: Partial<QuotaGroupInpu
 
 export async function deleteQuotaGroup(id: number): Promise<void> {
   await api.delete(`/settings/quota-groups/${id}`);
+}
+
+export interface QuarterlyTargetsInput {
+  q1: number | null;
+  q2: number | null;
+  q3: number | null;
+  q4: number | null;
+}
+
+export async function saveQuarterlyTargets(
+  groupId: number, fiscalYear: string, input: QuarterlyTargetsInput,
+): Promise<QuarterlyTargetCell & { fiscal_year: string }> {
+  const r = await api.put<ApiResponse<QuarterlyTargetCell & { fiscal_year: string }>>(
+    `/settings/quota-groups/${groupId}/quarterly/${fiscalYear}`, input,
+  );
+  return r.data.data;
+}
+
+export async function clearQuarterlyTargets(groupId: number, fiscalYear: string): Promise<void> {
+  await api.delete(`/settings/quota-groups/${groupId}/quarterly/${fiscalYear}`);
 }
 
 // ── Role-based page access ──────────────────────────────────────────────────

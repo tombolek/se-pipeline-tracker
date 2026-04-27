@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { query } from '../db/index.js';
+import { query, withTransaction } from '../db/index.js';
 import { requireAuth, requireAdmin } from '../middleware/auth.js';
 import { AuthenticatedRequest, ok, err } from '../types/index.js';
 
@@ -235,6 +235,17 @@ interface QuotaGroupRow {
   sort_order: number;
 }
 
+interface QuarterlyTargetRow {
+  quota_group_id: number;
+  fiscal_year: string;
+  quarter: number;
+  target_amount: string;
+}
+
+interface QuarterlyTargetsByFY {
+  [fiscalYear: string]: { q1: string | null; q2: string | null; q3: string | null; q4: string | null };
+}
+
 function normalizeRuleValue(ruleType: QuotaRuleType, raw: unknown): string[] {
   if (ruleType === 'global') return [];
   if (!Array.isArray(raw)) return [];
@@ -272,7 +283,21 @@ router.get('/quota-groups', auth, async (_req: Request, res: Response): Promise<
      FROM quota_groups
      ORDER BY sort_order ASC, id ASC`
   );
-  res.json(ok(rows));
+  const quarterlyRows = await query<QuarterlyTargetRow>(
+    `SELECT quota_group_id, fiscal_year, quarter, target_amount
+     FROM quota_group_quarterly_targets`
+  );
+  const byGroup = new Map<number, QuarterlyTargetsByFY>();
+  for (const r of quarterlyRows) {
+    let fyMap = byGroup.get(r.quota_group_id);
+    if (!fyMap) { fyMap = {}; byGroup.set(r.quota_group_id, fyMap); }
+    let cell = fyMap[r.fiscal_year];
+    if (!cell) { cell = { q1: null, q2: null, q3: null, q4: null }; fyMap[r.fiscal_year] = cell; }
+    const key = `q${r.quarter}` as keyof typeof cell;
+    cell[key] = r.target_amount;
+  }
+  const enriched = rows.map(g => ({ ...g, quarterly_targets: byGroup.get(g.id) ?? {} }));
+  res.json(ok(enriched));
 });
 
 router.post('/quota-groups', auth, async (req: Request, res: Response): Promise<void> => {
@@ -359,6 +384,99 @@ router.delete('/quota-groups/:id', auth, async (req: Request, res: Response): Pr
 
   await query(`DELETE FROM quota_groups WHERE id = $1`, [id]);
   res.json(ok({ deleted: id }));
+});
+
+// ── Quarterly quota targets ─────────────────────────────────────────────────
+// Targets are stored per (group, fiscal_year, quarter). A blank quarter falls
+// back to annual / 4 in readers — null means "not set", 0 means "explicitly
+// zero". The PUT endpoint replaces all four quarters for the given FY in one
+// transaction so the FY row in the UI is always coherent.
+
+const FY_RE = /^FY\d{4}$/;
+
+router.put('/quota-groups/:id/quarterly/:fy', auth, async (req: Request, res: Response): Promise<void> => {
+  const user = (req as AuthenticatedRequest).user;
+  if (user.role !== 'manager') { res.status(403).json(err('Manager role required')); return; }
+
+  const groupId = parseInt(req.params.id);
+  if (isNaN(groupId)) { res.status(400).json(err('Invalid group id')); return; }
+
+  const fy = req.params.fy;
+  if (!FY_RE.test(fy)) { res.status(400).json(err('fiscal_year must look like FY2026')); return; }
+
+  const groupExists = await query<{ id: number }>(`SELECT id FROM quota_groups WHERE id = $1`, [groupId]);
+  if (groupExists.length === 0) { res.status(404).json(err('Quota group not found')); return; }
+
+  const body = req.body as { q1?: unknown; q2?: unknown; q3?: unknown; q4?: unknown };
+  const parsed: { quarter: number; value: number | null }[] = [];
+  for (const q of [1, 2, 3, 4] as const) {
+    const raw = body[`q${q}` as 'q1' | 'q2' | 'q3' | 'q4'];
+    if (raw === null || raw === undefined || raw === '') {
+      parsed.push({ quarter: q, value: null });
+      continue;
+    }
+    const n = typeof raw === 'number' ? raw : parseFloat(String(raw));
+    if (!isFinite(n) || n < 0) {
+      res.status(400).json(err(`Q${q} must be a non-negative number or null`));
+      return;
+    }
+    parsed.push({ quarter: q, value: n });
+  }
+
+  try {
+    await withTransaction(async (client) => {
+      for (const { quarter, value } of parsed) {
+        if (value === null) {
+          await client.query(
+            `DELETE FROM quota_group_quarterly_targets
+             WHERE quota_group_id = $1 AND fiscal_year = $2 AND quarter = $3`,
+            [groupId, fy, quarter]
+          );
+        } else {
+          await client.query(
+            `INSERT INTO quota_group_quarterly_targets (quota_group_id, fiscal_year, quarter, target_amount)
+             VALUES ($1, $2, $3, $4)
+             ON CONFLICT (quota_group_id, fiscal_year, quarter)
+             DO UPDATE SET target_amount = EXCLUDED.target_amount, updated_at = now()`,
+            [groupId, fy, quarter, value]
+          );
+        }
+      }
+    });
+  } catch (e) {
+    res.status(500).json(err((e as Error).message || 'Failed to save quarterly targets'));
+    return;
+  }
+
+  const rows = await query<QuarterlyTargetRow>(
+    `SELECT quota_group_id, fiscal_year, quarter, target_amount
+     FROM quota_group_quarterly_targets
+     WHERE quota_group_id = $1 AND fiscal_year = $2`,
+    [groupId, fy]
+  );
+  const cell = { q1: null as string | null, q2: null as string | null, q3: null as string | null, q4: null as string | null };
+  for (const r of rows) {
+    cell[`q${r.quarter}` as 'q1' | 'q2' | 'q3' | 'q4'] = r.target_amount;
+  }
+  res.json(ok({ quota_group_id: groupId, fiscal_year: fy, ...cell }));
+});
+
+router.delete('/quota-groups/:id/quarterly/:fy', auth, async (req: Request, res: Response): Promise<void> => {
+  const user = (req as AuthenticatedRequest).user;
+  if (user.role !== 'manager') { res.status(403).json(err('Manager role required')); return; }
+
+  const groupId = parseInt(req.params.id);
+  if (isNaN(groupId)) { res.status(400).json(err('Invalid group id')); return; }
+
+  const fy = req.params.fy;
+  if (!FY_RE.test(fy)) { res.status(400).json(err('fiscal_year must look like FY2026')); return; }
+
+  await query(
+    `DELETE FROM quota_group_quarterly_targets
+     WHERE quota_group_id = $1 AND fiscal_year = $2`,
+    [groupId, fy]
+  );
+  res.json(ok({ quota_group_id: groupId, fiscal_year: fy, cleared: true }));
 });
 
 // ── Role-based page access ──────────────────────────────────────────────────

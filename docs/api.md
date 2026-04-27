@@ -77,6 +77,14 @@ POST   /users
 PATCH  /users/:id
 DELETE /users/:id                        (deactivate — soft)
 
+# Quota groups (Manager only — drives % to Target)
+GET    /settings/quota-groups                                list groups; each row includes `quarterly_targets` keyed by FY
+POST   /settings/quota-groups                                create group (annual target_amount + rule)
+PATCH  /settings/quota-groups/:id                            update group fields
+DELETE /settings/quota-groups/:id                            delete group (cascades to quarterly rows)
+PUT    /settings/quota-groups/:id/quarterly/:fy              upsert Q1–Q4 for one FY ({ q1,q2,q3,q4 } — null clears that quarter, blank quarter falls back to annual÷4)
+DELETE /settings/quota-groups/:id/quarterly/:fy              clear all quarterly overrides for that FY
+
 # User preferences
 PATCH  /users/me/preferences             body: { show_qualify: true|false }
 ```
