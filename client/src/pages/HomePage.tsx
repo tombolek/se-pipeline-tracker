@@ -621,6 +621,38 @@ export default function HomePage() {
                 </div>
               )}
             </SectionCard>
+
+            {/* PoC Alerts */}
+            <SectionCard
+              icon={<svg className="w-4 h-4 text-brand-purple dark:text-accent-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>}
+              title="PoC Alerts"
+              badge={data.poc_alerts.length > 0 ? <span className="text-[10px] font-semibold bg-brand-purple/10 dark:bg-accent-purple-soft text-brand-purple dark:text-accent-purple px-1.5 py-0.5 rounded-full">{data.poc_alerts.length}</span> : undefined}
+            >
+              {data.poc_alerts.length === 0 ? (
+                <AllClear text="No PoCs ending soon" />
+              ) : (
+                <div className="divide-y divide-brand-navy-30/15 dark:divide-ink-border-soft">
+                  {data.poc_alerts.map(p => (
+                    <div key={p.id} onClick={() => openOpp(p.id)} className="px-5 py-3 hover:bg-brand-purple-30/20 dark:hover:bg-accent-purple-soft cursor-pointer transition-colors">
+                      <div className="flex items-start gap-3">
+                        <span className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ring-2 ${p.days_remaining <= 0 ? 'bg-status-overdue dark:bg-status-d-overdue ring-status-overdue/20 dark:ring-0' : p.days_remaining <= 3 ? 'bg-status-warning dark:bg-status-d-warning ring-status-warning/20 dark:ring-0' : 'bg-brand-purple dark:bg-accent-purple ring-brand-purple/20 dark:ring-0'}`} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium text-brand-navy dark:text-fg-1 leading-snug">{p.name}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-[10px] text-brand-navy-70 dark:text-fg-2">PoC ends {formatEventDate(p.poc_end_date)}</span>
+                            <span className={`text-[10px] font-semibold ${p.days_remaining <= 0 ? 'text-status-overdue dark:text-status-d-overdue' : p.days_remaining <= 3 ? 'text-status-warning dark:text-status-d-warning' : 'text-brand-navy-70 dark:text-fg-2'}`}>
+                              {p.days_remaining <= 0 ? `${Math.abs(p.days_remaining)}d overdue` : `${p.days_remaining}d left`}
+                            </span>
+                            <span className="text-brand-navy-30 dark:text-fg-4">&middot;</span>
+                            <span className="text-[10px] text-brand-navy-70 dark:text-fg-2">{p.poc_status}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </SectionCard>
           </div>
 
           {/* RIGHT */}
@@ -715,67 +747,6 @@ export default function HomePage() {
               </SectionCard>
             )}
 
-            {/* Closed Lost */}
-            {data.closed_lost.length > 0 && (
-              <SectionCard
-                icon={<svg className="w-4 h-4 text-brand-pink dark:text-accent-pink" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>}
-                title="New Closed Lost"
-                badge={<span className="text-[10px] font-semibold bg-brand-pink/10 dark:bg-accent-pink-soft text-brand-pink dark:text-accent-pink px-1.5 py-0.5 rounded-full">{data.closed_lost.length} unread</span>}
-                footer={<button onClick={() => navigate('/closed-lost')} className="text-[11px] font-medium text-brand-purple dark:text-accent-purple hover:text-brand-purple-70 dark:text-accent-purple transition-colors">View all closed lost &rarr;</button>}
-              >
-                <div className="divide-y divide-brand-navy-30/15 dark:divide-ink-border-soft">
-                  {data.closed_lost.map(cl => (
-                    <div key={cl.id} onClick={() => openOpp(cl.id)} className="px-5 py-3 hover:bg-brand-purple-30/20 dark:hover:bg-accent-purple-soft cursor-pointer transition-colors">
-                      <div className="flex items-start gap-3">
-                        <span className="mt-1 w-2 h-2 rounded-full bg-brand-pink flex-shrink-0 ring-2 ring-brand-pink/20" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium text-brand-navy dark:text-fg-1 leading-snug">{cl.name}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            {cl.arr != null && <span className="text-[10px] text-brand-navy-70 dark:text-fg-2">{formatARR(cl.arr)}</span>}
-                            <span className="text-brand-navy-30 dark:text-fg-4">&middot;</span>
-                            <span className="text-[10px] text-brand-navy-70 dark:text-fg-2">Was at {cl.last_stage}</span>
-                            {cl.closed_at && <><span className="text-brand-navy-30 dark:text-fg-4">&middot;</span><span className="text-[10px] text-brand-navy-70 dark:text-fg-2">Closed {formatEventDate(cl.closed_at)}</span></>}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </SectionCard>
-            )}
-
-            {/* PoC Alerts */}
-            <SectionCard
-              icon={<svg className="w-4 h-4 text-brand-purple dark:text-accent-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>}
-              title="PoC Alerts"
-              badge={data.poc_alerts.length > 0 ? <span className="text-[10px] font-semibold bg-brand-purple/10 dark:bg-accent-purple-soft text-brand-purple dark:text-accent-purple px-1.5 py-0.5 rounded-full">{data.poc_alerts.length}</span> : undefined}
-            >
-              {data.poc_alerts.length === 0 ? (
-                <AllClear text="No PoCs ending soon" />
-              ) : (
-                <div className="divide-y divide-brand-navy-30/15 dark:divide-ink-border-soft">
-                  {data.poc_alerts.map(p => (
-                    <div key={p.id} onClick={() => openOpp(p.id)} className="px-5 py-3 hover:bg-brand-purple-30/20 dark:hover:bg-accent-purple-soft cursor-pointer transition-colors">
-                      <div className="flex items-start gap-3">
-                        <span className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ring-2 ${p.days_remaining <= 0 ? 'bg-status-overdue dark:bg-status-d-overdue ring-status-overdue/20 dark:ring-0' : p.days_remaining <= 3 ? 'bg-status-warning dark:bg-status-d-warning ring-status-warning/20 dark:ring-0' : 'bg-brand-purple dark:bg-accent-purple ring-brand-purple/20 dark:ring-0'}`} />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium text-brand-navy dark:text-fg-1 leading-snug">{p.name}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="text-[10px] text-brand-navy-70 dark:text-fg-2">PoC ends {formatEventDate(p.poc_end_date)}</span>
-                            <span className={`text-[10px] font-semibold ${p.days_remaining <= 0 ? 'text-status-overdue dark:text-status-d-overdue' : p.days_remaining <= 3 ? 'text-status-warning dark:text-status-d-warning' : 'text-brand-navy-70 dark:text-fg-2'}`}>
-                              {p.days_remaining <= 0 ? `${Math.abs(p.days_remaining)}d overdue` : `${p.days_remaining}d left`}
-                            </span>
-                            <span className="text-brand-navy-30 dark:text-fg-4">&middot;</span>
-                            <span className="text-[10px] text-brand-navy-70 dark:text-fg-2">{p.poc_status}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </SectionCard>
-
             {/* Needs Attention — SE Data Hygiene */}
             <SectionCard
               icon={<svg className="w-4 h-4 text-status-warning dark:text-status-d-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>}
@@ -813,6 +784,35 @@ export default function HomePage() {
                 </div>
               )}
             </SectionCard>
+
+            {/* Closed Lost */}
+            {data.closed_lost.length > 0 && (
+              <SectionCard
+                icon={<svg className="w-4 h-4 text-brand-pink dark:text-accent-pink" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>}
+                title="New Closed Lost"
+                badge={<span className="text-[10px] font-semibold bg-brand-pink/10 dark:bg-accent-pink-soft text-brand-pink dark:text-accent-pink px-1.5 py-0.5 rounded-full">{data.closed_lost.length} unread</span>}
+                footer={<button onClick={() => navigate('/closed-lost')} className="text-[11px] font-medium text-brand-purple dark:text-accent-purple hover:text-brand-purple-70 dark:text-accent-purple transition-colors">View all closed lost &rarr;</button>}
+              >
+                <div className="divide-y divide-brand-navy-30/15 dark:divide-ink-border-soft">
+                  {data.closed_lost.map(cl => (
+                    <div key={cl.id} onClick={() => openOpp(cl.id)} className="px-5 py-3 hover:bg-brand-purple-30/20 dark:hover:bg-accent-purple-soft cursor-pointer transition-colors">
+                      <div className="flex items-start gap-3">
+                        <span className="mt-1 w-2 h-2 rounded-full bg-brand-pink flex-shrink-0 ring-2 ring-brand-pink/20" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium text-brand-navy dark:text-fg-1 leading-snug">{cl.name}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            {cl.arr != null && <span className="text-[10px] text-brand-navy-70 dark:text-fg-2">{formatARR(cl.arr)}</span>}
+                            <span className="text-brand-navy-30 dark:text-fg-4">&middot;</span>
+                            <span className="text-[10px] text-brand-navy-70 dark:text-fg-2">Was at {cl.last_stage}</span>
+                            {cl.closed_at && <><span className="text-brand-navy-30 dark:text-fg-4">&middot;</span><span className="text-[10px] text-brand-navy-70 dark:text-fg-2">Closed {formatEventDate(cl.closed_at)}</span></>}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </SectionCard>
+            )}
           </div>
         </div>
       </div>
