@@ -552,7 +552,10 @@ router.get('/quota-progress', auth, async (req: Request, res: Response): Promise
     [userQuotaGroupId]
   );
   const globalGroup = groupRows.find(g => g.rule_type === 'global') ?? null;
-  const personalGroup = userQuotaGroupId !== null
+  // If the user's assigned group IS the global group, suppress the personal
+  // row entirely — rendering "Global progress" and "My quota · Global" side
+  // by side would just duplicate the same numbers.
+  const personalGroup = userQuotaGroupId !== null && userQuotaGroupId !== globalGroup?.id
     ? groupRows.find(g => g.id === userQuotaGroupId) ?? null
     : null;
 

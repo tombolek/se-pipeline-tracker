@@ -7,6 +7,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## 2026-04-27
 
+### Changed
+- **Slimmer Home quota header; no duplicate row when user's quota IS Global** — the Home progress card now puts `% to target · ahead/behind pace` inline next to `$closed / $target` instead of stacking it on its own line, reducing the card's vertical footprint by roughly a row per quota. Server also suppresses the `My quota` row when the user's assigned quota group *is* the global group (showing "Global" twice was duplicative).
+
 ### Added
 - **Current-quarter quota header on the Home page** — Home now opens with a stacked progress card showing two rows for the current quarter: **Global progress** (the team's Closed-Won ARR vs. the global quota group's quarter target) and **My quota** (the same view scoped to whichever quota group the user is assigned to via Settings → Users → Access Management). Each row mirrors the headline component on % to Target — `$closed / $target`, `% to target`, gradient bar with `$0 / pace / target` legend, and an `ahead/behind pace` line off a 3-month linear pace inside the quarter. Backed by a new auth-only endpoint `GET /insights/quota-progress` that only returns the global group + the caller's own group, so it's safe to expose to non-managers (the % to Target page itself remains manager-only). The card hides itself when no global quota group is configured and the user has no personal quota set, so installs without quotas are unaffected.
 

@@ -120,24 +120,26 @@ function QuotaProgressRow({ label, closed, target, paceTarget, pct, gap }: {
 }) {
   return (
     <div className="flex items-center gap-6 flex-wrap">
-      <div className="flex-1 min-w-[240px]">
+      <div className="flex-1 min-w-[260px]">
         <p className="text-[11px] font-semibold uppercase tracking-wide text-brand-navy-70 dark:text-fg-2">{label}</p>
-        <p className="text-2xl font-bold text-brand-navy dark:text-fg-1 mt-0.5">
-          {formatARR(closed)} <span className="text-base font-medium text-brand-navy-70 dark:text-fg-2">/ {formatARR(target)}</span>
-        </p>
-        <p className="text-xs text-brand-navy-70 dark:text-fg-2 mt-1">
-          {Math.round(pct)}% to target ·
-          {gap >= 0
-            ? <span className="text-status-success dark:text-status-d-success font-semibold"> {formatARR(gap)} ahead of pace</span>
-            : <span className="text-status-warning dark:text-status-d-warning font-semibold"> {formatARR(Math.abs(gap))} behind pace</span>
-          }
-        </p>
+        <div className="mt-0.5 flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+          <span className="text-2xl font-bold text-brand-navy dark:text-fg-1">
+            {formatARR(closed)} <span className="text-base font-medium text-brand-navy-70 dark:text-fg-2">/ {formatARR(target)}</span>
+          </span>
+          <span className="text-xs text-brand-navy-70 dark:text-fg-2">
+            {Math.round(pct)}% to target ·{' '}
+            {gap >= 0
+              ? <span className="text-status-success dark:text-status-d-success font-semibold">{formatARR(gap)} ahead of pace</span>
+              : <span className="text-status-warning dark:text-status-d-warning font-semibold">{formatARR(Math.abs(gap))} behind pace</span>
+            }
+          </span>
+        </div>
       </div>
       <div className="flex-1 min-w-[400px]">
         <div className="h-3 w-full bg-brand-navy-30/40 rounded-full overflow-hidden">
           <div className="h-full bg-gradient-to-r from-brand-purple to-brand-pink rounded-full" style={{ width: `${Math.min(pct, 100)}%` }}></div>
         </div>
-        <div className="flex justify-between text-[10px] text-brand-navy-70 dark:text-fg-2 mt-1.5 font-medium">
+        <div className="flex justify-between text-[10px] text-brand-navy-70 dark:text-fg-2 mt-1 font-medium">
           <span>$0</span>
           <span>Pace at as-of: {formatARR(paceTarget)}</span>
           <span>Target: {formatARR(target)}</span>
@@ -348,7 +350,7 @@ export default function HomePage() {
         {/* Quota progress — current quarter. Hidden when neither a global
             quota group is configured nor the user has a personal quota. */}
         {quotaProgress && (quotaProgress.global || quotaProgress.personal) && (
-          <div className="bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft px-6 py-4 mb-6">
+          <div className="bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft px-6 py-3 mb-6">
             {quotaProgress.global && (
               <QuotaProgressRow
                 label={`Global progress · ${quotaProgress.quarter}`}
@@ -360,7 +362,7 @@ export default function HomePage() {
               />
             )}
             {quotaProgress.global && quotaProgress.personal && (
-              <div className="border-t border-brand-navy-30/30 dark:border-ink-border-soft my-4"></div>
+              <div className="border-t border-brand-navy-30/30 dark:border-ink-border-soft my-2.5"></div>
             )}
             {quotaProgress.personal && (
               <QuotaProgressRow
