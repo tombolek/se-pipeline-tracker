@@ -42,10 +42,12 @@ interface GroupResult {
   rule_type: QuotaRuleType;
   rule_value: string[];
   target_amount: number;
+  quarterly_targets?: { q1: number | null; q2: number | null; q3: number | null; q4: number | null };
   sort_order: number;
   total_arr: number;
   deal_count: number;
   pct: number;
+  monthly_arr?: number[]; // length 12, raw (non-cumulative)
   monthly_cumulative_arr: number[]; // length 12
   monthly_cumulative_pct: number[]; // length 12
   deals: GroupDeal[];
@@ -76,12 +78,20 @@ function quarterEndIndex(q: Quarter, currentMonthIdx: number): number {
   }
 }
 
-function ragColor(pct: number, asOfMonthIdx: number): string {
-  // Compare to the linear pace at this month: pace = (asOfMonthIdx + 1) / 12 * 100
-  const pace = ((asOfMonthIdx + 1) / 12) * 100;
-  if (pct >= pace) return '#00E5B6';        // success — at or ahead of pace
-  if (pct >= pace * 0.75) return '#FFAB00'; // warning — within 25% of pace
-  return '#FF464C';                          // overdue — behind by >25%
+function quarterRange(q: Quarter): [number, number] | null {
+  switch (q) {
+    case 'Q1': return [0, 2];
+    case 'Q2': return [3, 5];
+    case 'Q3': return [6, 8];
+    case 'Q4': return [9, 11];
+    default: return null;
+  }
+}
+
+function ragColor(pct: number, pacePct: number): string {
+  if (pct >= pacePct) return '#00E5B6';        // success — at or ahead of pace
+  if (pct >= pacePct * 0.75) return '#FFAB00'; // warning — within 25% of pace
+  return '#FF464C';                             // overdue — behind by >25%
 }
 
 function pillBtn<T extends string>(current: T, value: T, onClick: (v: T) => void, label: string) {
@@ -156,14 +166,15 @@ function Donut({ pct, color }: { pct: number; color: string }) {
   );
 }
 
-function GroupCard({ group, asOfMonthIdx, onViewDeals }: {
+function GroupCard({ group, asOfMonthIdx, pacePct, onViewDeals }: {
   group: GroupResult;
   asOfMonthIdx: number;
+  pacePct: number;
   onViewDeals: (g: GroupResult) => void;
 }) {
   const pctAtAsOf = group.monthly_cumulative_pct[asOfMonthIdx] ?? 0;
   const arrAtAsOf = group.monthly_cumulative_arr[asOfMonthIdx] ?? 0;
-  const color = ragColor(pctAtAsOf, asOfMonthIdx);
+  const color = ragColor(pctAtAsOf, pacePct);
   const monthlyForLabel = group.monthly_cumulative_pct
     .slice(0, asOfMonthIdx + 1)
     .map((p, m) => m === asOfMonthIdx ? `${Math.round(p)}%` : `${Math.round(p)}`)
@@ -215,11 +226,15 @@ function RuleChip({ group }: { group: { rule_type: QuotaRuleType; rule_value: st
 function ComparisonChart({
   groups,
   asOfMonthIdx,
+  paceStartMonth,
+  paceLen,
   visibleGroupIds,
   groupColorById,
 }: {
   groups: GroupResult[];
   asOfMonthIdx: number;
+  paceStartMonth: number;
+  paceLen: number;
   visibleGroupIds: Set<number>;
   groupColorById: Map<number, string>;
 }) {
@@ -250,7 +265,7 @@ function ComparisonChart({
           fontWeight={m === asOfMonthIdx ? 700 : 500}
         >{n}{m === asOfMonthIdx ? '*' : ''}</text>
       ))}
-      <line x1={xs(0)} y1={ys(0)} x2={xs(11)} y2={ys(100)} stroke="#665D81" strokeWidth="1.5" strokeDasharray="5 4" fill="none"/>
+      <line x1={xs(paceStartMonth)} y1={ys(0)} x2={xs(paceStartMonth + paceLen - 1)} y2={ys(100)} stroke="#665D81" strokeWidth="1.5" strokeDasharray="5 4" fill="none"/>
       <line x1={xs(asOfMonthIdx)} y1="20" x2={xs(asOfMonthIdx)} y2="210" stroke="#665D81" strokeWidth="1" strokeDasharray="2 3" opacity="0.4"/>
       <text x={xs(asOfMonthIdx)} y="14" textAnchor="middle" fontSize="9" fill="#665D81">as of</text>
 
@@ -392,14 +407,64 @@ export default function PercentToTargetPage() {
 
   const currentMonthIdx = meta.current_month_index ?? new Date().getMonth();
   const asOfMonthIdx = quarterEndIndex(quarter, currentMonthIdx);
+  const qRange = quarterRange(quarter);
+
+  // Re-derive each group's target/cumulative ARR/% based on the selected quarter.
+  // For YTD: keep annual target + full-year cumulative (existing behaviour).
+  // For Q1–Q4: use quarterly target (fall back to annual/4) + cumulative within
+  // that quarter's months only. Deals outside the window do not count.
+  const viewGroups = useMemo<GroupResult[]>(() => {
+    const r = quarterRange(quarter);
+    if (!r) return groups;
+    const [qStart, qEnd] = r;
+    const qKey = quarter.toLowerCase() as 'q1' | 'q2' | 'q3' | 'q4';
+    return groups.map(g => {
+      const qt = g.quarterly_targets?.[qKey];
+      const target = (qt !== null && qt !== undefined) ? qt : g.target_amount / 4;
+      const monthlyArr: number[] = g.monthly_arr ?? g.monthly_cumulative_arr.map((c, i) =>
+        c - (i === 0 ? 0 : (g.monthly_cumulative_arr[i - 1] ?? 0))
+      );
+      const cumArr: number[] = [];
+      let running = 0;
+      for (let m = 0; m < 12; m++) {
+        if (m < qStart) { cumArr.push(0); continue; }
+        if (m > qEnd) { cumArr.push(running); continue; }
+        running += monthlyArr[m] ?? 0;
+        cumArr.push(running);
+      }
+      const cumPct = cumArr.map(c => target > 0 ? (c / target) * 100 : 0);
+      const dealsInQ = g.deals.filter(d => {
+        const src = d.closed_at ?? d.close_date;
+        if (!src) return false;
+        const m = new Date(src).getUTCMonth();
+        return m >= qStart && m <= qEnd;
+      });
+      const totalArr = cumArr[qEnd] ?? 0;
+      return {
+        ...g,
+        target_amount: target,
+        monthly_cumulative_arr: cumArr,
+        monthly_cumulative_pct: cumPct,
+        total_arr: totalArr,
+        deal_count: dealsInQ.length,
+        pct: target > 0 ? (totalArr / target) * 100 : 0,
+        deals: dealsInQ,
+      };
+    });
+  }, [groups, quarter]);
+
+  // Pace: full-year linear for YTD, quarter-linear for Q1-Q4.
+  const paceStart = qRange ? qRange[0] : 0;
+  const paceLen = qRange ? 3 : 12;
+  const monthsElapsed = Math.min(paceLen, Math.max(0, asOfMonthIdx - paceStart + 1));
+  const pacePct = (monthsElapsed / paceLen) * 100;
 
   // Aggregate headline (grand totals across groups would double-count if groups overlap;
   // instead use the Global group if present, else fall back to summing only the first group)
-  const globalGroup = groups.find(g => g.rule_type === 'global');
+  const globalGroup = viewGroups.find(g => g.rule_type === 'global');
   const headlineArr = globalGroup ? (globalGroup.monthly_cumulative_arr[asOfMonthIdx] ?? 0) : 0;
   const headlineTarget = globalGroup ? globalGroup.target_amount : 0;
   const headlinePct = globalGroup ? (globalGroup.monthly_cumulative_pct[asOfMonthIdx] ?? 0) : 0;
-  const pacePct = ((asOfMonthIdx + 1) / 12) * 100;
   const paceArr = headlineTarget * (pacePct / 100);
   const paceGap = headlineArr - paceArr;
 
@@ -463,7 +528,7 @@ export default function PercentToTargetPage() {
         </div>
       )}
 
-      {loading ? <Loading /> : groups.length === 0 ? (
+      {loading ? <Loading /> : viewGroups.length === 0 ? (
         <div className="bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft px-6 py-12 text-center">
           <p className="text-sm text-brand-navy-70 dark:text-fg-2">No quota groups configured yet.</p>
           <a href="/settings/configuration/quotas" className="inline-block mt-3 text-sm text-brand-purple dark:text-accent-purple font-medium hover:underline">Configure groups in Settings → Quotas →</a>
@@ -472,13 +537,13 @@ export default function PercentToTargetPage() {
         <>
           {/* Donut + sparkline cards */}
           <div className={`grid gap-4 mb-6 grid-cols-2 ${
-            groups.length === 1 ? 'lg:grid-cols-1'
-              : groups.length === 2 ? 'lg:grid-cols-2'
-              : groups.length === 3 ? 'lg:grid-cols-3'
+            viewGroups.length === 1 ? 'lg:grid-cols-1'
+              : viewGroups.length === 2 ? 'lg:grid-cols-2'
+              : viewGroups.length === 3 ? 'lg:grid-cols-3'
               : 'lg:grid-cols-4'
           }`}>
-            {groups.map(g => (
-              <GroupCard key={g.id} group={g} asOfMonthIdx={asOfMonthIdx} onViewDeals={setDrillGroup} />
+            {viewGroups.map(g => (
+              <GroupCard key={g.id} group={g} asOfMonthIdx={asOfMonthIdx} pacePct={pacePct} onViewDeals={setDrillGroup} />
             ))}
           </div>
 
@@ -486,9 +551,9 @@ export default function PercentToTargetPage() {
           <div className="bg-white dark:bg-ink-1 rounded-2xl border border-brand-navy-30/40 dark:border-ink-border-soft overflow-hidden mb-6">
             <div className="px-5 py-3.5 border-b border-brand-navy-30/40 dark:border-ink-border-soft flex items-center gap-3 flex-wrap">
               <h2 className="text-sm font-semibold text-brand-navy dark:text-fg-1">% to target — pacing by month</h2>
-              <span className="text-xs text-brand-navy-70 dark:text-fg-2">Cumulative through end of each month. Dashed = linear FY pace.</span>
+              <span className="text-xs text-brand-navy-70 dark:text-fg-2">Cumulative through end of each month. Dashed = linear {quarter === 'YTD' ? 'FY' : quarter} pace.</span>
               <div className="ml-auto flex items-center gap-3 text-[11px] flex-wrap">
-                {groups.map(g => {
+                {viewGroups.map(g => {
                   const color = groupColorById.get(g.id) ?? '#1A0C42';
                   const hidden = hiddenGroupIds.has(g.id);
                   return (
@@ -515,8 +580,10 @@ export default function PercentToTargetPage() {
             </div>
             <div className="p-5">
               <ComparisonChart
-                groups={groups}
+                groups={viewGroups}
                 asOfMonthIdx={asOfMonthIdx}
+                paceStartMonth={paceStart}
+                paceLen={paceLen}
                 visibleGroupIds={visibleGroupIds}
                 groupColorById={groupColorById}
               />
@@ -549,11 +616,11 @@ export default function PercentToTargetPage() {
                 </tr>
               </thead>
               <tbody>
-                {groups.map(g => {
+                {viewGroups.map(g => {
                   const arr = g.monthly_cumulative_arr[asOfMonthIdx] ?? 0;
                   const pct = g.monthly_cumulative_pct[asOfMonthIdx] ?? 0;
                   const gap = arr - g.target_amount;
-                  const color = ragColor(pct, asOfMonthIdx);
+                  const color = ragColor(pct, pacePct);
                   const isExpanded = expandedBreakdown.has(g.id);
                   return (
                     <Fragment key={g.id}>
@@ -609,7 +676,7 @@ export default function PercentToTargetPage() {
                                       <td className={`px-3 py-1.5 text-xs ${rowColor}`}>
                                         {mn}{isCurrent ? ' *' : ''}
                                       </td>
-                                      <td className={`px-3 py-1.5 text-right text-xs ${future ? 'text-brand-navy-30 dark:text-fg-4' : ''}`} style={!future ? { color: ragColor(mPct, mi) } : undefined}>
+                                      <td className={`px-3 py-1.5 text-right text-xs ${future ? 'text-brand-navy-30 dark:text-fg-4' : ''}`} style={!future ? { color: ragColor(mPct, (Math.min(paceLen, Math.max(0, mi - paceStart + 1)) / paceLen) * 100) } : undefined}>
                                         {future ? '—' : `${Math.round(mPct)}%`}
                                       </td>
                                       <td className={`px-3 py-1.5 text-right text-xs ${rowColor}`}>

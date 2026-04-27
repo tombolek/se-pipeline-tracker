@@ -8,6 +8,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## 2026-04-27
 
 ### Changed
+- **% to Target now respects the quarter selector** — choosing Q1/Q2/Q3/Q4 on the % to Target page now switches each donut card, the headline, the breakdown table, and the pacing chart to that quarter's target (from `quota_group_quarterly_targets`, falling back to `annual ÷ 4` when blank) and counts only deals that closed within the quarter's months. RAG colours and the dashed pace line are recomputed against a 3-month linear pace inside the quarter. `All YTD` keeps the previous full-year behaviour. Hooks into the per-quarter targets shipped earlier today.
 - **Menu Settings reworked into a section-based layout** — admins can now decide which menu items stay at the top level (e.g. Home, Favorites) and group the rest into named, collapsible sections. Each section has an inline-editable name, a "default open / collapsed" toggle, drag-to-reorder, and delete (items inside fall back to top-level). Items drag freely between top-level and any section. The previous Main Menu / Insights split is gone — both are unified under a single config (`menu_config` in localStorage). Per-item visibility toggles were removed; page visibility is governed by Role Access (Settings → People → Role Access).
 
 ### Added

@@ -368,6 +368,25 @@ router.get('/percent-to-target', auth, mgr, async (req: Request, res: Response):
      ORDER BY sort_order ASC, id ASC`
   );
 
+  // Quarterly targets for the requested FY (or all FYs if none specified — use
+  // first row by FY in groupResults below). A null quarter falls back to
+  // annual / 4 on the client; 0 means explicitly zero.
+  type QuarterlyRow = { quota_group_id: number; quarter: number; target_amount: string };
+  const quarterlyParams: unknown[] = [];
+  let quarterlySql = `SELECT quota_group_id, quarter, target_amount FROM quota_group_quarterly_targets`;
+  if (fiscalYear) {
+    quarterlyParams.push(fiscalYear);
+    quarterlySql += ` WHERE fiscal_year = $1`;
+  }
+  const quarterlyRows = await query<QuarterlyRow>(quarterlySql, quarterlyParams);
+  const quarterlyByGroup = new Map<number, { q1: number | null; q2: number | null; q3: number | null; q4: number | null }>();
+  for (const r of quarterlyRows) {
+    let cell = quarterlyByGroup.get(r.quota_group_id);
+    if (!cell) { cell = { q1: null, q2: null, q3: null, q4: null }; quarterlyByGroup.set(r.quota_group_id, cell); }
+    const v = parseFloat(r.target_amount);
+    cell[`q${r.quarter}` as 'q1' | 'q2' | 'q3' | 'q4'] = isFinite(v) ? v : null;
+  }
+
   // Distinct fiscal years available for the FY dropdown
   const fyRows = await query<{ fiscal_year: string }>(
     `SELECT DISTINCT fiscal_year FROM opportunities
@@ -446,16 +465,19 @@ router.get('/percent-to-target', auth, mgr, async (req: Request, res: Response):
     const target = parseFloat(g.target_amount) || 0;
     const cumulativePct = cumulativeArr.map(c => target > 0 ? (c / target) * 100 : 0);
     const totalArr = cumulativeArr[11] ?? 0;
+    const qt = quarterlyByGroup.get(g.id) ?? { q1: null, q2: null, q3: null, q4: null };
     return {
       id: g.id,
       name: g.name,
       rule_type: g.rule_type,
       rule_value: g.rule_value,
       target_amount: target,
+      quarterly_targets: qt,
       sort_order: g.sort_order,
       total_arr: totalArr,
       deal_count: matching.length,
       pct: target > 0 ? (totalArr / target) * 100 : 0,
+      monthly_arr: monthlyArr,
       monthly_cumulative_arr: cumulativeArr,
       monthly_cumulative_pct: cumulativePct,
       deals: matching.map(d => ({
