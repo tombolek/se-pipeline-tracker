@@ -73,8 +73,8 @@ DELETE /inbox/:id                        (soft delete)
 
 # Settings (Manager only)
 GET    /users
-POST   /users
-PATCH  /users/:id
+POST   /users                            body may include quota_group_id (nullable; FK quota_groups.id)
+PATCH  /users/:id                        quota_group_id supported in same shape — pass null to clear
 DELETE /users/:id                        (deactivate — soft)
 
 # Quota groups (Manager only — drives % to Target)

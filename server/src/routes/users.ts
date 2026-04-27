@@ -5,7 +5,7 @@ import { requireAuth, requireManager } from '../middleware/auth.js';
 import { AuthenticatedRequest, ColumnPrefs, User, ok, err } from '../types/index.js';
 import { logAudit } from '../services/auditLog.js';
 
-const USER_COLS = `id, email, name, role, is_admin, is_active, show_qualify, force_password_change, manager_id, column_prefs, teams, theme, created_at, last_login_at`;
+const USER_COLS = `id, email, name, role, is_admin, is_active, show_qualify, force_password_change, manager_id, quota_group_id, column_prefs, teams, theme, created_at, last_login_at`;
 
 const VALID_THEMES = new Set(['light', 'dark', 'system']);
 
@@ -23,9 +23,9 @@ router.get('/', auth, mgr, async (_req: Request, res: Response): Promise<void> =
 
 // POST /users — create user (Manager only)
 router.post('/', auth, mgr, async (req: Request, res: Response): Promise<void> => {
-  const { name, email, role, password, manager_id, is_admin: reqIsAdmin } = req.body as {
+  const { name, email, role, password, manager_id, quota_group_id, is_admin: reqIsAdmin } = req.body as {
     name?: string; email?: string; role?: string; password?: string;
-    manager_id?: number | null; is_admin?: boolean;
+    manager_id?: number | null; quota_group_id?: number | null; is_admin?: boolean;
   };
 
   if (!name?.trim() || !email?.trim() || !password?.trim()) {
@@ -61,12 +61,19 @@ router.post('/', auth, mgr, async (req: Request, res: Response): Promise<void> =
     resolvedManagerId = mgrRow.id;
   }
 
+  let resolvedQuotaGroupId: number | null = null;
+  if (quota_group_id !== undefined && quota_group_id !== null) {
+    const qgRow = await queryOne<{ id: number }>(`SELECT id FROM quota_groups WHERE id = $1`, [quota_group_id]);
+    if (!qgRow) { res.status(400).json(err('quota_group_id must reference an existing quota group')); return; }
+    resolvedQuotaGroupId = qgRow.id;
+  }
+
   const password_hash = await bcrypt.hash(password, 10);
   const user = await queryOne<User>(
-    `INSERT INTO users (name, email, role, password_hash, manager_id, is_admin)
-     VALUES ($1, $2, $3, $4, $5, $6)
+    `INSERT INTO users (name, email, role, password_hash, manager_id, quota_group_id, is_admin)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
      RETURNING ${USER_COLS}`,
-    [name.trim(), email.toLowerCase().trim(), role, password_hash, resolvedManagerId, setAdmin]
+    [name.trim(), email.toLowerCase().trim(), role, password_hash, resolvedManagerId, resolvedQuotaGroupId, setAdmin]
   );
   res.status(201).json(ok(user));
   logAudit(req, {
@@ -153,6 +160,15 @@ router.patch('/:id', auth, mgr, async (req: Request, res: Response): Promise<voi
   if (role !== undefined) addField('role', role);
   if (is_active !== undefined) addField('is_active', is_active);
   if ('manager_id' in body) addField('manager_id', typeof manager_id === 'number' ? manager_id : null);
+  if ('quota_group_id' in body) {
+    const qgRaw = body.quota_group_id;
+    const qg = typeof qgRaw === 'number' ? qgRaw : null;
+    if (qg !== null) {
+      const qgRow = await queryOne<{ id: number }>(`SELECT id FROM quota_groups WHERE id = $1`, [qg]);
+      if (!qgRow) { res.status(400).json(err('quota_group_id must reference an existing quota group')); return; }
+    }
+    addField('quota_group_id', qg);
+  }
   if ('teams' in body) addField('teams', Array.isArray(teams) ? teams : []);
   // Only admins can toggle is_admin
   if ('is_admin' in body && (req as AuthenticatedRequest).user?.isAdmin) {

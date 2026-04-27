@@ -4,6 +4,7 @@ import {
   listUsers, createUser, updateUser,
   resetUserPassword, listTeams, reassignWorkload,
 } from '../../api/users';
+import { listQuotaGroups, type QuotaGroup } from '../../api/settings';
 import { useAuthStore } from '../../store/auth';
 import { formatDate } from '../../utils/formatters';
 
@@ -26,14 +27,16 @@ function UserAvatar({ user, size = 8 }: { user: User; size?: number }) {
 
 // ── Add User Modal ─────────────────────────────────────────────────────────────
 
-function AddUserModal({ onClose, onCreated, managers }: {
+function AddUserModal({ onClose, onCreated, managers, quotaGroups }: {
   onClose: () => void;
   onCreated: (u: User) => void;
   managers: User[];
+  quotaGroups: QuotaGroup[];
 }) {
   const [form, setForm] = useState({
     name: '', email: '', role: 'se' as 'manager' | 'se' | 'viewer', password: '',
     manager_id: '' as number | '',
+    quota_group_id: '' as number | '',
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,6 +55,7 @@ function AddUserModal({ onClose, onCreated, managers }: {
         password: form.password,
         // Only send manager_id for SE users and only when one was picked
         manager_id: form.role === 'se' && form.manager_id !== '' ? form.manager_id : null,
+        quota_group_id: form.quota_group_id === '' ? null : form.quota_group_id,
       });
       onCreated(u);
     } catch (err: unknown) {
@@ -99,6 +103,20 @@ function AddUserModal({ onClose, onCreated, managers }: {
               </select>
             </div>
           )}
+          <div>
+            <label className="block text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide mb-1">
+              Quota group <span className="text-brand-navy-70/70 normal-case font-normal">— for personal quota tracking</span>
+            </label>
+            <select
+              value={form.quota_group_id}
+              onChange={e => setForm(f => ({ ...f, quota_group_id: e.target.value === '' ? '' : parseInt(e.target.value) }))}
+              className="w-full px-3 py-2 rounded-lg border border-brand-navy-30 text-sm text-brand-navy dark:text-fg-1 focus:outline-none focus:ring-2 focus:ring-brand-purple bg-white dark:bg-ink-1">
+              <option value="">— None —</option>
+              {quotaGroups.map(g => (
+                <option key={g.id} value={g.id}>{g.name}</option>
+              ))}
+            </select>
+          </div>
           <div>
             <label className="block text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide mb-1">Temporary Password</label>
             <input type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
@@ -621,10 +639,11 @@ function ConfirmAdminModal({ user, onClose, onConfirm }: {
   );
 }
 
-function AccessManagementTab({ users, setUsers, currentUserId }: {
+function AccessManagementTab({ users, setUsers, currentUserId, quotaGroups }: {
   users: User[];
   setUsers: React.Dispatch<React.SetStateAction<User[]>>;
   currentUserId: number | undefined;
+  quotaGroups: QuotaGroup[];
 }) {
   const { user: currentUser } = useAuthStore();
   const [search, setSearch] = useState('');
@@ -665,6 +684,16 @@ function AccessManagementTab({ users, setUsers, currentUserId }: {
     } finally { setUpdatingId(null); }
   }
 
+  async function handleQuotaGroupChange(u: User, raw: string) {
+    const qgId = raw === '' ? null : parseInt(raw, 10);
+    if (qgId === u.quota_group_id) return;
+    setUpdatingId(u.id);
+    try {
+      const updated = await updateUser(u.id, { quota_group_id: qgId });
+      setUsers(prev => prev.map(x => x.id === updated.id ? updated : x));
+    } finally { setUpdatingId(null); }
+  }
+
   return (
     <div>
       {/* Modals */}
@@ -673,6 +702,7 @@ function AccessManagementTab({ users, setUsers, currentUserId }: {
           onClose={() => setShowAdd(false)}
           onCreated={u => { setUsers(prev => [...prev, u]); setShowAdd(false); }}
           managers={users.filter(u => u.role === 'manager' && u.is_active)}
+          quotaGroups={quotaGroups}
         />
       )}
       {roleConfirmTarget && (
@@ -740,7 +770,7 @@ function AccessManagementTab({ users, setUsers, currentUserId }: {
         <table className="w-full">
           <thead className="border-b border-brand-navy-30/40 dark:border-ink-border-soft">
             <tr>
-              {['User', 'Role', 'Status', 'Last Login', 'Actions'].map(h => (
+              {['User', 'Role', 'Quota Group', 'Status', 'Last Login', 'Actions'].map(h => (
                 <th key={h} className="px-4 py-2.5 text-left text-[11px] font-semibold text-brand-navy-70 dark:text-fg-2 uppercase tracking-wide">{h}</th>
               ))}
             </tr>
@@ -772,6 +802,19 @@ function AccessManagementTab({ users, setUsers, currentUserId }: {
                         disabled={isUpdating || !currentUser?.is_admin || u.id === currentUserId}
                       />
                     </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <select
+                      value={u.quota_group_id ?? ''}
+                      onChange={e => handleQuotaGroupChange(u, e.target.value)}
+                      disabled={isUpdating}
+                      className="text-xs px-2 py-1 rounded-lg border border-brand-navy-30 text-brand-navy dark:text-fg-1 bg-white dark:bg-ink-1 focus:outline-none focus:ring-2 focus:ring-brand-purple disabled:opacity-50"
+                    >
+                      <option value="">—</option>
+                      {quotaGroups.map(g => (
+                        <option key={g.id} value={g.id}>{g.name}</option>
+                      ))}
+                    </select>
                   </td>
                   <td className="px-4 py-3">
                     {u.is_active
@@ -906,6 +949,7 @@ export default function UsersPage() {
   const [tab, setTab] = useState<Tab>('org-chart');
   const [users, setUsers] = useState<User[]>([]);
   const [availableTeams, setAvailableTeams] = useState<string[]>([]);
+  const [quotaGroups, setQuotaGroups] = useState<QuotaGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -918,6 +962,7 @@ export default function UsersPage() {
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => { listTeams().then(setAvailableTeams).catch(() => {}); }, []);
+  useEffect(() => { listQuotaGroups().then(setQuotaGroups).catch(() => {}); }, []);
 
   return (
     <div>
@@ -966,6 +1011,7 @@ export default function UsersPage() {
               users={users}
               setUsers={setUsers}
               currentUserId={currentUser?.id}
+              quotaGroups={quotaGroups}
             />
           )}
           {tab === 'audit' && (
