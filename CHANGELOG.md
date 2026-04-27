@@ -7,6 +7,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## 2026-04-27
 
+### Changed
+- **Menu Settings reworked into a section-based layout** — admins can now decide which menu items stay at the top level (e.g. Home, Favorites) and group the rest into named, collapsible sections. Each section has an inline-editable name, a "default open / collapsed" toggle, drag-to-reorder, and delete (items inside fall back to top-level). Items drag freely between top-level and any section. The previous Main Menu / Insights split is gone — both are unified under a single config (`menu_config` in localStorage). Per-item visibility toggles were removed; page visibility is governed by Role Access (Settings → People → Role Access).
+
 ### Added
 - **Quarterly quota targets in Settings → Quotas** — managers can now enter per-quarter targets for each quota group, scoped to a fiscal year. The annual target stays as the primary input and acts as a fallback when a quarter is blank (readers will use `annual ÷ 4`). The group-edit modal gains a Quarterly section with a fiscal-year dropdown (current FY plus any FY that already has data, plus an `+ FY` shortcut to add a new one), four `Q1–Q4` inputs, a live "sum vs annual" reconciliation line, and a `Clear FY overrides` button. The settings table gains a Quarterly overrides column showing per-FY chips like `FY2026: 4/4`. Foundations only — the % to Target report still pulls from the annual target; per-quarter views will hook into this in follow-ups.
 

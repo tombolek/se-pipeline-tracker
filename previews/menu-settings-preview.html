@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Menu Settings — Preview</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: { sans: ['Poppins','system-ui','sans-serif'] },
+        colors: {
+          brand: {
+            purple:'#6A2CF5','purple-70':'#9C72F8','purple-30':'#DED0FD',
+            pink:'#F10090','pink-70':'#F655B5','pink-30':'#FCC6E6',
+            navy:'#1A0C42','navy-70':'#665D81','navy-30':'#CCC9D5',
+          },
+        },
+      },
+    },
+  };
+</script>
+<style>
+  body { font-family: 'Poppins', system-ui, sans-serif; background:#F5F5F7; }
+  .drag-ghost { opacity:.35; background:#DED0FD55; }
+  .drop-target { outline:2px dashed #6A2CF5; outline-offset:-2px; background:#DED0FD33; }
+  .grip { cursor: grab; }
+  .grip:active { cursor: grabbing; }
+  /* iOS-style toggle */
+  .toggle { position:relative; width:34px; height:20px; background:#CCC9D5; border-radius:9999px; transition:background .15s; }
+  .toggle::after { content:''; position:absolute; left:2px; top:2px; width:16px; height:16px; background:white; border-radius:9999px; transition:transform .15s; box-shadow:0 1px 2px rgba(0,0,0,.2); }
+  .toggle.on { background:#6A2CF5; }
+  .toggle.on::after { transform: translateX(14px); }
+</style>
+</head>
+<body class="text-brand-navy">
+
+<!-- Mock app frame: faux sidebar + content -->
+<div class="flex min-h-screen">
+
+  <!-- Faux Sidebar (live preview of the resulting menu) -->
+  <aside class="w-64 shrink-0 bg-brand-navy text-white p-4 sticky top-0 self-start h-screen overflow-auto">
+    <div class="flex items-center gap-2 mb-6">
+      <div class="w-7 h-7 rounded bg-brand-purple flex items-center justify-center font-semibold">SE</div>
+      <span class="text-sm font-semibold tracking-wide">PIPELINE</span>
+    </div>
+    <div id="sidebarPreview" class="space-y-1 text-sm"></div>
+    <p class="text-[10px] uppercase tracking-wider text-white/40 mt-6">Live preview</p>
+  </aside>
+
+  <!-- Main content -->
+  <main class="flex-1 p-8 max-w-5xl mx-auto">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h1 class="text-2xl font-semibold">Menu Settings</h1>
+        <p class="text-sm text-brand-navy-70 mt-0.5">Configure top-level items, sections, and where each item lives.</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="addSectionBtn" class="text-sm font-medium bg-brand-purple text-white rounded-lg px-3.5 py-2 hover:bg-brand-purple-70 transition">+ Add section</button>
+        <button id="resetBtn" class="text-sm text-brand-navy-70 hover:text-brand-navy border border-brand-navy-30 rounded-lg px-3 py-2 transition">Reset to default</button>
+      </div>
+    </div>
+
+    <!-- TOP LEVEL ZONE -->
+    <section class="mb-6">
+      <div class="flex items-center justify-between mb-2">
+        <h2 class="text-sm font-semibold uppercase tracking-wider text-brand-navy-70">Top-level items</h2>
+        <span class="text-xs text-brand-navy-70">Always shown directly in the sidebar (no collapsing).</span>
+      </div>
+      <div id="topLevelZone" data-zone="top" class="bg-white rounded-2xl border border-brand-navy-30 min-h-[64px] p-2 space-y-1"></div>
+    </section>
+
+    <!-- SECTIONS -->
+    <section>
+      <div class="flex items-center justify-between mb-2">
+        <h2 class="text-sm font-semibold uppercase tracking-wider text-brand-navy-70">Sections</h2>
+        <span class="text-xs text-brand-navy-70">Drag items between zones · drag the section header to reorder sections.</span>
+      </div>
+      <div id="sectionsList" class="space-y-3"></div>
+    </section>
+
+    <p class="text-xs text-brand-navy-70 mt-6">Changes apply immediately. The sidebar on the left reflects the current configuration.</p>
+  </main>
+</div>
+
+<!-- Item & section row templates rendered via JS -->
+<script>
+// ---------- Initial state (mirrors DEFAULT_MAIN_NAV + DEFAULT_INSIGHTS_NAV) ----------
+const initial = {
+  sections: [
+    { id: 'sec-insights', label: 'Insights', defaultCollapsed: false },
+    { id: 'sec-admin',    label: 'Administration', defaultCollapsed: true  },
+  ],
+  items: [
+    // Top-level (sectionId = null)
+    { id:'home',        label:'Home',         to:'/',                  icon:'🏠', visible:true, sectionId:null },
+    { id:'favorites',   label:'Favorites',    to:'/favorites',         icon:'⭐', visible:true, sectionId:null },
+    { id:'pipeline',    label:'Pipeline',     to:'/pipeline',          icon:'📊', visible:true, sectionId:null },
+    { id:'my-pipeline', label:'My Pipeline',  to:'/my-pipeline',       icon:'👤', visible:true, sectionId:null },
+    { id:'my-tasks',    label:'My Tasks',     to:'/my-tasks',          icon:'✅', visible:true, sectionId:null },
+    { id:'calendar',    label:'Calendar',     to:'/calendar',          icon:'📅', visible:true, sectionId:null },
+
+    // Insights
+    { id:'forecasting-brief', label:'Forecasting Brief', to:'/insights/forecasting-brief', icon:'📈', visible:true, sectionId:'sec-insights' },
+    { id:'one-on-one',        label:'1:1 Prep',          to:'/insights/one-on-one',        icon:'📈', visible:true, sectionId:'sec-insights' },
+    { id:'weekly-digest',     label:'Weekly Digest',     to:'/insights/weekly-digest',     icon:'📈', visible:true, sectionId:'sec-insights' },
+    { id:'stage-movement',    label:'Stage Movement',    to:'/insights/stage-movement',    icon:'📈', visible:true, sectionId:'sec-insights' },
+    { id:'win-rate',          label:'Win Rate',          to:'/insights/win-rate',          icon:'📈', visible:true, sectionId:'sec-insights' },
+    { id:'closed-won',        label:'Closed Won',        to:'/insights/closed-won',        icon:'📈', visible:true, sectionId:'sec-insights' },
+    { id:'tech-blockers',     label:'Tech Blockers',     to:'/insights/tech-blockers',     icon:'📈', visible:false, sectionId:'sec-insights' },
+
+    // Administration
+    { id:'se-mapping', label:'SE Mapping',    to:'/insights/se-mapping', icon:'🗺️', visible:true,  sectionId:'sec-admin' },
+    { id:'poc-board',  label:'PoC Board',     to:'/insights/poc-board',  icon:'🧪', visible:true,  sectionId:'sec-admin' },
+    { id:'rfx-board',  label:'RFx Board',     to:'/insights/rfx-board',  icon:'📋', visible:true,  sectionId:'sec-admin' },
+  ],
+};
+
+let state = JSON.parse(JSON.stringify(initial));
+
+// ---------- Helpers ----------
+const $ = (sel, root=document) => root.querySelector(sel);
+function uid(prefix='sec'){ return prefix + '-' + Math.random().toString(36).slice(2,8); }
+function itemsIn(sectionId){ return state.items.filter(i => i.sectionId === sectionId); }
+
+// ---------- Drag plumbing ----------
+let dragId = null;        // id of the item being dragged
+let dragKind = null;      // 'item' | 'section'
+
+function onItemDragStart(e, id) {
+  dragId = id; dragKind = 'item';
+  e.dataTransfer.effectAllowed = 'move';
+  e.currentTarget.classList.add('drag-ghost');
+}
+function onItemDragEnd(e){ e.currentTarget.classList.remove('drag-ghost'); dragId=null; dragKind=null; render(); }
+
+function onZoneDragOver(e){
+  if (dragKind !== 'item') return;
+  e.preventDefault();
+  e.currentTarget.classList.add('drop-target');
+}
+function onZoneDragLeave(e){ e.currentTarget.classList.remove('drop-target'); }
+function onZoneDrop(e, sectionId /* null for top */){
+  e.preventDefault();
+  e.currentTarget.classList.remove('drop-target');
+  if (dragKind !== 'item' || !dragId) return;
+
+  // Determine the closest sibling under the cursor to figure out insertion index
+  const zone = e.currentTarget;
+  const siblings = [...zone.querySelectorAll('[data-item-id]')].filter(el => el.dataset.itemId !== dragId);
+  let insertBeforeId = null;
+  for (const el of siblings) {
+    const r = el.getBoundingClientRect();
+    if (e.clientY < r.top + r.height/2) { insertBeforeId = el.dataset.itemId; break; }
+  }
+
+  // Remove dragged from items
+  const dragged = state.items.find(i => i.id === dragId);
+  if (!dragged) return;
+  state.items = state.items.filter(i => i.id !== dragId);
+  dragged.sectionId = sectionId;
+
+  // Re-insert at correct spot relative to other items in the same zone
+  if (insertBeforeId) {
+    const idx = state.items.findIndex(i => i.id === insertBeforeId);
+    state.items.splice(idx, 0, dragged);
+  } else {
+    // append to end of same zone — find last item with this sectionId
+    let lastIdx = -1;
+    state.items.forEach((i, idx) => { if (i.sectionId === sectionId) lastIdx = idx; });
+    state.items.splice(lastIdx + 1, 0, dragged);
+  }
+  render();
+}
+
+// Section drag (reorder)
+function onSectionDragStart(e, id){
+  dragId = id; dragKind = 'section';
+  e.dataTransfer.effectAllowed = 'move';
+  e.currentTarget.closest('[data-section-card]').classList.add('drag-ghost');
+}
+function onSectionDragEnd(e){
+  const card = e.currentTarget.closest('[data-section-card]');
+  if (card) card.classList.remove('drag-ghost');
+  dragId=null; dragKind=null; render();
+}
+function onSectionListDragOver(e){
+  if (dragKind !== 'section') return;
+  e.preventDefault();
+}
+function onSectionListDrop(e){
+  if (dragKind !== 'section' || !dragId) return;
+  e.preventDefault();
+  const list = $('#sectionsList');
+  const cards = [...list.querySelectorAll('[data-section-card]')].filter(c => c.dataset.sectionCard !== dragId);
+  let insertBeforeId = null;
+  for (const c of cards) {
+    const r = c.getBoundingClientRect();
+    if (e.clientY < r.top + r.height/2) { insertBeforeId = c.dataset.sectionCard; break; }
+  }
+  const moving = state.sections.find(s => s.id === dragId);
+  state.sections = state.sections.filter(s => s.id !== dragId);
+  if (insertBeforeId) {
+    const idx = state.sections.findIndex(s => s.id === insertBeforeId);
+    state.sections.splice(idx, 0, moving);
+  } else {
+    state.sections.push(moving);
+  }
+  render();
+}
+
+// ---------- Mutations ----------
+function toggleVisibility(id){
+  const it = state.items.find(i => i.id === id);
+  if (it) it.visible = !it.visible;
+  render();
+}
+function toggleSectionDefault(id){
+  const s = state.sections.find(x => x.id === id);
+  if (s) s.defaultCollapsed = !s.defaultCollapsed;
+  render();
+}
+function renameSection(id, label){
+  const s = state.sections.find(x => x.id === id);
+  if (s) s.label = label.trim() || s.label;
+  render();
+}
+function deleteSection(id){
+  // items in this section fall back to top-level (sectionId=null)
+  state.items.forEach(i => { if (i.sectionId === id) i.sectionId = null; });
+  state.sections = state.sections.filter(s => s.id !== id);
+  render();
+}
+function addSection(){
+  state.sections.push({ id: uid('sec'), label: 'New section', defaultCollapsed: false });
+  render();
+}
+function resetAll(){
+  state = JSON.parse(JSON.stringify(initial));
+  render();
+}
+
+// ---------- Renderers ----------
+function itemRow(item){
+  return `
+    <div data-item-id="${item.id}"
+         draggable="true"
+         class="group flex items-center gap-3 px-3 py-2 rounded-lg border border-transparent hover:border-brand-navy-30 bg-white">
+      <span class="grip text-brand-navy-30 group-hover:text-brand-navy-70 select-none" title="Drag">⋮⋮</span>
+      <span class="text-base leading-none">${item.icon}</span>
+      <span class="flex-1 text-sm font-medium">${item.label}</span>
+      <span class="text-xs text-brand-navy-70 hidden md:inline">${item.to}</span>
+    </div>
+  `;
+}
+
+function sectionCard(section){
+  const items = itemsIn(section.id);
+  return `
+    <div data-section-card="${section.id}" class="bg-white rounded-2xl border border-brand-navy-30 overflow-hidden">
+      <div class="flex items-center gap-3 px-3 py-2.5 bg-brand-purple-30/40 border-b border-brand-navy-30">
+        <span class="grip text-brand-navy-70" draggable="true"
+              data-section-grip="${section.id}" title="Drag to reorder section">⠿</span>
+        <input type="text"
+               value="${section.label.replace(/"/g,'&quot;')}"
+               data-section-rename="${section.id}"
+               class="flex-1 bg-transparent text-sm font-semibold text-brand-navy outline-none focus:bg-white focus:border focus:border-brand-purple rounded px-2 py-1"/>
+        <span class="text-xs text-brand-navy-70 mr-1">${items.length} item${items.length===1?'':'s'}</span>
+        <label class="flex items-center gap-2 text-xs text-brand-navy-70 cursor-pointer">
+          <span>Default ${section.defaultCollapsed ? 'collapsed' : 'open'}</span>
+          <button data-section-default="${section.id}"
+                  class="toggle ${section.defaultCollapsed ? '' : 'on'}"
+                  title="Default state"></button>
+        </label>
+        <button data-section-delete="${section.id}"
+                class="text-brand-navy-70 hover:text-brand-pink p-1 rounded"
+                title="Delete section">✕</button>
+      </div>
+      <div data-zone="section" data-section-id="${section.id}"
+           class="p-2 min-h-[56px] space-y-1">
+        ${items.length ? items.map(itemRow).join('') :
+          `<div class="text-xs text-brand-navy-70 italic px-3 py-3">Drop items here</div>`}
+      </div>
+    </div>
+  `;
+}
+
+function renderSidebarPreview(){
+  const top = state.items.filter(i => i.sectionId === null && i.visible);
+  let html = top.map(i => `
+    <a class="flex items-center gap-2 px-3 py-1.5 rounded text-white/90 hover:bg-white/10">
+      <span>${i.icon}</span><span>${i.label}</span>
+    </a>`).join('');
+
+  for (const s of state.sections) {
+    const visibleItems = itemsIn(s.id).filter(i => i.visible);
+    if (!visibleItems.length) continue;
+    const open = !s.defaultCollapsed;
+    html += `
+      <details ${open ? 'open' : ''} class="mt-3">
+        <summary class="flex items-center justify-between cursor-pointer list-none px-3 py-1.5 rounded text-[11px] uppercase tracking-wider text-white/50 hover:text-white">
+          <span>${s.label}</span><span class="text-white/40">${open ? '▾' : '▸'}</span>
+        </summary>
+        <div class="mt-1 space-y-0.5">
+          ${visibleItems.map(i => `
+            <a class="flex items-center gap-2 px-3 py-1.5 rounded text-white/90 hover:bg-white/10">
+              <span>${i.icon}</span><span>${i.label}</span>
+            </a>`).join('')}
+        </div>
+      </details>
+    `;
+  }
+  $('#sidebarPreview').innerHTML = html || `<p class="text-xs text-white/40">No items visible.</p>`;
+}
+
+function render(){
+  // Top-level zone
+  const top = state.items.filter(i => i.sectionId === null);
+  const topZone = $('#topLevelZone');
+  topZone.innerHTML = top.length ? top.map(itemRow).join('')
+                                 : `<div class="text-xs text-brand-navy-70 italic px-3 py-3">Drop items here to keep them at the top level.</div>`;
+
+  // Sections list
+  $('#sectionsList').innerHTML = state.sections.map(sectionCard).join('');
+
+  // Wire item drag
+  document.querySelectorAll('[data-item-id]').forEach(el => {
+    el.addEventListener('dragstart', e => onItemDragStart(e, el.dataset.itemId));
+    el.addEventListener('dragend',  onItemDragEnd);
+  });
+  // Wire zones (top + each section body)
+  document.querySelectorAll('[data-zone]').forEach(zone => {
+    zone.addEventListener('dragover', onZoneDragOver);
+    zone.addEventListener('dragleave', onZoneDragLeave);
+    zone.addEventListener('drop', e => {
+      const sid = zone.dataset.zone === 'top' ? null : zone.dataset.sectionId;
+      onZoneDrop(e, sid);
+    });
+  });
+  // Visibility toggles
+  document.querySelectorAll('[data-toggle-vis]').forEach(btn => {
+    btn.addEventListener('click', () => toggleVisibility(btn.dataset.toggleVis));
+  });
+  // Section default toggles
+  document.querySelectorAll('[data-section-default]').forEach(btn => {
+    btn.addEventListener('click', () => toggleSectionDefault(btn.dataset.sectionDefault));
+  });
+  // Section rename
+  document.querySelectorAll('[data-section-rename]').forEach(inp => {
+    inp.addEventListener('change', () => renameSection(inp.dataset.sectionRename, inp.value));
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); });
+  });
+  // Section delete
+  document.querySelectorAll('[data-section-delete]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (confirm('Delete this section? Items inside will move to the top level.')) deleteSection(btn.dataset.sectionDelete);
+    });
+  });
+  // Section grip (reorder)
+  document.querySelectorAll('[data-section-grip]').forEach(grip => {
+    grip.addEventListener('dragstart', e => onSectionDragStart(e, grip.dataset.sectionGrip));
+    grip.addEventListener('dragend', onSectionDragEnd);
+  });
+  const sl = $('#sectionsList');
+  sl.addEventListener('dragover', onSectionListDragOver);
+  sl.addEventListener('drop', onSectionListDrop);
+
+  renderSidebarPreview();
+}
+
+$('#addSectionBtn').addEventListener('click', addSection);
+$('#resetBtn').addEventListener('click', () => { if (confirm('Reset to default?')) resetAll(); });
+
+render();
+</script>
+</body>
+</html>

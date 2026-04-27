@@ -1,15 +1,11 @@
 import { NavLink } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useAuthStore } from '../store/auth';
 import { usePipelineStore } from '../store/pipeline';
 import { listClosedLost } from '../api/opportunities';
 import { listInboxItems } from '../api/inbox';
-import { getInsightsNav, type InsightsNavItem } from '../utils/insightsNav';
-import { getMainNav, type MainNavItem } from '../utils/mainNav';
+import { getMenuConfig, type MenuConfig, type MenuItem, type MenuIcon } from '../utils/menuConfig';
 
-// Administration — one entry per hub + the three solo pages.
-// Matches the active state on any path that starts with `to` (e.g. being on
-// /settings/ai/agents/5 still lights up the AI entry).
 const SETTINGS_NAV = [
   { to: '/settings/people',        label: 'People',         icon: UsersIcon },
   { to: '/settings/imports',       label: 'Imports',        icon: ImportIcon },
@@ -20,7 +16,12 @@ const SETTINGS_NAV = [
   { to: '/settings/developer',     label: 'Developer',      icon: InsightIcon },
 ];
 
-function MainNavIcon({ icon }: { icon: MainNavItem['icon'] }) {
+function NavIcon({ icon }: { icon: MenuIcon }) {
+  if (icon === 'home') return (
+    <svg className="w-[15px] h-[15px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+    </svg>
+  );
   if (icon === 'pipeline')    return <PipelineIcon />;
   if (icon === 'my-pipeline') return (
     <svg className="w-[15px] h-[15px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -40,13 +41,34 @@ function MainNavIcon({ icon }: { icon: MainNavItem['icon'] }) {
   return <InsightIcon />;
 }
 
+function ItemLink({ item, badge }: { item: MenuItem; badge?: number }) {
+  return (
+    <NavLink
+      to={item.to}
+      className={({ isActive }) =>
+        `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+          isActive ? 'bg-white/10 text-white border-l-2 border-brand-purple-70' : 'text-white/60 hover:text-white hover:bg-white/[0.07]'
+        }`
+      }
+    >
+      <NavIcon icon={item.icon} />
+      <span className="flex-1">{item.label}</span>
+      {badge !== undefined && badge > 0 && (
+        <span className="text-[10px] font-semibold bg-white/10 text-white/60 rounded px-1.5 py-px min-w-[18px] text-center leading-tight">
+          {badge}
+        </span>
+      )}
+    </NavLink>
+  );
+}
+
 export default function Sidebar() {
   const { user, allowedPages } = useAuthStore();
   const { setClosedLostUnread, inboxCount, setInboxCount } = usePipelineStore();
-  const [insightsOpen, setInsightsOpen] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [insightsNav, setInsightsNav] = useState<InsightsNavItem[]>(() => getInsightsNav());
-  const [mainNav, setMainNav] = useState<MainNavItem[]>(() => getMainNav());
+  const [config, setConfig] = useState<MenuConfig>(() => getMenuConfig());
+  // Per-section expand/collapse state, keyed by section id. Falls back to defaultCollapsed.
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     listClosedLost()
@@ -58,96 +80,58 @@ export default function Sidebar() {
   }, [setClosedLostUnread, setInboxCount]);
 
   useEffect(() => {
-    function onInsightsChanged() { setInsightsNav(getInsightsNav()); }
-    function onMainChanged() { setMainNav(getMainNav()); }
-    window.addEventListener('insightsNavChanged', onInsightsChanged);
-    window.addEventListener('mainNavChanged', onMainChanged);
-    return () => {
-      window.removeEventListener('insightsNavChanged', onInsightsChanged);
-      window.removeEventListener('mainNavChanged', onMainChanged);
-    };
+    function onChanged() { setConfig(getMenuConfig()); }
+    window.addEventListener('menuConfigChanged', onChanged);
+    return () => window.removeEventListener('menuConfigChanged', onChanged);
   }, []);
+
+  function isAllowed(to: string): boolean {
+    if (allowedPages.length === 0) return true; // not loaded yet — show, gate happens at route
+    return allowedPages.includes(to.replace(/^\//, ''));
+  }
+
+  const visibleItems = useMemo(() => config.items.filter(i => isAllowed(i.to)), [config.items, allowedPages]);
+  const topLevel = useMemo(() => visibleItems.filter(i => i.sectionId === null), [visibleItems]);
+  const sectionsWithItems = useMemo(() =>
+    config.sections
+      .map(s => ({ section: s, items: visibleItems.filter(i => i.sectionId === s.id) }))
+      .filter(g => g.items.length > 0),
+    [config.sections, visibleItems]
+  );
+
+  function isSectionOpen(id: string, defaultCollapsed: boolean): boolean {
+    return openSections[id] ?? !defaultCollapsed;
+  }
 
   return (
     <aside className="flex flex-col w-52 min-h-0 bg-brand-navy dark:bg-[#0E1115] text-white flex-shrink-0 dark:border-r dark:border-ink-border-soft">
-      {/* Nav — logo / app name moved to AppHeader. */}
       <nav className="flex-1 px-3 pt-3 pb-2 space-y-0.5 overflow-y-auto">
-        {/* Home — always first */}
-        <NavLink
-          to="/home"
-          className={({ isActive }) =>
-            `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-              isActive ? 'bg-white/10 text-white border-l-2 border-brand-purple-70' : 'text-white/60 hover:text-white hover:bg-white/[0.07]'
-            }`
-          }
-        >
-          <svg className="w-[15px] h-[15px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-          </svg>
-          <span className="flex-1">Home</span>
-        </NavLink>
-
-        {mainNav.filter(i => {
-          if (!i.visible) return false;
-          if (allowedPages.length === 0) return true; // fallback: show all if not loaded yet
-          return allowedPages.includes(i.to.replace(/^\//, ''));
-        }).map(({ to, label, icon }) => (
-          <NavLink
-            key={to}
-            to={to}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                isActive ? 'bg-white/10 text-white border-l-2 border-brand-purple-70' : 'text-white/60 hover:text-white hover:bg-white/[0.07]'
-              }`
-            }
-          >
-            <MainNavIcon icon={icon} />
-            <span className="flex-1">{label}</span>
-            {to === '/my-tasks' && inboxCount > 0 && (
-              <span className="text-[10px] font-semibold bg-white/10 text-white/60 rounded px-1.5 py-px min-w-[18px] text-center leading-tight">
-                {inboxCount}
-              </span>
-            )}
-          </NavLink>
+        {topLevel.map(item => (
+          <ItemLink
+            key={item.id}
+            item={item}
+            badge={item.to === '/my-tasks' ? inboxCount : undefined}
+          />
         ))}
 
-        {/* Insights — show if user has any insights page access */}
-        {(allowedPages.length === 0 ? user?.role === 'manager' : allowedPages.some(p => p.startsWith('insights/') && !['insights/se-mapping', 'insights/poc-board', 'insights/rfx-board'].includes(p))) && (
-          <>
-            <button
-              onClick={() => setInsightsOpen(o => !o)}
-              className="flex items-center gap-1 pt-4 pb-1 px-3 w-full text-left group"
-            >
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-white/40 flex-1 group-hover:text-white/60 transition-colors">Insights</p>
-              <svg className={`w-3 h-3 text-white/30 transition-transform group-hover:text-white/50 ${insightsOpen ? '' : '-rotate-90'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            {insightsOpen && insightsNav.filter(i => {
-              if (!i.visible) return false;
-              if (allowedPages.length === 0) return true;
-              return allowedPages.includes(i.to.replace(/^\//, ''));
-            }).map(({ to, label, icon }) => {
-              const Icon = icon === 'poc' ? PocIcon : InsightIcon;
-              return (
-                <NavLink
-                  key={to}
-                  to={to}
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      isActive ? 'bg-white/10 text-white border-l-2 border-brand-purple-70' : 'text-white/60 hover:text-white hover:bg-white/[0.07]'
-                    }`
-                  }
-                >
-                  <Icon />
-                  {label}
-                </NavLink>
-              );
-            })}
-          </>
-        )}
+        {sectionsWithItems.map(({ section, items }) => {
+          const open = isSectionOpen(section.id, section.defaultCollapsed);
+          return (
+            <div key={section.id}>
+              <button
+                onClick={() => setOpenSections(s => ({ ...s, [section.id]: !open }))}
+                className="flex items-center gap-1 pt-4 pb-1 px-3 w-full text-left group"
+              >
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-white/40 flex-1 group-hover:text-white/60 transition-colors">{section.label}</p>
+                <svg className={`w-3 h-3 text-white/30 transition-transform group-hover:text-white/50 ${open ? '' : '-rotate-90'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {open && items.map(item => <ItemLink key={item.id} item={item} />)}
+            </div>
+          );
+        })}
 
-        {/* Administration — show only for admins */}
         {!!user?.is_admin && (
           <>
             <button
@@ -161,8 +145,6 @@ export default function Sidebar() {
             </button>
             {settingsOpen && (
               <>
-                {/* Audit is now a tab inside the People hub (/settings/people/audit);
-                    no standalone sidebar entry. /audit still resolves via a redirect. */}
                 {SETTINGS_NAV.map(({ to, label, icon: Icon }) => (
                   <NavLink
                     key={to}
@@ -182,8 +164,6 @@ export default function Sidebar() {
           </>
         )}
       </nav>
-      {/* Sidebar is now navigation-only. Theme toggle lives in the AppHeader
-          user dropdown (top-right). */}
     </aside>
   );
 }
@@ -196,7 +176,6 @@ function PipelineIcon() {
   );
 }
 
-
 function TasksIcon() {
   return (
     <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -204,7 +183,6 @@ function TasksIcon() {
     </svg>
   );
 }
-
 
 function InsightIcon() {
   return (

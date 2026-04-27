@@ -22,10 +22,7 @@ Non-obvious rules, traps, and workarounds. Every entry: symptom → why → what
 
 Role access for pages lives in three separate places. Missing any one of them will make the page either invisible in the sidebar or impossible to configure. Always touch all three in the same commit as the new page:
 
-1. **Sidebar nav** — add the route to the relevant nav list so it shows up:
-   - Insights pages → `DEFAULT_INSIGHTS_NAV` in `client/src/utils/insightsNav.ts`
-   - Main nav pages → `DEFAULT_MAIN_NAV` in `client/src/utils/mainNav.ts`
-   - Administration pages → `SETTINGS_NAV` in `client/src/components/Sidebar.tsx`
+1. **Sidebar nav** — add the route to `DEFAULT_MENU_CONFIG.items` in `client/src/utils/menuConfig.ts`. Use `sectionId: null` for top-level placement or a section id (e.g. `'sec-insights'`) to drop it into a section. New defaults auto-appear for existing users on next load — the merge layer in `getMenuConfig()` appends items not present in localStorage. Administration pages remain hard-coded in `SETTINGS_NAV` in `client/src/components/Sidebar.tsx` (role-gated, not user-configurable).
 2. **Role Access admin UI** — add the page to `PAGE_REGISTRY` in `client/src/pages/settings/RoleAccessPage.tsx` so admins can toggle per-role visibility. The `key` must match the route minus the leading slash (e.g. `insights/win-rate`).
 3. **Seed the DB** — add a new migration that `INSERT … ON CONFLICT DO NOTHING` into `role_page_access` for every role that should see the page by default. See `server/migrations/041_seed_role_access_for_new_pages.sql` for the pattern. Without this row, the sidebar filter in `Sidebar.tsx` (lines ~152–156) drops the entry even though it's in the nav config.
 
