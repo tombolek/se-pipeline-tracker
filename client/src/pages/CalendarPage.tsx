@@ -10,6 +10,7 @@ import { useOppUrlSync } from '../hooks/useOppUrlSync';
 import OfflineUnavailable from '../components/OfflineUnavailable';
 import { useConnectionStatus } from '../offline/useConnectionStatus';
 import { setMeta, getMeta } from '../offline/db';
+import { parseLocalDate, addDays, isSameDay } from '../utils/formatters';
 
 // ── Raw API types ─────────────────────────────────────────────────────────────
 
@@ -98,26 +99,8 @@ const SE_PALETTE = [
 
 // ── Pure helpers ──────────────────────────────────────────────────────────────
 
-function parseLocalDate(s: string): Date {
-  // pg-node serializes DATE as ISO strings like "2026-04-07T00:00:00.000Z"; slice to get YYYY-MM-DD
-  const [y, m, d] = s.slice(0, 10).split('-').map(Number);
-  return new Date(y, m - 1, d);
-}
-
-function addDays(d: Date, n: number): Date {
-  const r = new Date(d);
-  r.setDate(r.getDate() + n);
-  return r;
-}
-
 function addMonths(d: Date, n: number): Date {
   return new Date(d.getFullYear(), d.getMonth() + n, 1);
-}
-
-function isSameDay(a: Date, b: Date): boolean {
-  return a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate();
 }
 
 function dayDiff(from: Date, to: Date): number {

@@ -7,6 +7,7 @@ import { AuthenticatedRequest, ok, err } from '../types/index.js';
 import { startJob, completeJob, failJob } from '../services/aiJobs.js';
 import { CITATION_INSTRUCTIONS, resolveCitations, detectLowConfidenceSpans } from '../services/citations.js';
 import type { CitationSource } from '../types/citations.js';
+import { formatDate as fmtDate, formatARR as fmtARR } from '../utils/formatters.js';
 
 const router = Router();
 const auth = requireAuth as unknown as (req: Request, res: Response, next: () => void) => void;
@@ -355,9 +356,6 @@ router.post('/summaries/bulk-generate', auth, mgr, async (req: Request, res: Res
          WHERE n.opportunity_id = $1 AND n.is_deleted = false ORDER BY n.created_at DESC LIMIT 10`,
         [oppId]
       );
-
-      const fmtDate = (d: unknown) => d ? new Date(d as string).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A';
-      const fmtARR = (a: unknown) => a ? `$${(Number(a) / 1000).toFixed(0)}K` : 'N/A';
 
       const taskLines = tasks.length
         ? tasks.map((t: Record<string, unknown>) =>

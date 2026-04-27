@@ -13,6 +13,7 @@ import { getCachedPlaybook, generatePlaybook } from '../services/kbPlaybook.js';
 import { getCachedInsights, generateInsights } from '../services/similarDealsInsights.js';
 import { buildCitationSources, formatSourcesForPrompt, CITATION_INSTRUCTIONS, resolveCitations, detectLowConfidenceSpans } from '../services/citations.js';
 import { getTechDiscovery, upsertTechDiscovery, emptyTechDiscovery, formatTechDiscoveryForPrompt, type TechDiscoveryPatch } from '../services/techDiscovery.js';
+import { formatDate, formatARR } from '../utils/formatters.js';
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
@@ -895,9 +896,6 @@ router.post('/:id/summary', auth, write, async (req: Request, res: Response): Pr
     [id]
   );
 
-  const formatDate = (d: unknown) => d ? new Date(d as string).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A';
-  const formatARR = (a: unknown) => a ? `$${(Number(a) / 1000).toFixed(0)}K` : 'N/A';
-
   const taskLines = tasks.length
     ? tasks.map((t: Record<string, unknown>) =>
         `- [${t.is_next_step ? 'NEXT STEP' : t.status}] ${t.title}${t.due_date ? ` (due ${formatDate(t.due_date)})` : ''}`
@@ -1034,9 +1032,6 @@ router.post('/:id/meddpicc-coach', auth, write, async (req: Request, res: Respon
     ]);
 
     if (!opp) { res.status(404).json(err('Opportunity not found')); return; }
-
-    const formatDate = (d: unknown) => d ? new Date(d as string).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A';
-    const formatARR = (a: unknown) => a ? `$${(Number(a) / 1000).toFixed(0)}K` : 'N/A';
 
     // Build MEDDPICC fields context
     const meddpiccContext = MEDDPICC_KEYS.map(f => {
@@ -2784,9 +2779,6 @@ router.post('/:id/demo-prep/generate', auth, write, async (req: Request, res: Re
 
     const techDiscovery = await getTechDiscovery(id);
     const techDiscoveryCtx = formatTechDiscoveryForPrompt(techDiscovery);
-
-    const formatDate = (d: unknown) => d ? new Date(d as string).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A';
-    const formatARR = (a: unknown) => a ? `$${(Number(a) / 1000).toFixed(0)}K` : 'N/A';
 
     const meddpiccContext = MEDDPICC_KEYS.map(f => {
       const val = opp[f.key] as string | null;

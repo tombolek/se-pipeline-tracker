@@ -4,14 +4,9 @@ import { createTask } from '../api/tasks';
 import { listUsers } from '../api/users';
 import { useAuthStore } from '../store/auth';
 import type { User } from '../types';
+import { defaultDueDate } from '../utils/formatters';
 
 type CaptureType = 'note' | 'task';
-
-function defaultDueDate() {
-  const d = new Date();
-  d.setDate(d.getDate() + 7);
-  return d.toISOString().split('T')[0];
-}
 
 interface Props {
   oppId: number;

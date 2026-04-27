@@ -6,6 +6,7 @@ import {
   type QuickSwitcherOpp,
   type QuickSwitcherResult,
 } from '../api/opportunities';
+import { formatCloseDate } from '../utils/formatters';
 
 // ── Formatting helpers ───────────────────────────────────────────────────
 
@@ -14,13 +15,6 @@ function formatArr(arr: number | null): string | null {
   if (arr >= 1_000_000) return `$${(arr / 1_000_000).toFixed(1)}M`;
   if (arr >= 1_000)     return `$${Math.round(arr / 1_000)}k`;
   return `$${arr}`;
-}
-
-function formatCloseDate(d: string | null): string | null {
-  if (!d) return null;
-  const dt = new Date(d);
-  if (isNaN(dt.getTime())) return null;
-  return dt.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
 }
 
 function highlightMatch(text: string, query: string): React.ReactNode {
@@ -97,7 +91,7 @@ function Row({
   onMouseEnter: () => void;
 }) {
   const arr = formatArr(opp.arr);
-  const close = formatCloseDate(opp.close_date);
+  const close = formatCloseDate(opp.close_date, '');
   const closed = opp.is_closed_won || opp.is_closed_lost;
 
   return (

@@ -6,14 +6,9 @@ import { createTask } from '../api/tasks';
 import { createInboxItem } from '../api/inbox';
 import { listUsers } from '../api/users';
 import type { Opportunity, User } from '../types';
+import { defaultDueDate } from '../utils/formatters';
 
 type CaptureType = 'note' | 'task';
-
-function defaultDueDate() {
-  const d = new Date();
-  d.setDate(d.getDate() + 7);
-  return d.toISOString().split('T')[0];
-}
 
 export default function QuickCapture() {
   const { quickCaptureOpen, closeQuickCapture } = usePipelineStore();

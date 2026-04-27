@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import api from '../api/client';
 import type { ApiResponse } from '../types';
 import { TextWithCitations } from './Citation';
+import { formatCloseDate } from '../utils/formatters';
 
 /* ── Types ── */
 type Outcome = 'won' | 'lost' | 'in_flight' | 'kb_reference';
@@ -65,12 +66,6 @@ function fmtArr(v: number | null): string {
   return `$${v}`;
 }
 
-function fmtClosedDate(iso: string | null): string {
-  if (!iso) return '—';
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-}
 
 function chipClass(kind: MatchChip['kind']): string {
   switch (kind) {
@@ -107,7 +102,7 @@ function metaLine(r: SimilarDeal): string {
     if (r.outcome === 'in_flight') {
       parts.push('open');
     } else {
-      parts.push(fmtClosedDate(r.closed_date));
+      parts.push(formatCloseDate(r.closed_date));
     }
     parts.push(fmtArr(r.arr));
     if (r.se_owner_name) parts.push(`${r.se_owner_name} (SE)`);

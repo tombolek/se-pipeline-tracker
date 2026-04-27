@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import api from '../api/client';
 import type { ApiResponse } from '../types';
 import StageBadge from './shared/StageBadge';
-import { formatDate } from '../utils/formatters';
+import { formatDate, isSameDay } from '../utils/formatters';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -102,10 +102,6 @@ function relativeTime(iso: string): string {
   const days = Math.floor(hrs / 24);
   if (days < 7) return `${days}d ago`;
   return formatDate(iso);
-}
-
-function isSameDay(a: string, b: string) {
-  return new Date(a).toDateString() === new Date(b).toDateString();
 }
 
 function dayLabel(iso: string): string {

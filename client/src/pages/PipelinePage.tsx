@@ -12,7 +12,7 @@ import OpportunityDetail from '../components/OpportunityDetail';
 import Drawer from '../components/Drawer';
 import ColumnPicker from '../components/shared/ColumnPicker';
 import MultiSelectFilter from '../components/shared/MultiSelectFilter';
-import { sortFiscalPeriod } from '../utils/formatters';
+import { sortFiscalPeriod, defaultDueDate } from '../utils/formatters';
 import SortableHeader from '../components/shared/SortableHeader';
 import { createNote } from '../api/notes';
 import { createTask } from '../api/tasks';
@@ -33,9 +33,6 @@ const STAGES = [
 
 // ── Freshness dot that morphs into a + capture trigger on hover ───────────────
 type CaptureType = 'note' | 'task';
-function defaultDueDate() {
-  const d = new Date(); d.setDate(d.getDate() + 7); return d.toISOString().split('T')[0];
-}
 
 function NameCellWithCapture({ opp, onSaved }: { opp: Opportunity; onSaved?: () => void }) {
   const { user } = useAuthStore();

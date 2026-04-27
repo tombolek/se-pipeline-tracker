@@ -50,3 +50,40 @@ export function daysSinceLabel(d: string | null | undefined): string {
   if (days === null) return 'Never';
   return `${days}d ago`;
 }
+
+/** ISO date string for "today + n days" — used as a default for due-date pickers. */
+export function defaultDueDate(daysAhead = 7): string {
+  const d = new Date();
+  d.setDate(d.getDate() + daysAhead);
+  return d.toISOString().split('T')[0];
+}
+
+/** Parses a YYYY-MM-DD or ISO string as a local-tz Date (no UTC shift). */
+export function parseLocalDate(s: string): Date {
+  const [y, m, d] = s.slice(0, 10).split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+/** Returns a new Date n days after d (n may be negative). */
+export function addDays(d: Date, n: number): Date {
+  const r = new Date(d);
+  r.setDate(r.getDate() + n);
+  return r;
+}
+
+/** True if two Dates (or ISO strings) fall on the same calendar day in local tz. */
+export function isSameDay(a: Date | string, b: Date | string): boolean {
+  const da = a instanceof Date ? a : new Date(a);
+  const db = b instanceof Date ? b : new Date(b);
+  return da.getFullYear() === db.getFullYear()
+    && da.getMonth() === db.getMonth()
+    && da.getDate() === db.getDate();
+}
+
+/** Formats a close date as "Mon YYYY" (e.g. "Apr 2026"). Returns the fallback for null/invalid. */
+export function formatCloseDate(d: string | null | undefined, fallback: string = '—'): string {
+  if (!d) return fallback;
+  const dt = new Date(d);
+  if (isNaN(dt.getTime())) return fallback;
+  return dt.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+}
