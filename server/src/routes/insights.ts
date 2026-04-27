@@ -195,7 +195,15 @@ router.get('/overdue-tasks', auth, mgr, async (_req: Request, res: Response): Pr
 });
 
 // GET /insights/rfx  — all opps with a rfx_status set
-router.get('/rfx', auth, mgr, async (_req: Request, res: Response): Promise<void> => {
+// Page-data routes below are gated by Role Access (Settings → People → Role
+// Access) on the client, not hardcoded `mgr` middleware. Role Access already
+// includes entries for `insights/rfx-board`, `insights/poc-board`,
+// `insights/deploy-mode`, `insights/tech-blockers`, and `insights/agentic-qual`,
+// so a manager can grant any of these to SEs/viewers without needing a code
+// change. Manager-intelligence routes (analytics, percent-to-target, win-rate,
+// etc. — see below) remain mgr-only because they aggregate cross-team data
+// not surfaced via Role Access.
+router.get('/rfx', auth, async (_req: Request, res: Response): Promise<void> => {
   const rows = await query(
     `SELECT
        o.id, o.name, o.account_name, o.stage, o.arr, o.arr_currency,
@@ -214,7 +222,7 @@ router.get('/rfx', auth, mgr, async (_req: Request, res: Response): Promise<void
 });
 
 // GET /insights/poc  — all opps with a poc_status set
-router.get('/poc', auth, mgr, async (_req: Request, res: Response): Promise<void> => {
+router.get('/poc', auth, async (_req: Request, res: Response): Promise<void> => {
   const rows = await query(
     `SELECT
        o.id, o.name, o.account_name, o.stage, o.arr, o.arr_currency,
@@ -241,7 +249,7 @@ router.get('/poc', auth, mgr, async (_req: Request, res: Response): Promise<void
 
 // GET /insights/deploy-mode — currently open opps grouped by deploy mode
 // (excludes Closed Won and Closed Lost)
-router.get('/deploy-mode', auth, mgr, async (_req: Request, res: Response): Promise<void> => {
+router.get('/deploy-mode', auth, async (_req: Request, res: Response): Promise<void> => {
   const rows = await query(
     `SELECT
        o.id, o.name, o.account_name, o.stage, o.arr, o.arr_currency,
@@ -822,7 +830,7 @@ router.get('/win-rate', auth, mgr, async (req: Request, res: Response): Promise<
 
 // GET /insights/tech-blockers  — all active opps that have technical_blockers content
 // Returns a `blocker_status` field: 'red' | 'orange' | 'yellow' | 'green' | 'none'
-router.get('/tech-blockers', auth, mgr, async (req: Request, res: Response): Promise<void> => {
+router.get('/tech-blockers', auth, async (req: Request, res: Response): Promise<void> => {
   const rows = await query(
     `SELECT o.id, o.name, o.account_name, o.stage, o.arr, o.arr_currency,
             o.deploy_mode, o.team, o.record_type, o.technical_blockers, o.updated_at,
@@ -851,7 +859,7 @@ router.get('/tech-blockers', auth, mgr, async (req: Request, res: Response): Pro
 });
 
 // GET /insights/tech-blockers/recent?days=30  — recently changed from field history
-router.get('/tech-blockers/recent', auth, mgr, async (req: Request, res: Response): Promise<void> => {
+router.get('/tech-blockers/recent', auth, async (req: Request, res: Response): Promise<void> => {
   const days = parseInt((req.query.days as string) ?? '30') || 30;
   const rows = await query(
     `SELECT o.id, o.name, o.account_name, o.stage, o.deploy_mode,
@@ -870,7 +878,7 @@ router.get('/tech-blockers/recent', auth, mgr, async (req: Request, res: Respons
 });
 
 // GET /insights/tech-blockers/ai-summary/cached  — return persisted summary if any
-router.get('/tech-blockers/ai-summary/cached', auth, mgr, async (_req: Request, res: Response): Promise<void> => {
+router.get('/tech-blockers/ai-summary/cached', auth, async (_req: Request, res: Response): Promise<void> => {
   const rows = await query<{ content: string; generated_at: string }>(
     `SELECT content, generated_at FROM ai_summary_cache WHERE key = 'tech-blockers'`
   );
@@ -988,7 +996,7 @@ router.post('/tech-blockers/ai-summary', auth, mgr, async (req: Request, res: Re
 
 // GET /insights/agentic-qual  — currently open opps that have agentic_qual content
 // (excludes Closed Won and Closed Lost)
-router.get('/agentic-qual', auth, mgr, async (_req: Request, res: Response): Promise<void> => {
+router.get('/agentic-qual', auth, async (_req: Request, res: Response): Promise<void> => {
   const rows = await query(
     `SELECT o.id, o.name, o.account_name, o.stage, o.arr, o.arr_currency,
             o.deploy_mode, o.team, o.record_type, o.agentic_qual, o.updated_at,
@@ -1003,7 +1011,7 @@ router.get('/agentic-qual', auth, mgr, async (_req: Request, res: Response): Pro
 });
 
 // GET /insights/agentic-qual/recent?days=30  — recently changed from field history
-router.get('/agentic-qual/recent', auth, mgr, async (req: Request, res: Response): Promise<void> => {
+router.get('/agentic-qual/recent', auth, async (req: Request, res: Response): Promise<void> => {
   const days = parseInt((req.query.days as string) ?? '30') || 30;
   const rows = await query(
     `SELECT o.id, o.name, o.account_name, o.stage, o.deploy_mode,
@@ -1022,7 +1030,7 @@ router.get('/agentic-qual/recent', auth, mgr, async (req: Request, res: Response
 });
 
 // GET /insights/agentic-qual/ai-summary/cached
-router.get('/agentic-qual/ai-summary/cached', auth, mgr, async (_req: Request, res: Response): Promise<void> => {
+router.get('/agentic-qual/ai-summary/cached', auth, async (_req: Request, res: Response): Promise<void> => {
   const rows = await query<{ content: string; generated_at: string }>(
     `SELECT content, generated_at FROM ai_summary_cache WHERE key = 'agentic-qual'`
   );
