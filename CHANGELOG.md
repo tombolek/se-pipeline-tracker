@@ -8,6 +8,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## 2026-04-27
 
 ### Fixed
+- **Calendar page returned 500 for non-manager users** — the `/insights/calendar` endpoint extracted the caller via `(req as ...).user.id`, but the JWT payload exposes `userId` (not `id`). For non-managers that became `AND o.se_owner_id = undefined` once interpolated, producing `column "undefined" does not exist` and a blank Calendar page. Switched to the standard `AuthenticatedRequest` cast and `user.userId` so the SE filter binds correctly.
 - **Home quota header showed $0 even with closed-won deals in the quarter** — the `/insights/quota-progress` endpoint passed `'FY2026'` to both `opportunities` and `quota_group_quarterly_targets`, but those two tables store the column in different formats: opportunities use a bare year (`'2026'`, set by the SF import), quarterly targets use the `FY`-prefixed form (`'FY2026'`, set by managers in Settings → Quotas). The opportunity filter silently excluded every deal while the quarterly target lookup still worked, which is why Target rendered correctly but Closed stayed at $0. The endpoint now sends the right string to each table.
 
 ### Changed

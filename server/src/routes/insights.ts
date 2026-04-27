@@ -1090,9 +1090,9 @@ router.get('/weekly-digest', auth, mgr, weeklyDigestHandler);
 // GET /insights/calendar — POCs, RFPs with submission date, and tasks with due dates
 // Accessible to all authenticated users; managers see all data, SEs see their own.
 router.get('/calendar', auth, async (req: Request, res: Response): Promise<void> => {
-  const user = (req as unknown as { user: { id: number; role: string } }).user;
+  const user = (req as AuthenticatedRequest).user;
   const isManager = user.role === 'manager';
-  const uid = user.id;
+  const uid = user.userId;
 
   const seFilter   = isManager ? '' : `AND o.se_owner_id = ${uid}`;
   const taskFilter = isManager ? '' : `AND t.assigned_to_id = ${uid}`;
