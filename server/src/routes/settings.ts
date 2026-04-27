@@ -220,6 +220,79 @@ router.post('/deal-info-config/reset', auth, async (req: Request, res: Response)
   }
 });
 
+// ── Menu Default Config — team-wide sidebar layout ─────────────────────────
+// Singleton row in menu_default_config (migration 057). Anyone can read; only
+// admins can write. Clients store their personal layout in localStorage and
+// fall back to this on first login or after "Reset to default".
+
+interface MenuConfigShape {
+  sections: Array<{ id: string; label: string; defaultCollapsed: boolean }>;
+  items: Array<{ id: string; label: string; to: string; icon: string; sectionId: string | null }>;
+}
+
+function isValidMenuConfig(c: unknown): c is MenuConfigShape {
+  if (!c || typeof c !== 'object') return false;
+  const o = c as Record<string, unknown>;
+  if (!Array.isArray(o.sections) || !Array.isArray(o.items)) return false;
+  for (const s of o.sections) {
+    if (!s || typeof s !== 'object') return false;
+    const ss = s as Record<string, unknown>;
+    if (typeof ss.id !== 'string' || typeof ss.label !== 'string' || typeof ss.defaultCollapsed !== 'boolean') return false;
+  }
+  const sectionIds = new Set((o.sections as Array<{ id: string }>).map(s => s.id));
+  for (const i of o.items) {
+    if (!i || typeof i !== 'object') return false;
+    const ii = i as Record<string, unknown>;
+    if (typeof ii.id !== 'string' || typeof ii.label !== 'string' || typeof ii.to !== 'string' || typeof ii.icon !== 'string') return false;
+    if (ii.sectionId !== null && (typeof ii.sectionId !== 'string' || !sectionIds.has(ii.sectionId))) return false;
+  }
+  return true;
+}
+
+/* GET /settings/menu-default — anyone authenticated; returns the team default. */
+router.get('/menu-default', auth, async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const rows = await query('SELECT config FROM menu_default_config WHERE id = 1') as { config: unknown }[];
+    if (rows.length === 0) {
+      res.status(404).json(err('Menu default not seeded'));
+      return;
+    }
+    res.json(ok({ config: rows[0].config }));
+  } catch (error) {
+    console.error('Failed to load menu default:', error);
+    res.status(500).json(err('Failed to load menu default'));
+  }
+});
+
+/* PUT /settings/menu-default — admin only; replaces the team default. */
+router.put('/menu-default', auth, admin, async (req: Request, res: Response): Promise<void> => {
+  const user = (req as AuthenticatedRequest).user;
+  const { config } = req.body ?? {};
+  if (!isValidMenuConfig(config)) {
+    res.status(400).json(err('Invalid menu config: expected { sections: [...], items: [...] } with valid shape'));
+    return;
+  }
+  try {
+    await query(
+      `INSERT INTO menu_default_config (id, config, updated_by, updated_at)
+       VALUES (1, $1, $2, now())
+       ON CONFLICT (id) DO UPDATE SET config = $1, updated_by = $2, updated_at = now()`,
+      [JSON.stringify(config), user.userId]
+    );
+    try {
+      await query(
+        `INSERT INTO audit_log (user_id, action, entity_type, details, timestamp)
+         VALUES ($1, 'update', 'menu_default_config', $2, now())`,
+        [user.userId, JSON.stringify({ sections: config.sections.length, items: config.items.length })]
+      );
+    } catch { /* audit log is best-effort */ }
+    res.json(ok({ config }));
+  } catch (error) {
+    console.error('Failed to save menu default:', error);
+    res.status(500).json(err('Failed to save menu default'));
+  }
+});
+
 // ── Quota Groups (Issue #94 — % to Target report) ───────────────────────────
 // Each group has a name, target (USD), and a rule that decides which Closed Won
 // deals count toward it. Groups can overlap (same deal in multiple groups).
