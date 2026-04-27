@@ -539,7 +539,12 @@ router.get('/quota-progress', auth, async (req: Request, res: Response): Promise
   const qStart = (quarterNum - 1) * 3;
   const qEnd = qStart + 2;
   const monthsElapsedInQ = Math.min(3, currentMonthIdx - qStart + 1); // 1..3
-  const fiscalYear = `FY${currentYear}`;
+  // The two tables use different fiscal_year conventions: opportunities store
+  // a bare calendar-year string ("2026"), while quota_group_quarterly_targets
+  // store an "FY"-prefixed value ("FY2026"). Don't merge these — passing
+  // "FY2026" to opportunities silently filters every closed-won deal out.
+  const oppFiscalYear = String(currentYear);
+  const quotaFiscalYear = `FY${currentYear}`;
 
   // 3. Load only the groups we need: global + the user's group (if any).
   type QuotaGroup = {
@@ -563,7 +568,7 @@ router.get('/quota-progress', auth, async (req: Request, res: Response): Promise
   if (!globalGroup && !personalGroup) {
     res.json(ok({
       quarter: `Q${quarterNum}`,
-      fiscal_year: fiscalYear,
+      fiscal_year: quotaFiscalYear,
       months_elapsed_in_q: monthsElapsedInQ,
       global: null,
       personal: null,
@@ -577,7 +582,7 @@ router.get('/quota-progress', auth, async (req: Request, res: Response): Promise
     ? await query<{ quota_group_id: number; target_amount: string }>(
         `SELECT quota_group_id, target_amount FROM quota_group_quarterly_targets
          WHERE fiscal_year = $1 AND quarter = $2 AND quota_group_id = ANY($3::int[])`,
-        [fiscalYear, quarterNum, wantedIds]
+        [quotaFiscalYear, quarterNum, wantedIds]
       )
     : [];
   const qTargetById = new Map<number, number>();
@@ -597,7 +602,7 @@ router.get('/quota-progress', auth, async (req: Request, res: Response): Promise
      WHERE is_closed_won = true
        AND record_type IN ('New Logo','Upsell','Cross-Sell')
        AND fiscal_year = $1`,
-    [fiscalYear]
+    [oppFiscalYear]
   );
 
   function ruleMatches(d: Deal, g: QuotaGroup): boolean {
@@ -638,7 +643,7 @@ router.get('/quota-progress', auth, async (req: Request, res: Response): Promise
 
   res.json(ok({
     quarter: `Q${quarterNum}`,
-    fiscal_year: fiscalYear,
+    fiscal_year: quotaFiscalYear,
     months_elapsed_in_q: monthsElapsedInQ,
     global: globalGroup ? buildResult(globalGroup) : null,
     personal: personalGroup ? buildResult(personalGroup) : null,

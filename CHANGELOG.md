@@ -7,6 +7,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## 2026-04-27
 
+### Fixed
+- **Home quota header showed $0 even with closed-won deals in the quarter** — the `/insights/quota-progress` endpoint passed `'FY2026'` to both `opportunities` and `quota_group_quarterly_targets`, but those two tables store the column in different formats: opportunities use a bare year (`'2026'`, set by the SF import), quarterly targets use the `FY`-prefixed form (`'FY2026'`, set by managers in Settings → Quotas). The opportunity filter silently excluded every deal while the quarterly target lookup still worked, which is why Target rendered correctly but Closed stayed at $0. The endpoint now sends the right string to each table.
+
 ### Changed
 - **Slimmer Home quota header; no duplicate row when user's quota IS Global** — the Home progress card now puts `% to target · ahead/behind pace` inline next to `$closed / $target` instead of stacking it on its own line, reducing the card's vertical footprint by roughly a row per quota. Server also suppresses the `My quota` row when the user's assigned quota group *is* the global group (showing "Global" twice was duplicative).
 
