@@ -197,7 +197,12 @@ export default function MenuSettingsPage() {
 
   async function saveAsNewDefault() {
     if (!isAdmin) return;
-    if (!confirm('Save the current layout as the team-wide default? New users (and anyone clicking Reset) will get this layout.')) return;
+    const ok = confirm(
+      'Save the current layout as the team-wide default?\n\n' +
+      'This is a high-impact action: every new user will start with this layout, and anyone clicking "Reset to default" will be reset to it. Existing users keep their personal customizations until they reset.\n\n' +
+      'Continue?'
+    );
+    if (!ok) return;
     setSaveStatus({ kind: 'saving' });
     try {
       const saved = await saveMenuDefault(config);
@@ -229,22 +234,22 @@ export default function MenuSettingsPage() {
           >
             + Add section
           </button>
-          {isAdmin && (
-            <button
-              onClick={saveAsNewDefault}
-              disabled={saveStatus.kind === 'saving'}
-              className="text-xs font-medium text-brand-purple border border-brand-purple rounded-lg px-3 py-2 hover:bg-brand-purple-30/30 transition-colors disabled:opacity-50"
-              title="Save current layout as the team-wide default"
-            >
-              {saveStatus.kind === 'saving' ? 'Saving…' : 'Save as new default'}
-            </button>
-          )}
           <button
             onClick={reset}
             className="text-xs text-brand-navy-70 dark:text-fg-2 hover:text-brand-navy dark:text-fg-1 border border-brand-navy-30 dark:border-ink-border-soft rounded-lg px-3 py-2 transition-colors"
           >
             Reset to default
           </button>
+          {isAdmin && (
+            <button
+              onClick={saveAsNewDefault}
+              disabled={saveStatus.kind === 'saving'}
+              className="text-[11px] text-brand-purple/80 hover:text-brand-purple underline underline-offset-2 decoration-dotted px-1 py-1 transition-colors disabled:opacity-50"
+              title="Save current layout as the team-wide default for everyone"
+            >
+              {saveStatus.kind === 'saving' ? 'Saving…' : 'Save as new default'}
+            </button>
+          )}
         </div>
       </div>
 

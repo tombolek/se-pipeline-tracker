@@ -687,6 +687,17 @@ function AccessManagementTab({ users, setUsers, currentUserId, quotaGroups }: {
   async function handleQuotaGroupChange(u: User, raw: string) {
     const qgId = raw === '' ? null : parseInt(raw, 10);
     if (qgId === u.quota_group_id) return;
+    // Reassigning a user who already has a quota group is high-impact (variable
+    // comp tracking depends on this). Confirm before applying. Adding a quota
+    // group to a user that has none yet doesn't need confirmation.
+    if (u.quota_group_id !== null) {
+      const oldName = quotaGroups.find(g => g.id === u.quota_group_id)?.name ?? `#${u.quota_group_id}`;
+      const newName = qgId === null ? 'None' : (quotaGroups.find(g => g.id === qgId)?.name ?? `#${qgId}`);
+      const who = u.name || u.email || `user #${u.id}`;
+      if (!confirm(`Change ${who}'s quota group from "${oldName}" to "${newName}"?`)) {
+        return;
+      }
+    }
     setUpdatingId(u.id);
     try {
       const updated = await updateUser(u.id, { quota_group_id: qgId });
