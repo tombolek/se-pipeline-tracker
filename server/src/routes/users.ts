@@ -13,8 +13,12 @@ const router = Router();
 const auth = requireAuth as unknown as (req: Request, res: Response, next: () => void) => void;
 const mgr  = requireManager as unknown as (req: Request, res: Response, next: () => void) => void;
 
-// GET /users — list all non-deleted users (Manager only)
-router.get('/', auth, mgr, async (_req: Request, res: Response): Promise<void> => {
+// GET /users — list all non-deleted users (any authenticated user).
+// Pipeline filters, owner/assignee dropdowns, mention pickers, and the SE
+// Mapping page all need the user list to render — and the same names are
+// already exposed across the app via opportunity rows. Mutations below stay
+// manager-only.
+router.get('/', auth, async (_req: Request, res: Response): Promise<void> => {
   const rows = await query<User>(
     `SELECT ${USER_COLS} FROM users WHERE is_deleted = false ORDER BY name ASC`
   );
