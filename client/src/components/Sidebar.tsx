@@ -4,7 +4,8 @@ import { useAuthStore } from '../store/auth';
 import { usePipelineStore } from '../store/pipeline';
 import { listClosedLost } from '../api/opportunities';
 import { listInboxItems } from '../api/inbox';
-import { getMenuConfig, type MenuConfig, type MenuItem, type MenuIcon } from '../utils/menuConfig';
+import { getMenuConfig, setCachedTeamDefault, type MenuConfig, type MenuItem, type MenuIcon } from '../utils/menuConfig';
+import { getMenuDefault } from '../api/settings';
 
 const SETTINGS_NAV = [
   { to: '/settings/people',        label: 'People',         icon: UsersIcon },
@@ -76,6 +77,16 @@ export default function Sidebar() {
       .catch(() => {});
     listInboxItems()
       .then(items => setInboxCount(items.filter(i => i.status === 'open').length))
+      .catch(() => {});
+    // Refresh the cached team-default menu layout. If this user hasn't customized
+    // their menu yet (no menu_config in localStorage), re-render so they pick up
+    // the team default instead of the hardcoded fallback.
+    getMenuDefault()
+      .then(cfg => {
+        const hadPersonal = localStorage.getItem('menu_config') !== null;
+        setCachedTeamDefault(cfg);
+        if (!hadPersonal) setConfig(getMenuConfig());
+      })
       .catch(() => {});
   }, [setClosedLostUnread, setInboxCount]);
 

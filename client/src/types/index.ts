@@ -131,6 +131,7 @@ export interface User {
   show_qualify: boolean;
   force_password_change: boolean;
   manager_id: number | null;
+  quota_group_id: number | null;
   teams: string[];
   column_prefs: ColumnPrefs | null;
   theme: ThemePreference;

@@ -21,6 +21,19 @@ export async function resetDealInfoConfig(): Promise<DealInfoConfig> {
   return r.data.data.config;
 }
 
+// ── Menu default (team-wide sidebar layout) ────────────────────────────────
+import type { MenuConfig } from '../utils/menuConfig';
+
+export async function getMenuDefault(): Promise<MenuConfig> {
+  const r = await api.get<ApiResponse<{ config: MenuConfig }>>('/settings/menu-default');
+  return r.data.data.config;
+}
+
+export async function saveMenuDefault(config: MenuConfig): Promise<MenuConfig> {
+  const r = await api.put<ApiResponse<{ config: MenuConfig }>>('/settings/menu-default', { config });
+  return r.data.data.config;
+}
+
 // ── Quota Groups (Issue #94) ─────────────────────────────────────────────────
 export type QuotaRuleType = 'global' | 'teams' | 'ae_owners';
 

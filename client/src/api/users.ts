@@ -31,6 +31,7 @@ export async function createUser(payload: {
   role: 'manager' | 'se' | 'viewer';
   password: string;
   manager_id?: number | null;
+  quota_group_id?: number | null;
 }): Promise<User> {
   const { data } = await api.post<ApiResponse<User>>('/users', payload);
   return data.data;
@@ -38,7 +39,7 @@ export async function createUser(payload: {
 
 export async function updateUser(
   id: number,
-  payload: Partial<{ name: string; email: string; role: 'manager' | 'se' | 'viewer'; is_active: boolean; is_admin: boolean; manager_id: number | null; teams: string[] }>
+  payload: Partial<{ name: string; email: string; role: 'manager' | 'se' | 'viewer'; is_active: boolean; is_admin: boolean; manager_id: number | null; quota_group_id: number | null; teams: string[] }>
 ): Promise<User> {
   const { data } = await api.patch<ApiResponse<User>>(`/users/${id}`, payload);
   return data.data;
