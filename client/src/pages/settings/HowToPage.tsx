@@ -106,7 +106,7 @@ export default function HowToPage() {
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-brand-navy dark:text-fg-1">User Guide</h1>
-        <p className="text-sm text-brand-navy-70 dark:text-fg-2 mt-1">How to use the SE Pipeline Tracker — page by page.</p>
+        <p className="text-sm text-brand-navy-70 dark:text-fg-2 mt-1">How to use SE Buddy — page by page.</p>
       </div>
 
       <ToC />

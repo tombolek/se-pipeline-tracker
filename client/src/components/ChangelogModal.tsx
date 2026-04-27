@@ -124,7 +124,7 @@ export default function ChangelogModal({ open, onClose }: Props) {
         <div className="flex items-center justify-between px-5 py-4 bg-white dark:bg-ink-1 border-b border-brand-navy-30/40 dark:border-ink-border-soft flex-shrink-0">
           <div>
             <h2 className="text-base font-semibold text-brand-navy dark:text-fg-1">What's New</h2>
-            <p className="text-[11px] text-brand-navy-70 dark:text-fg-2 mt-0.5">Recent changes to Pipeline Tracker</p>
+            <p className="text-[11px] text-brand-navy-70 dark:text-fg-2 mt-0.5">Recent changes to SE Buddy</p>
           </div>
           <button
             onClick={onClose}

@@ -23,9 +23,9 @@ export default defineConfig({
       registerType: 'prompt',
       includeAssets: ['favicon.svg', 'icons/ataccama-symbol.svg'],
       manifest: {
-        name: 'SE Pipeline Tracker',
-        short_name: 'SE Pipeline',
-        description: 'Ataccama SE team pipeline workspace. Works offline for your favorited deals.',
+        name: 'Ataccama SE Buddy',
+        short_name: 'SE Buddy',
+        description: 'Ataccama SE team workspace. Works offline for your favorited deals.',
         theme_color: '#6A2CF5',
         background_color: '#1A0C42',
         display: 'standalone',

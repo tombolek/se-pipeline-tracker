@@ -5,6 +5,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ---
 
+## 2026-04-27
+
+### Changed
+- **App rebranded from "Pipeline Tracker" to "SE Buddy"** — browser tab title is now `SE Buddy`; the app header in the top bar reads `Ataccama SE Buddy`. PWA manifest updated (`name: "Ataccama SE Buddy"`, `short_name: "SE Buddy"`) so the installed-app label and home-screen icon match. Login/change-password screen, Changelog drawer subtitle, and the User Guide intro all updated. Codebase identifiers (repo name, AWS stack, internal module names) are unchanged — this is a labels-only rebrand.
+
 ## 2026-04-24
 
 ### Fixed
