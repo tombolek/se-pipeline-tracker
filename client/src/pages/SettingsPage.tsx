@@ -1,7 +1,6 @@
 import { useLocation, Navigate } from 'react-router-dom';
 import HowToPage from './settings/HowToPage';
 import BackupPage from './settings/BackupPage';
-import DeployPage from './settings/DeployPage';
 import DeveloperPage from './settings/DeveloperPage';
 import PeopleHubPage from './settings/PeopleHubPage';
 import ImportsHubPage from './settings/ImportsHubPage';
@@ -10,7 +9,7 @@ import AiHubPage from './settings/AiHubPage';
 
 /**
  * Administration is structured as four hub pages (People / Imports /
- * Configuration / AI) + three solo pages (Backup / Deploy / Developer).
+ * Configuration / AI) + two solo pages (Backup / Developer).
  *
  * Every pre-restructure URL redirects here so old bookmarks + audit-log
  * entries resolve cleanly. Keep the redirect map below in sync if you ever
@@ -54,7 +53,9 @@ export default function SettingsPage() {
   else if (pathname.startsWith('/settings/configuration/')) content = <ConfigurationHubPage />;
   else if (pathname.startsWith('/settings/ai/'))            content = <AiHubPage />;
   else if (pathname.includes('/settings/backup'))           content = <BackupPage />;
-  else if (pathname.includes('/settings/deploy'))           content = <DeployPage />;
+  // /settings/deploy: redirect to settings home — feature retired in favour of
+  // GitHub Actions + ECR deploy pipeline (see SE-PIPELINE-MIGRATION-TESTPLAN.md)
+  else if (pathname.includes('/settings/deploy'))           return redirect('/settings/people/users');
   else if (pathname.includes('/settings/developer'))        content = <DeveloperPage />;
   else if (pathname.includes('/settings/how-to'))           content = <HowToPage />;
   // Default when someone lands on bare /settings — send to People > Users.

@@ -5,6 +5,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ---
 
+## 2026-04-29
+
+### Removed
+- **`Settings → Deploy` page retired.** The in-app deploy feature (server pulls a GitHub tarball, runs `npm ci + vite build` inside the running container, uploads to S3, invalidates CloudFront) is no longer reachable from the sidebar; visiting `/settings/deploy` redirects to People → Users. Deploys now flow through the standard `scripts/deploy.sh` (and, on the upcoming AICrew port, GitHub Actions → ECR → ECS). The `/api/v1/deploy/*` endpoints are gone, the `deployService` and `DeployPage` components are deleted, and `GITHUB_TOKEN` is no longer read by the server. The `deploy_log` table is intentionally left in place for one release in case we want to roll back; it'll be dropped in a follow-up migration once the new deploy story is bedded in. `FRONTEND_BUCKET` / `CF_DISTRIBUTION_ID` / `DEPLOY_SHA` are still injected by `deploy.sh` because the script itself uses them for s3 sync + invalidation; only the server's read paths are gone.
+
+### Changed
+- **Server can now serve the React SPA when `CLIENT_DIST_PATH` is set.** Added `express.static()` + a non-API SPA fallback to `server/src/index.ts`, gated behind a runtime check that the configured directory actually exists. On the current EC2 deploy `CLIENT_DIST_PATH` is unset, so the middleware is skipped and the frontend continues to come from S3+CloudFront — zero behaviour change. On the upcoming AICrew port the container sets `CLIENT_DIST_PATH=/app/client/dist` and the same Express process serves both the API and the built frontend out of the running task. Foundation work for the migration to ALB+ECS Fargate.
+
+---
+
 ## 2026-04-27
 
 ### Changed
@@ -34,7 +44,6 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Changed
 - **App rebranded from "Pipeline Tracker" to "SE Buddy"** — browser tab title is now `SE Buddy`; the app header in the top bar reads `Ataccama SE Buddy`. PWA manifest updated (`name: "Ataccama SE Buddy"`, `short_name: "SE Buddy"`) so the installed-app label and home-screen icon match. Login/change-password screen, Changelog drawer subtitle, and the User Guide intro all updated. Codebase identifiers (repo name, AWS stack, internal module names) are unchanged — this is a labels-only rebrand.
-
 ## 2026-04-24
 
 ### Fixed

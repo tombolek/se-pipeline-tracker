@@ -62,7 +62,6 @@ const PAGE_REGISTRY: PageDef[] = [
   { key: 'settings/ai-jobs',          label: 'AI → Jobs',                     section: 'Administration' },
   { key: 'settings/ai-usage',         label: 'AI → Usage',                    section: 'Administration' },
   { key: 'settings/backup',           label: 'Backup & Restore',              section: 'Administration' },
-  { key: 'settings/deploy',           label: 'Deploy',                        section: 'Administration' },
 ];
 
 const SECTIONS = ['Main Navigation', 'Insights', 'Administration'] as const;

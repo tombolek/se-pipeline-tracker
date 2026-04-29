@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import fs from 'fs';
 import path from 'path';
 
 dotenv.config({ path: path.join(__dirname, '../../.env') });
@@ -14,7 +15,6 @@ import inboxRoutes from './routes/inbox.js';
 import usersRoutes from './routes/users.js';
 import auditRoutes from './routes/audit.js';
 import backupRoutes from './routes/backup.js';
-import deployRoutes from './routes/deploy.js';
 import homeRoutes from './routes/home.js';
 import adminRoutes from './routes/admin.js';
 import settingsRoutes from './routes/settings.js';
@@ -59,7 +59,6 @@ app.use('/api/v1/inbox', inboxRoutes);
 app.use('/api/v1/users', usersRoutes);
 app.use('/api/v1/audit', auditRoutes);
 app.use('/api/v1/backup', backupRoutes);
-app.use('/api/v1/deploy', deployRoutes);
 app.use('/api/v1/home', homeRoutes);
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/settings', settingsRoutes);
@@ -70,6 +69,31 @@ app.use('/api/v1/changelog', changelogRoutes);
 app.use('/api/v1/templates', templatesRoutes);
 app.use('/api/v1/recent-actions', recentActionsRoutes);
 app.use('/api/v1/mentions', mentionsRoutes);
+
+// ── Static frontend (only when CLIENT_DIST_PATH points at a real dir) ────────
+// On the current AWS deploy (S3 + CloudFront), the frontend is uploaded
+// directly to S3 and the server never serves HTML/JS/CSS — leaving
+// CLIENT_DIST_PATH unset is correct there. On the AICrew port (ALB + ECS),
+// the container colocates `client/dist` and serves it from this process,
+// so the deploy sets CLIENT_DIST_PATH and the middleware below mounts.
+//
+// Either way: if the path is missing or doesn't exist on disk, this block
+// is a no-op — no behaviour change for EC2.
+const CLIENT_DIST_PATH = process.env.CLIENT_DIST_PATH;
+if (CLIENT_DIST_PATH && fs.existsSync(CLIENT_DIST_PATH)) {
+  console.log(`[static] serving SPA from ${CLIENT_DIST_PATH}`);
+  app.use(express.static(CLIENT_DIST_PATH));
+  // SPA fallback for any non-API GET — return index.html so client-side
+  // routing can take over. API calls fall through to the 404 / error handler.
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api/')) return next();
+    res.sendFile(path.join(CLIENT_DIST_PATH, 'index.html'), (err) => {
+      if (err) next(err);
+    });
+  });
+} else if (CLIENT_DIST_PATH) {
+  console.warn(`[static] CLIENT_DIST_PATH set to ${CLIENT_DIST_PATH} but the directory does not exist; skipping static middleware`);
+}
 
 // ── Safety net: catch unhandled async route errors ────────────────────────────
 // Express 4 does NOT forward rejected promises from `async` route handlers to
