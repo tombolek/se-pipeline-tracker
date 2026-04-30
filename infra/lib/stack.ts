@@ -4,6 +4,11 @@ import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as lambdaNode from 'aws-cdk-lib/aws-lambda-nodejs';
+import * as events from 'aws-cdk-lib/aws-events';
+import * as targets from 'aws-cdk-lib/aws-events-targets';
+import * as path from 'path';
 import { Construct } from 'constructs';
 
 export class SePipelineStack extends cdk.Stack {
@@ -233,7 +238,61 @@ function handler(event) {
       },
     });
 
-    // ── 11. Stack outputs ──────────────────────────────────────────────────────
+    // ── 11. Scheduled backup Lambda + EventBridge rule ────────────────────────
+    // Replaces the in-process setTimeout scheduler in the Express server.
+    // Once a day at 02:00 UTC the Lambda POSTs to
+    // /api/v1/backup/run-scheduled with a shared secret stored in SSM.
+    //
+    // Operator one-time setup (after first cdk deploy of this resource):
+    //
+    //   aws ssm put-parameter \
+    //     --name /se-pipeline/backup-trigger-secret \
+    //     --value $(openssl rand -hex 32) \
+    //     --type SecureString \
+    //     --overwrite
+    //
+    // The same SSM parameter is read by `scripts/deploy.sh` and written to
+    // `/app/.env.prod` as BACKUP_TRIGGER_SECRET so the EC2 server can
+    // constant-time compare it against the X-Backup-Trigger-Secret header.
+
+    const backupSecretParamName = '/se-pipeline/backup-trigger-secret';
+
+    const backupLambda = new lambdaNode.NodejsFunction(this, 'ScheduledBackupLambda', {
+      entry: path.join(__dirname, '..', 'lambda', 'scheduled-backup.ts'),
+      handler: 'handler',
+      runtime: lambda.Runtime.NODEJS_20_X,
+      timeout: cdk.Duration.minutes(5), // backup itself takes 1-5s; allow slack for SSM + cold start
+      memorySize: 256,
+      logRetention: cdk.aws_logs.RetentionDays.ONE_MONTH,
+      environment: {
+        APP_URL: `https://${distribution.distributionDomainName}`,
+        BACKUP_TRIGGER_SECRET_SSM: backupSecretParamName,
+      },
+      bundling: {
+        // @aws-sdk/client-ssm ships in the Node 20 Lambda runtime — leave
+        // it external to avoid bloating the bundle.
+        externalModules: ['@aws-sdk/client-ssm'],
+      },
+    });
+
+    // Grant the Lambda role read access to the SSM parameter. The default
+    // KMS key (alias/aws/ssm) used for SecureString is account-trusted, so
+    // no explicit kms:Decrypt grant is needed.
+    backupLambda.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['ssm:GetParameter'],
+      resources: [
+        `arn:aws:ssm:${this.region}:${this.account}:parameter${backupSecretParamName}`,
+      ],
+    }));
+
+    new events.Rule(this, 'NightlyBackupSchedule', {
+      ruleName: 'se-pipeline-nightly-backup',
+      description: 'Daily at 02:00 UTC: invoke the scheduled-backup Lambda',
+      schedule: events.Schedule.cron({ minute: '0', hour: '2' }),
+      targets: [new targets.LambdaFunction(backupLambda)],
+    });
+
+    // ── 12. Stack outputs ──────────────────────────────────────────────────────
     // deploy.sh reads these to know where to SSH and which buckets to use.
     new cdk.CfnOutput(this, 'AppUrl', {
       value: `https://${distribution.distributionDomainName}`,
@@ -262,6 +321,10 @@ function handler(event) {
     new cdk.CfnOutput(this, 'AppBackupBucketName', {
       value: appBackupBucket.bucketName,
       description: 'S3 bucket for user-triggered JSON app backups (Settings → Backup & Restore)',
+    });
+    new cdk.CfnOutput(this, 'BackupLambdaName', {
+      value: backupLambda.functionName,
+      description: 'Scheduled-backup Lambda — manual invoke: aws lambda invoke --function-name <this> /tmp/out.json && cat /tmp/out.json',
     });
   }
 }

@@ -48,8 +48,25 @@ DISTRIBUTION_ID=$(get_output DistributionId)
 APP_URL=$(get_output AppUrl)
 DEPLOY_SHA=$(git rev-parse HEAD)
 
+# Shared secret for the scheduled-backup Lambda → server endpoint hop.
+# Lives in SSM (created out-of-band by the operator). If unset, the server's
+# /api/v1/backup/run-scheduled returns 503 — non-fatal for deploy, just means
+# the Lambda will start failing once it's wired up.
+BACKUP_TRIGGER_SECRET=$(aws ssm get-parameter \
+  --name /se-pipeline/backup-trigger-secret \
+  --with-decryption \
+  --region "$REGION" \
+  --query 'Parameter.Value' \
+  --output text 2>/dev/null || true)
+
 echo "  EC2 IP:  $INSTANCE_IP"
 echo "  App URL: $APP_URL"
+if [ -z "$BACKUP_TRIGGER_SECRET" ]; then
+  echo "  WARNING: SSM /se-pipeline/backup-trigger-secret is unset."
+  echo "  Server /api/v1/backup/run-scheduled will 503 until you run:"
+  echo "    aws ssm put-parameter --name /se-pipeline/backup-trigger-secret \\"
+  echo "      --value \$(openssl rand -hex 32) --type SecureString --region $REGION --overwrite"
+fi
 
 # ── SSH key ───────────────────────────────────────────────────────────────────
 if [ ! -f "$KEY_FILE" ]; then
@@ -168,6 +185,11 @@ if [ "$DEPLOY_SERVER" = true ]; then
   $SSH "grep -q '^DEPLOY_SHA=' /app/.env.prod && \
         sed -i 's|^DEPLOY_SHA=.*|DEPLOY_SHA=$DEPLOY_SHA|' /app/.env.prod || \
         echo 'DEPLOY_SHA=$DEPLOY_SHA' >> /app/.env.prod"
+  # Scheduled-backup secret (matches the value the Lambda reads from SSM).
+  # If empty, the server treats the run-scheduled endpoint as disabled (503).
+  $SSH "grep -q '^BACKUP_TRIGGER_SECRET=' /app/.env.prod && \
+        sed -i 's|^BACKUP_TRIGGER_SECRET=.*|BACKUP_TRIGGER_SECRET=$BACKUP_TRIGGER_SECRET|' /app/.env.prod || \
+        echo 'BACKUP_TRIGGER_SECRET=$BACKUP_TRIGGER_SECRET' >> /app/.env.prod"
   $SSH "chmod 600 /app/.env.prod"
 
   echo "=== Building server Docker image on EC2 ==="
