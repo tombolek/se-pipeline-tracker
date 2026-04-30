@@ -39,6 +39,7 @@ services:
       FRONTEND_BUCKET: ${FRONTEND_BUCKET}
       CF_DISTRIBUTION_ID: ${CF_DISTRIBUTION_ID}
       DEPLOY_SHA: ${DEPLOY_SHA:-}
+      BACKUP_TRIGGER_SECRET: ${BACKUP_TRIGGER_SECRET:-}
     volumes:
       - ./kb:/app/kb:ro
       - ./CHANGELOG.md:/app/CHANGELOG.md:ro
