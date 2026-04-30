@@ -7,6 +7,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## 2026-04-30
 
+### Fixed
+- **Oversized Salesforce XLS imports now return HTTP 413 instead of 500.** The global error handler in `server/src/index.ts` already mapped body-parser's `entity.too.large` → 413, but didn't recognise multer's `MulterError` code `LIMIT_FILE_SIZE` — so any upload above the import endpoint's 50 MB cap surfaced as a generic "Internal server error" with no useful message. The Settings → Import page would then leave the admin guessing. Empirically reproduced in the AICrew sandbox at `aicrew-tbo-exp-hello` Test 2 today; same fix applied here. Now: `Upload is too large (File too large). Reduce the file size and retry.`
+
 ### Removed
 - **In-process nightly-backup scheduler (step 3/3 of the migration to Lambda + EventBridge — switchover complete).** Deleted `services/backupScheduler.ts` and the `startBackupScheduler()` call from `server/src/index.ts`. The standalone `createAppBackup()` function moved to `services/createAppBackup.ts` (clean module, no scheduler concerns; `routes/backup.ts` imports from the new path). From now on the nightly backup runs **only** from the EventBridge → Lambda → `/api/v1/backup/run-scheduled` path validated end-to-end this morning. No more duplicate S3 objects on rolling deploys, no more silent skipped backups when the server restarts.
 

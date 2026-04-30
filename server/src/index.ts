@@ -105,12 +105,26 @@ if (CLIENT_DIST_PATH && fs.existsSync(CLIENT_DIST_PATH)) {
 // process by default (see the changelog EISDIR incident). This global handler
 // logs the error, returns a 500 to the triggering request, and — crucially —
 // keeps the server alive for everyone else.
+import multer from 'multer';
 import type { NextFunction } from 'express';
 import type { Request, Response } from 'express';
 app.use((err: unknown, req: Request, res: Response, _next: NextFunction) => {
   const msg = err instanceof Error ? err.stack || err.message : String(err);
   console.error(`[unhandled] ${req.method} ${req.originalUrl}\n${msg}`);
   if (!res.headersSent) {
+    // multer's LIMIT_FILE_SIZE → 413 with the multer message. Without this
+    // map an oversized SF XLS upload comes out as a generic 500 — the
+    // Settings → Import page would then show a useless error instead of
+    // the actionable "file too large" the user can act on. (Empirically
+    // confirmed via aicrew sandbox Test 2 — same root cause.)
+    if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
+      res.status(413).json({
+        data: null,
+        error: `Upload is too large (${err.message}). Reduce the file size and retry.`,
+        meta: {},
+      });
+      return;
+    }
     // body-parser PayloadTooLargeError → 413 with an actionable message so the
     // Process Call Notes page can show "transcript too long" instead of a
     // generic 500. Anything else is still a 500.
