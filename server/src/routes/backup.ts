@@ -10,7 +10,7 @@ import {
 import { requireAuth, requireManager } from '../middleware/auth.js';
 import { AuthenticatedRequest, ok, err } from '../types/index.js';
 import { logAudit } from '../services/auditLog.js';
-import { createAppBackup } from '../services/backupScheduler.js';
+import { createAppBackup } from '../services/createAppBackup.js';
 
 const router = Router();
 const auth = requireAuth as unknown as (req: Request, res: Response, next: () => void) => void;

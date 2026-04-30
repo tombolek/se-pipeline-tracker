@@ -42,38 +42,72 @@ wsl -e bash -ic 'export PATH="$HOME/bin:$PATH" && cd /mnt/c/claude/buddy/se-pipe
 
 ## Scheduled backup
 
-The nightly app backup (JSON snapshot in Settings → Backup & Restore) is in
-the middle of a migration from an in-process scheduler to an external one.
+The nightly app backup (JSON snapshot in Settings → Backup & Restore) is
+fired by an EventBridge-scheduled Lambda — **not** by the Express server.
 
-**Why move:** in-process `setTimeout` schedulers die on rolling deploys and
-run N times across multi-replica deploys, causing missed and duplicate
-backups. An external scheduler fires exactly once regardless of server
-lifecycle.
+**Why this shape:** in-process `setTimeout` schedulers die on rolling
+deploys and run N times across multi-replica deploys, causing missed and
+duplicate backups. An external scheduler fires exactly once regardless of
+server lifecycle.
 
-**Current state (mid-migration):**
-- The in-process scheduler in `services/backupScheduler.ts` still runs
-  daily at 02:00 UTC via `startBackupScheduler()` called from
-  `server/src/index.ts`.
-- A new endpoint `POST /api/v1/backup/run-scheduled` accepts a trigger from
-  any caller that supplies the `X-Backup-Trigger-Secret` header matching
-  `BACKUP_TRIGGER_SECRET` (constant-time compared). No JWT — this is for
-  machine callers. Returns 503 if the env var isn't configured.
-- The `BACKUP_TRIGGER_SECRET` is intended to live in SSM Parameter Store,
-  injected by `deploy.sh` into `/app/.env.prod` like the other CDK-derived
-  vars. Generate a value locally for testing with `openssl rand -hex 32`.
+**The chain:**
 
-**End state (after the CDK + Lambda step lands):**
-- A tiny Lambda (no VPC, no DB, no S3 perms — just outbound HTTPS) POSTs to
-  the endpoint above with the secret header.
-- An EventBridge rule with `cron(0 2 * * ? *)` invokes the Lambda daily.
-- `startBackupScheduler()` is removed from the server. Only the Lambda fires
-  scheduled backups.
+1. **EventBridge rule** (`cron(0 2 * * ? *)`, in `infra/lib/stack.ts`) fires
+   the Lambda daily at 02:00 UTC.
+2. **Lambda** (`infra/lambda/scheduled-backup.ts`) reads the shared secret
+   from SSM at `/se-pipeline/backup-trigger-secret`, then POSTs to
+   `https://<app>/api/v1/backup/run-scheduled` with the header
+   `X-Backup-Trigger-Secret: <secret>`. The Lambda owns no DB credentials,
+   no S3 perms, no VPC attachment — purely a trigger.
+3. **Server endpoint** (`server/src/routes/backup.ts → POST /run-scheduled`)
+   constant-time-compares the header against `BACKUP_TRIGGER_SECRET` from
+   `process.env` (set by `deploy.sh` from the same SSM parameter), then
+   calls `createAppBackup('scheduled')` which writes the snapshot to S3.
 
-**Manual trigger for testing now:**
+**Operator one-time setup** (only needed once per environment):
+
 ```bash
-curl -X POST https://<your-cf-domain>/api/v1/backup/run-scheduled \
-  -H "X-Backup-Trigger-Secret: $BACKUP_TRIGGER_SECRET"
+# Generate + store the shared secret in SSM
+aws ssm put-parameter \
+  --name /se-pipeline/backup-trigger-secret \
+  --value $(openssl rand -hex 32) \
+  --type SecureString \
+  --region eu-west-1 \
+  --overwrite
+
+# Deploy the infra (creates Lambda + EventBridge + IAM)
+cd infra && npx cdk deploy --require-approval never
+
+# Push the same secret into /app/.env.prod on EC2
+./scripts/deploy.sh --server-only
 ```
+
+**Rotating the secret:** `aws ssm put-parameter ... --overwrite`, then
+`./scripts/deploy.sh --server-only`. The Lambda picks up the new value at
+its next cold start (it caches per warm container) — for an immediate
+swap, force a new Lambda version with `aws lambda update-function-code`.
+
+**Manual trigger** (for testing the wiring without waiting for 02:00 UTC):
+
+```bash
+LAMBDA=$(aws cloudformation describe-stacks --stack-name SePipelineStack \
+  --query "Stacks[0].Outputs[?OutputKey=='BackupLambdaName'].OutputValue" \
+  --output text)
+aws lambda invoke --function-name "$LAMBDA" /tmp/out.json && cat /tmp/out.json
+```
+
+Expected: `{"ok":true,"status":200,"elapsedSec":<n>}` and a fresh
+`app-backups/<timestamp>_scheduled.json` in the `se-pipeline-app-backups-*`
+bucket.
+
+**Failure modes:**
+- Lambda's CloudWatch log group: `/aws/lambda/SePipelineStack-ScheduledBackupLambda*`
+- HTTP 503 from the endpoint = `BACKUP_TRIGGER_SECRET` env var unset on
+  the server (re-run `deploy.sh --server-only`).
+- HTTP 401 from the endpoint = secret mismatch (SSM and `.env.prod` got
+  out of sync; same fix).
+- "SSM parameter has no value" Lambda error = the operator setup step
+  above wasn't run.
 
 ## Infrastructure changes (CDK)
 

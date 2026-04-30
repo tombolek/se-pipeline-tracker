@@ -1,7 +1,16 @@
 /**
- * Scheduled nightly backup — runs daily at 02:00 UTC (9 PM EST / 10 PM EDT).
- * Creates the same JSON snapshot as the manual "Back Up Now" button and uploads
- * it to APP_BACKUP_BUCKET so it appears in the Backup / Restore UI.
+ * App backup — JSON snapshot of every admin-editable table whose state is
+ * hand-authored (not derivable from Salesforce imports or AI generations).
+ *
+ * Two callers:
+ *   - User-triggered: routes/backup.ts → POST /api/v1/backup
+ *   - Scheduled:      routes/backup.ts → POST /api/v1/backup/run-scheduled
+ *                     (called once a day by an EventBridge-scheduled Lambda)
+ *
+ * The actual scheduling lives in CDK (infra/lib/stack.ts → EventBridge rule
+ * + Lambda), not in this process. The previous in-process setTimeout
+ * scheduler in services/backupScheduler.ts was retired once the Lambda
+ * path was validated end-to-end.
  */
 
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
@@ -9,8 +18,6 @@ import { query } from '../db/index.js';
 
 const REGION = process.env.AWS_REGION ?? 'eu-west-1';
 const s3 = new S3Client({ region: REGION });
-
-// ── Core backup logic (shared by route handler and scheduler) ─────────────────
 
 export async function createAppBackup(createdBy: string): Promise<{ s3Key: string; counts: Record<string, number> }> {
   const bucket = process.env.APP_BACKUP_BUCKET;
@@ -126,42 +133,4 @@ export async function createAppBackup(createdBy: string): Promise<{ s3Key: strin
       opportunity_tech_discovery: oppTechDiscovery.length,
     },
   };
-}
-
-// ── Scheduler ─────────────────────────────────────────────────────────────────
-
-/** Schedule a function to run daily at a fixed UTC time, correcting for drift. */
-function scheduleDailyUtc(hourUtc: number, minuteUtc: number, fn: () => Promise<void>): void {
-  function next(): void {
-    const now = new Date();
-    const target = new Date(now);
-    target.setUTCHours(hourUtc, minuteUtc, 0, 0);
-    if (target <= now) target.setUTCDate(target.getUTCDate() + 1);
-    const delay = target.getTime() - now.getTime();
-    console.log(`[backup-scheduler] Next scheduled backup in ${Math.round(delay / 60000)} min (${target.toISOString()})`);
-    setTimeout(async () => {
-      await fn();
-      next(); // reschedule — avoids 24h drift from setInterval
-    }, delay);
-  }
-  next();
-}
-
-/** Start the nightly backup schedule. Called once on server startup. */
-export function startBackupScheduler(): void {
-  if (!process.env.APP_BACKUP_BUCKET) {
-    console.warn('[backup-scheduler] APP_BACKUP_BUCKET not set — scheduled backups disabled');
-    return;
-  }
-
-  // 02:00 UTC = 9 PM EST / 10 PM EDT
-  scheduleDailyUtc(2, 0, async () => {
-    console.log('[backup-scheduler] Starting nightly backup…');
-    try {
-      const { s3Key, counts } = await createAppBackup('scheduled');
-      console.log(`[backup-scheduler] Backup complete → ${s3Key}`, counts);
-    } catch (e) {
-      console.error('[backup-scheduler] Backup failed:', e);
-    }
-  });
 }

@@ -26,7 +26,6 @@ import recentActionsRoutes from './routes/recentActions.js';
 import mentionsRoutes from './routes/mentions.js';
 import agentsRoutes from './routes/agents.js';
 import { query } from './db/index.js';
-import { startBackupScheduler } from './services/backupScheduler.js';
 import { sweepStaleRunningJobs } from './services/aiJobs.js';
 import { seedMissingPromptTemplates } from './services/agents.js';
 
@@ -181,8 +180,10 @@ seedMissingPromptTemplates().then(n => {
   if (n > 0) console.log(`[ai] seeded prompt_template for ${n} agent(s) from baseline`);
 }).catch(err => console.error(`[ai] prompt template seed failed: ${err?.message ?? err}`));
 
-// Nightly backup — 02:00 UTC (9 PM EST / 10 PM EDT)
-startBackupScheduler();
+// Nightly backup is triggered externally by an EventBridge-scheduled Lambda
+// that POSTs to /api/v1/backup/run-scheduled (see infra/lib/stack.ts and
+// docs/deploy.md). This was previously an in-process setTimeout scheduler;
+// see CHANGELOG 2026-04-30 "Removed: in-process nightly-backup scheduler".
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
