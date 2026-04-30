@@ -7,6 +7,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## 2026-04-30
 
+### Added
+- **Scheduled-backup HTTP trigger endpoint (step 1/3 of moving the daily backup off the in-process scheduler).** New endpoint `POST /api/v1/backup/run-scheduled`, gated by an `X-Backup-Trigger-Secret` header constant-time compared against the `BACKUP_TRIGGER_SECRET` env var. No JWT — designed for a machine caller (an EventBridge-scheduled Lambda landing in step 2). Calls the same `createAppBackup('scheduled')` as the in-process scheduler so the resulting JSON in S3 is byte-identical to today's nightly. Returns 503 if the env var isn't set, 401 on bad/missing secret, 500 if the backup itself fails. Until step 2/3 ships the Lambda + removes the in-process scheduler, this endpoint is dormant in production — exists but nothing calls it.
+
 ### Fixed
 - **Stuck "in_progress" imports auto-resolve on server restart.** The 5-stage import pipeline (Parse → Validate → Reconcile → Enrich → Finalize) runs in-process. If the server was restarted (deploy, crash, container replacement) while an import was mid-flight, the row sat at `status='in_progress'` indefinitely and the Import History page polled it forever. On every startup the server now sweeps any import that's been `in_progress` for more than 30 minutes, marks it `failed` with `error_log = 'Server restarted before import completed'`, and stamps `finished_at`. The Import History page surfaces a terminal failed state and the admin can re-upload the file. Conservative threshold (30 min) is well above the worst observed runtime (~2 min for a 5K-row XLS).
 

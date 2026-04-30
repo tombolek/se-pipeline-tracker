@@ -40,6 +40,41 @@ wsl -e bash -ic 'export PATH="$HOME/bin:$PATH" && cd /mnt/c/claude/buddy/se-pipe
 4. Runs `docker compose build server` on EC2 (compiles TypeScript inside the container).
 5. Runs `docker compose up -d` — only the server container is recreated; DB container is left running.
 
+## Scheduled backup
+
+The nightly app backup (JSON snapshot in Settings → Backup & Restore) is in
+the middle of a migration from an in-process scheduler to an external one.
+
+**Why move:** in-process `setTimeout` schedulers die on rolling deploys and
+run N times across multi-replica deploys, causing missed and duplicate
+backups. An external scheduler fires exactly once regardless of server
+lifecycle.
+
+**Current state (mid-migration):**
+- The in-process scheduler in `services/backupScheduler.ts` still runs
+  daily at 02:00 UTC via `startBackupScheduler()` called from
+  `server/src/index.ts`.
+- A new endpoint `POST /api/v1/backup/run-scheduled` accepts a trigger from
+  any caller that supplies the `X-Backup-Trigger-Secret` header matching
+  `BACKUP_TRIGGER_SECRET` (constant-time compared). No JWT — this is for
+  machine callers. Returns 503 if the env var isn't configured.
+- The `BACKUP_TRIGGER_SECRET` is intended to live in SSM Parameter Store,
+  injected by `deploy.sh` into `/app/.env.prod` like the other CDK-derived
+  vars. Generate a value locally for testing with `openssl rand -hex 32`.
+
+**End state (after the CDK + Lambda step lands):**
+- A tiny Lambda (no VPC, no DB, no S3 perms — just outbound HTTPS) POSTs to
+  the endpoint above with the secret header.
+- An EventBridge rule with `cron(0 2 * * ? *)` invokes the Lambda daily.
+- `startBackupScheduler()` is removed from the server. Only the Lambda fires
+  scheduled backups.
+
+**Manual trigger for testing now:**
+```bash
+curl -X POST https://<your-cf-domain>/api/v1/backup/run-scheduled \
+  -H "X-Backup-Trigger-Secret: $BACKUP_TRIGGER_SECRET"
+```
+
 ## Infrastructure changes (CDK)
 
 When `infra/lib/stack.ts` is modified (new bucket, new IAM permission, new output, etc.):

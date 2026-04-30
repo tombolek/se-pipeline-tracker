@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import crypto from 'node:crypto';
 import bcrypt from 'bcrypt';
 import { Client } from 'pg';
 import {
@@ -44,6 +45,62 @@ router.post('/', auth, mgr, async (req: Request, res: Response): Promise<void> =
   } catch (e) {
     console.error('[backup] create error:', e);
     res.status(500).json(err(e instanceof Error ? e.message : 'Backup failed'));
+  }
+});
+
+// ── POST /run-scheduled — machine-only backup trigger ─────────────────────────
+//
+// Called by the EventBridge-scheduled Lambda once a day. Replaces the
+// in-process setTimeout scheduler in services/backupScheduler.ts which
+// duplicated/lost backups on rolling deploys and multi-replica deploys.
+//
+// Auth is a shared secret in the X-Backup-Trigger-Secret header (constant-
+// time compared against BACKUP_TRIGGER_SECRET). NO JWT — the Lambda has no
+// user. Both env vars are populated at deploy time:
+//   - server: deploy.sh writes BACKUP_TRIGGER_SECRET into /app/.env.prod
+//             from SSM Parameter Store
+//   - Lambda: CDK injects the same value as a Lambda env var, also from SSM
+function constantTimeEqual(a: string, b: string): boolean {
+  const aBuf = Buffer.from(a, 'utf8');
+  const bBuf = Buffer.from(b, 'utf8');
+  // Length-mismatch leaks only the secret length, which is fixed and high-
+  // entropy on our side — acceptable trade-off, standard pattern.
+  if (aBuf.length !== bBuf.length) return false;
+  return crypto.timingSafeEqual(aBuf, bBuf);
+}
+
+router.post('/run-scheduled', async (req: Request, res: Response): Promise<void> => {
+  const expected = process.env.BACKUP_TRIGGER_SECRET;
+  if (!expected) {
+    console.error('[scheduled-backup] BACKUP_TRIGGER_SECRET not configured — refusing to run');
+    res.status(503).json(err('Scheduled backup endpoint not configured on this server'));
+    return;
+  }
+
+  const provided = req.header('x-backup-trigger-secret') ?? '';
+  if (!constantTimeEqual(expected, provided)) {
+    console.warn('[scheduled-backup] denied: header missing or mismatched');
+    res.status(401).json(err('Invalid or missing X-Backup-Trigger-Secret'));
+    return;
+  }
+
+  const bucket = getBucket();
+  if (!bucket) {
+    console.error('[scheduled-backup] APP_BACKUP_BUCKET not configured');
+    res.status(503).json(err('APP_BACKUP_BUCKET not configured'));
+    return;
+  }
+
+  console.log('[scheduled-backup] triggered — starting backup');
+  const startedAt = Date.now();
+  try {
+    const { s3Key, counts } = await createAppBackup('scheduled');
+    const elapsedSec = Math.round((Date.now() - startedAt) / 1000);
+    console.log(`[scheduled-backup] complete in ${elapsedSec}s → ${s3Key}`, counts);
+    res.json(ok({ s3_key: s3Key, counts, elapsed_sec: elapsedSec }));
+  } catch (e) {
+    console.error('[scheduled-backup] failed:', e);
+    res.status(500).json(err(e instanceof Error ? e.message : 'Scheduled backup failed'));
   }
 });
 
