@@ -102,6 +102,8 @@ When Salesforce adds new fields to the report, they automatically land in `sf_ra
 
 **Rollback** — `DELETE /opportunities/import/:id` still only applies to the most recent non-in-progress import; rollback_data is written in the `finalize` stage, so a failed import (any stage) cannot be rolled back (nothing to restore to).
 
+**Orphan cleanup on startup** — because the pipeline runs in-process, a server restart (deploy, crash, container replacement) mid-import leaves the `imports` row stuck at `status='in_progress'` forever, and the polling UI never settles. On startup the server now sweeps any import that's been `in_progress` for more than 30 minutes, marks it `failed` with `error_log='Server restarted before import completed'`, and stamps `finished_at` (see `server/src/index.ts`). 30 min is well above the worst observed total runtime, so a still-running import is never wrongly killed. Re-uploading the file is the recovery path.
+
 ## First Import (Bootstrapping)
 
 The very first import should contain **open opportunities only** — no Closed Lost records. This establishes the baseline. From the second import onwards, any SF ID absent from the feed is treated as newly Closed Lost and triggers the unread badge. Setup instructions and the seed script documentation enforce this expectation.

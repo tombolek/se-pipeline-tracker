@@ -5,6 +5,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ---
 
+## 2026-04-30
+
+### Fixed
+- **Stuck "in_progress" imports auto-resolve on server restart.** The 5-stage import pipeline (Parse → Validate → Reconcile → Enrich → Finalize) runs in-process. If the server was restarted (deploy, crash, container replacement) while an import was mid-flight, the row sat at `status='in_progress'` indefinitely and the Import History page polled it forever. On every startup the server now sweeps any import that's been `in_progress` for more than 30 minutes, marks it `failed` with `error_log = 'Server restarted before import completed'`, and stamps `finished_at`. The Import History page surfaces a terminal failed state and the admin can re-upload the file. Conservative threshold (30 min) is well above the worst observed runtime (~2 min for a 5K-row XLS).
+
+### Changed
+- **JSON request body limit raised from 5 MB → 50 MB.** The Backup → Restore endpoint accepts a full snapshot (users + tasks + notes + agents + templates + …) which on a populated install runs to 30–60 MB. The previous 5 MB ceiling silently 413'd large restores. The 413 error message also got more accurate ("Request body is too large" — the old text said "Transcript" which only made sense for Process Call Notes).
+
+---
+
 ## 2026-04-29
 
 ### Removed

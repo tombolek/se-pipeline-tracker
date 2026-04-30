@@ -34,9 +34,14 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(cors());
-// 5 MB ceiling covers even a multi-hour transcript dump into Process Call Notes
-// without re-triggering PayloadTooLargeError from body-parser's 100 KB default.
-app.use(express.json({ limit: '5mb' }));
+// 50 MB ceiling. Sized for the largest realistic JSON body the API receives:
+// the Backup → Restore endpoint accepts a full snapshot of users + tasks +
+// notes + agents + templates etc., which in production runs to ~30–60 MB
+// once the project has been live for a while. Process Call Notes transcripts
+// (the previous reason for the 5 MB ceiling) sit comfortably under this.
+// body-parser's default is 100 KB, so without an explicit limit any big POST
+// throws PayloadTooLargeError before our handlers see it.
+app.use(express.json({ limit: '50mb' }));
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -114,7 +119,7 @@ app.use((err: unknown, req: Request, res: Response, _next: NextFunction) => {
     if (e && (e.type === 'entity.too.large' || e.status === 413)) {
       res.status(413).json({
         data: null,
-        error: 'Transcript is too large (limit 5 MB). Trim the notes and try again.',
+        error: 'Request body is too large (limit 50 MB). Trim the input and try again.',
         meta: {},
       });
       return;
@@ -145,6 +150,30 @@ query(`DELETE FROM inbox_items  WHERE is_deleted = true AND deleted_at < now() -
 sweepStaleRunningJobs().then(n => {
   if (n > 0) console.log(`[ai] swept ${n} stale running job(s) on startup`);
 }).catch(err => console.error(`[ai] stale-job sweep failed: ${err?.message ?? err}`));
+
+// Imports orphaned by a process crash or container replacement — same idea.
+// The 5-stage import pipeline (Parse → Validate → Reconcile → Enrich →
+// Finalize) runs in-process; if the server is killed mid-flight the row sits
+// at status='in_progress' forever and the Import History page polls it
+// indefinitely. On startup, mark anything that's been 'in_progress' for over
+// 30 minutes as 'failed' so the UI surfaces a terminal state and the admin
+// can retry. 30 min is well above the worst observed total runtime (~2 min
+// for a 5K-row XLS); anything older is definitely a ghost.
+query<{ id: number }>(
+  `UPDATE imports
+      SET status     = 'failed',
+          error_log  = COALESCE(error_log, 'Server restarted before import completed'),
+          finished_at = COALESCE(finished_at, now())
+    WHERE status = 'in_progress'
+      AND started_at < now() - interval '30 minutes'
+    RETURNING id`
+)
+  .then(rows => {
+    if (rows.length > 0) {
+      console.log(`[imports] swept ${rows.length} stale in_progress import(s) on startup`);
+    }
+  })
+  .catch(err => console.error(`[imports] stale-import sweep failed: ${err?.message ?? err}`));
 
 // Fill agents.prompt_template from the golden baseline in agentTemplates.ts
 // for any row that's still NULL. Admin edits (non-NULL) are never overwritten.
